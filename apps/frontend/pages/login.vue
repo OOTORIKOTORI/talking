@@ -54,7 +54,6 @@
 </template>
 
 <script setup lang="ts">
-const supabase = useSupabaseClient()
 const router = useRouter()
 const route = useRoute()
 
@@ -63,10 +62,13 @@ const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 
-// ログイン済みの場合はトップへリダイレクト
+// ログイン済みの場合はトップへリダイレクト（クライアントサイドのみ）
 onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) navigateTo('/')
+  if (process.client) {
+    const supabase = useSupabaseClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) navigateTo('/')
+  }
 })
 
 const handleLogin = async () => {
@@ -74,6 +76,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
   
   try {
+    const supabase = useSupabaseClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,

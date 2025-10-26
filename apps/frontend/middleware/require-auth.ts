@@ -8,12 +8,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const supabase = useSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  console.log('[require-auth] Session:', session ? 'exists' : 'null')
-  
-  if (!session) {
-    console.log('[require-auth] Redirecting to /login')
-    return navigateTo('/login')
+  // クライアントサイドのみで実行
+  if (process.client) {
+    const supabase = useSupabaseClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    console.log('[require-auth] Session:', session ? 'exists' : 'null')
+    
+    if (!session) {
+      console.log('[require-auth] Redirecting to /login')
+      return navigateTo('/login')
+    }
   }
 })
