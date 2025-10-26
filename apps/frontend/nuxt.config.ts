@@ -10,6 +10,12 @@ export default defineNuxtConfig({
   supabase: {
     // Database型定義の警告を無効化
     types: false,
+    // 自動リダイレクトを無効化（手動でミドルウェア制御）
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirm',
+      exclude: ['/', '/assets', '/assets/*', '/login', '/logout'],
+    }
   },
 
   alias: {
