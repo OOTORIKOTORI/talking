@@ -1,0 +1,76 @@
+name: ✨ 機能要望
+description: 新機能の提案
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新機能の提案ありがとうございます。以下のフォームに従って情報を記入してください。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 解決したい課題
+      description: どんな課題を解決したいですか?
+      placeholder: |
+        例: アセット一覧画面で、タグでフィルタできない
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 提案する解決策
+      description: どんな機能があれば解決できますか?
+      placeholder: |
+        例: タグ選択 UI を追加し、選択したタグでフィルタリングできるようにする
+    validations:
+      required: true
+
+  - type: textarea
+    id: ui
+    attributes:
+      label: 📐 UI イメージ
+      description: UI のイメージがあれば記載してください (スケッチ, スクリーンショット, 既存サービスの参考 URL など)
+      placeholder: |
+        例: Notion のタグフィルタのような UI
+        https://example.com/screenshot.png
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 📋 要件
+      description: 機能の詳細な要件を箇条書きで記載してください
+      placeholder: |
+        - タグを複数選択可能
+        - 選択したタグで AND フィルタ
+        - URL クエリパラメータでタグを指定可能
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 代替案
+      description: 他に考えられる解決策があれば記載してください
+      placeholder: |
+        例: タグではなくカテゴリでフィルタする
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 優先度
+      description: どのくらい優先度が高いですか?
+      options:
+        - 高 (すぐに必要)
+        - 中 (近いうちに必要)
+        - 低 (あったら嬉しい)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 その他
+      description: その他、補足情報があれば記載してください

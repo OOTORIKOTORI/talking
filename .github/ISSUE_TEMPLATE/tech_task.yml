@@ -1,0 +1,98 @@
+name: 🔧 技術タスク
+description: リファクタリング・パフォーマンス改善・技術的負債の解消など
+title: "tech: "
+labels: ["tech-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        技術タスクの提案ありがとうございます。以下のフォームに従って情報を記入してください。
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: 🎯 目的
+      description: このタスクで何を達成したいですか?
+      placeholder: |
+        例: アセット一覧の Composable を分離して、コードを整理する
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: 📌 タスク種別
+      description: どのタイプのタスクですか?
+      options:
+        - リファクタリング
+        - パフォーマンス改善
+        - 技術的負債の解消
+        - ドキュメント整備
+        - テスト追加
+        - セキュリティ対応
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_situation
+    attributes:
+      label: 📝 現状
+      description: 現在の状況を記載してください
+      placeholder: |
+        例:
+        - `pages/assets/index.vue` が 300 行を超えている
+        - ロジックと UI が混在している
+        - テストが書きにくい
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: 💡 提案する解決策
+      description: どのように改善しますか?
+      placeholder: |
+        例:
+        - `composables/useAssets.ts` を作成
+        - `fetchAssets()`, `filteredAssets`, `loading` を Composable に移動
+        - `pages/assets/index.vue` は UI のみに専念
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 🔍 影響範囲
+      description: どのファイル・モジュールに影響しますか?
+      placeholder: |
+        - `apps/frontend/pages/assets/index.vue`
+        - `apps/frontend/composables/useAssets.ts` (新規作成)
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: ✅ 完了条件
+      description: どうなれば完了ですか?
+      placeholder: |
+        - 型エラーなし
+        - 既存の動作が壊れていない
+        - `pages/assets/index.vue` が 150 行以下になっている
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 優先度
+      description: どのくらい優先度が高いですか?
+      options:
+        - 高 (すぐに対応)
+        - 中 (近いうちに対応)
+        - 低 (余裕があれば対応)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 その他
+      description: その他、補足情報があれば記載してください

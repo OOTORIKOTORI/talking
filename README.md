@@ -2,17 +2,47 @@
 
 A monorepo project using pnpm workspaces.
 
+## 📚 ドキュメント
+
+**→ [docs/README.md](./docs/README.md) にドキュメント索引があります**
+
+- [アーキテクチャ](./docs/architecture.md): システム構成・データフロー
+- [開発環境セットアップ](./docs/dev-setup.md): 初回セットアップ・日常起動
+- [開発ワークフロー](./docs/workflow.md): ブランチ規約・PR チェックリスト
+- [ハンドオフ手順](./docs/handoff.md): 複数チャット向け引き継ぎ
+- [ロードマップ](./docs/roadmap.md): MVP → β → 正式リリースの計画
+
+---
+
+## 🚀 開発クイックスタート
+
+```powershell
+# 1. 依存インストール
+pnpm install
+
+# 2. Docker サービス起動 & 開発サーバー起動
+pnpm dev:all
+
+# 3. Prisma マイグレーション実行
+cd apps/api
+pnpm prisma migrate dev
+```
+
+詳細は [開発環境セットアップ](./docs/dev-setup.md) を参照してください。
+
+---
+
 ## Monorepo Layout
 
 ```
 talking/
 ├── apps/
-│   ├── frontend/    # Frontend application
-│   ├── api/         # API server
-│   └── worker/      # Background worker
+│   ├── frontend/    # Nuxt 3 フロントエンド
+│   ├── api/         # NestJS API サーバー
+│   └── worker/      # BullMQ ワーカー
 └── packages/
-    ├── types/       # Shared TypeScript types
-    └── sdk/         # SDK library
+    ├── types/       # 共通型定義
+    └── sdk/         # SDK ライブラリ (予約)
 ```
 
 ## Requirements
@@ -21,7 +51,9 @@ talking/
 - pnpm v10.16.0
 - Docker Desktop for Windows
 
-## Local Development Setup
+---
+
+## Local Development Setup (詳細)
 
 ## クイックスタート
 
