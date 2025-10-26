@@ -1,11 +1,7 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  const user = useSupabaseUser()
+  // requiresAuth が付いているページだけログインを要求する
+  if (!to.meta.requiresAuth) return
 
-  // Check if the route requires auth
-  if (to.meta.requiresAuth && !user.value) {
-    return navigateTo({
-      path: '/login',
-      query: { redirect: to.fullPath }
-    })
-  }
+  const { data: { session } } = await useSupabaseClient().auth.getSession()
+  if (!session) return navigateTo('/login')
 })
