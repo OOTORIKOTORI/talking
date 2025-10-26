@@ -3,7 +3,7 @@ export function useUploader() {
   const apiBase = config.public.apiBase as string
   const s3PublicBase = config.public.s3PublicBase as string
 
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File, title?: string) {
     // Step 1: Get signed URL from API
     const signedUrlResponse = await $fetch<{
       url: string
@@ -11,13 +11,10 @@ export function useUploader() {
       key: string
     }>(`${apiBase}/uploads/signed-url`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+      body: {
         filename: file.name,
         contentType: file.type,
-      }),
+      },
     })
 
     // Step 2: Upload file to S3/MinIO using signed URL
@@ -30,16 +27,27 @@ export function useUploader() {
     })
 
     if (!uploadResponse.ok) {
-      throw new Error(`Upload failed: ${uploadResponse.statusText}`)
+      throw new Error(`アップロードに失敗しました（${uploadResponse.status} ${uploadResponse.statusText}）`)
     }
 
-    // Step 3: Construct public URL
+    // Step 3: Finalize - save to database
+    const asset = await $fetch(`${apiBase}/assets`, {
+      method: 'POST',
+      body: {
+        key: signedUrlResponse.key,
+        title: title,
+        contentType: file.type,
+        size: file.size,
+      },
+    })
+
+    // Step 4: Construct public URL
     const publicUrl = `${s3PublicBase}/${signedUrlResponse.key}`
 
     return {
       key: signedUrlResponse.key,
-      putUrl: signedUrlResponse.url,
       publicUrl,
+      asset,
     }
   }
 

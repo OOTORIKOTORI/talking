@@ -7,20 +7,20 @@
           Talking
         </h1>
         <p class="text-gray-600 mb-4">
-          Audio Conversation Platform
+          画像・音声・キャラ素材の共有と会話
         </p>
         <div class="flex items-center justify-center space-x-4">
           <NuxtLink
             to="/upload"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
-            Upload File
+            ファイルをアップロード
           </NuxtLink>
           <NuxtLink
             to="/assets"
             class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            View Assets
+            アセット一覧
           </NuxtLink>
         </div>
       </div>
@@ -28,7 +28,7 @@
       <div class="bg-white shadow rounded-lg p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-semibold text-gray-800">
-            API Health Status
+            APIの状態
           </h2>
           <span
             v-if="!pending"
@@ -39,7 +39,7 @@
               class="w-2 h-2 mr-2 rounded-full"
               :class="healthStatus.ok ? 'bg-green-400' : 'bg-red-400'"
             ></span>
-            {{ healthStatus.ok ? 'Healthy' : 'Unhealthy' }}
+            {{ healthStatus.ok ? '正常' : '異常' }}
           </span>
         </div>
 
@@ -77,7 +77,7 @@
               </div>
               <details class="mt-3">
                 <summary class="cursor-pointer text-gray-600 hover:text-gray-900">
-                  View full response
+                  レスポンスを表示
                 </summary>
                 <pre class="bg-white rounded p-2 mt-2 overflow-x-auto text-xs">{{ JSON.stringify(data, null, 2) }}</pre>
               </details>
@@ -86,14 +86,14 @@
         </div>
 
         <div class="mt-4 text-sm text-gray-500">
-          <p>API Base URL: <code class="bg-gray-100 px-2 py-1 rounded">{{ config.public.apiBase }}</code></p>
+          <p>API ベースURL: <code class="bg-gray-100 px-2 py-1 rounded">{{ config.public.apiBase }}</code></p>
         </div>
       </div>
 
       <!-- Quick Links -->
       <div class="bg-white shadow rounded-lg p-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">
-          Quick Links
+          クイックリンク
         </h2>
         <div class="grid grid-cols-1 gap-3">
           <NuxtLink
@@ -101,8 +101,8 @@
             class="flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors group"
           >
             <div>
-              <h3 class="font-medium text-blue-900">Upload Files</h3>
-              <p class="text-sm text-blue-700">Upload images and audio files to S3/MinIO</p>
+              <h3 class="font-medium text-blue-900">ファイルをアップロード</h3>
+              <p class="text-sm text-blue-700">画像や音声を S3/MinIO にアップロード</p>
             </div>
             <svg
               class="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform"

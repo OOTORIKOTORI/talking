@@ -2,19 +2,19 @@
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-2xl mx-auto px-4">
       <div class="flex items-center justify-between mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Upload File</h1>
+        <h1 class="text-3xl font-bold text-gray-900">ファイルアップロード</h1>
         <div class="flex space-x-4">
           <NuxtLink
             to="/assets"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            View Assets
+            アセット一覧
           </NuxtLink>
           <NuxtLink
             to="/"
             class="text-gray-600 hover:text-gray-700 font-medium"
           >
-            Home
+            ホーム
           </NuxtLink>
         </div>
       </div>
@@ -23,21 +23,21 @@
         <!-- Title Input -->
         <div>
           <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-            Title (Optional)
+            タイトル（任意）
           </label>
           <input
             id="title"
             v-model="title"
             type="text"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Enter a title for your file"
+            placeholder="ファイルのタイトルを入力"
           />
         </div>
 
         <!-- File Upload Area -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            Select File
+            ファイルを選択
           </label>
           <div
             class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors"
@@ -68,16 +68,16 @@
                 />
               </svg>
               <p class="mt-2 text-sm text-gray-600">
-                Drag and drop your file here, or
+                ファイルをドラッグ＆ドロップ、または
                 <button
                   type="button"
                   class="text-blue-600 hover:text-blue-700 font-medium"
                   @click="fileInput?.click()"
                 >
-                  browse
+                  参照
                 </button>
               </p>
-              <p class="mt-1 text-xs text-gray-500">Images and audio files supported</p>
+              <p class="mt-1 text-xs text-gray-500">画像・音声ファイル対応</p>
             </div>
             <div v-else class="text-left">
               <p class="text-sm font-medium text-gray-900">{{ selectedFile.name }}</p>
@@ -87,7 +87,7 @@
                 class="mt-2 text-sm text-red-600 hover:text-red-700"
                 @click="selectedFile = null"
               >
-                Remove
+                削除
               </button>
             </div>
           </div>
@@ -100,7 +100,7 @@
           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           @click="handleUpload"
         >
-          {{ uploading ? 'Uploading...' : 'Upload' }}
+          {{ uploading ? 'アップロード中...' : 'アップロード' }}
         </button>
 
         <!-- Error Message -->
@@ -110,7 +110,7 @@
 
         <!-- Success Message with Preview -->
         <div v-if="uploadResult" class="p-4 bg-green-50 border border-green-200 rounded-lg space-y-4">
-          <p class="text-sm text-green-800 font-medium">Upload successful!</p>
+          <p class="text-sm text-green-800 font-medium">アップロードと保存が完了しました</p>
           <div>
             <p class="text-xs text-gray-600 mb-1">Public URL:</p>
             <a
@@ -180,13 +180,13 @@ async function handleUpload() {
   uploadResult.value = null
 
   try {
-    const result = await uploadFile(selectedFile.value)
+    const result = await uploadFile(selectedFile.value, title.value || undefined)
     uploadResult.value = {
       ...result,
       fileType: selectedFile.value.type
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Upload failed'
+    error.value = err instanceof Error ? err.message : 'アップロードに失敗しました'
   } finally {
     uploading.value = false
   }

@@ -9,7 +9,7 @@
             to="/"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            ← Back to Home
+            ← ホームへ戻る
           </NuxtLink>
         </div>
       </div>
@@ -50,7 +50,7 @@
             to="/upload"
             class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
-            Upload File
+            ファイルをアップロード
           </NuxtLink>
         </div>
       </div>
