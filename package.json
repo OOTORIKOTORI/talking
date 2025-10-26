@@ -11,7 +11,8 @@
     "dev:api": "pnpm -C apps/api start:dev",
     "dev:web": "pnpm -C apps/frontend dev",
     "dev:worker": "pnpm -C apps/worker dev",
-    "dev:all": "pnpm dev:infra && concurrently -n API,WEB,WORKER -c auto \"pnpm -C apps/api start:dev\" \"pnpm -C apps/frontend dev\" \"pnpm -C apps/worker dev\""
+    "dev:all": "pnpm dev:infra && concurrently -n API,WEB,WORKER -c auto \"pnpm -C apps/api start:dev\" \"pnpm -C apps/frontend dev\" \"pnpm -C apps/worker dev\"",
+    "fix:asset:urls": "node apps/api/scripts/fix-asset-urls.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { nanoid } from 'nanoid';
 
@@ -66,5 +66,18 @@ export class UploadsService {
       method: 'PUT',
       key,
     };
+  }
+
+  async getSignedGetUrl(key: string, ttlSec = 300): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const url = await getSignedUrl(this.s3Client, command, {
+      expiresIn: ttlSec,
+    });
+
+    return url;
   }
 }

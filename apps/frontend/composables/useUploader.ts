@@ -1,3 +1,5 @@
+import { getSignedGetUrl } from '@/composables/useSignedUrl'
+
 export function useUploader() {
   const config = useRuntimeConfig()
   const apiBase = config.public.apiBase as string
@@ -44,10 +46,14 @@ export function useUploader() {
     // Step 4: Construct public URL
     const publicUrl = `${s3PublicBase}/${signedUrlResponse.key}`
 
+    // Step 5: Get signed URL for accessing the uploaded file
+    const signedUrl = await getSignedGetUrl(signedUrlResponse.key, 600)
+
     return {
       key: signedUrlResponse.key,
       publicUrl,
       asset,
+      signedUrl,
     }
   }
 

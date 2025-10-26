@@ -112,29 +112,28 @@
         <div v-if="uploadResult" class="p-4 bg-green-50 border border-green-200 rounded-lg space-y-4">
           <p class="text-sm text-green-800 font-medium">アップロードと保存が完了しました</p>
           <div>
-            <p class="text-xs text-gray-600 mb-1">Public URL:</p>
-            <a
-              :href="uploadResult.publicUrl"
-              target="_blank"
-              class="text-sm text-blue-600 hover:text-blue-700 break-all"
-            >
-              {{ uploadResult.publicUrl }}
-            </a>
+            <label class="block text-xs text-gray-600 mb-1">表示用URL（有効期限あり）:</label>
+            <input
+              type="text"
+              readonly
+              :value="uploadResult.signedUrl"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 text-gray-700"
+            />
           </div>
 
           <!-- Preview -->
           <div v-if="uploadResult.fileType.startsWith('image/')" class="mt-4">
-            <p class="text-xs text-gray-600 mb-2">Preview:</p>
+            <p class="text-xs text-gray-600 mb-2">プレビュー:</p>
             <img
-              :src="uploadResult.publicUrl"
-              :alt="title || 'Uploaded image'"
+              :src="uploadResult.signedUrl"
+              :alt="title || 'プレビュー'"
               class="max-w-full h-auto rounded-lg border border-gray-200"
             />
           </div>
           <div v-else-if="uploadResult.fileType.startsWith('audio/')" class="mt-4">
-            <p class="text-xs text-gray-600 mb-2">Preview:</p>
+            <p class="text-xs text-gray-600 mb-2">プレビュー:</p>
             <audio controls class="w-full">
-              <source :src="uploadResult.publicUrl" :type="uploadResult.fileType" />
+              <source :src="uploadResult.signedUrl" :type="uploadResult.fileType" />
             </audio>
           </div>
         </div>
@@ -150,7 +149,7 @@ const fileInput = ref<HTMLInputElement>()
 const isDragging = ref(false)
 const uploading = ref(false)
 const error = ref('')
-const uploadResult = ref<{ publicUrl: string; key: string; fileType: string } | null>(null)
+const uploadResult = ref<{ publicUrl: string; key: string; fileType: string; signedUrl?: string } | null>(null)
 
 const { uploadFile } = useUploader()
 

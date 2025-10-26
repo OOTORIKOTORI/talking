@@ -37,27 +37,29 @@ export class AssetsService {
   }
 
   async findAll(query: QueryAssetsDto) {
-    const { limit = 20, cursor } = query;
+    const rawLimit = Number(query.limit) || 20;
+    const take = Math.min(Math.max(rawLimit, 1), 100);
 
     const items = await this.prisma.asset.findMany({
-      take: limit + 1,
-      ...(cursor && {
+      take: take + 1,
+      ...(query.cursor && {
         cursor: {
-          id: cursor,
+          id: query.cursor,
         },
         skip: 1,
       }),
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
     });
 
-    const hasMore = items.length > limit;
-    const results = hasMore ? items.slice(0, limit) : items;
-    const nextCursor = hasMore ? results[results.length - 1].id : null;
+    const hasNext = items.length > take;
+    const nextCursor = hasNext ? items[take].id : null;
+    const sliced = hasNext ? items.slice(0, take) : items;
 
     return {
-      items: results,
+      items: sliced,
       nextCursor,
     };
   }

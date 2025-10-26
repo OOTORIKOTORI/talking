@@ -4,7 +4,7 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-900">Assets</h1>
+          <h1 class="text-2xl font-bold text-gray-900">アセット一覧</h1>
           <NuxtLink
             to="/"
             class="text-blue-600 hover:text-blue-700 font-medium"
@@ -32,7 +32,7 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Error loading assets</h3>
+            <h3 class="text-sm font-medium text-red-800">アセットの取得に失敗しました</h3>
             <p class="mt-1 text-sm text-red-700">{{ error }}</p>
           </div>
         </div>
@@ -43,8 +43,8 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No assets</h3>
-        <p class="mt-1 text-sm text-gray-500">Get started by uploading a file.</p>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">アセットはまだありません</h3>
+        <p class="mt-1 text-sm text-gray-500">ファイルをアップロードして始めましょう。</p>
         <div class="mt-6">
           <NuxtLink
             to="/upload"
@@ -102,8 +102,8 @@
             :disabled="loading"
             class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span v-if="loading">Loading...</span>
-            <span v-else>Load More</span>
+            <span v-if="loading">読み込み中...</span>
+            <span v-else>さらに読み込む</span>
           </button>
         </div>
       </div>
@@ -136,7 +136,7 @@ const loadAssets = async (cursor?: string) => {
     
     nextCursor.value = result.nextCursor;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to load assets';
+    error.value = e instanceof Error ? `取得に失敗しました: ${e.message}` : '取得に失敗しました';
   } finally {
     loading.value = false;
   }
