@@ -12,6 +12,6 @@ export class UploadsController {
 
   @Post('signed-url')
   async getSignedUrl(@Body() dto: SignedUrlRequestDto) {
-    return this.uploadsService.generateSignedUrl(dto);
+    return this.uploadsService.getSignedPutUrl(dto);
   }
 }

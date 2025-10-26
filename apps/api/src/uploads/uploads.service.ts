@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 interface SignedUrlRequest {
   filename: string;
@@ -8,30 +10,48 @@ interface SignedUrlRequest {
 
 @Injectable()
 export class UploadsService {
-  constructor(private configService: ConfigService) {}
+  private s3Client: S3Client;
+  private bucket: string;
 
-  async generateSignedUrl(request: SignedUrlRequest) {
-    // STUB: In production, use AWS SDK or MinIO client to generate actual signed URLs
-    const s3Endpoint = this.configService.get<string>('S3_ENDPOINT');
-    const s3Bucket = this.configService.get<string>('S3_BUCKET');
-    const s3Region = this.configService.get<string>('S3_REGION');
+  constructor(private configService: ConfigService) {
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const region = this.configService.get<string>('S3_REGION', 'us-east-1');
+    const accessKeyId = this.configService.get<string>('S3_ACCESS_KEY');
+    const secretAccessKey = this.configService.get<string>('S3_SECRET_KEY');
+    const forcePathStyle = this.configService.get<string>('S3_FORCE_PATH_STYLE') === 'true';
+    
+    this.bucket = this.configService.get<string>('S3_BUCKET', 'uploads');
 
-    // Generate a unique key for the file
+    this.s3Client = new S3Client({
+      endpoint,
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle,
+    });
+  }
+
+  async getSignedPutUrl(request: SignedUrlRequest) {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const key = `uploads/${timestamp}-${randomString}-${request.filename}`;
 
-    // Placeholder response - replace with actual S3/MinIO signed URL logic
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: request.contentType,
+    });
+
+    const url = await getSignedUrl(this.s3Client, command, {
+      expiresIn: 3600,
+    });
+
     return {
-      url: `${s3Endpoint}/${s3Bucket}/${key}`,
+      url,
+      method: 'PUT',
       key,
-      bucket: s3Bucket,
-      region: s3Region,
-      // In real implementation, include presigned URL and fields for direct upload
-      fields: {
-        'Content-Type': request.contentType,
-      },
-      note: 'This is a stub. Implement actual S3 signed URL generation using AWS SDK or MinIO client.',
     };
   }
 }
