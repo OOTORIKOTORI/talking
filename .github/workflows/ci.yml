@@ -10,6 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm を先にインストール（v10.16.0）
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.16.0
+
       # Node 22 + pnpm キャッシュ
       - name: Use Node.js 22
         uses: actions/setup-node@v4
@@ -17,12 +23,8 @@ jobs:
           node-version: 22
           cache: 'pnpm' # pnpm ロックを使ったキャッシュを有効化
 
-      # ここで pnpm をインストール（v10.16.0）。ついでに install まで実行
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.16.0
-          run_install: true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Show versions
         run: |
