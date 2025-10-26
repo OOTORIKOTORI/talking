@@ -1,0 +1,11 @@
+{
+  "name": "talking",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.16.0",
+  "scripts": {
+    "lint": "echo (later)",
+    "typecheck": "echo (later)",
+    "build": "pnpm -C apps/api build && pnpm -C apps/frontend build && pnpm -C apps/worker build"
+  }
+}

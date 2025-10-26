@@ -1,0 +1,17 @@
+# Compiled output
+dist
+node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# Environment
+.env
+.env.*
+!.env.example
