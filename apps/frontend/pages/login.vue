@@ -63,6 +63,12 @@ const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 
+// ログイン済みの場合はトップへリダイレクト
+onMounted(async () => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) navigateTo('/')
+})
+
 const handleLogin = async () => {
   loading.value = true
   errorMessage.value = ''

@@ -153,6 +153,8 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ middleware: ['require-auth'] })
+
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const title = ref('')
@@ -227,10 +229,4 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
-</script>
-
-<script lang="ts">
-definePageMeta({
-  requiresAuth: true
-})
 </script>
