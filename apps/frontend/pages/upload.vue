@@ -113,12 +113,21 @@
           <p class="text-sm text-green-800 font-medium">アップロードと保存が完了しました</p>
           <div>
             <label class="block text-xs text-gray-600 mb-1">表示用URL（有効期限あり）:</label>
-            <input
-              type="text"
-              readonly
-              :value="uploadResult.signedUrl"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 text-gray-700"
-            />
+            <div class="flex items-center space-x-2">
+              <input
+                type="text"
+                readonly
+                :value="uploadResult.signedUrl"
+                class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 text-gray-700"
+              />
+              <button
+                type="button"
+                @click="refreshUploadSignedUrl"
+                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700"
+              >
+                再取得
+              </button>
+            </div>
           </div>
 
           <!-- Preview -->
@@ -128,11 +137,12 @@
               :src="uploadResult.signedUrl"
               :alt="title || 'プレビュー'"
               class="max-w-full h-auto rounded-lg border border-gray-200"
+              @error="handleUploadMediaError"
             />
           </div>
           <div v-else-if="uploadResult.fileType.startsWith('audio/')" class="mt-4">
             <p class="text-xs text-gray-600 mb-2">プレビュー:</p>
-            <audio controls class="w-full">
+            <audio controls class="w-full" @error="handleUploadMediaError">
               <source :src="uploadResult.signedUrl" :type="uploadResult.fileType" />
             </audio>
           </div>
@@ -143,6 +153,8 @@
 </template>
 
 <script setup lang="ts">
+import { getSignedGetUrl } from '@/composables/useSignedUrl';
+
 const title = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement>()
@@ -150,6 +162,7 @@ const isDragging = ref(false)
 const uploading = ref(false)
 const error = ref('')
 const uploadResult = ref<{ publicUrl: string; key: string; fileType: string; signedUrl?: string } | null>(null)
+const uploadMediaErrorRetried = ref(false)
 
 const { uploadFile } = useUploader()
 
@@ -177,6 +190,7 @@ async function handleUpload() {
   uploading.value = true
   error.value = ''
   uploadResult.value = null
+  uploadMediaErrorRetried.value = false
 
   try {
     const result = await uploadFile(selectedFile.value, title.value || undefined)
@@ -189,6 +203,23 @@ async function handleUpload() {
   } finally {
     uploading.value = false
   }
+}
+
+async function refreshUploadSignedUrl() {
+  if (!uploadResult.value) return;
+  try {
+    const newSignedUrl = await getSignedGetUrl(uploadResult.value.key);
+    uploadResult.value.signedUrl = newSignedUrl;
+    uploadMediaErrorRetried.value = false;
+  } catch (err) {
+    console.error('Failed to refresh signed URL', err);
+  }
+}
+
+async function handleUploadMediaError() {
+  if (uploadMediaErrorRetried.value || !uploadResult.value) return;
+  uploadMediaErrorRetried.value = true;
+  await refreshUploadSignedUrl();
 }
 
 function formatFileSize(bytes: number): string {

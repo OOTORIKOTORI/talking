@@ -4,12 +4,12 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-900">Asset Details</h1>
+          <h1 class="text-2xl font-bold text-gray-900">アセット詳細</h1>
           <NuxtLink
             to="/assets"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            ← Back to Assets
+            ← アセット一覧に戻る
           </NuxtLink>
         </div>
       </div>
@@ -44,15 +44,17 @@
         <div class="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
           <img
             v-if="asset.contentType.startsWith('image/')"
-            :src="asset.url"
+            :src="signedUrl"
             :alt="asset.title || 'Asset'"
             class="w-full h-full object-contain"
+            @error="handleMediaError"
           />
           <audio
             v-else-if="asset.contentType.startsWith('audio/')"
-            :src="asset.url"
+            :src="signedUrl"
             controls
             class="w-full max-w-2xl px-4"
+            @error="handleMediaError"
           ></audio>
           <div v-else class="flex flex-col items-center justify-center text-gray-400">
             <svg class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,32 +76,32 @@
           <!-- Info Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">File Size</dt>
+              <dt class="text-sm font-medium text-gray-500">ファイルサイズ</dt>
               <dd class="mt-1 text-lg text-gray-900">{{ formatFileSize(asset.size) }}</dd>
             </div>
 
             <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">Content Type</dt>
+              <dt class="text-sm font-medium text-gray-500">コンテンツタイプ</dt>
               <dd class="mt-1 text-lg text-gray-900">{{ asset.contentType }}</dd>
             </div>
 
             <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">Created</dt>
+              <dt class="text-sm font-medium text-gray-500">作成</dt>
               <dd class="mt-1 text-lg text-gray-900">{{ formatDate(asset.createdAt) }}</dd>
             </div>
 
             <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">Asset ID</dt>
+              <dt class="text-sm font-medium text-gray-500">アセットID</dt>
               <dd class="mt-1 text-sm text-gray-900 font-mono truncate">{{ asset.id }}</dd>
             </div>
           </div>
 
           <!-- URL -->
           <div class="border-t pt-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">URL</dt>
+            <dt class="text-sm font-medium text-gray-500 mb-2">表示用URL（有効期限あり）</dt>
             <dd class="flex items-center space-x-2">
               <input
-                :value="asset.url"
+                :value="signedUrl"
                 readonly
                 class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-mono text-gray-700"
               />
@@ -108,6 +110,12 @@
                 class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
               >
                 {{ copied ? 'Copied!' : 'Copy' }}
+              </button>
+              <button
+                @click="refreshSignedUrl"
+                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+              >
+                再取得
               </button>
             </dd>
           </div>
@@ -145,6 +153,7 @@
 
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
+import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const route = useRoute();
 const { getAsset } = useAssets();
@@ -153,6 +162,8 @@ const asset = ref<Asset | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const copied = ref(false);
+const signedUrl = ref<string>('');
+const mediaErrorRetried = ref(false);
 
 const loadAsset = async () => {
   const id = route.params.id as string;
@@ -165,11 +176,30 @@ const loadAsset = async () => {
     loading.value = true;
     error.value = null;
     asset.value = await getAsset(id);
+    if (asset.value) {
+      signedUrl.value = await getSignedGetUrl(asset.value.key);
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load asset';
   } finally {
     loading.value = false;
   }
+};
+
+const refreshSignedUrl = async () => {
+  if (!asset.value) return;
+  try {
+    signedUrl.value = await getSignedGetUrl(asset.value.key);
+    mediaErrorRetried.value = false;
+  } catch (e) {
+    console.error('Failed to refresh signed URL', e);
+  }
+};
+
+const handleMediaError = async () => {
+  if (mediaErrorRetried.value || !asset.value) return;
+  mediaErrorRetried.value = true;
+  await refreshSignedUrl();
 };
 
 const formatFileSize = (bytes: number): string => {
@@ -197,9 +227,9 @@ const getFileExtension = (contentType: string): string => {
 };
 
 const copyUrl = async () => {
-  if (asset.value) {
+  if (signedUrl.value) {
     try {
-      await navigator.clipboard.writeText(asset.value.url);
+      await navigator.clipboard.writeText(signedUrl.value);
       copied.value = true;
       setTimeout(() => {
         copied.value = false;
