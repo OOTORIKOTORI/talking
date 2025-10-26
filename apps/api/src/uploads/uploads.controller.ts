@@ -18,7 +18,6 @@ export class UploadsController {
   }
 
   @Get('signed-get')
-  @UseGuards(SupabaseAuthGuard)
   async getSignedGetUrl(
     @Query('key') key: string,
     @Query('ttl') ttl?: string,
