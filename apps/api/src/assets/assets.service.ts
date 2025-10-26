@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchProducer } from '../queues/search.producer';
 import { CreateAssetDto } from './dto/create-asset.dto';
+import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
 
 @Injectable()
@@ -24,6 +25,8 @@ export class AssetsService {
       data: {
         key: createAssetDto.key,
         title: createAssetDto.title,
+        description: createAssetDto.description,
+        tags: createAssetDto.tags || [],
         contentType: createAssetDto.contentType,
         size: createAssetDto.size,
         url,
@@ -68,5 +71,21 @@ export class AssetsService {
     return this.prisma.asset.findUnique({
       where: { id },
     });
+  }
+
+  async update(id: string, updateAssetDto: UpdateAssetDto) {
+    const asset = await this.prisma.asset.update({
+      where: { id },
+      data: {
+        ...(updateAssetDto.title !== undefined && { title: updateAssetDto.title }),
+        ...(updateAssetDto.description !== undefined && { description: updateAssetDto.description }),
+        ...(updateAssetDto.tags !== undefined && { tags: updateAssetDto.tags }),
+      },
+    });
+
+    // Enqueue for search indexing
+    await this.searchProducer.enqueueAsset(asset);
+
+    return asset;
   }
 }

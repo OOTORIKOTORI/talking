@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Query, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, NotFoundException } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
+import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
 
 @Controller('assets')
@@ -23,6 +24,12 @@ export class AssetsController {
     if (!asset) {
       throw new NotFoundException(`Asset with ID ${id} not found`);
     }
+    return asset;
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() updateAssetDto: UpdateAssetDto) {
+    const asset = await this.assetsService.update(id, updateAssetDto);
     return asset;
   }
 }

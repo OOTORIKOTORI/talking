@@ -1,12 +1,5 @@
 import type { Asset } from '@talking/types';
-
-export const getSignedGetUrl = async (key: string): Promise<string> => {
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
-  const response = await fetch(`${apiBase}/uploads/signed-get?key=${encodeURIComponent(key)}&ttl=300`);
-  const data = await response.json();
-  return data.url;
-};
+import { getSignedGetUrl } from './useSignedUrl';
 
 export const useAssets = () => {
   const config = useRuntimeConfig();
@@ -71,8 +64,65 @@ export const useAssets = () => {
     return item;
   };
 
+  const searchAssets = async (q: string, limit = 20, offset = 0) => {
+    const query = new URLSearchParams();
+    query.append('q', q);
+    query.append('limit', limit.toString());
+    query.append('offset', offset.toString());
+
+    const url = `${apiBase}/search/assets?${query.toString()}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to search assets: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const base = useRuntimeConfig().public.NUXT_PUBLIC_S3_PUBLIC_BASE;
+    for (const item of data.items) {
+      if (!item.url || item.url.startsWith('undefined')) {
+        item.url = `${base}/${item.key}`;
+      }
+      // Get signed URL if key exists
+      if (item.key) {
+        try {
+          item.url = await getSignedGetUrl(item.key);
+        } catch (e) {
+          // Fallback to public URL on error
+          console.warn('Failed to get signed URL, using fallback', e);
+        }
+      }
+    }
+    return {
+      items: data.items as Asset[],
+      total: data.total as number,
+      limit: data.limit as number,
+      offset: data.offset as number,
+    };
+  };
+
+  const updateAsset = async (id: string, data: { title?: string; description?: string; tags?: string[] }) => {
+    const url = `${apiBase}/assets/${id}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update asset: ${response.statusText}`);
+    }
+
+    return await response.json();
+  };
+
   return {
     listAssets,
     getAsset,
+    searchAssets,
+    updateAsset,
   };
 };

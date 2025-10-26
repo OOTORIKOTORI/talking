@@ -16,6 +16,8 @@ export interface Asset {
   id: string;
   key: string;
   title?: string;
+  description?: string;
+  tags: string[];
   contentType: string;
   size: number;
   url: string;

@@ -17,6 +17,17 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Search Box -->
+      <div class="mb-6">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="タイトル・説明・タグで検索"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          @input="onSearchInput"
+        />
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading && assets.length === 0" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -85,6 +96,21 @@
               <h3 class="font-medium text-gray-900 truncate">
                 {{ asset.title || 'Untitled' }}
               </h3>
+              <p v-if="asset.description" class="mt-1 text-sm text-gray-600 truncate">
+                {{ asset.description }}
+              </p>
+              <div v-if="asset.tags && asset.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
+                <span
+                  v-for="tag in asset.tags.slice(0, 3)"
+                  :key="tag"
+                  class="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded"
+                >
+                  {{ tag }}
+                </span>
+                <span v-if="asset.tags.length > 3" class="inline-block px-2 py-0.5 text-xs text-gray-500">
+                  +{{ asset.tags.length - 3 }}
+                </span>
+              </div>
               <p class="mt-1 text-sm text-gray-500">
                 {{ formatFileSize(asset.size) }}
               </p>
@@ -114,12 +140,14 @@
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
 
-const { listAssets } = useAssets();
+const { listAssets, searchAssets } = useAssets();
 
 const assets = ref<Asset[]>([]);
 const nextCursor = ref<string | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const searchQuery = ref('');
+let searchTimeout: NodeJS.Timeout | null = null;
 
 const loadAssets = async (cursor?: string) => {
   try {
@@ -140,6 +168,35 @@ const loadAssets = async (cursor?: string) => {
   } finally {
     loading.value = false;
   }
+};
+
+const performSearch = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const result = await searchAssets(searchQuery.value, 20, 0);
+    assets.value = result.items;
+    nextCursor.value = null; // Disable pagination in search mode
+  } catch (e) {
+    error.value = e instanceof Error ? `検索に失敗しました: ${e.message}` : '検索に失敗しました';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const onSearchInput = () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  searchTimeout = setTimeout(() => {
+    if (searchQuery.value.trim()) {
+      performSearch();
+    } else {
+      loadAssets();
+    }
+  }, 300);
 };
 
 const loadMore = () => {

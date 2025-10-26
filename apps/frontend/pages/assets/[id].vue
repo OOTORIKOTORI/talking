@@ -73,6 +73,31 @@
             </h2>
           </div>
 
+          <!-- Description -->
+          <div v-if="asset.description" class="bg-gray-50 rounded-lg p-4">
+            <dt class="text-sm font-medium text-gray-500">説明</dt>
+            <dd class="mt-1 text-gray-900 whitespace-pre-wrap">{{ asset.description }}</dd>
+          </div>
+          <div v-else class="bg-gray-50 rounded-lg p-4">
+            <dt class="text-sm font-medium text-gray-500">説明</dt>
+            <dd class="mt-1 text-gray-400">—</dd>
+          </div>
+
+          <!-- Tags -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <dt class="text-sm font-medium text-gray-500 mb-2">タグ</dt>
+            <dd v-if="asset.tags && asset.tags.length > 0" class="flex flex-wrap gap-2">
+              <span
+                v-for="tag in asset.tags"
+                :key="tag"
+                class="inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full"
+              >
+                {{ tag }}
+              </span>
+            </dd>
+            <dd v-else class="text-gray-400">—</dd>
+          </div>
+
           <!-- Info Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
@@ -120,6 +145,60 @@
             </dd>
           </div>
 
+          <!-- Edit Section -->
+          <div class="border-t pt-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">編集</h3>
+            <form @submit.prevent="saveAsset" class="space-y-4">
+              <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
+                <input
+                  id="title"
+                  v-model="editForm.title"
+                  type="text"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">説明</label>
+                <textarea
+                  id="description"
+                  v-model="editForm.description"
+                  rows="4"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                ></textarea>
+              </div>
+
+              <div>
+                <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">タグ（カンマ区切り）</label>
+                <input
+                  id="tags"
+                  v-model="editForm.tagsString"
+                  type="text"
+                  placeholder="例: 画像, デザイン, 2024"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div class="flex space-x-3">
+                <button
+                  type="submit"
+                  :disabled="saving"
+                  class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ saving ? '保存中...' : '保存' }}
+                </button>
+                <button
+                  type="button"
+                  @click="resetForm"
+                  class="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50"
+                >
+                  リセット
+                </button>
+              </div>
+            </form>
+          </div>
+
           <!-- Actions -->
           <div class="border-t pt-4 flex space-x-4">
             <a
@@ -156,7 +235,7 @@ import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const route = useRoute();
-const { getAsset } = useAssets();
+const { getAsset, updateAsset } = useAssets();
 
 const asset = ref<Asset | null>(null);
 const loading = ref(false);
@@ -164,6 +243,13 @@ const error = ref<string | null>(null);
 const copied = ref(false);
 const signedUrl = ref<string>('');
 const mediaErrorRetried = ref(false);
+const saving = ref(false);
+
+const editForm = ref({
+  title: '',
+  description: '',
+  tagsString: '',
+});
 
 const loadAsset = async () => {
   const id = route.params.id as string;
@@ -178,11 +264,49 @@ const loadAsset = async () => {
     asset.value = await getAsset(id);
     if (asset.value) {
       signedUrl.value = await getSignedGetUrl(asset.value.key);
+      resetForm();
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load asset';
   } finally {
     loading.value = false;
+  }
+};
+
+const resetForm = () => {
+  if (asset.value) {
+    editForm.value.title = asset.value.title || '';
+    editForm.value.description = asset.value.description || '';
+    editForm.value.tagsString = asset.value.tags?.join(', ') || '';
+  }
+};
+
+const saveAsset = async () => {
+  if (!asset.value) return;
+
+  try {
+    saving.value = true;
+    
+    const tags = editForm.value.tagsString
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
+    const updated = await updateAsset(asset.value.id, {
+      title: editForm.value.title || undefined,
+      description: editForm.value.description || undefined,
+      tags,
+    });
+
+    asset.value = { ...asset.value, ...updated };
+    
+    // Show success toast (simple alert for now)
+    alert('保存しました');
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '保存に失敗しました';
+    alert(message);
+  } finally {
+    saving.value = false;
   }
 };
 

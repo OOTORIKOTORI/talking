@@ -30,6 +30,8 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
   async enqueueAsset(asset: {
     id: string;
     title?: string;
+    description?: string;
+    tags: string[];
     contentType: string;
     url: string;
     createdAt: Date;
@@ -37,6 +39,8 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
     await this.queue.add('index-asset', {
       id: asset.id,
       title: asset.title || '',
+      description: asset.description || '',
+      tags: asset.tags,
       contentType: asset.contentType,
       url: asset.url,
       createdAt: asset.createdAt.toISOString(),

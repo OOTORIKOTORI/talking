@@ -26,6 +26,8 @@ model Asset {
   id          String   @id @default(cuid())
   key         String   @unique
   title       String?
+  description String?
+  tags        String[] @default([])
   contentType String
   size        Int
   url         String
