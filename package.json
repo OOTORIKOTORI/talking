@@ -6,6 +6,14 @@
   "scripts": {
     "lint": "echo (later)",
     "typecheck": "echo (later)",
-    "build": "pnpm -C apps/api build && pnpm -C apps/frontend build && pnpm -C apps/worker build"
+    "build": "pnpm -C apps/api build && pnpm -C apps/frontend build && pnpm -C apps/worker build",
+    "dev:infra": "docker compose up -d",
+    "dev:api": "pnpm -C apps/api start:dev",
+    "dev:web": "pnpm -C apps/frontend dev",
+    "dev:worker": "pnpm -C apps/worker dev",
+    "dev:all": "pnpm dev:infra && concurrently -n API,WEB,WORKER -c auto \"pnpm -C apps/api start:dev\" \"pnpm -C apps/frontend dev\" \"pnpm -C apps/worker dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

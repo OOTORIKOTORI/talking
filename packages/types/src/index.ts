@@ -15,14 +15,11 @@ export interface User {
 export interface Asset {
   id: string;
   key: string;
-  filename: string;
+  title?: string;
   contentType: string;
   size: number;
-  bucket: string;
   url: string;
-  userId: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 /**

@@ -1,13 +1,28 @@
 <template>
   <div class="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-3xl mx-auto">
+      <!-- Header with Navigation -->
       <div class="text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">
           Talking
         </h1>
-        <p class="text-gray-600">
+        <p class="text-gray-600 mb-4">
           Audio Conversation Platform
         </p>
+        <div class="flex items-center justify-center space-x-4">
+          <NuxtLink
+            to="/upload"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Upload File
+          </NuxtLink>
+          <NuxtLink
+            to="/assets"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            View Assets
+          </NuxtLink>
+        </div>
       </div>
 
       <div class="bg-white shadow rounded-lg p-6 mb-6">

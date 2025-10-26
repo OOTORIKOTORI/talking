@@ -18,8 +18,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assets Asset[]
-
   @@index([email])
   @@map("users")
 }
@@ -27,18 +25,12 @@ model User {
 model Asset {
   id          String   @id @default(cuid())
   key         String   @unique
-  filename    String
+  title       String?
   contentType String
   size        Int
-  bucket      String
   url         String
-  userId      String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([key])
+  @@index([createdAt])
   @@map("assets")
 }

@@ -1,7 +1,23 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-2xl mx-auto px-4">
-      <h1 class="text-3xl font-bold text-gray-900 mb-8">Upload File</h1>
+      <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Upload File</h1>
+        <div class="flex space-x-4">
+          <NuxtLink
+            to="/assets"
+            class="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            View Assets
+          </NuxtLink>
+          <NuxtLink
+            to="/"
+            class="text-gray-600 hover:text-gray-700 font-medium"
+          >
+            Home
+          </NuxtLink>
+        </div>
+      </div>
 
       <div class="bg-white rounded-lg shadow p-6 space-y-6">
         <!-- Title Input -->
