@@ -23,10 +23,11 @@ export const useAssets = () => {
       if (!item.url || item.url.startsWith('undefined')) {
         item.url = `${base}/${item.key}`;
       }
-      // Get signed URL if key exists
-      if (item.key) {
+      // Get signed URL for thumbnail if available, otherwise use original
+      const keyToUse = item.thumbKey || item.key;
+      if (keyToUse) {
         try {
-          item.url = await getSignedGetUrl(item.key);
+          item.url = await getSignedGetUrl(keyToUse);
         } catch (e) {
           // Fallback to public URL on error
           console.warn('Failed to get signed URL, using fallback', e);
@@ -83,10 +84,11 @@ export const useAssets = () => {
       if (!item.url || item.url.startsWith('undefined')) {
         item.url = `${base}/${item.key}`;
       }
-      // Get signed URL if key exists
-      if (item.key) {
+      // Get signed URL for thumbnail if available, otherwise use original
+      const keyToUse = item.thumbKey || item.key;
+      if (keyToUse) {
         try {
-          item.url = await getSignedGetUrl(item.key);
+          item.url = await getSignedGetUrl(keyToUse);
         } catch (e) {
           // Fallback to public URL on error
           console.warn('Failed to get signed URL, using fallback', e);
@@ -102,21 +104,20 @@ export const useAssets = () => {
   };
 
   const updateAsset = async (id: string, data: { title?: string; description?: string; tags?: string[] }) => {
-    const url = `${apiBase}/assets/${id}`;
+    const { $apiFetch } = useNuxtApp();
     
-    const response = await fetch(url, {
+    return await $apiFetch(`/assets/${id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      body: data,
     });
+  };
 
-    if (!response.ok) {
-      throw new Error(`Failed to update asset: ${response.statusText}`);
-    }
-
-    return await response.json();
+  const deleteAsset = async (id: string) => {
+    const { $apiFetch } = useNuxtApp();
+    
+    return await $apiFetch(`/assets/${id}`, {
+      method: 'DELETE',
+    });
   };
 
   return {
@@ -124,5 +125,6 @@ export const useAssets = () => {
     getAsset,
     searchAssets,
     updateAsset,
+    deleteAsset,
   };
 };

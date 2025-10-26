@@ -1,6 +1,7 @@
 import { Worker, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { MeiliSearch } from 'meilisearch';
+import './thumbnail/thumbnail.worker';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const MEILI_HOST = process.env.MEILI_HOST || 'http://localhost:7700';
@@ -112,3 +113,4 @@ process.on('SIGINT', shutdown);
 console.log('🚀 Workers started and listening for jobs');
 console.log(`📡 Connected to Redis: ${REDIS_URL}`);
 console.log(`🔍 Connected to Meilisearch: ${MEILI_HOST}`);
+console.log('📸 Thumbnail worker ready');

@@ -1,24 +1,41 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { S3Client, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchProducer } from '../queues/search.producer';
+import { ThumbnailProducer } from '../queues/thumbnail.producer';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
+import { meiliClient } from '../meili/meili.client';
 
 @Injectable()
 export class AssetsService {
   private readonly s3PublicBase: string;
+  private readonly s3Client: S3Client;
+  private readonly s3Bucket: string;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private searchProducer: SearchProducer,
+    private thumbnailProducer: ThumbnailProducer,
   ) {
     this.s3PublicBase = this.configService.get<string>('S3_PUBLIC_BASE');
+    this.s3Bucket = this.configService.get<string>('S3_BUCKET');
+    
+    this.s3Client = new S3Client({
+      endpoint: this.configService.get<string>('S3_ENDPOINT'),
+      region: this.configService.get<string>('S3_REGION'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get<string>('S3_SECRET_KEY'),
+      },
+      forcePathStyle: this.configService.get<string>('S3_FORCE_PATH_STYLE') === 'true',
+    });
   }
 
-  async create(createAssetDto: CreateAssetDto) {
+  async create(createAssetDto: CreateAssetDto, ownerId: string) {
     const url = `${this.s3PublicBase}/${createAssetDto.key}`;
 
     const asset = await this.prisma.asset.create({
@@ -30,6 +47,7 @@ export class AssetsService {
         contentType: createAssetDto.contentType,
         size: createAssetDto.size,
         url,
+        ownerId,
       },
     });
 
@@ -73,7 +91,16 @@ export class AssetsService {
     });
   }
 
-  async update(id: string, updateAssetDto: UpdateAssetDto) {
+  async update(id: string, updateAssetDto: UpdateAssetDto, userId: string) {
+    // Check ownership
+    const existing = await this.prisma.asset.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Asset with ID ${id} not found`);
+    }
+    if (existing.ownerId !== userId) {
+      throw new ForbiddenException('You do not own this asset');
+    }
+
     const asset = await this.prisma.asset.update({
       where: { id },
       data: {
@@ -87,5 +114,63 @@ export class AssetsService {
     await this.searchProducer.enqueueAsset(asset);
 
     return asset;
+  }
+
+  async delete(id: string, userId: string) {
+    // Load asset
+    const asset = await this.prisma.asset.findUnique({ where: { id } });
+    if (!asset) {
+      throw new NotFoundException(`Asset with ID ${id} not found`);
+    }
+
+    // Check ownership
+    if (asset.ownerId !== userId) {
+      throw new ForbiddenException('You do not own this asset');
+    }
+
+    // Collect S3 keys to delete
+    const keysToDelete = [asset.key, asset.thumbKey].filter(Boolean);
+
+    // Delete from S3
+    if (keysToDelete.length > 0) {
+      try {
+        if (keysToDelete.length === 1) {
+          await this.s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: this.s3Bucket,
+              Key: keysToDelete[0],
+            })
+          );
+        } else {
+          await this.s3Client.send(
+            new DeleteObjectsCommand({
+              Bucket: this.s3Bucket,
+              Delete: {
+                Objects: keysToDelete.map(Key => ({ Key })),
+              },
+            })
+          );
+        }
+      } catch (error) {
+        // Idempotent: if object not found in S3, continue
+        if (error.name !== 'NoSuchKey' && error.name !== 'NotFound') {
+          throw error;
+        }
+      }
+    }
+
+    // Delete from database
+    await this.prisma.asset.delete({ where: { id } });
+
+    // Remove from Meilisearch
+    try {
+      const index = await meiliClient.getIndex('assets');
+      await index.deleteDocument(id);
+    } catch (error) {
+      // Log but don't fail if search deletion fails
+      console.error('Failed to delete from Meilisearch:', error);
+    }
+
+    return;
   }
 }

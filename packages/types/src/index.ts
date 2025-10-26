@@ -21,6 +21,10 @@ export interface Asset {
   contentType: string;
   size: number;
   url: string;
+  ownerId?: string;
+  thumbKey?: string;
+  thumbWidth?: number;
+  thumbHeight?: number;
   createdAt: Date;
 }
 

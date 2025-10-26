@@ -1,16 +1,19 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Query, Param, NotFoundException, UseGuards, ForbiddenException } from '@nestjs/common';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 
 @Controller('assets')
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 
   @Post()
-  create(@Body() createAssetDto: CreateAssetDto) {
-    return this.assetsService.create(createAssetDto);
+  @UseGuards(SupabaseAuthGuard)
+  create(@Body() createAssetDto: CreateAssetDto, @CurrentUser() user: AuthUser) {
+    return this.assetsService.create(createAssetDto, user.userId);
   }
 
   @Get()
@@ -28,8 +31,16 @@ export class AssetsController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateAssetDto: UpdateAssetDto) {
-    const asset = await this.assetsService.update(id, updateAssetDto);
+  @UseGuards(SupabaseAuthGuard)
+  async update(@Param('id') id: string, @Body() updateAssetDto: UpdateAssetDto, @CurrentUser() user: AuthUser) {
+    const asset = await this.assetsService.update(id, updateAssetDto, user.userId);
     return asset;
+  }
+
+  @Delete(':id')
+  @UseGuards(SupabaseAuthGuard)
+  async delete(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.assetsService.delete(id, user.userId);
+    return { ok: true };
   }
 }

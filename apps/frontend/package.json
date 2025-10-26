@@ -10,7 +10,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxtjs/supabase": "^2.0.1",
     "@talking/types": "workspace:*",
+    "cookie-es": "^2.0.0",
+    "jose": "^6.1.0",
     "nuxt": "^3.14.0",
     "vue": "^3.5.0"
   },

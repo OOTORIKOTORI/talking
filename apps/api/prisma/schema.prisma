@@ -31,8 +31,13 @@ model Asset {
   contentType String
   size        Int
   url         String
+  ownerId     String?
+  thumbKey    String?
+  thumbWidth  Int?     @default(512)
+  thumbHeight Int?     @default(512)
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
+  @@index([ownerId])
   @@map("assets")
 }

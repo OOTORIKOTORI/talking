@@ -200,33 +200,84 @@
           </div>
 
           <!-- Actions -->
-          <div class="border-t pt-4 flex space-x-4">
-            <a
-              :href="asset.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Open in New Tab
-            </a>
+          <div class="border-t pt-4 flex justify-between">
+            <div class="flex space-x-4">
+              <a
+                :href="asset.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Open in New Tab
+              </a>
 
-            <a
-              :href="asset.url"
-              download
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              <a
+                :href="asset.url"
+                download
+                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </a>
+            </div>
+
+            <button
+              @click="confirmDelete"
+              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
               <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              Download
-            </a>
+              削除
+            </button>
           </div>
         </div>
       </div>
     </main>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteModal"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+      @click.self="showDeleteModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">アセットを削除</h3>
+            <p class="text-sm text-gray-500 mb-4">
+              このアセットを完全に削除してよろしいですか？この操作は取り消せません。
+            </p>
+            <div class="flex space-x-3">
+              <button
+                @click="handleDelete"
+                :disabled="deleting"
+                class="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {{ deleting ? '削除中...' : '削除する' }}
+              </button>
+              <button
+                @click="showDeleteModal = false"
+                :disabled="deleting"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -235,7 +286,8 @@ import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const route = useRoute();
-const { getAsset, updateAsset } = useAssets();
+const router = useRouter();
+const { getAsset, updateAsset, deleteAsset } = useAssets();
 
 const asset = ref<Asset | null>(null);
 const loading = ref(false);
@@ -244,6 +296,8 @@ const copied = ref(false);
 const signedUrl = ref<string>('');
 const mediaErrorRetried = ref(false);
 const saving = ref(false);
+const showDeleteModal = ref(false);
+const deleting = ref(false);
 
 const editForm = ref({
   title: '',
@@ -361,6 +415,26 @@ const copyUrl = async () => {
     } catch (e) {
       console.error('Failed to copy URL', e);
     }
+  }
+};
+
+const confirmDelete = () => {
+  showDeleteModal.value = true;
+};
+
+const handleDelete = async () => {
+  if (!asset.value) return;
+
+  try {
+    deleting.value = true;
+    await deleteAsset(asset.value.id);
+    
+    // Redirect to assets list
+    await router.push('/assets');
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '削除に失敗しました';
+    alert(message);
+    deleting.value = false;
   }
 };
 

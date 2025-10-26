@@ -3,8 +3,19 @@ export default defineNuxtConfig({
   ssr: true,
   
   modules: [
-    '@nuxtjs/tailwindcss'
+    '@nuxtjs/tailwindcss',
+    '@nuxtjs/supabase'
   ],
+
+  supabase: {
+    // Database型定義の警告を無効化
+    types: false,
+  },
+
+  alias: {
+    // Force cookie-es to be used instead of cookie for ESM compatibility
+    'cookie': 'cookie-es'
+  },
 
   runtimeConfig: {
     public: {
