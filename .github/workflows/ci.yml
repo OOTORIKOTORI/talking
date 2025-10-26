@@ -3,22 +3,35 @@ on:
   push:
     branches: [main]
   pull_request:
-permissions:
-  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # Node 22 + pnpm キャッシュ
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
-      - uses: pnpm/action-setup@v4
+          cache: 'pnpm' # pnpm ロックを使ったキャッシュを有効化
+
+      # ここで pnpm をインストール（v10.16.0）。ついでに install まで実行
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10.16.0
           run_install: true
-      - name: Typecheck (skip if not set up yet)
+
+      - name: Show versions
+        run: |
+          node -v
+          pnpm -v
+
+      # まだ script が無ければ best-effort でスキップ
+      - name: Typecheck (best-effort)
         run: pnpm -r -w run typecheck || echo "no typecheck"
-      - name: Build API/Frontend/Worker
-        run: pnpm -w run build || echo "build not wired yet"
+
+      - name: Build (best-effort)
+        run: pnpm -r -w run build || echo "no build"
