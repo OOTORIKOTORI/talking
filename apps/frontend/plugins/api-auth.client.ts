@@ -1,23 +1,29 @@
-export default defineNuxtPlugin((_nuxtApp) => {
+export default defineNuxtPlugin(() => {
   const supabase = useSupabaseClient()
   const baseURL = useRuntimeConfig().public.apiBase
 
   const api = $fetch.create({
     baseURL,
-    onRequest: async ({ options }) => {
+    async onRequest({ options }) {
+      // 常に Headers として扱う（型の差異で落ちないように）
+      const h = new Headers((options.headers as HeadersInit) || {})
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      if (token) {
-        options.headers = { ...(options.headers as any ?? {}), Authorization: `Bearer ${token}` }
-      }
+      if (token) h.set('Authorization', `Bearer ${token}`)
+      options.headers = h
     },
-    onResponseError: async ({ response }) => {
-      // 401 の場合はログインページへリダイレクト
-      if (response.status === 401) {
+    async onResponseError({ response }) {
+      if (response.status !== 401) return
+      
+      // 401 はトークン期限切れの可能性が高い → リフレッシュを試みる
+      try { 
+        await supabase.auth.refreshSession() 
+      } catch {
+        // リフレッシュ失敗時はログインページへ
         await navigateTo('/login')
       }
     },
   })
 
-  return { provide: { api } } // use via: const { $api } = useNuxtApp()
+  return { provide: { api } }
 })

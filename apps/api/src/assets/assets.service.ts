@@ -57,7 +57,7 @@ export class AssetsService {
     return asset;
   }
 
-  async findAll(query: QueryAssetsDto) {
+  async findAll(query: QueryAssetsDto & { ownerId?: string }) {
     const rawLimit = Number(query.limit) || 20;
     const take = Math.min(Math.max(rawLimit, 1), 100);
 
@@ -68,6 +68,11 @@ export class AssetsService {
           id: query.cursor,
         },
         skip: 1,
+      }),
+      ...(query.ownerId && {
+        where: {
+          ownerId: query.ownerId,
+        },
       }),
       orderBy: [
         { createdAt: 'desc' },

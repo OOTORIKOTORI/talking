@@ -8,7 +8,9 @@ import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 
 @Controller('assets')
 export class AssetsController {
-  constructor(private readonly assetsService: AssetsService) {}
+  constructor(
+    private readonly assetsService: AssetsService,
+  ) {}
 
   @Post()
   @UseGuards(SupabaseAuthGuard)
@@ -19,6 +21,12 @@ export class AssetsController {
   @Get()
   findAll(@Query() query: QueryAssetsDto) {
     return this.assetsService.findAll(query);
+  }
+
+  @Get('mine')
+  @UseGuards(SupabaseAuthGuard)
+  findMine(@Query() query: QueryAssetsDto, @CurrentUser() user: AuthUser) {
+    return this.assetsService.findAll({ ...query, ownerId: user.userId });
   }
 
   @Get(':id')

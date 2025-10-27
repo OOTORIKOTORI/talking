@@ -24,9 +24,11 @@ export class SupabaseAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    
     // If Supabase is not configured, allow all requests (dev mode)
     if (!this.isConfigured) {
-      const request = context.switchToHttp().getRequest();
+      console.log('[SupabaseAuthGuard] Auth disabled (dev mode)');
       request.user = {
         userId: 'dev-user-123',
         email: 'dev@example.com',
@@ -34,10 +36,11 @@ export class SupabaseAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
+    console.log('[SupabaseAuthGuard] Checking auth header:', authHeader ? 'present' : 'missing');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[SupabaseAuthGuard] Missing or invalid authorization header');
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 
@@ -52,8 +55,10 @@ export class SupabaseAuthGuard implements CanActivate {
         email: payload.email,
       };
 
+      console.log('[SupabaseAuthGuard] Auth successful:', payload.email);
       return true;
     } catch (error) {
+      console.log('[SupabaseAuthGuard] JWT verification failed:', error.message);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
