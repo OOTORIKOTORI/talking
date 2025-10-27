@@ -5,21 +5,21 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createRemoteJWKSet, jwtVerify, decodeJwt } from 'jose';
+import { jwtVerify, decodeJwt } from 'jose';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  private jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+  private jwtSecret: Uint8Array | null = null;
   private isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
-    const jwksUrl = this.configService.get<string>('SUPABASE_JWKS_URL');
-    this.isConfigured = !!jwksUrl && jwksUrl.length > 0 && !jwksUrl.includes('${');
+    const jwtSecret = this.configService.get<string>('SUPABASE_JWT_SECRET');
+    this.isConfigured = !!jwtSecret && jwtSecret.length > 0 && !jwtSecret.includes('${');
     
     if (this.isConfigured) {
-      this.jwks = createRemoteJWKSet(new URL(jwksUrl));
+      this.jwtSecret = new TextEncoder().encode(jwtSecret);
     } else {
-      console.warn('⚠️  SUPABASE_JWKS_URL is not configured - Auth guard is DISABLED');
+      console.warn('⚠️  SUPABASE_JWT_SECRET is not configured - Auth guard is DISABLED');
     }
   }
 
@@ -37,9 +37,8 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     const authHeader = request.headers.authorization;
-    const jwksUrl = this.configService.get<string>('SUPABASE_JWKS_URL');
     
-    console.log('[SupabaseAuthGuard] JWKS URL:', jwksUrl);
+    console.log('[SupabaseAuthGuard] JWT Secret configured:', this.isConfigured);
     console.log('[SupabaseAuthGuard] Auth header:', authHeader ? 'present' : 'missing');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -58,7 +57,7 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     try {
-      const { payload } = await jwtVerify(token, this.jwks!);
+      const { payload } = await jwtVerify(token, this.jwtSecret!);
 
       // Attach user info to request
       request.user = {
