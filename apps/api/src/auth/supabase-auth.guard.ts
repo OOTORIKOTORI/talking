@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, decodeJwt } from 'jose';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
@@ -37,7 +37,10 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     const authHeader = request.headers.authorization;
-    console.log('[SupabaseAuthGuard] Checking auth header:', authHeader ? 'present' : 'missing');
+    const jwksUrl = this.configService.get<string>('SUPABASE_JWKS_URL');
+    
+    console.log('[SupabaseAuthGuard] JWKS URL:', jwksUrl);
+    console.log('[SupabaseAuthGuard] Auth header:', authHeader ? 'present' : 'missing');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('[SupabaseAuthGuard] Missing or invalid authorization header');
@@ -45,6 +48,14 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     const token = authHeader.substring(7);
+
+    try {
+      // 署名検証前に iss/aud を確認
+      const preview = decodeJwt(token);
+      console.log('[SupabaseAuthGuard] Token iss:', preview.iss, 'aud:', preview.aud, 'sub:', preview.sub);
+    } catch (err) {
+      console.log('[SupabaseAuthGuard] Failed to decode JWT preview:', err.message);
+    }
 
     try {
       const { payload } = await jwtVerify(token, this.jwks!);
