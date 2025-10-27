@@ -1,28 +1,54 @@
-export default defineNuxtPlugin((nuxtApp) => {
+import type { FetchContext, FetchOptions } from 'ofetch'
+
+type RetriableFetchOptions = FetchOptions & { _tokenRefreshed?: boolean }
+
+export default defineNuxtPlugin(() => {
   const baseURL = useRuntimeConfig().public.apiBase
 
   const api = $fetch.create({
     baseURL,
-    async onRequest({ options }) {
-      // 常に Headers として扱う（型の差異で落ちないように）
-      const h = new Headers((options.headers as HeadersInit) || {})
-      
-      // Supabase クライアントをリクエストごとに取得
+    async onRequest({ options }: FetchContext) {
       const supabase = useSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      if (token) h.set('Authorization', `Bearer ${token}`)
-      options.headers = h
+
+      const opts = options as RetriableFetchOptions
+      const headers = new Headers((opts.headers as HeadersInit) || {})
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+      opts.headers = headers
     },
-    async onResponseError({ response }) {
-      if (response.status !== 401) return
-      
-      // 401 はトークン期限切れの可能性が高い → リフレッシュを試みる
-      const supabase = useSupabaseClient()
-      try { 
-        await supabase.auth.refreshSession() 
+    async onResponseError({ response, request, options }: FetchContext) {
+      if (!response || response.status !== 401) return
+
+      const opts = options as RetriableFetchOptions
+      if (opts._tokenRefreshed) {
+        await navigateTo('/login')
+        return
+      }
+
+      try {
+        const supabase = useSupabaseClient()
+        const { data } = await supabase.auth.refreshSession()
+        const token = data.session?.access_token
+        if (!token) {
+          await navigateTo('/login')
+          return
+        }
+
+        const retryHeaders = new Headers((opts.headers as HeadersInit) || {})
+        retryHeaders.set('Authorization', `Bearer ${token}`)
+        opts._tokenRefreshed = true
+
+        const { _tokenRefreshed, ...rawOptions } = {
+          ...opts,
+          headers: retryHeaders,
+        }
+
+        return await ($fetch.raw as (typeof $fetch)['raw'])(
+          request,
+          rawOptions as any,
+        ) as unknown as void
       } catch {
-        // リフレッシュ失敗時はログインページへ
         await navigateTo('/login')
       }
     },

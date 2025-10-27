@@ -1,17 +1,18 @@
+import { useApi } from '#imports'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 
 export function useUploader() {
+  const api = useApi()
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase as string
   const s3PublicBase = config.public.s3PublicBase as string
 
   async function uploadFile(file: File, title?: string) {
     // Step 1: Get signed URL from API
-    const signedUrlResponse = await $fetch<{
+    const signedUrlResponse = await api<{
       url: string
       method: string
       key: string
-    }>(`${apiBase}/uploads/signed-url`, {
+    }>('/uploads/signed-url', {
       method: 'POST',
       body: {
         filename: file.name,
@@ -33,7 +34,7 @@ export function useUploader() {
     }
 
     // Step 3: Finalize - save to database
-    const asset = await $fetch(`${apiBase}/assets`, {
+    const asset = await api('/assets', {
       method: 'POST',
       body: {
         key: signedUrlResponse.key,
