@@ -4,12 +4,12 @@ type RetriableFetchOptions = FetchOptions & { _tokenRefreshed?: boolean }
 
 export default defineNuxtPlugin(() => {
   const baseURL = useRuntimeConfig().public.apiBase
+  const supabaseClient = useSupabaseClient()
 
   const api = $fetch.create({
     baseURL,
     async onRequest({ options }: FetchContext) {
-      const supabase = useSupabaseClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await supabaseClient.auth.getSession()
       const token = session?.access_token
 
       const opts = options as RetriableFetchOptions
@@ -27,8 +27,7 @@ export default defineNuxtPlugin(() => {
       }
 
       try {
-        const supabase = useSupabaseClient()
-        const { data } = await supabase.auth.refreshSession()
+        const { data } = await supabaseClient.auth.refreshSession()
         const token = data.session?.access_token
         if (!token) {
           await navigateTo('/login')
