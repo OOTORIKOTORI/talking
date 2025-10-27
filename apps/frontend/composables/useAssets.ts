@@ -1,124 +1,100 @@
+import { useApi, useRuntimeConfig } from '#imports';
 import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from './useSignedUrl';
 
+type AssetListResponse = {
+  items: Asset[]
+  nextCursor: string | null
+}
+
+type AssetSearchResponse = {
+  items: Asset[]
+  total: number
+  limit: number
+  offset: number
+}
+
+const applyAssetUrls = async (assets: Asset[], fallbackBase?: string) => {
+  for (const asset of assets) {
+    if ((!asset.url || asset.url.startsWith('undefined')) && fallbackBase) {
+      asset.url = `${fallbackBase}/${asset.key}`
+    }
+
+    const keyToUse = asset.thumbKey || asset.key
+    if (!keyToUse) continue
+
+    try {
+      asset.url = await getSignedGetUrl(keyToUse)
+    } catch (error) {
+      console.warn('Failed to get signed URL, using fallback', error)
+    }
+  }
+}
+
+const applyAssetUrl = async (asset: Asset, fallbackBase?: string) => {
+  await applyAssetUrls([asset], fallbackBase)
+  return asset
+}
+
 export const useAssets = () => {
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
+  const api = useApi()
+  const runtimeConfig = useRuntimeConfig()
+  const fallbackBase =
+    runtimeConfig.public.s3PublicBase ||
+    (runtimeConfig.public as Record<string, string | undefined>).NUXT_PUBLIC_S3_PUBLIC_BASE
 
   const listAssets = async (params?: { limit?: number; cursor?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.limit) query.append('limit', params.limit.toString());
-    if (params?.cursor) query.append('cursor', params.cursor);
+    const result = await api<AssetListResponse>('/assets', {
+      query: {
+        limit: params?.limit,
+        cursor: params?.cursor,
+      },
+    })
 
-    const url = `${apiBase}/assets${query.toString() ? '?' + query.toString() : ''}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch assets: ${response.statusText}`);
-    }
+    await applyAssetUrls(result.items, fallbackBase)
 
-    const data = await response.json();
-    const base = useRuntimeConfig().public.NUXT_PUBLIC_S3_PUBLIC_BASE;
-    for (const item of data.items) {
-      if (!item.url || item.url.startsWith('undefined')) {
-        item.url = `${base}/${item.key}`;
-      }
-      // Get signed URL for thumbnail if available, otherwise use original
-      const keyToUse = item.thumbKey || item.key;
-      if (keyToUse) {
-        try {
-          item.url = await getSignedGetUrl(keyToUse);
-        } catch (e) {
-          // Fallback to public URL on error
-          console.warn('Failed to get signed URL, using fallback', e);
-        }
-      }
-    }
     return {
-      items: data.items as Asset[],
-      nextCursor: data.nextCursor as string | null,
-    };
-  };
+      items: result.items,
+      nextCursor: result.nextCursor,
+    }
+  }
 
   const getAsset = async (id: string): Promise<Asset> => {
-    const url = `${apiBase}/assets/${id}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch asset: ${response.statusText}`);
-    }
-
-    const item = await response.json();
-    const base = useRuntimeConfig().public.NUXT_PUBLIC_S3_PUBLIC_BASE;
-    if (!item.url || item.url.startsWith('undefined')) {
-      item.url = `${base}/${item.key}`;
-    }
-    // Get signed URL if key exists
-    if (item.key) {
-      try {
-        item.url = await getSignedGetUrl(item.key);
-      } catch (e) {
-        // Fallback to public URL on error
-        console.warn('Failed to get signed URL, using fallback', e);
-      }
-    }
-    return item;
-  };
+    const asset = await api<Asset>(`/assets/${id}`)
+    return await applyAssetUrl(asset, fallbackBase)
+  }
 
   const searchAssets = async (q: string, limit = 20, offset = 0) => {
-    const query = new URLSearchParams();
-    query.append('q', q);
-    query.append('limit', limit.toString());
-    query.append('offset', offset.toString());
+    const result = await api<AssetSearchResponse>('/search/assets', {
+      query: {
+        q,
+        limit,
+        offset,
+      },
+    })
 
-    const url = `${apiBase}/search/assets?${query.toString()}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to search assets: ${response.statusText}`);
-    }
+    await applyAssetUrls(result.items, fallbackBase)
 
-    const data = await response.json();
-    const base = useRuntimeConfig().public.NUXT_PUBLIC_S3_PUBLIC_BASE;
-    for (const item of data.items) {
-      if (!item.url || item.url.startsWith('undefined')) {
-        item.url = `${base}/${item.key}`;
-      }
-      // Get signed URL for thumbnail if available, otherwise use original
-      const keyToUse = item.thumbKey || item.key;
-      if (keyToUse) {
-        try {
-          item.url = await getSignedGetUrl(keyToUse);
-        } catch (e) {
-          // Fallback to public URL on error
-          console.warn('Failed to get signed URL, using fallback', e);
-        }
-      }
-    }
     return {
-      items: data.items as Asset[],
-      total: data.total as number,
-      limit: data.limit as number,
-      offset: data.offset as number,
-    };
-  };
+      items: result.items,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+    }
+  }
 
   const updateAsset = async (id: string, data: { title?: string; description?: string; tags?: string[] }) => {
-    const { $apiFetch } = useNuxtApp();
-    
-    return await $apiFetch(`/assets/${id}`, {
+    return await api(`/assets/${id}`, {
       method: 'PATCH',
       body: data,
-    });
-  };
+    })
+  }
 
   const deleteAsset = async (id: string) => {
-    const { $apiFetch } = useNuxtApp();
-    
-    return await $apiFetch(`/assets/${id}`, {
+    return await api(`/assets/${id}`, {
       method: 'DELETE',
-    });
-  };
+    })
+  }
 
   return {
     listAssets,
@@ -126,5 +102,5 @@ export const useAssets = () => {
     searchAssets,
     updateAsset,
     deleteAsset,
-  };
-};
+  }
+}

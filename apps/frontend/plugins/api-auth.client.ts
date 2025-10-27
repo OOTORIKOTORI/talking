@@ -1,23 +1,57 @@
-export default defineNuxtPlugin((_nuxtApp) => {
-  const supabase = useSupabaseClient()
+import type { FetchContext, FetchOptions } from 'ofetch'
+
+type RetriableFetchOptions = FetchOptions & { _tokenRefreshed?: boolean }
+
+export default defineNuxtPlugin(() => {
   const baseURL = useRuntimeConfig().public.apiBase
+  const supabaseClient = useSupabaseClient()
 
   const api = $fetch.create({
     baseURL,
-    onRequest: async ({ options }) => {
-      const { data: { session } } = await supabase.auth.getSession()
+    async onRequest({ options }: FetchContext) {
+      const { data: { session } } = await supabaseClient.auth.getSession()
       const token = session?.access_token
-      if (token) {
-        options.headers = { ...(options.headers as any ?? {}), Authorization: `Bearer ${token}` }
-      }
+
+      const opts = options as RetriableFetchOptions
+      const headers = new Headers((opts.headers as HeadersInit) || {})
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+      opts.headers = headers
     },
-    onResponseError: async ({ response }) => {
-      // 401 の場合はログインページへリダイレクト
-      if (response.status === 401) {
+    async onResponseError({ response, request, options }: FetchContext) {
+      if (!response || response.status !== 401) return
+
+      const opts = options as RetriableFetchOptions
+      if (opts._tokenRefreshed) {
+        await navigateTo('/login')
+        return
+      }
+
+      try {
+        const { data } = await supabaseClient.auth.refreshSession()
+        const token = data.session?.access_token
+        if (!token) {
+          await navigateTo('/login')
+          return
+        }
+
+        const retryHeaders = new Headers((opts.headers as HeadersInit) || {})
+        retryHeaders.set('Authorization', `Bearer ${token}`)
+        opts._tokenRefreshed = true
+
+        const { _tokenRefreshed, ...rawOptions } = {
+          ...opts,
+          headers: retryHeaders,
+        }
+
+        return await ($fetch.raw as (typeof $fetch)['raw'])(
+          request,
+          rawOptions as any,
+        ) as unknown as void
+      } catch {
         await navigateTo('/login')
       }
     },
   })
 
-  return { provide: { api } } // use via: const { $api } = useNuxtApp()
+  return { provide: { api } }
 })

@@ -5,28 +5,30 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { jwtVerify, decodeJwt } from 'jose';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  private jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+  private jwtSecret: Uint8Array | null = null;
   private isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
-    const jwksUrl = this.configService.get<string>('SUPABASE_JWKS_URL');
-    this.isConfigured = !!jwksUrl && jwksUrl.length > 0 && !jwksUrl.includes('${');
+    const jwtSecret = this.configService.get<string>('SUPABASE_JWT_SECRET');
+    this.isConfigured = !!jwtSecret && jwtSecret.length > 0 && !jwtSecret.includes('${');
     
     if (this.isConfigured) {
-      this.jwks = createRemoteJWKSet(new URL(jwksUrl));
+      this.jwtSecret = new TextEncoder().encode(jwtSecret);
     } else {
-      console.warn('⚠️  SUPABASE_JWKS_URL is not configured - Auth guard is DISABLED');
+      console.warn('⚠️  SUPABASE_JWT_SECRET is not configured - Auth guard is DISABLED');
     }
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    
     // If Supabase is not configured, allow all requests (dev mode)
     if (!this.isConfigured) {
-      const request = context.switchToHttp().getRequest();
+      console.log('[SupabaseAuthGuard] Auth disabled (dev mode)');
       request.user = {
         userId: 'dev-user-123',
         email: 'dev@example.com',
@@ -34,17 +36,28 @@ export class SupabaseAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
+    
+    console.log('[SupabaseAuthGuard] JWT Secret configured:', this.isConfigured);
+    console.log('[SupabaseAuthGuard] Auth header:', authHeader ? 'present' : 'missing');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[SupabaseAuthGuard] Missing or invalid authorization header');
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 
     const token = authHeader.substring(7);
 
     try {
-      const { payload } = await jwtVerify(token, this.jwks!);
+      // 署名検証前に iss/aud を確認
+      const preview = decodeJwt(token);
+      console.log('[SupabaseAuthGuard] Token iss:', preview.iss, 'aud:', preview.aud, 'sub:', preview.sub);
+    } catch (err) {
+      console.log('[SupabaseAuthGuard] Failed to decode JWT preview:', err.message);
+    }
+
+    try {
+      const { payload } = await jwtVerify(token, this.jwtSecret!);
 
       // Attach user info to request
       request.user = {
@@ -52,8 +65,10 @@ export class SupabaseAuthGuard implements CanActivate {
         email: payload.email,
       };
 
+      console.log('[SupabaseAuthGuard] Auth successful:', payload.email);
       return true;
     } catch (error) {
+      console.log('[SupabaseAuthGuard] JWT verification failed:', error.message);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
