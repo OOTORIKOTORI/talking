@@ -79,7 +79,10 @@ PR を作成する際は以下を確認してください:
 ### コード品質
 
 - [ ] `pnpm lint` が通る (各 app で実行)
-- [ ] `pnpm type-check` または `pnpm build` が通る
+- [ ] `pnpm typecheck` が通る
+- [ ] `pnpm test` が通る
+- [ ] `pnpm build` が通る
+- [ ] `pnpm postbuild` (meta-check) が通る
 - [ ] 型エラーがない (TypeScript)
 
 ### 動作確認
@@ -92,6 +95,7 @@ PR を作成する際は以下を確認してください:
 
 - [ ] README や docs の更新が必要な場合は反映済み
 - [ ] コード内のコメントが適切
+- [ ] UI 変更時：用語統一（公開ギャラリー/アセット管理）を確認
 
 ### PR 記述
 
@@ -102,6 +106,17 @@ PR を作成する際は以下を確認してください:
 ---
 
 ## CI/CD 方針
+
+### CI チェック項目
+
+- **lint**: ESLint による静的解析
+- **typecheck**: TypeScript 型チェック
+- **test**: ユニット・統合テスト
+- **build**: 全アプリケーションのビルド確認
+- **postbuild**: メタデータチェック（meta-check）
+- **smoke:og**: OG画像生成のスモークテスト
+- **ci:guards**: ガード・認可ロジックのテスト
+- **LHCI**: Lighthouse CI（パフォーマンス計測）
 
 ### 基本方針
 
