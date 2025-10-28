@@ -6,8 +6,9 @@ A monorepo project using pnpm workspaces.
 
 **→ [docs/README.md](./docs/README.md) にドキュメント索引があります**
 
-- [アーキテクチャ](./docs/architecture.md): システム構成・データフロー
+- [アーキテクチャ](./docs/architecture.md): システム構成・データフロー・認証
 - [開発環境セットアップ](./docs/dev-setup.md): 初回セットアップ・日常起動
+- [認証セットアップ](./docs/auth-setup.md): Supabase Auth（HS256/JWT Secret）の設定
 - [開発ワークフロー](./docs/workflow.md): ブランチ規約・PR チェックリスト
 - [ハンドオフ手順](./docs/handoff.md): 複数チャット向け引き継ぎ
 - [ロードマップ](./docs/roadmap.md): MVP → β → 正式リリースの計画
@@ -39,7 +40,7 @@ talking/
 ├── apps/
 │   ├── frontend/    # Nuxt 3 フロントエンド
 │   ├── api/         # NestJS API サーバー
-│   └── worker/      # BullMQ ワーカー
+│   └── worker/      # BullMQ ワーカー（サムネ生成・検索）
 └── packages/
     ├── types/       # 共通型定義
     └── sdk/         # SDK ライブラリ (予約)
@@ -53,51 +54,24 @@ talking/
 
 ---
 
-## Local Development Setup (詳細)
-
-## クイックスタート
-
-1. **Docker サービス起動**
-   ```pwsh
-   docker compose up -d
-   ```
-
-2. **Meilisearch 初期化**
-   ```pwsh
-   .\scripts\init-meilisearch.ps1
-   ```
-
-3. **MinIO バケット作成**
-   - http://localhost:9001 にアクセス
-   - ログイン: `admin` / `password123`
-   - Buckets → Create Bucket → `talking-dev`
-
-4. **アプリケーション起動**（それぞれ別ターミナルで）
-   
-   **Frontend:**
-   ```pwsh
-   cd apps/frontend
-   pnpm dev -o
-   ```
-   
-   **API:**
-   ```pwsh
-   cd apps/api
-   pnpm dlx prisma migrate dev --name init
-   pnpm start:dev
-   ```
-   
-   **Worker (オプション):**
-   ```pwsh
-   cd apps/worker
-   pnpm dev
-   ```
-
 ## サービスURL
 
-- **Meilisearch UI:** http://localhost:7700 (Authorization: `Bearer masterKey123`)
-- **MinIO Console:** http://localhost:9001 (admin / password123)
-- **MailHog UI:** http://localhost:8025
+| サービス              | URL                                     | 備考                                    |
+|-----------------------|-----------------------------------------|-----------------------------------------|
+| **Web (Frontend)**    | http://localhost:3000                   | Nuxt 3 フロントエンド                   |
+| **API**               | http://localhost:4000                   | NestJS REST API                         |
+| **Meilisearch UI**    | http://localhost:7700                   | Authorization: `Bearer masterKey123`    |
+| **MinIO Console**     | http://localhost:9001                   | admin / password123                     |
+| **MailHog UI**        | http://localhost:8025                   | メール確認用                            |
+
+---
+
+## 用語集
+
+- **公開ギャラリー**: 未ログインでも閲覧可能なアセット一覧画面（`/assets`）
+- **アセット管理**: 本人のみがアクセスできる作成・編集・削除画面（`/my/assets`）
+- **サムネ**: サムネイル画像（`thumbKey`）
+- **認証方式**: Supabase Auth（HS256 / JWT Secret 検証）
 
 ## 詳細
 
