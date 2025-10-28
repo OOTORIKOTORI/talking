@@ -146,7 +146,7 @@
           </div>
 
           <!-- Edit Section -->
-          <div class="border-t pt-6">
+          <div v-if="canManage" class="border-t pt-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">編集</h3>
             <form @submit.prevent="saveAsset" class="space-y-4">
               <div>
@@ -227,6 +227,7 @@
             </div>
 
             <button
+              v-if="canManage"
               @click="confirmDelete"
               class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
             >
@@ -287,7 +288,11 @@ import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const route = useRoute();
 const router = useRouter();
+const supabase = useSupabaseClient();
 const { getAsset, updateAsset, deleteAsset } = useAssets();
+
+// Get current user session
+const currentUserId = ref<string | null>(null);
 
 const asset = ref<Asset | null>(null);
 const loading = ref(false);
@@ -298,6 +303,11 @@ const mediaErrorRetried = ref(false);
 const saving = ref(false);
 const showDeleteModal = ref(false);
 const deleting = ref(false);
+
+// Check if current user can manage this asset
+const canManage = computed(() => {
+  return !!currentUserId.value && !!asset.value && asset.value.ownerId === currentUserId.value;
+});
 
 const editForm = ref({
   title: '',
@@ -352,7 +362,9 @@ const saveAsset = async () => {
       tags,
     });
 
-    asset.value = { ...asset.value, ...updated };
+    if (updated) {
+      asset.value = { ...asset.value, ...updated };
+    }
     
     // Show success toast (simple alert for now)
     alert('保存しました');
@@ -438,8 +450,13 @@ const handleDelete = async () => {
   }
 };
 
-// Load asset on mount
-onMounted(() => {
+// Load asset on mount and get current user session
+onMounted(async () => {
+  // Get current user session
+  const { data } = await supabase.auth.getSession();
+  currentUserId.value = data?.session?.user?.id ?? null;
+  
+  // Load asset
   loadAsset();
 });
 
