@@ -5,10 +5,10 @@
         <h1 class="text-3xl font-bold text-gray-900">ファイルアップロード</h1>
         <div class="flex space-x-4">
           <NuxtLink
-            to="/assets"
+            to="/my/assets"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            アセット一覧
+            アセット管理
           </NuxtLink>
           <NuxtLink
             to="/"
