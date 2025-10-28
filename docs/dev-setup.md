@@ -32,7 +32,34 @@ Copy-Item apps/frontend/.env.example apps/frontend/.env
 Copy-Item apps/worker/.env.example apps/worker/.env
 ```
 
-各 `.env` ファイルを必要に応じて編集してください。ローカル開発では通常そのままで OK です。
+### 3. 環境変数の設定
+
+#### Frontend (`apps/frontend/.env`)
+
+```env
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_KEY=<anon-public-key>
+NUXT_PUBLIC_API_BASE=http://localhost:4000
+```
+
+#### API (`apps/api/.env`)
+
+```env
+# Supabase Auth (HS256 JWT 検証)
+SUPABASE_JWT_SECRET=<Supabase ダッシュボードの JWT Secret>
+
+# S3/MinIO
+S3_PUBLIC_BASE=http://localhost:9000/talking-dev
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Meilisearch
+MEILI_HOST=http://localhost:7700
+MEILI_KEY=masterKey123
+```
+
+> **重要:** `SUPABASE_JWT_SECRET` は Supabase ダッシュボード → Settings → API → **JWT Secret** からコピーしてください。
 
 ### 3. Docker サービス起動
 
@@ -96,9 +123,33 @@ pnpm dev:all
 - Nuxt Frontend (http://localhost:3000)
 - BullMQ Worker
 
+> **注意:** MinIO バケットは **private** です。画像表示は署名付き GET URL を使用します。CORS 設定はリポジトリ同梱のスクリプトで適用済みです。
+
 ---
 
 ## トラブルシュート
+
+### 401 Unauthorized（認証エラー）
+
+#### 原因 1: Authorization ヘッダーが付いていない
+
+- Network タブで `Authorization: Bearer` が付いているか確認
+- 付いていない場合 → `$api` composable を使う（`useApi.ts`）
+
+#### 原因 2: SUPABASE_JWT_SECRET が間違っている
+
+1. Supabase ダッシュボード → Settings → API → **JWT Secret** を確認
+2. `apps/api/.env` の `SUPABASE_JWT_SECRET` と一致しているか確認
+3. 修正後、API を再起動
+
+#### 原因 3: トークンの期限切れ
+
+- `$api` は自動で refresh → 1回再試行を行います（`apps/frontend/plugins/api-auth.client.ts`）
+- それでも 401 が出る場合は再ログイン
+
+#### 原因 4: フロントとAPIで異なる Supabase プロジェクトを参照
+
+- `apps/frontend/.env` の `SUPABASE_URL` と `apps/api/.env` の `SUPABASE_JWT_SECRET` が**同一プロジェクト**のものか確認
 
 ### Docker サービスが Unhealthy
 
@@ -114,6 +165,7 @@ docker-compose restart <service-name>
 
 - **404**: バケット or オブジェクトが存在しない → MinIO Admin UI で確認
 - **403**: CORS or ポリシー設定が不足 → 上記の CORS/ポリシー設定を再実行
+- **期限切れ**: フロントが自動で `/uploads/signed-get` を再取得して復旧します
 
 ### Prisma の型が古い
 
