@@ -292,8 +292,7 @@ const supabase = useSupabaseClient();
 const { getAsset, updateAsset, deleteAsset } = useAssets();
 
 // Get current user session
-const { data: sessionData } = await supabase.auth.getSession();
-const currentUserId = computed(() => sessionData?.session?.user?.id ?? null);
+const currentUserId = ref<string | null>(null);
 
 const asset = ref<Asset | null>(null);
 const loading = ref(false);
@@ -451,8 +450,13 @@ const handleDelete = async () => {
   }
 };
 
-// Load asset on mount
-onMounted(() => {
+// Load asset on mount and get current user session
+onMounted(async () => {
+  // Get current user session
+  const { data } = await supabase.auth.getSession();
+  currentUserId.value = data?.session?.user?.id ?? null;
+  
+  // Load asset
   loadAsset();
 });
 
