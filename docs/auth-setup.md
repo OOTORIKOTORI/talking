@@ -1,73 +1,97 @@
 # Supabase 認証セットアップガイド
 
-## 概要
+## 認証方式（最終仕様）
 
-このプロジェクトでは Supabase Auth を使用してユーザー認証を行います。  
-フロントエンド（Nuxt）とバックエンド（Nest）が **同じ Supabase プロジェクト** を参照する必要があります。
+このプロジェクトでは **Supabase Auth + HS256/JWT Secret 検証** を使用します。
 
-## 🔴 最重要：プロジェクト一致の確認
+- **フロントエンド**: `@supabase/supabase-js` で Email/Password 認証
+- **API**: Nest Guard が `SUPABASE_JWT_SECRET` で `Authorization: Bearer` を検証
 
-**フロントとAPIで異なるSupabaseプロジェクトを参照すると、JWT署名検証が失敗して401エラーになります。**
+---
 
-### 確認方法
+## 設定手順
 
-1. Supabase ダッシュボード（https://app.supabase.com）にログイン
-2. プロジェクトを選択
-3. Settings → API で以下を確認：
-   - **Project URL**: `https://<project-ref>.supabase.co`
-   - **Project API keys**: `anon public` キー
+### 1. Supabase プロジェクトを作成
 
-## セットアップ手順
+1. https://app.supabase.com にログイン
+2. **New Project** を作成
+3. Project → **Settings → API** を開く
 
-### 1) フロントエンド（Nuxt）の設定
+### 2. API 設定値を確認
 
-`apps/frontend/.env` ファイルを作成：
+以下の値をコピーしておきます:
 
-```bash
-# Supabase Auth
+- **Project URL**: `https://<your-project-ref>.supabase.co`
+- **anon (public) key**: `eyJhbGc...`（公開鍵）
+- **JWT Secret**: `your-jwt-secret-here`（**API 側で使用**）
+
+### 3. フロントエンド（Nuxt）の設定
+
+`apps/frontend/.env` に以下を設定:
+
+```env
 SUPABASE_URL=https://<your-project-ref>.supabase.co
-SUPABASE_KEY=eyJhbGc...  # anon (publishable) key
-
-# その他
+SUPABASE_KEY=eyJhbGc...  # anon public key
 NUXT_PUBLIC_API_BASE=http://localhost:4000
-NUXT_PUBLIC_MEILI_HOST=http://localhost:7700
-NUXT_PUBLIC_MEILI_KEY=masterKey123
-NUXT_PUBLIC_S3_PUBLIC_BASE=http://localhost:9000/talking-dev
 ```
 
-### 2) バックエンド（Nest API）の設定
+### 4. バックエンド（Nest API）の設定
 
-`apps/api/.env` ファイルを作成：
+`apps/api/.env` に以下を設定:
 
-```bash
-# Supabase Auth - フロントと同じプロジェクト！
-SUPABASE_PROJECT_REF=<your-project-ref>  # 例: abcdefghijklmnopqrst
-SUPABASE_JWKS_URL=https://${SUPABASE_PROJECT_REF}.supabase.co/auth/v1/.well-known/jwks.json
-
-# または直接フルURL指定
-# SUPABASE_JWKS_URL=https://<your-project-ref>.supabase.co/auth/v1/.well-known/jwks.json
-
-# その他
-PORT=4000
-DATABASE_URL="postgresql://talking:talking@localhost:5432/talking?schema=public"
-# ... (その他の設定)
+```env
+# Supabase Auth (HS256 JWT 検証)
+SUPABASE_JWT_SECRET=your-jwt-secret-here
 ```
 
-> ⚠️ `<your-project-ref>` は必ずフロントの `SUPABASE_URL` と同じプロジェクトのものを使用してください。
+> **重要:** `SUPABASE_JWT_SECRET` は Supabase ダッシュボード → Settings → API → **JWT Secret** からコピーしてください。
 
-## 401 エラーのトラブルシューティング
+### 5. 起動して確認
 
-### チェックリスト
+```powershell
+pnpm dev:all
+```
 
-- [ ] フロント `.env` の `SUPABASE_URL` が正しいプロジェクトを指している
-- [ ] API `.env` の `SUPABASE_JWKS_URL` が同じプロジェクトを指している
-- [ ] `SUPABASE_PROJECT_REF` に `${}` などのテンプレート変数が残っていない
-- [ ] ブラウザの Network タブで `/assets/mine` などのリクエストに `Authorization` ヘッダーが含まれている
-- [ ] API のコンソールログで `[SupabaseAuthGuard] JWKS URL:` と `Auth header:` を確認
+1. http://localhost:3000 にアクセス
+2. ログイン（Supabase Auth UI）
+3. `/my/assets` にアクセスして **200 OK** になることを確認
 
-### デバッグ手順
+---
 
-1. **ブラウザコンソールでトークン確認**
+## よくあるエラー
+
+### ❌ 401 Unauthorized（署名検証失敗）
+
+**原因:**
+- `SUPABASE_JWT_SECRET` が別プロジェクトの値、または typo
+
+**解決策:**
+1. Supabase ダッシュボードで JWT Secret を再確認
+2. `apps/api/.env` を修正
+3. API を再起動（`pnpm --filter api dev`）
+
+### ❌ 401（期限切れ）
+
+**原因:**
+- JWT のトークンが有効期限切れ
+
+**解決策:**
+- `$api` が自動で refresh → 再試行を行います（`apps/frontend/plugins/api-auth.client.ts`）
+- それでも 401 が続く場合は再ログイン
+
+### ❌ 403 Forbidden（所有者不一致）
+
+**原因:**
+- 他人のアセットに `PATCH/DELETE` を実行した
+
+**解決策:**
+- 仕様どおり。自分のアセットのみ編集・削除可能です。
+
+---
+
+## デバッグ手順
+
+### 1. ブラウザコンソールでトークン確認
 
 ```javascript
 const supa = useSupabaseClient()
@@ -75,28 +99,35 @@ const { data: { session } } = await supa.auth.getSession()
 console.log('Token:', session?.access_token)
 ```
 
-2. **トークンのペイロードをデコード** (https://jwt.io で貼り付け)
-   - `iss` (issuer) が `https://<your-project-ref>.supabase.co/auth/v1` になっているか確認
-   - `aud` (audience) が `authenticated` になっているか確認
+### 2. トークンのペイロードをデコード
 
-3. **API のログを確認**
+https://jwt.io にトークンを貼り付けて確認:
 
-```bash
-# API を起動して、リクエスト時のログを確認
-pnpm --filter api dev
+- `iss` (issuer): `https://<your-project-ref>.supabase.co/auth/v1`
+- `aud` (audience): `authenticated`
+- `sub`: ユーザーID
+
+### 3. API のログを確認
+
+API 起動時に以下のログが出ます:
+
 ```
-
-ログに以下が表示されます：
-```
-[SupabaseAuthGuard] JWKS URL: https://xxxxx.supabase.co/auth/v1/.well-known/jwks.json
-[SupabaseAuthGuard] Auth header: present
-[SupabaseAuthGuard] Token iss: https://xxxxx.supabase.co/auth/v1 aud: authenticated sub: xxxxx
 [SupabaseAuthGuard] Auth successful: user@example.com
 ```
 
-### よくあるエラー
+401 の場合は:
 
-#### ❌ `JWT verification failed: signature verification failed`
+```
+[SupabaseAuthGuard] JWT verification failed: signature verification failed
+```
+
+---
+
+## 🔴 最重要：プロジェクト一致の確認
+
+**フロントとAPIで異なるSupabaseプロジェクトを参照すると、JWT署名検証が失敗して401エラーになります。**
+
+- Frontend の `SUPABASE_URL` と API の `SUPABASE_JWT_SECRET` が**同一プロジェクト**のものであることを確認してください。
 
 **原因**: フロントとAPIで異なるSupabaseプロジェクトを参照している
 
