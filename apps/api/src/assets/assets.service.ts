@@ -54,6 +54,11 @@ export class AssetsService {
     // Enqueue for search indexing
     await this.searchProducer.enqueueAsset(asset);
 
+    // Enqueue for thumbnail generation (if image)
+    if (asset.contentType.startsWith('image/')) {
+      await this.thumbnailProducer.enqueueAsset(asset.id);
+    }
+
     return asset;
   }
 

@@ -1,0 +1,34 @@
+﻿diff --git a/apps/api/src/assets/assets.service.ts b/apps/api/src/assets/assets.service.ts
+index fbb32ff..7164b89 100644
+--- a/apps/api/src/assets/assets.service.ts
++++ b/apps/api/src/assets/assets.service.ts
+@@ -54,6 +54,11 @@ export class AssetsService {
+     // Enqueue for search indexing
+     await this.searchProducer.enqueueAsset(asset);
+ 
++    // Enqueue for thumbnail generation (if image)
++    if (asset.contentType.startsWith('image/')) {
++      await this.thumbnailProducer.enqueueAsset(asset.id);
++    }
++
+     return asset;
+   }
+ 
+diff --git a/apps/worker/src/thumbnail/thumbnail.worker.ts b/apps/worker/src/thumbnail/thumbnail.worker.ts
+index 3942d97..258b540 100644
+--- a/apps/worker/src/thumbnail/thumbnail.worker.ts
++++ b/apps/worker/src/thumbnail/thumbnail.worker.ts
+@@ -117,7 +117,13 @@ export const thumbnailWorker = new Worker(
+         const index = await meiliClient.getIndex('assets');
+         await index.updateDocuments([{
+           id: updated.id,
++          title: updated.title || '',
++          description: updated.description || '',
++          tags: updated.tags,
++          contentType: updated.contentType,
++          url: updated.url,
+           thumbKey: updated.thumbKey,
++          createdAt: updated.createdAt.toISOString(),
+         }]);
+       } catch (error) {
+         console.error('Failed to update Meilisearch:', error);

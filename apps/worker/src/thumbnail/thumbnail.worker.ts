@@ -117,7 +117,13 @@ export const thumbnailWorker = new Worker(
         const index = await meiliClient.getIndex('assets');
         await index.updateDocuments([{
           id: updated.id,
+          title: updated.title || '',
+          description: updated.description || '',
+          tags: updated.tags,
+          contentType: updated.contentType,
+          url: updated.url,
           thumbKey: updated.thumbKey,
+          createdAt: updated.createdAt.toISOString(),
         }]);
       } catch (error) {
         console.error('Failed to update Meilisearch:', error);
