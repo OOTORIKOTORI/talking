@@ -83,6 +83,16 @@
             <dd class="mt-1 text-gray-400">—</dd>
           </div>
 
+          <!-- Primary Tag -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <dt class="text-sm font-medium text-gray-500 mb-2">種別</dt>
+            <dd>
+              <span class="inline-block px-3 py-1 text-sm font-semibold bg-indigo-100 text-indigo-800 rounded-lg">
+                {{ formatPrimaryTag(asset.primaryTag) }}
+              </span>
+            </dd>
+          </div>
+
           <!-- Tags -->
           <div class="bg-gray-50 rounded-lg p-4">
             <dt class="text-sm font-medium text-gray-500 mb-2">タグ</dt>
@@ -414,6 +424,19 @@ const formatDate = (date: Date | string): string => {
 const getFileExtension = (contentType: string): string => {
   const parts = contentType.split('/');
   return parts[1]?.toUpperCase() || 'FILE';
+};
+
+const formatPrimaryTag = (tag: string): string => {
+  const labels: Record<string, string> = {
+    'IMAGE_BG': '背景',
+    'IMAGE_CG': '一枚絵',
+    'IMAGE_OTHER': 'その他（画像）',
+    'AUDIO_BGM': 'BGM',
+    'AUDIO_SE': '効果音',
+    'AUDIO_VOICE': 'ボイス',
+    'AUDIO_OTHER': 'その他（音声）',
+  };
+  return labels[tag] || tag;
 };
 
 const copyUrl = async () => {

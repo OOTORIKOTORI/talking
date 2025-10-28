@@ -10,6 +10,18 @@ export interface User {
 }
 
 /**
+ * Primary tag for asset categorization
+ */
+export type PrimaryTag = 
+  | 'IMAGE_BG'
+  | 'IMAGE_CG'
+  | 'IMAGE_OTHER'
+  | 'AUDIO_BGM'
+  | 'AUDIO_SE'
+  | 'AUDIO_VOICE'
+  | 'AUDIO_OTHER';
+
+/**
  * Asset entity (uploaded file metadata)
  */
 export interface Asset {
@@ -18,6 +30,7 @@ export interface Asset {
   title?: string;
   description?: string;
   tags: string[];
+  primaryTag: PrimaryTag;
   contentType: string;
   size: number;
   url: string;

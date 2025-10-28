@@ -33,11 +33,11 @@ const searchWorker = new Worker(
   async (job) => {
     console.log(`[${new Date().toISOString()}] Indexing asset ${job.data.id}`);
     
-    const { id, title, description, tags, contentType, url, createdAt } = job.data;
+    const { id, title, description, tags, primaryTag, contentType, url, createdAt } = job.data;
     
     const index = meiliClient.index('assets');
     await index.addDocuments([
-      { id, title, description, tags, contentType, url, createdAt }
+      { id, title, description, tags, primaryTag, contentType, url, createdAt }
     ], { primaryKey: 'id' });
     
     console.log(`[${new Date().toISOString()}] Asset ${id} indexed`);

@@ -32,6 +32,7 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
     title?: string;
     description?: string;
     tags: string[];
+    primaryTag: string;
     contentType: string;
     url: string;
     createdAt: Date;
@@ -41,6 +42,7 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
       title: asset.title || '',
       description: asset.description || '',
       tags: asset.tags,
+      primaryTag: asset.primaryTag,
       contentType: asset.contentType,
       url: asset.url,
       createdAt: asset.createdAt.toISOString(),

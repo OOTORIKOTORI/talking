@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
+import { AssetPrimaryTag } from '@prisma/client';
 
 export class UpdateAssetDto {
   @IsOptional()
@@ -13,4 +14,8 @@ export class UpdateAssetDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @IsEnum(AssetPrimaryTag)
+  primaryTag?: AssetPrimaryTag;
 }

@@ -23,7 +23,7 @@
         <!-- Title Input -->
         <div>
           <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-            タイトル（任意）
+            タイトル(任意)
           </label>
           <input
             id="title"
@@ -32,6 +32,35 @@
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="ファイルのタイトルを入力"
           />
+        </div>
+
+        <!-- Description Input -->
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+            説明(任意)
+          </label>
+          <textarea
+            id="description"
+            v-model="description"
+            rows="4"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="素材の用途やメモなど"
+          ></textarea>
+        </div>
+
+        <!-- Tags Input -->
+        <div>
+          <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+            自由タグ(カンマ区切り)
+          </label>
+          <input
+            id="tags"
+            v-model="tagsInput"
+            type="text"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="例: 夕方, 屋外, ループ可"
+          />
+          <p class="mt-1 text-xs text-gray-500">カンマ区切りで複数入力できます</p>
         </div>
 
         <!-- File Upload Area -->
@@ -93,10 +122,36 @@
           </div>
         </div>
 
+        <!-- Primary Tag Select (shown only when file is selected) -->
+        <div v-if="selectedFile">
+          <label for="primaryTag" class="block text-sm font-medium text-gray-700 mb-2">
+            種別(必須) <span class="text-red-600">*</span>
+          </label>
+          <select
+            id="primaryTag"
+            v-model="primaryTag"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">-- 選択してください --</option>
+            <optgroup v-if="isImageFile" label="画像">
+              <option value="IMAGE_BG">背景</option>
+              <option value="IMAGE_CG">一枚絵</option>
+              <option value="IMAGE_OTHER">その他</option>
+            </optgroup>
+            <optgroup v-if="isAudioFile" label="音声">
+              <option value="AUDIO_BGM">BGM</option>
+              <option value="AUDIO_SE">効果音</option>
+              <option value="AUDIO_VOICE">ボイス</option>
+              <option value="AUDIO_OTHER">その他</option>
+            </optgroup>
+          </select>
+          <p class="mt-1 text-xs text-gray-500">ファイルの用途を選択してください</p>
+        </div>
+
         <!-- Upload Button -->
         <button
           type="button"
-          :disabled="!selectedFile || uploading"
+          :disabled="!selectedFile || !primaryTag || uploading"
           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           @click="handleUpload"
         >
@@ -158,6 +213,9 @@ definePageMeta({ middleware: ['require-auth'] })
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const title = ref('')
+const description = ref('')
+const tagsInput = ref('')
+const primaryTag = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement>()
 const isDragging = ref(false)
@@ -168,10 +226,14 @@ const uploadMediaErrorRetried = ref(false)
 
 const { uploadFile } = useUploader()
 
+const isImageFile = computed(() => selectedFile.value?.type.startsWith('image/'))
+const isAudioFile = computed(() => selectedFile.value?.type.startsWith('audio/'))
+
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     selectedFile.value = target.files[0]
+    primaryTag.value = ''
     uploadResult.value = null
     error.value = ''
   }
@@ -181,6 +243,7 @@ function handleDrop(event: DragEvent) {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     selectedFile.value = event.dataTransfer.files[0]
+    primaryTag.value = ''
     uploadResult.value = null
     error.value = ''
   }
@@ -195,7 +258,13 @@ async function handleUpload() {
   uploadMediaErrorRetried.value = false
 
   try {
-    const result = await uploadFile(selectedFile.value, title.value || undefined)
+    const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
+    const result = await uploadFile(selectedFile.value, {
+      title: title.value || undefined,
+      description: description.value || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      primaryTag: primaryTag.value,
+    })
     uploadResult.value = {
       ...result,
       fileType: selectedFile.value.type

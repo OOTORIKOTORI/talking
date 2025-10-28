@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +8,7 @@ import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
 import { meiliClient } from '../meili/meili.client';
+import { AssetPrimaryTag } from '@prisma/client';
 
 @Injectable()
 export class AssetsService {
@@ -35,7 +36,22 @@ export class AssetsService {
     });
   }
 
+  private validatePrimaryTag(primaryTag: AssetPrimaryTag, contentType: string) {
+    const isImage = contentType.startsWith('image/');
+    const isAudio = contentType.startsWith('audio/');
+    
+    if (isImage && !String(primaryTag).startsWith('IMAGE_')) {
+      throw new BadRequestException('primaryTag must be IMAGE_* for image/* assets');
+    }
+    if (isAudio && !String(primaryTag).startsWith('AUDIO_')) {
+      throw new BadRequestException('primaryTag must be AUDIO_* for audio/* assets');
+    }
+  }
+
   async create(createAssetDto: CreateAssetDto, ownerId: string) {
+    // Validate primaryTag against contentType
+    this.validatePrimaryTag(createAssetDto.primaryTag, createAssetDto.contentType);
+    
     const url = `${this.s3PublicBase}/${createAssetDto.key}`;
 
     const asset = await this.prisma.asset.create({
@@ -44,6 +60,7 @@ export class AssetsService {
         title: createAssetDto.title,
         description: createAssetDto.description,
         tags: createAssetDto.tags || [],
+        primaryTag: createAssetDto.primaryTag,
         contentType: createAssetDto.contentType,
         size: createAssetDto.size,
         url,
@@ -111,12 +128,18 @@ export class AssetsService {
       throw new ForbiddenException('You do not own this asset');
     }
 
+    // Validate primaryTag if provided
+    if (updateAssetDto.primaryTag) {
+      this.validatePrimaryTag(updateAssetDto.primaryTag, existing.contentType);
+    }
+
     const asset = await this.prisma.asset.update({
       where: { id },
       data: {
         ...(updateAssetDto.title !== undefined && { title: updateAssetDto.title }),
         ...(updateAssetDto.description !== undefined && { description: updateAssetDto.description }),
         ...(updateAssetDto.tags !== undefined && { tags: updateAssetDto.tags }),
+        ...(updateAssetDto.primaryTag !== undefined && { primaryTag: updateAssetDto.primaryTag }),
       },
     });
 
