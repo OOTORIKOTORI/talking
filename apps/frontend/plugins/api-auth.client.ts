@@ -1,31 +1,27 @@
-import { useSupabaseClient, useRuntimeConfig } from '#imports'
-// ...existing code...
-import { defineNuxtPlugin } from '#app'
-import type { FetchContext, FetchOptions } from 'ofetch'
 
-type RetryContext = FetchContext & { response: any }
+import { defineNuxtPlugin } from '#app'
+import { useSupabaseClient, useRuntimeConfig } from '#imports'
+import type { FetchOptions } from 'ofetch'
 
 export default defineNuxtPlugin(() => {
-  // useSupabaseClient, useRuntimeConfigは自動インポート
   const supabase = useSupabaseClient()
   const config = useRuntimeConfig()
 
   const api = $fetch.create({
-    baseURL: config.public.apiBase, // NUXT_PUBLIC_API_BASE
+    baseURL: config.public.apiBase,
     credentials: 'include',
-    onRequest: async ({ options }: FetchContext) => {
-      // セッション取得して Bearer 付与
+    onRequest: async ({ options }) => {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      
-      if (options.headers instanceof Headers) {
-        if (token) options.headers.set('Authorization', `Bearer ${token}`)
-      } else {
-        options.headers = new Headers()
-        if (token) options.headers.set('Authorization', `Bearer ${token}`)
+      if (token) {
+        if (options.headers instanceof Headers) {
+          options.headers.set('Authorization', `Bearer ${token}`)
+        } else if (typeof options.headers === 'object' && options.headers !== null) {
+          (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+        }
       }
     },
-    onResponseError: async (ctx: RetryContext) => {
+    onResponseError: async (ctx) => {
       if (ctx.response.status !== 401) return
       try {
         await supabase.auth.refreshSession()
@@ -34,11 +30,17 @@ export default defineNuxtPlugin(() => {
         if (!token) return
         if (ctx.options.headers instanceof Headers) {
           ctx.options.headers.set('Authorization', `Bearer ${token}`)
-        } else {
-          ctx.options.headers = new Headers()
-          ctx.options.headers.set('Authorization', `Bearer ${token}`)
+        } else if (typeof ctx.options.headers === 'object' && ctx.options.headers !== null) {
+          (ctx.options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
         }
-  await ($fetch.raw as any)(ctx.request, ctx.options)
+        if (typeof ctx.options.method === 'string') {
+          const allowed = [
+            'GET','HEAD','PATCH','POST','PUT','DELETE','CONNECT','OPTIONS','TRACE',
+            'get','head','patch','post','put','delete','connect','options','trace'
+          ];
+          if (!allowed.includes(ctx.options.method)) return;
+        }
+        await $fetch.raw(ctx.request, ctx.options as FetchOptions)
       } catch { /* no-op */ }
     },
   })

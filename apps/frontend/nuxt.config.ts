@@ -1,10 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  components: true,
   ssr: true,
   
   modules: [
+    // 既存のモジュール...
     '@nuxtjs/tailwindcss',
-    '@nuxtjs/supabase'
+    '@nuxtjs/supabase',
   ],
 
   supabase: {
@@ -15,7 +17,8 @@ export default defineNuxtConfig({
       login: '/login',
       callback: '/confirm',
       exclude: ['/', '/assets', '/assets/*', '/login', '/logout'],
-    }
+    },
+    redirect: false
   },
 
   alias: {
@@ -25,12 +28,17 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3001',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:4000',
+      supabase: {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_KEY,
+      },
       meiliHost: process.env.NUXT_PUBLIC_MEILI_HOST || 'http://localhost:7700',
       meiliKey: process.env.NUXT_PUBLIC_MEILI_KEY || 'masterKey123',
       s3PublicBase: process.env.NUXT_PUBLIC_S3_PUBLIC_BASE || 'http://localhost:9000/uploads'
     }
   },
+  // supabase設定は上部に統合済み
 
   devtools: { enabled: true },
 

@@ -177,69 +177,14 @@
       <!-- Assets Grid -->
       <div v-else>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <div
+          <AssetCard
             v-for="asset in assets"
             :key="asset.id"
-            class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden group relative"
-          >
-            <!-- ♡ Favorite Toggle -->
-            <button
-              aria-label="お気に入り"
-              class="absolute top-2 right-2 z-10 text-2xl focus:outline-none"
-              :class="asset.isFavorite ? 'text-pink-500' : 'text-gray-400'"
-              @click.stop="toggleFavorite(asset)"
-            >
-              <span v-if="asset.isFavorite">&#10084;</span>
-              <span v-else>&#9825;</span>
-            </button>
-            <!-- Thumbnail -->
-            <NuxtLink :to="`/assets/${asset.id}`">
-              <div class="aspect-video">
-                <AssetThumbnail :asset="asset" />
-              </div>
-            </NuxtLink>
-            <!-- Info -->
-            <div class="p-4">
-              <h3 class="font-medium text-gray-900 truncate">
-                {{ asset.title || 'Untitled' }}
-              </h3>
-              <p v-if="asset.description" class="mt-1 text-sm text-gray-600 truncate">
-                {{ asset.description }}
-              </p>
-              <!-- Primary Tag Badge -->
-              <div class="mt-2">
-                <span
-                  class="inline-block px-2 py-0.5 text-xs font-medium rounded"
-                  :class="[
-                    asset.primaryTag.startsWith('IMAGE_')
-                      ? 'bg-purple-100 text-purple-800'
-                      : 'bg-green-100 text-green-800'
-                  ]"
-                >
-                  {{ getPrimaryTagLabel(asset.primaryTag) }}
-                </span>
-              </div>
-              <!-- Tags -->
-              <div v-if="asset.tags && asset.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
-                <span
-                  v-for="tag in asset.tags.slice(0, 3)"
-                  :key="tag"
-                  class="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded"
-                >
-                  {{ tag }}
-                </span>
-                <span v-if="asset.tags.length > 3" class="inline-block px-2 py-0.5 text-xs text-gray-500">
-                  +{{ asset.tags.length - 3 }}
-                </span>
-              </div>
-              <p class="mt-1 text-sm text-gray-500">
-                {{ formatFileSize(asset.size) }}
-              </p>
-              <p class="mt-1 text-xs text-gray-400">
-                {{ formatDate(asset.createdAt) }}
-              </p>
-            </div>
-          </div>
+            :asset="asset"
+            :showFavorite="true"
+            :onToggleFavorite="toggle"
+            @thumb-error="performSearch"
+          />
         </div>
 
         <!-- Load More Button -->

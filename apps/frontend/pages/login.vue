@@ -62,6 +62,7 @@ const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 
+
 // ログイン済みの場合はトップへリダイレクト（クライアントサイドのみ）
 onMounted(async () => {
   if (process.client) {
@@ -76,7 +77,7 @@ const handleLogin = async () => {
   errorMessage.value = ''
   
   try {
-    const supabase = useSupabaseClient()
+  const supabase = useSupabaseClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,

@@ -120,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRuntimeConfig } from '#imports'
 const config = useRuntimeConfig()
 
 const { data, pending, error } = await useFetch(`${config.public.apiBase}/health`, {
