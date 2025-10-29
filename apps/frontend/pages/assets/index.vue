@@ -17,8 +17,9 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Search Box -->
-      <div class="mb-6">
+      <!-- Search and Filters -->
+      <div class="mb-6 space-y-4">
+        <!-- Search Box -->
         <input
           v-model="searchQuery"
           type="text"
@@ -26,6 +27,113 @@
           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           @input="onSearchInput"
         />
+
+        <!-- Filters Section -->
+        <div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
+          <!-- Content Type Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">コンテンツタイプ</label>
+            <div class="flex gap-2">
+              <button
+                @click="contentTypeFilter = undefined"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  contentTypeFilter === undefined
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                すべて
+              </button>
+              <button
+                @click="contentTypeFilter = 'image'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  contentTypeFilter === 'image'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                画像
+              </button>
+              <button
+                @click="contentTypeFilter = 'audio'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  contentTypeFilter === 'audio'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                音声
+              </button>
+            </div>
+          </div>
+
+          <!-- Primary Tag Filter -->
+          <div v-if="contentTypeFilter === 'image' || contentTypeFilter === 'audio' || contentTypeFilter === undefined">
+            <label class="block text-sm font-medium text-gray-700 mb-2">プライマリタグ</label>
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="tag in availablePrimaryTags"
+                :key="tag.value"
+                class="inline-flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-colors"
+                :class="[
+                  primaryTagFilter.includes(tag.value)
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                ]"
+              >
+                <input
+                  type="checkbox"
+                  :value="tag.value"
+                  v-model="primaryTagFilter"
+                  class="mr-2 rounded"
+                />
+                {{ tag.label }}
+              </label>
+            </div>
+          </div>
+
+          <!-- Tags Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">タグ（カンマ区切り）</label>
+            <input
+              v-model="tagsInput"
+              type="text"
+              placeholder="例: 森, 夜, 戦闘"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <!-- Sort Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">並び替え</label>
+            <select
+              v-model="sortOrder"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="createdAt:desc">新しい順</option>
+              <option value="createdAt:asc">古い順</option>
+            </select>
+          </div>
+
+          <!-- Apply/Reset Buttons -->
+          <div class="flex gap-2">
+            <button
+              @click="applyFilters"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            >
+              フィルタを適用
+            </button>
+            <button
+              @click="resetFilters"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
+            >
+              リセット
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -88,6 +196,22 @@
               <p v-if="asset.description" class="mt-1 text-sm text-gray-600 truncate">
                 {{ asset.description }}
               </p>
+              
+              <!-- Primary Tag Badge -->
+              <div class="mt-2">
+                <span
+                  class="inline-block px-2 py-0.5 text-xs font-medium rounded"
+                  :class="[
+                    asset.primaryTag.startsWith('IMAGE_')
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-green-100 text-green-800'
+                  ]"
+                >
+                  {{ getPrimaryTagLabel(asset.primaryTag) }}
+                </span>
+              </div>
+              
+              <!-- Tags -->
               <div v-if="asset.tags && asset.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
                 <span
                   v-for="tag in asset.tags.slice(0, 3)"
@@ -111,7 +235,7 @@
         </div>
 
         <!-- Load More Button -->
-        <div v-if="nextCursor" class="mt-8 text-center">
+        <div v-if="assets.length < total" class="mt-8 text-center">
           <button
             @click="loadMore"
             :disabled="loading"
@@ -129,33 +253,87 @@
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
 
-const { listAssets, searchAssets } = useAssets();
+const route = useRoute();
+const router = useRouter();
+const { searchAssets } = useAssets();
 
 const assets = ref<Asset[]>([]);
-const nextCursor = ref<string | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+const total = ref(0);
+const offset = ref(0);
+
+// Filter states
+const contentTypeFilter = ref<'image' | 'audio' | undefined>(undefined);
+const primaryTagFilter = ref<string[]>([]);
+const tagsInput = ref('');
+const sortOrder = ref<'createdAt:desc' | 'createdAt:asc'>('createdAt:desc');
+
 let searchTimeout: NodeJS.Timeout | null = null;
 
-const loadAssets = async (cursor?: string) => {
-  try {
-    loading.value = true;
-    error.value = null;
+// Available primary tags based on content type
+const availablePrimaryTags = computed(() => {
+  const imageOnly = contentTypeFilter.value === 'image';
+  const audioOnly = contentTypeFilter.value === 'audio';
 
-    const result = await listAssets({ limit: 20, cursor });
-    
-    if (cursor) {
-      assets.value = [...assets.value, ...result.items];
-    } else {
-      assets.value = result.items;
-    }
-    
-    nextCursor.value = result.nextCursor;
-  } catch (e) {
-    error.value = e instanceof Error ? `取得に失敗しました: ${e.message}` : '取得に失敗しました';
-  } finally {
-    loading.value = false;
+  const imageTags = [
+    { value: 'IMAGE_BG', label: '背景' },
+    { value: 'IMAGE_CG', label: '一枚絵' },
+    { value: 'IMAGE_OTHER', label: 'その他' },
+  ];
+
+  const audioTags = [
+    { value: 'AUDIO_BGM', label: 'BGM' },
+    { value: 'AUDIO_SE', label: '効果音' },
+    { value: 'AUDIO_VOICE', label: 'ボイス' },
+    { value: 'AUDIO_OTHER', label: 'その他' },
+  ];
+
+  if (imageOnly) return imageTags;
+  if (audioOnly) return audioTags;
+  return [...imageTags, ...audioTags];
+});
+
+// Primary tag label mapping
+const primaryTagLabels: Record<string, string> = {
+  IMAGE_BG: '背景',
+  IMAGE_CG: '一枚絵',
+  IMAGE_OTHER: 'その他',
+  AUDIO_BGM: 'BGM',
+  AUDIO_SE: '効果音',
+  AUDIO_VOICE: 'ボイス',
+  AUDIO_OTHER: 'その他',
+};
+
+const getPrimaryTagLabel = (tag: string): string => {
+  return primaryTagLabels[tag] || tag;
+};
+
+// Load data from query params on mount
+const loadFromQuery = () => {
+  const query = route.query;
+  
+  if (query.q && typeof query.q === 'string') {
+    searchQuery.value = query.q;
+  }
+  
+  if (query.contentType === 'image' || query.contentType === 'audio') {
+    contentTypeFilter.value = query.contentType;
+  }
+  
+  if (query.primaryTag) {
+    primaryTagFilter.value = Array.isArray(query.primaryTag) 
+      ? query.primaryTag as string[] 
+      : [query.primaryTag as string];
+  }
+  
+  if (query.tags && typeof query.tags === 'string') {
+    tagsInput.value = query.tags;
+  }
+  
+  if (query.sort === 'createdAt:asc' || query.sort === 'createdAt:desc') {
+    sortOrder.value = query.sort;
   }
 };
 
@@ -164,9 +342,34 @@ const performSearch = async () => {
     loading.value = true;
     error.value = null;
 
-    const result = await searchAssets(searchQuery.value, 20, 0);
-    assets.value = result.items;
-    nextCursor.value = null; // Disable pagination in search mode
+    const params: Record<string, any> = {
+      q: searchQuery.value,
+      limit: 20,
+      offset: offset.value,
+      sort: sortOrder.value,
+    };
+
+    if (contentTypeFilter.value) {
+      params.contentType = contentTypeFilter.value;
+    }
+
+    if (primaryTagFilter.value.length > 0) {
+      params.primaryTag = primaryTagFilter.value.join(',');
+    }
+
+    if (tagsInput.value.trim()) {
+      params.tags = tagsInput.value;
+    }
+
+    const result = await searchAssets(params);
+    
+    if (offset.value === 0) {
+      assets.value = result.items;
+    } else {
+      assets.value = [...assets.value, ...result.items];
+    }
+    
+    total.value = result.total;
   } catch (e) {
     error.value = e instanceof Error ? `検索に失敗しました: ${e.message}` : '検索に失敗しました';
   } finally {
@@ -180,17 +383,50 @@ const onSearchInput = () => {
   }
 
   searchTimeout = setTimeout(() => {
-    if (searchQuery.value.trim()) {
-      performSearch();
-    } else {
-      loadAssets();
-    }
+    offset.value = 0;
+    performSearch();
   }, 300);
 };
 
+const applyFilters = () => {
+  offset.value = 0;
+  
+  // Update query params
+  const query: Record<string, any> = {
+    q: searchQuery.value || undefined,
+    contentType: contentTypeFilter.value || undefined,
+    primaryTag: primaryTagFilter.value.length > 0 ? primaryTagFilter.value.join(',') : undefined,
+    tags: tagsInput.value.trim() || undefined,
+    sort: sortOrder.value !== 'createdAt:desc' ? sortOrder.value : undefined,
+  };
+
+  // Remove undefined values
+  Object.keys(query).forEach(key => {
+    if (query[key] === undefined) {
+      delete query[key];
+    }
+  });
+
+  router.push({ query });
+  performSearch();
+};
+
+const resetFilters = () => {
+  searchQuery.value = '';
+  contentTypeFilter.value = undefined;
+  primaryTagFilter.value = [];
+  tagsInput.value = '';
+  sortOrder.value = 'createdAt:desc';
+  offset.value = 0;
+  
+  router.push({ query: {} });
+  performSearch();
+};
+
 const loadMore = () => {
-  if (nextCursor.value && !loading.value) {
-    loadAssets(nextCursor.value);
+  if (!loading.value && assets.value.length < total.value) {
+    offset.value += 20;
+    performSearch();
   }
 };
 
@@ -204,21 +440,22 @@ const formatFileSize = (bytes: number): string => {
 
 const formatDate = (date: Date | string): string => {
   const d = new Date(date);
-  return d.toLocaleDateString('en-US', { 
+  return d.toLocaleDateString('ja-JP', { 
     year: 'numeric', 
     month: 'short', 
     day: 'numeric' 
   });
 };
 
-const getFileExtension = (contentType: string): string => {
-  const parts = contentType.split('/');
-  return parts[1]?.toUpperCase() || 'FILE';
-};
-
 // Load initial data
 onMounted(() => {
-  loadAssets();
+  loadFromQuery();
+  performSearch();
+});
+
+// Watch route changes
+watch(() => route.query, () => {
+  loadFromQuery();
 });
 
 useHead({

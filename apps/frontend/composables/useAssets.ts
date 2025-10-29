@@ -64,12 +64,24 @@ export const useAssets = () => {
     return await applyAssetUrl(asset, fallbackBase)
   }
 
-  const searchAssets = async (q: string, limit = 20, offset = 0) => {
+  const searchAssets = async (params?: {
+    q?: string;
+    limit?: number;
+    offset?: number;
+    contentType?: 'image' | 'audio';
+    primaryTag?: string;
+    tags?: string;
+    sort?: 'createdAt:desc' | 'createdAt:asc';
+  }) => {
     const result = await api<AssetSearchResponse>('/search/assets', {
       query: {
-        q,
-        limit,
-        offset,
+        q: params?.q,
+        limit: params?.limit ?? 20,
+        offset: params?.offset ?? 0,
+        contentType: params?.contentType,
+        primaryTag: params?.primaryTag,
+        tags: params?.tags,
+        sort: params?.sort,
       },
     })
 

@@ -1,52 +1,47 @@
+// 先頭に明示インポート（auto-import環境でも #imports 経由が安全）
+import { useSupabaseClient, useRuntimeConfig, navigateTo } from '#imports'
+import { defineNuxtPlugin } from '#app'
 import type { FetchContext, FetchOptions } from 'ofetch'
 
-type RetriableFetchOptions = FetchOptions & { _tokenRefreshed?: boolean }
+type RetryContext = FetchContext & { response: any }
 
 export default defineNuxtPlugin(() => {
-  const baseURL = useRuntimeConfig().public.apiBase
-  const supabaseClient = useSupabaseClient()
+  const supabase = useSupabaseClient()
+  const config = useRuntimeConfig()
 
   const api = $fetch.create({
-    baseURL,
-    async onRequest({ options }: FetchContext) {
-      const { data: { session } } = await supabaseClient.auth.getSession()
+    baseURL: config.public.apiBase, // NUXT_PUBLIC_API_BASE
+    credentials: 'include',
+    onRequest: async ({ options }: FetchContext) => {
+      // セッション取得して Bearer 付与
+      const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-
-      const opts = options as RetriableFetchOptions
-      const headers = new Headers((opts.headers as HeadersInit) || {})
-      if (token) headers.set('Authorization', `Bearer ${token}`)
-      opts.headers = headers
-    },
-    async onResponseError({ response, request, options }: FetchContext) {
-      if (!response || response.status !== 401) return
-
-      const opts = options as RetriableFetchOptions
-      if (opts._tokenRefreshed) {
-        await navigateTo('/login')
-        return
+      
+      const headers = new Headers((options.headers as HeadersInit) || {})
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`)
       }
-
+      options.headers = headers
+    },
+    onResponseError: async (ctx: RetryContext) => {
+      if (!ctx.response || ctx.response.status !== 401) return
+      
+      // 401 → refresh → 1回だけ再試行
       try {
-        const { data } = await supabaseClient.auth.refreshSession()
-        const token = data.session?.access_token
+        await supabase.auth.refreshSession()
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
         if (!token) {
           await navigateTo('/login')
           return
         }
-
-        const retryHeaders = new Headers((opts.headers as HeadersInit) || {})
+        
+        const retryHeaders = new Headers((ctx.options.headers as HeadersInit) || {})
         retryHeaders.set('Authorization', `Bearer ${token}`)
-        opts._tokenRefreshed = true
-
-        const { _tokenRefreshed, ...rawOptions } = {
-          ...opts,
-          headers: retryHeaders,
-        }
-
-        return await ($fetch.raw as (typeof $fetch)['raw'])(
-          request,
-          rawOptions as any,
-        ) as unknown as void
+        ctx.options.headers = retryHeaders
+        
+        // 再試行（ofetch の $fetch.raw を使用）
+        return await ($fetch.raw as any)(ctx.request, ctx.options)
       } catch {
         await navigateTo('/login')
       }
@@ -55,3 +50,4 @@ export default defineNuxtPlugin(() => {
 
   return { provide: { api } }
 })
+

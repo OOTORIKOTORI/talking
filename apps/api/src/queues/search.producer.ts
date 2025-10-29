@@ -36,6 +36,7 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
     contentType: string;
     url: string;
     createdAt: Date;
+    ownerId: string;
   }) {
     await this.queue.add('index-asset', {
       id: asset.id,
@@ -46,6 +47,7 @@ export class SearchProducer implements OnModuleInit, OnModuleDestroy {
       contentType: asset.contentType,
       url: asset.url,
       createdAt: asset.createdAt.toISOString(),
+      ownerId: asset.ownerId,
     });
   }
 }
