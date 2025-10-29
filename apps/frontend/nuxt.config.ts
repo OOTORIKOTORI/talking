@@ -4,9 +4,10 @@ export default defineNuxtConfig({
   ssr: true,
   
   modules: [
-    // 既存のモジュール...
-    '@nuxtjs/tailwindcss',
-    '@nuxtjs/supabase',
+     // 既存のモジュール...
+     '@nuxtjs/tailwindcss',
+     '@nuxtjs/supabase',
+     '@nuxt/icon',
   ],
 
   supabase: {

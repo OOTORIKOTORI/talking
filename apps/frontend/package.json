@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/icon": "^2.1.0",
     "@nuxtjs/supabase": "^2.0.1",
     "@talking/types": "workspace:*",
     "cookie-es": "^2.0.0",
