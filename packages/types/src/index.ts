@@ -69,3 +69,37 @@ export interface HealthResponse {
   timestamp?: string;
   service?: string;
 }
+
+// === Characters =======================
+export type CharacterEmotion =
+  | 'NEUTRAL' | 'HAPPY' | 'SAD' | 'ANGRY' | 'SURPRISED' | 'FEAR' | 'DISGUST' | 'SHY' | 'SLEEPY' | 'THINKING' | 'OTHER'
+
+export interface CharacterImage {
+  id: string
+  characterId: string
+  key: string
+  thumbKey?: string
+  width?: number
+  height?: number
+  contentType: string
+  size?: number
+  emotion: CharacterEmotion
+  emotionLabel?: string
+  pattern?: string
+  sortOrder: number
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
+export interface Character {
+  id: string
+  ownerId: string
+  name: string
+  displayName: string
+  description?: string
+  isPublic: boolean
+  createdAt: string | Date
+  updatedAt: string | Date
+  deletedAt?: string | Date | null
+  images?: CharacterImage[]
+}

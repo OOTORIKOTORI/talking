@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { AssetsModule } from './assets/assets.module';
 import { SearchModule } from './search/search.module';
+import { CharactersModule } from './characters/characters.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { SearchModule } from './search/search.module';
     UploadsModule,
     AssetsModule,
     SearchModule,
-    FavoritesModule,
+  FavoritesModule,
+  CharactersModule,
   ],
 })
 export class AppModule {}

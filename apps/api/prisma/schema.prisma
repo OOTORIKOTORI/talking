@@ -66,3 +66,57 @@ model Favorite {
   @@unique([userId, assetId])
   @@index([userId, createdAt])
 }
+
+// === Characters =====================================
+enum CharacterEmotion {
+  NEUTRAL
+  HAPPY
+  SAD
+  ANGRY
+  SURPRISED
+  FEAR
+  DISGUST
+  SHY
+  SLEEPY
+  THINKING
+  OTHER
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  ownerId     String
+  name        String
+  displayName String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  images      CharacterImage[]
+
+  @@index([ownerId, createdAt])
+  @@map("characters")
+}
+
+model CharacterImage {
+  id           String            @id @default(cuid())
+  characterId  String
+  key          String            // S3 object key
+  thumbKey     String?           // Optional thumbnail key
+  width        Int?
+  height       Int?
+  contentType  String
+  size         Int?
+  emotion      CharacterEmotion  @default(NEUTRAL)
+  emotionLabel String?           // 任意の表示用ラベル（例: 楽しい/通常）
+  pattern      String?           // ポーズ/服装などのバリエーション名
+  sortOrder    Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId, sortOrder])
+  @@map("character_images")
+}
