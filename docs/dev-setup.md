@@ -61,6 +61,13 @@ MEILI_KEY=masterKey123
 
 > **重要:** `SUPABASE_JWT_SECRET` は Supabase ダッシュボード → Settings → API → **JWT Secret** からコピーしてください。
 
+### Nuxt モジュール
+- `@nuxt/icon` を **modules** に登録して `<Icon>` を使用（SFCで `from '@nuxt/icon'` の直接importは不要）
+
+### よくある落とし穴
+- `$api` 経由で Authorization ヘッダを必ず付ける（直fetchは401のもと）
+- 署名GETは **JSON `{ url }` を返す** ので、`<img :src>` に直接 `/uploads/signed-get?...` を入れない
+
 ### 3. Docker サービス起動
 
 ```powershell

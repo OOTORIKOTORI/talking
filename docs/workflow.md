@@ -105,7 +105,13 @@ PR を作成する際は以下を確認してください:
 
 ---
 
+
 ## CI/CD 方針
+
+### pnpm / lockfile の運用
+- CI は `pnpm install --frozen-lockfile`。**package.json と pnpm-lock.yaml の乖離を許容しない**
+- 新規モジュール追加/削除時は **lockfile の差分もコミット必須**
+- `@nuxt/icon` は modules で使う。SFCでの直接importはしない
 
 ### CI チェック項目
 

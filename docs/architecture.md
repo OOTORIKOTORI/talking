@@ -55,8 +55,8 @@ talking/
 | `/assets/[id]`      | アセット詳細       | 不要       | 管理ボタンは**オーナーのみ**表示       |
 | `/upload`           | アップロード       | **必須**   | ログイン後のみアクセス可能             |
 | `/my/assets`        | アセット管理       | **必須**   | 本人のアセットのみ表示・編集・削除     |
+| `/my/favorites`     | お気に入り一覧     | **必須**   | 自分がお気に入り登録した公開アセット一覧。公開ギャラリー準拠UI。
 
----
 
 ## アクセス制御（AuthN/Z）
 
@@ -172,7 +172,6 @@ talking/
 
 #### `GET /assets/:id`
 
-アセット詳細
 
 #### `PATCH /assets/:id`
 
@@ -182,7 +181,11 @@ talking/
 
 アセット削除（本人のみ）
 
----
+
+### お気に入り関連 API
+- `GET /favorites`（要ログイン）: お気に入りの資産一覧
+- `POST /assets/:id/favorite`（要ログイン）: お気に入り登録
+- `DELETE /assets/:id/favorite`（要ログイン）: お気に入り解除
 
 ## データモデル（Asset 抜粋）
 
@@ -190,7 +193,17 @@ talking/
 model Asset {
   id          String   @id @default(uuid())
   ownerId     String   // Supabase Auth の user.id
+
+### Asset 拡張
+- `description` (string, 任意)
+- `primaryTag` (enum) … 必須の分類タグ。以下の値のいずれか
+  - 画像: `IMAGE_BG`（背景）, `IMAGE_CG`（一枚絵）, `IMAGE_OTHER`
+  - 音声: `AUDIO_BGM`（BGM）, `AUDIO_SE`（効果音）, `AUDIO_VOICE`（ボイス）, `AUDIO_OTHER`
+- `tags` (string[]) … 自由タグ（カンマ区切り入力→配列格納）
   key         String   // S3 object key (original)
+### Favorite モデル
+- `userId`, `assetId`, `createdAt`
+- 複合ユニーク(`userId`,`assetId`)
   thumbKey    String?  // サムネのキー（存在時は一覧で優先表示）
   title       String?
   description String?
@@ -219,6 +232,7 @@ model Asset {
 
 ---
 
+
 ## 署名URLの扱い（TTL 切れの復旧）
 
 - 一覧・詳細画面でサムネや画像を表示する際、403/401（期限切れ）を検知
@@ -227,13 +241,31 @@ model Asset {
 
 ---
 
-## 技術スタック
+## フロントエンド主要フロー
 
-- **Frontend**: Nuxt 3 (Vue 3 + Composition API), TailwindCSS
-- **Backend**: NestJS (TypeScript), Prisma ORM
-- **Worker**: BullMQ (Redis ベースのジョブキュー), sharp (画像処理)
-- **DB**: PostgreSQL
-- **Storage**: MinIO (S3 互換)
-- **Search**: Meilisearch
-- **Auth**: Supabase Auth (HS256 JWT 検証)
-- **Runtime**: Node.js 22, pnpm
+**アップロード**
+1) `/upload` でファイル選択 → `POST /uploads/signed-url` → 署名PUTでMinIOへ
+2) `POST /assets` finalize で DB 登録・Worker キュー投入
+
+**サムネ表示**
+1) `<AssetCard>` は `thumbKey` または `key` を使って `GET /uploads/signed-get?key=...` を叩き、返ってきた **JSONの `url`** を `<img src>` にセットする（APIのエンドポイント自体を `src` に入れない）
+2) 画像エラー時は自動で署名URLを再取得（TTL切れ対策）。メモリ短期キャッシュを持ち再取得を抑制。
+
+**公開ギャラリー（/assets）**
+キーワード検索、コンテンツタイプ（画像/音声）、プライマリタグ（背景/一枚絵/BGM/効果音/ボイス/その他）、自由タグ（カンマ区切り）、並び替え（新しい順/古い順/タイトル）を提供
+オーナー以外には編集/削除ボタンを非表示
+
+**お気に入り（/my/favorites）**
+公開ギャラリーと同等のフィルタUIを持つ
+解除は即時にカードを消す（楽観更新）
+
+---
+
+
+---
+
+## 用語ルール（更新）
+- 公開ギャラリー: `/assets`（全体閲覧・検索）
+- アセット管理: `/my/assets`（自分の投稿の編集・削除）
+- お気に入り: `/my/favorites`（お気に入りした公開アセットの一覧）
+- サムネ: `thumbKey` を基点に署名GETで解決したURL画像
