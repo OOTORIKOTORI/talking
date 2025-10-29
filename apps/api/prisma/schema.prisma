@@ -48,7 +48,21 @@ model Asset {
   thumbHeight Int?            @default(512)
   createdAt   DateTime        @default(now())
 
+  favorites   Favorite[]
+
   @@index([createdAt])
   @@index([ownerId])
   @@map("assets")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  assetId   String
+  createdAt DateTime @default(now())
+
+  asset     Asset    @relation(fields: [assetId], references: [id])
+
+  @@unique([userId, assetId])
+  @@index([userId, createdAt])
 }

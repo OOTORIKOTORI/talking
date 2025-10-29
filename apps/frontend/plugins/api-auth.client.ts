@@ -1,11 +1,12 @@
-// 先頭に明示インポート（auto-import環境でも #imports 経由が安全）
-import { useSupabaseClient, useRuntimeConfig, navigateTo } from '#imports'
+import { useSupabaseClient, useRuntimeConfig } from '#imports'
+// ...existing code...
 import { defineNuxtPlugin } from '#app'
 import type { FetchContext, FetchOptions } from 'ofetch'
 
 type RetryContext = FetchContext & { response: any }
 
 export default defineNuxtPlugin(() => {
+  // useSupabaseClient, useRuntimeConfigは自動インポート
   const supabase = useSupabaseClient()
   const config = useRuntimeConfig()
 
@@ -17,34 +18,28 @@ export default defineNuxtPlugin(() => {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       
-      const headers = new Headers((options.headers as HeadersInit) || {})
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`)
+      if (options.headers instanceof Headers) {
+        if (token) options.headers.set('Authorization', `Bearer ${token}`)
+      } else {
+        options.headers = new Headers()
+        if (token) options.headers.set('Authorization', `Bearer ${token}`)
       }
-      options.headers = headers
     },
     onResponseError: async (ctx: RetryContext) => {
-      if (!ctx.response || ctx.response.status !== 401) return
-      
-      // 401 → refresh → 1回だけ再試行
+      if (ctx.response.status !== 401) return
       try {
         await supabase.auth.refreshSession()
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
-        if (!token) {
-          await navigateTo('/login')
-          return
+        if (!token) return
+        if (ctx.options.headers instanceof Headers) {
+          ctx.options.headers.set('Authorization', `Bearer ${token}`)
+        } else {
+          ctx.options.headers = new Headers()
+          ctx.options.headers.set('Authorization', `Bearer ${token}`)
         }
-        
-        const retryHeaders = new Headers((ctx.options.headers as HeadersInit) || {})
-        retryHeaders.set('Authorization', `Bearer ${token}`)
-        ctx.options.headers = retryHeaders
-        
-        // 再試行（ofetch の $fetch.raw を使用）
-        return await ($fetch.raw as any)(ctx.request, ctx.options)
-      } catch {
-        await navigateTo('/login')
-      }
+  await ($fetch.raw as any)(ctx.request, ctx.options)
+      } catch { /* no-op */ }
     },
   })
 

@@ -79,7 +79,7 @@ export class AssetsService {
     return asset;
   }
 
-  async findAll(query: QueryAssetsDto & { ownerId?: string }) {
+  async findAll(query: QueryAssetsDto & { ownerId?: string, userId?: string }) {
     const rawLimit = Number(query.limit) || 20;
     const take = Math.min(Math.max(rawLimit, 1), 100);
 
@@ -102,9 +102,19 @@ export class AssetsService {
       ],
     });
 
-    const hasNext = items.length > take;
-    const nextCursor = hasNext ? items[take].id : null;
-    const sliced = hasNext ? items.slice(0, take) : items;
+    let itemsWithFavorite = items;
+    if (query.userId && items.length) {
+      const favs = await this.prisma.favorite.findMany({
+        where: { userId: query.userId, assetId: { in: items.map(a => a.id) } },
+        select: { assetId: true },
+      });
+      const favSet = new Set(favs.map(f => f.assetId));
+      itemsWithFavorite = items.map(a => ({ ...a, isFavorite: favSet.has(a.id) }));
+    }
+
+    const hasNext = itemsWithFavorite.length > take;
+    const nextCursor = hasNext ? itemsWithFavorite[take].id : null;
+    const sliced = hasNext ? itemsWithFavorite.slice(0, take) : itemsWithFavorite;
 
     return {
       items: sliced,
@@ -112,10 +122,18 @@ export class AssetsService {
     };
   }
 
-  async findOne(id: string) {
-    return this.prisma.asset.findUnique({
+  async findOne(id: string, userId?: string) {
+    const asset = await this.prisma.asset.findUnique({
       where: { id },
     });
+    if (!asset) return null;
+    if (userId) {
+      const fav = await this.prisma.favorite.findUnique({
+        where: { userId_assetId: { userId, assetId: id } },
+      });
+      return { ...asset, isFavorite: !!fav };
+    }
+    return asset;
   }
 
   async update(id: string, updateAssetDto: UpdateAssetDto, userId: string) {

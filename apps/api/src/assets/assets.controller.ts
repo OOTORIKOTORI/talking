@@ -19,19 +19,19 @@ export class AssetsController {
   }
 
   @Get()
-  findAll(@Query() query: QueryAssetsDto) {
-    return this.assetsService.findAll(query);
+  findAll(@Query() query: QueryAssetsDto, @CurrentUser() user?: AuthUser) {
+    return this.assetsService.findAll({ ...query, userId: user?.userId });
   }
 
   @Get('mine')
   @UseGuards(SupabaseAuthGuard)
   findMine(@Query() query: QueryAssetsDto, @CurrentUser() user: AuthUser) {
-    return this.assetsService.findAll({ ...query, ownerId: user.userId });
+    return this.assetsService.findAll({ ...query, ownerId: user.userId, userId: user.userId });
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const asset = await this.assetsService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    const asset = await this.assetsService.findOne(id, user?.userId);
     if (!asset) {
       throw new NotFoundException(`Asset with ID ${id} not found`);
     }

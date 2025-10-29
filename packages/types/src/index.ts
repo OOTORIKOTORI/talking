@@ -39,6 +39,7 @@ export interface Asset {
   thumbWidth?: number;
   thumbHeight?: number;
   createdAt: Date;
+  isFavorite?: boolean;
 }
 
 /**
