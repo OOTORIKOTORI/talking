@@ -38,7 +38,7 @@
         <h2 class="font-semibold">立ち絵画像</h2>
         <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="pickAndUpload">画像を追加</button>
       </div>
-      <div class="grid [grid-template-columns:repeat(auto-fit,_minmax(280px,_1fr))] gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         <div v-for="img in images" :key="img.id" class="rounded overflow-hidden ring-1 ring-black/5 bg-white">
           <div class="aspect-[3/4] cursor-zoom-in" @click="openPreview(img)">
             <CharacterImageThumb :keyOrThumb="img.thumbKey || img.key" :alt="name" />
