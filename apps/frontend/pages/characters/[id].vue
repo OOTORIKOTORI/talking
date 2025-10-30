@@ -17,9 +17,11 @@
       <input v-model="pattern" class="border rounded px-2 py-1" placeholder="パターン（任意文字列）" />
     </div>
 
-    <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <div v-for="img in viewImages" :key="img.id" class="bg-white rounded shadow overflow-hidden aspect-[3/4] cursor-zoom-in" @click="openPreview(img)">
-        <CharacterImageThumb :keyOrThumb="img.thumbKey || img.key" :alt="data?.name" />
+    <div class="mt-4 grid [grid-template-columns:repeat(auto-fit,_minmax(280px,_1fr))] gap-4">
+      <div v-for="img in viewImages" :key="img.id" class="bg-white rounded shadow overflow-hidden">
+        <div class="aspect-[3/4] cursor-zoom-in" @click="openPreview(img)">
+          <CharacterImageThumb :keyOrThumb="img.thumbKey || img.key" :alt="data?.name" />
+        </div>
         <div class="p-2 text-xs text-slate-600">
           {{ img.emotionLabel || EMOTION_JP_LABEL[img.emotion as keyof typeof EMOTION_JP_LABEL] }}
           <span v-if="img.pattern">/ {{ img.pattern }}</span>

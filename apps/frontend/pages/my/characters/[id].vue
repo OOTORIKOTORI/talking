@@ -38,22 +38,22 @@
         <h2 class="font-semibold">立ち絵画像</h2>
         <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="pickAndUpload">画像を追加</button>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div v-for="img in images" :key="img.id" class="rounded overflow-hidden ring-1 ring-black/5 bg-white cursor-zoom-in" @click="openPreview(img)">
-          <div class="aspect-[3/4]">
+      <div class="grid [grid-template-columns:repeat(auto-fit,_minmax(280px,_1fr))] gap-4">
+        <div v-for="img in images" :key="img.id" class="rounded overflow-hidden ring-1 ring-black/5 bg-white">
+          <div class="aspect-[3/4] cursor-zoom-in" @click="openPreview(img)">
             <CharacterImageThumb :keyOrThumb="img.thumbKey || img.key" :alt="name" />
           </div>
           <div class="p-3 space-y-2 text-sm">
             <div class="flex gap-2">
-              <select v-model="img.emotion" class="border rounded px-2 py-1">
+              <select v-model="img.emotion" class="border rounded px-2 py-1" @click.stop>
                 <option v-for="e in emotions" :key="e.value" :value="e.value">{{ e.label }}</option>
               </select>
-              <input v-model="img.emotionLabel" class="border rounded px-2 py-1" placeholder="表示ラベル(例: 楽しい)" />
+              <input v-model="img.emotionLabel" class="border rounded px-2 py-1" placeholder="表示ラベル(例: 楽しい)" @click.stop />
             </div>
-            <input v-model="img.pattern" class="border rounded px-2 py-1 w-full" placeholder="パターン(服装/ポーズ等)" />
+            <input v-model="img.pattern" class="border rounded px-2 py-1 w-full" placeholder="パターン(服装/ポーズ等)" @click.stop />
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <input type="number" v-model.number="img.sortOrder" class="w-24 border rounded px-2 py-1" />
+                <input type="number" v-model.number="img.sortOrder" class="w-24 border rounded px-2 py-1" @click.stop />
                 <span class="text-xs text-slate-500">（小さいほど上に表示）</span>
               </div>
               <div class="flex gap-2">
