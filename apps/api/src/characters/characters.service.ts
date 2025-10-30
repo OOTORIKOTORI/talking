@@ -10,16 +10,18 @@ export class CharactersService {
   private readonly prisma: PrismaClient = new PrismaClient();
 
   async create(ownerId: string, dto: CreateCharacterDto) {
+    const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
     return this.prisma.character.create({
-      data: { ownerId, name: dto.name, displayName: dto.displayName, description: dto.description, isPublic: dto.isPublic ?? true },
+      data: { ownerId, name: dto.name, displayName: dto.displayName, description: dto.description, isPublic: dto.isPublic ?? true, tags },
     });
   }
 
   async update(ownerId: string, id: string, dto: UpdateCharacterDto) {
-    const c = await this.prisma.character.findUnique({ where: { id } });
-    if (!c || c.deletedAt) throw new NotFoundException('Character not found');
-    if (c.ownerId !== ownerId) throw new ForbiddenException();
-    return this.prisma.character.update({ where: { id }, data: { ...dto } });
+  const c = await this.prisma.character.findUnique({ where: { id } });
+  if (!c || c.deletedAt) throw new NotFoundException('Character not found');
+  if (c.ownerId !== ownerId) throw new ForbiddenException();
+  const tags = dto.tags ? dto.tags.map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined
+  return this.prisma.character.update({ where: { id }, data: { ...dto, ...(tags !== undefined ? { tags } : {}) } });
   }
 
   async remove(ownerId: string, id: string) {

@@ -92,6 +92,7 @@ model Character {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
+  tags        String[] @default([])
 
   images      CharacterImage[]
 

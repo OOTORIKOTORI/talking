@@ -102,4 +102,5 @@ export interface Character {
   updatedAt: string | Date
   deletedAt?: string | Date | null
   images?: CharacterImage[]
+  tags?: string[]
 }
