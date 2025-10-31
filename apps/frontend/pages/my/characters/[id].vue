@@ -91,24 +91,6 @@ const route = useRoute(); const router = useRouter(); const { $api } = useNuxtAp
 const api = useCharactersApi()
 const id = String(route.params.id)
 
-// ...（全てのref/関数宣言の後ろに移動）
-defineExpose({
-  name,
-  displayName,
-  description,
-  isPublic,
-  tagsCsv,
-  save,
-  pickAndUpload,
-  images,
-  emotions,
-  openPreview,
-  saveImage,
-  removeImage,
-  previewOpen,
-  previewSrc
-})
-
 const data = ref<Character | null>(null)
 const name = ref(''); const displayName = ref(''); const description = ref(''); const isPublic = ref(true)
 const images = ref<CharacterImage[]>([])
@@ -180,6 +162,23 @@ const pickAndUpload = async () => {
   }
   input.click()
 }
+
+defineExpose({
+  name,
+  displayName,
+  description,
+  isPublic,
+  tagsCsv,
+  save,
+  pickAndUpload,
+  images,
+  emotions,
+  openPreview,
+  saveImage,
+  removeImage,
+  previewOpen,
+  previewSrc
+})
 </script>
 <style scoped>
 .toast-enter-active,.toast-leave-active{ transition: opacity .2s, transform .2s }
