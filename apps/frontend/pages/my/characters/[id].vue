@@ -39,7 +39,12 @@
         <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="pickAndUpload">画像を追加</button>
       </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        <div v-for="img in images" :key="img.id" class="rounded overflow-hidden ring-1 ring-black/5 bg-white">
+        <div v-for="(img, i) in images" :key="img.id"
+          class="rounded overflow-hidden ring-1 ring-black/5 bg-white"
+          draggable="true"
+          @dragstart="onDragStart(i)"
+          @dragover.prevent
+          @drop="onDrop(i)">
           <div class="aspect-[3/4] cursor-zoom-in" @click="openPreview(img)">
             <CharacterImageThumb :keyOrThumb="img.thumbKey || img.key" :alt="name" />
           </div>
@@ -81,6 +86,29 @@ const showToast = (msg: string) => {
   toastMessage.value = msg
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => { toastMessage.value = '' }, 1800)
+}
+// ドラッグ＆ドロップ用
+const dragFrom = ref<number|null>(null)
+const onDragStart = (i: number) => { dragFrom.value = i }
+const onDrop = async (to: number) => {
+  const from = dragFrom.value
+  dragFrom.value = null
+  if (from === null || from === to) return
+  // 並べ替え（ローカル）
+  const arr = [...images.value]
+  const moved = arr.splice(from, 1)[0]
+  arr.splice(to, 0, moved)
+  images.value = arr
+
+  // sortOrder を 0..N-1 で再採番して保存
+  for (let idx = 0; idx < images.value.length; idx++) {
+    const im = images.value[idx]
+    if (im.sortOrder !== idx) {
+      im.sortOrder = idx
+      await api.updateImage(id, im.id, { sortOrder: idx })
+    }
+  }
+  showToast('並び順を保存しました')
 }
 import type { Character, CharacterImage } from '@talking/types'
 import { useCharactersApi } from '@/composables/useCharacters'
@@ -183,4 +211,9 @@ defineExpose({
 <style scoped>
 .toast-enter-active,.toast-leave-active{ transition: opacity .2s, transform .2s }
 .toast-enter-from,.toast-leave-to{ opacity:0; transform: translateY(6px) }
+/* ドラッグ可能カードの装飾 */
+[draggable="true"] { cursor: grab; transition: box-shadow .2s; }
+[draggable="true"]:active, [draggable="true"].dragging {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
 </style>
