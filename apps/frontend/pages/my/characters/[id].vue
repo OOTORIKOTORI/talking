@@ -66,9 +66,22 @@
         <ImageLightbox :open="previewOpen" :src="previewSrc" :alt="name || ''" @close="previewOpen=false" />
       </div>
     </section>
+    <Transition name="toast">
+      <div v-if="toastMessage" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        {{ toastMessage }}
+      </div>
+    </Transition>
   </div>
 </template>
 <script setup lang="ts">
+// Toast
+const toastMessage = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+const showToast = (msg: string) => {
+  toastMessage.value = msg
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastMessage.value = '' }, 1800)
+}
 import type { Character, CharacterImage } from '@talking/types'
 import { useCharactersApi } from '@/composables/useCharacters'
 import { EMOTION_JP_LABEL, emotionOptions } from '@/utils/characterLocales'
@@ -77,6 +90,24 @@ import { useSignedUrl } from '@/composables/useSignedUrl'
 const route = useRoute(); const router = useRouter(); const { $api } = useNuxtApp()
 const api = useCharactersApi()
 const id = String(route.params.id)
+
+// ...（全てのref/関数宣言の後ろに移動）
+defineExpose({
+  name,
+  displayName,
+  description,
+  isPublic,
+  tagsCsv,
+  save,
+  pickAndUpload,
+  images,
+  emotions,
+  openPreview,
+  saveImage,
+  removeImage,
+  previewOpen,
+  previewSrc
+})
 
 const data = ref<Character | null>(null)
 const name = ref(''); const displayName = ref(''); const description = ref(''); const isPublic = ref(true)
@@ -104,16 +135,19 @@ const save = async () => {
   const toTags = (csv: string) => Array.from(new Set(csv.split(',').map(s => s.trim()).filter(Boolean))).slice(0, 20)
   await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value) })
   data.value = await api.getMine(id)
+  showToast('保存しました')
 }
 
 const saveImage = async (img: CharacterImage) => {
   await api.updateImage(id, img.id, { emotion: img.emotion, emotionLabel: img.emotionLabel, pattern: img.pattern, sortOrder: img.sortOrder })
+  showToast('保存しました')
 }
 
 const removeImage = async (img: CharacterImage) => {
   if (!confirm('削除しますか？')) return
   await api.removeImage(id, img.id)
   images.value = images.value.filter(i => i.id !== img.id)
+  showToast('削除しました')
 }
 
 // 画像追加：署名URL→PUT→メタ登録
@@ -135,8 +169,19 @@ const pickAndUpload = async () => {
     }
     // 3) メタ登録
     const created = await api.addImage(id, { key, contentType: file.type, width: undefined, height: undefined, size: file.size })
-    images.value.unshift(created as any)
+    // 現在の最大 sortOrder を算出（未設定は 0 とみなす）
+    const maxOrder = Math.max(0, ...images.value.map(i => Number.isFinite(i.sortOrder) ? i.sortOrder! : 0))
+    const nextOrder = maxOrder + 1
+    // サーバにも反映（次回取得でも末尾になるように）
+    await api.updateImage(id, (created as any).id, { sortOrder: nextOrder })
+    // ローカルにも反映して**最後尾**に push
+  images.value.push({ ...(created as any), sortOrder: nextOrder } as any)
+  showToast('画像を追加しました')
   }
   input.click()
 }
 </script>
+<style scoped>
+.toast-enter-active,.toast-leave-active{ transition: opacity .2s, transform .2s }
+.toast-enter-from,.toast-leave-to{ opacity:0; transform: translateY(6px) }
+</style>
