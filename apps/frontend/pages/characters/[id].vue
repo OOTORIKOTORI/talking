@@ -1,8 +1,23 @@
 <template>
   <div class="mx-auto max-w-5xl p-6">
     <NuxtLink to="/characters" class="text-blue-600 text-sm hover:underline">← 一覧へ</NuxtLink>
-    <h1 class="text-3xl font-bold mt-2">{{ data?.name }}</h1>
-    <div class="text-slate-600">{{ data?.displayName }}</div>
+    <div class="flex items-start justify-between mt-2">
+      <div class="flex-1">
+        <h1 class="text-3xl font-bold">{{ data?.name }}</h1>
+        <div class="text-slate-600">{{ data?.displayName }}</div>
+      </div>
+      <button
+        v-if="data"
+        @click="onFavoriteClick"
+        class="flex items-center gap-1 px-3 py-1.5 rounded-full border transition"
+        :class="data.isFavorite ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" :fill="data.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="text-sm">{{ data.isFavorite ? 'お気に入り' : 'お気に入りに追加' }}</span>
+      </button>
+    </div>
     <p class="mt-2 whitespace-pre-wrap">{{ data?.description }}</p>
     <div v-if="data?.tags?.length" class="mt-2 flex flex-wrap gap-1">
       <NuxtLink v-for="t in data?.tags" :key="t" :to="`/characters?tags=${encodeURIComponent(t)}`" class="px-2 py-0.5 rounded-full bg-slate-100 ring-1 ring-slate-200 text-slate-700 text-xs hover:bg-slate-200 transition-colors">{{ t }}</NuxtLink>
@@ -50,6 +65,13 @@ const { url: fullUrl, setKey: setFullKey, refresh: refreshFull } = useSignedUrl(
 watch(fullUrl, v => { if (v) previewSrc.value = v })
 const openPreview = async (img: any) => {
   setFullKey(img.key); await refreshFull(); previewOpen.value = true
+}
+
+const { toggle } = useFavoriteToggleCharacter()
+const onFavoriteClick = async () => {
+  if (data.value) {
+    await toggle(data.value)
+  }
 }
 
 onMounted(async () => { data.value = await api.getPublic(String(route.params.id)) })

@@ -103,4 +103,5 @@ export interface Character {
   deletedAt?: string | Date | null
   images?: CharacterImage[]
   tags?: string[]
+  isFavorite?: boolean
 }

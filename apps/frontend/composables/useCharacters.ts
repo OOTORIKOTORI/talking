@@ -24,5 +24,10 @@ export const useCharactersApi = () => {
       $api<CharacterImage>(`/my/characters/${id}/images/${imageId}`, { method: 'PATCH', body: payload }),
     removeImage: (id: string, imageId: string) =>
       $api<{success:true}>(`/my/characters/${id}/images/${imageId}`, { method: 'DELETE' }),
+
+    // お気に入り
+    favorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'POST' }),
+    unfavorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'DELETE' }),
+    listFavorites: () => $api<Character[]>('/my/favorites/characters'),
   }
 }

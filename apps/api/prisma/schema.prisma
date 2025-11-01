@@ -67,6 +67,19 @@ model Favorite {
   @@index([userId, createdAt])
 }
 
+model FavoriteCharacter {
+  id          String   @id @default(cuid())
+  userId      String
+  characterId String
+  createdAt   DateTime @default(now())
+
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+  @@index([userId, createdAt])
+  @@map("favorite_characters")
+}
+
 // === Characters =====================================
 enum CharacterEmotion {
   NEUTRAL
@@ -95,6 +108,7 @@ model Character {
   tags        String[] @default([])
 
   images      CharacterImage[]
+  favorites   FavoriteCharacter[]
 
   @@index([ownerId, createdAt])
   @@map("characters")
