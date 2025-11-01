@@ -4,7 +4,8 @@ export const useCharactersApi = () => {
   const { $api } = useNuxtApp()
   return {
     // 公開
-    listPublic: (q?: string, limit=20, offset=0) => $api<Character[]>('/characters', { query: { q, limit, offset } }),
+    listPublic: (q?: string, limit=20, offset=0, extra?: Record<string, any>) =>
+      $api<Character[]>('/characters', { query: { q, limit, offset, ...(extra || {}) } }),
     getPublic: (id: string) => $api<Character>(`/characters/${id}`),
 
     // マイ
