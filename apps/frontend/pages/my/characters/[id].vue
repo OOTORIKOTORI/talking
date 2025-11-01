@@ -34,9 +34,13 @@
 
     <!-- 画像管理 -->
     <section class="bg-white rounded-xl p-4 ring-1 ring-black/5">
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between mb-3 gap-3">
         <h2 class="font-semibold">立ち絵画像</h2>
-        <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="pickAndUpload">画像を追加</button>
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50" :disabled="bulkRunning" @click="pickAndUpload">画像を追加</button>
+          <button class="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50" :disabled="bulkRunning" @click="pickAndUploadMany">複数追加</button>
+          <span v-if="bulkRunning" class="text-sm text-slate-600">{{ bulkProgressText }}</span>
+        </div>
       </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         <div v-for="(img, i) in images" :key="img.id"
@@ -160,33 +164,89 @@ const removeImage = async (img: CharacterImage) => {
   showToast('削除しました')
 }
 
-// 画像追加：署名URL→PUT→メタ登録
+// 共通：1枚アップロード（署名URL→PUT→メタ登録→並び末尾）
+const uploadOne = async (file: File, opts?: { notify?: boolean; sortOrder?: number }) => {
+  // 1) PUT用署名URLの取得
+  const res: any = await $api('/uploads/signed-url', { method: 'POST', body: { filename: file.name, contentType: file.type } })
+  const { url, fields, key } = res
+  // 2) PUT（S3直PUT or FormData）
+  if (url && !fields) {
+    await fetch(url, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
+  } else {
+    const fd = new FormData()
+    Object.entries(fields || {}).forEach(([k,v]) => fd.append(k, String(v)))
+    fd.append('file', file)
+    await fetch(url, { method: 'POST', body: fd })
+  }
+  // 3) メタ登録
+  const created = await api.addImage(id, { key, contentType: file.type, width: undefined, height: undefined, size: file.size })
+  // 並び順：指定がなければ末尾に付与
+  let nextOrder: number
+  if (typeof opts?.sortOrder === 'number') {
+    nextOrder = opts.sortOrder
+  } else {
+    const maxOrder = Math.max(0, ...images.value.map(i => Number.isFinite(i.sortOrder) ? i.sortOrder! : 0))
+    nextOrder = maxOrder + 1
+  }
+  await api.updateImage(id, (created as any).id, { sortOrder: nextOrder })
+  images.value.push({ ...(created as any), sortOrder: nextOrder } as any)
+  if (opts?.notify !== false) {
+    showToast('画像を追加しました')
+  }
+}
+
+// 画像追加（単体）
 const pickAndUpload = async () => {
   const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'
   input.onchange = async () => {
     const file = input.files?.[0]; if (!file) return
-    // 1) PUT用署名URLの取得
-    const res: any = await $api('/uploads/signed-url', { method: 'POST', body: { filename: file.name, contentType: file.type } })
-    const { url, fields, key } = res
-    // 2) PUT（S3直PUT or FormData）
-    if (url && !fields) {
-      await fetch(url, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
-    } else {
-      const fd = new FormData()
-      Object.entries(fields || {}).forEach(([k,v]) => fd.append(k, String(v)))
-      fd.append('file', file)
-      await fetch(url, { method: 'POST', body: fd })
+    await uploadOne(file, { notify: true })
+  }
+  input.click()
+}
+
+// 複数追加：<input multiple> + 3並列 + 進捗表示 + 完了トースト
+const bulkRunning = ref(false)
+const bulkTotal = ref(0)
+const bulkDone = ref(0)
+const bulkProgressText = computed(() => `${bulkDone.value}/${bulkTotal.value}`)
+
+const pickAndUploadMany = async () => {
+  if (bulkRunning.value) return
+  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true
+  input.onchange = async () => {
+    const files = Array.from(input.files || [])
+    if (!files.length) return
+    bulkRunning.value = true
+    bulkTotal.value = files.length
+    bulkDone.value = 0
+
+    // 末尾から連番で sortOrder を割り当て
+    let nextOrderBase = Math.max(0, ...images.value.map(i => Number.isFinite(i.sortOrder) ? i.sortOrder! : 0)) + 1
+    const getNextOrder = () => nextOrderBase++
+
+    const concurrency = 3
+    let cursor = 0
+    const runNext = async (): Promise<void> => {
+      const idx = cursor++
+      if (idx >= files.length) return
+      const f = files[idx]
+      try {
+        await uploadOne(f, { notify: false, sortOrder: getNextOrder() })
+      } catch (e) {
+        console.warn('upload failed:', e)
+      } finally {
+        bulkDone.value++
+        // 次を継続
+        await runNext()
+      }
     }
-    // 3) メタ登録
-    const created = await api.addImage(id, { key, contentType: file.type, width: undefined, height: undefined, size: file.size })
-    // 現在の最大 sortOrder を算出（未設定は 0 とみなす）
-    const maxOrder = Math.max(0, ...images.value.map(i => Number.isFinite(i.sortOrder) ? i.sortOrder! : 0))
-    const nextOrder = maxOrder + 1
-    // サーバにも反映（次回取得でも末尾になるように）
-    await api.updateImage(id, (created as any).id, { sortOrder: nextOrder })
-    // ローカルにも反映して**最後尾**に push
-  images.value.push({ ...(created as any), sortOrder: nextOrder } as any)
-  showToast('画像を追加しました')
+
+    // ワーカー起動
+    await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, () => runNext()))
+
+    bulkRunning.value = false
+    showToast('一括アップロードが完了しました')
   }
   input.click()
 }
@@ -199,6 +259,10 @@ defineExpose({
   tagsCsv,
   save,
   pickAndUpload,
+  pickAndUploadMany,
+  uploadOne,
+  bulkRunning,
+  bulkProgressText,
   images,
   emotions,
   openPreview,

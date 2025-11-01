@@ -13,7 +13,7 @@ export const useCharactersApi = () => {
     create: (payload: Pick<Character, 'name'|'displayName'|'description'|'isPublic'>) => 
       $api<Character>('/my/characters', { method: 'POST', body: payload }),
     getMine: (id: string) => $api<Character>(`/my/characters/${id}`),
-    update: (id: string, payload: Partial<Pick<Character,'name'|'displayName'|'description'|'isPublic'>>) =>
+    update: (id: string, payload: Partial<Pick<Character,'name'|'displayName'|'description'|'isPublic'|'tags'>>) =>
       $api<Character>(`/my/characters/${id}`, { method: 'PATCH', body: payload }),
     remove: (id: string) => $api<{success:true}>(`/my/characters/${id}`, { method: 'DELETE' }),
 
