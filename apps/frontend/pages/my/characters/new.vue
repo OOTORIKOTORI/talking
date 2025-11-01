@@ -1,6 +1,10 @@
 <template>
   <div class="mx-auto max-w-xl p-6">
-    <h1 class="text-2xl font-semibold mb-4">新規キャラクター</h1>
+    <h1 class="text-2xl font-semibold mb-2">新規キャラクター</h1>
+    <div class="mb-4 flex gap-2 text-sm">
+      <NuxtLink to="/upload" class="px-3 py-1 rounded border bg-white">アセットをアップロード</NuxtLink>
+      <NuxtLink to="/my/characters/new" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクターを作成</NuxtLink>
+    </div>
     <form @submit.prevent="submit">
       <label class="block mb-2 text-sm">キャラクター名</label>
       <input v-model="name" class="w-full border rounded px-3 py-2 mb-4" required />
@@ -29,7 +33,11 @@ const name = ref(''); const displayName = ref(''); const description = ref(''); 
 const tagsCsv = ref('')
 const toTags = (csv: string) => Array.from(new Set(csv.split(',').map(s => s.trim()).filter(Boolean))).slice(0, 20)
 const submit = async () => {
-  const c = await api.create({ name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value) })
+  const c = await api.create({ name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value })
+  const tags = toTags(tagsCsv.value)
+  if (tags.length) {
+    await api.update(c.id, { tags })
+  }
   router.push(`/my/characters/${c.id}`)
 }
 </script>
