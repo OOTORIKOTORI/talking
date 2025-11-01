@@ -94,23 +94,38 @@
     <Transition name="toast">
       <div
         v-if="toast.message"
-        class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50"
+        class="fixed bottom-4 right-4 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-4"
         :class="toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'"
       >
-        {{ toast.message }}
+        <span>{{ toast.message }}</span>
+        <button
+          v-if="toast.undo"
+          class="px-3 py-1 rounded bg-white/20 hover:bg-white/30"
+          @click="toast.undo?.()"
+        >元に戻す</button>
       </div>
     </Transition>
   </div>
 </template>
 <script setup lang="ts">
 // Toast
-const toast = reactive({ message: '', type: 'success' as 'success' | 'error' })
+type ToastType = 'success' | 'error'
+const toast = reactive<{ message: string; type: ToastType; undo: null | (() => void) }>({ message: '', type: 'success', undo: null })
 let toastTimer: ReturnType<typeof setTimeout> | null = null
-const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+const hideToast = () => { toast.message = ''; toast.undo = null }
+const showToast = (msg: string, type: ToastType = 'success') => {
   toast.message = msg
   toast.type = type
+  toast.undo = null
   if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => { toast.message = '' }, 1800)
+  toastTimer = setTimeout(() => { hideToast() }, 1800)
+}
+const showUndoToast = (msg: string, onUndo: () => void, ms = 5000) => {
+  if (toastTimer) clearTimeout(toastTimer)
+  toast.message = msg
+  toast.type = 'success'
+  toast.undo = () => { try { onUndo() } finally { hideToast() } }
+  toastTimer = setTimeout(() => { hideToast() }, ms)
 }
 // ドラッグ＆ドロップ用
 const dragFrom = ref<number|null>(null)
@@ -214,10 +229,37 @@ const saveImage = async (img: UiCharacterImage) => {
 }
 
 const removeImage = async (img: CharacterImage) => {
-  if (!confirm('削除しますか？')) return
-  await api.removeImage(id, img.id)
-  images.value = images.value.filter(i => i.id !== img.id)
-  showToast('削除しました')
+  const idx = images.value.findIndex(i => i.id === img.id)
+  if (idx < 0) return
+  const removed = images.value[idx]
+  // ローカルから即時除去（楽観的UI）
+  images.value.splice(idx, 1)
+
+  let undone = false
+  const restore = () => {
+    if (undone) return
+    undone = true
+    // 元の位置に復元（範囲内にクランプ）
+    const insertAt = Math.min(Math.max(idx, 0), images.value.length)
+    images.value.splice(insertAt, 0, removed as UiCharacterImage)
+  }
+
+  // 5秒間だけ取り消し可能
+  const UNDO_MS = 5000
+  showUndoToast('削除しました', restore, UNDO_MS)
+
+  // 待機後、未取り消しならAPI確定削除
+  await new Promise(resolve => setTimeout(resolve, UNDO_MS))
+  if (!undone) {
+    try {
+      await api.removeImage(id, img.id)
+    } catch (e) {
+      console.error(e)
+      // エラー時は復元して通知
+      restore()
+      showToast('削除に失敗しました', 'error')
+    }
+  }
 }
 
 // 共通：1枚アップロード（署名URL→PUT→メタ登録→並び末尾）
