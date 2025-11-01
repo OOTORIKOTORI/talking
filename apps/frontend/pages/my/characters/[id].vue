@@ -29,7 +29,16 @@
         </div>
         <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="isPublic" /> 公開する</label>
       </div>
-      <div class="mt-4"><button class="px-4 py-2 bg-blue-600 text-white rounded" @click="save">保存</button></div>
+      <div class="mt-4">
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 flex items-center gap-2"
+          :disabled="!isDirty || saving"
+          @click="save"
+        >
+          <span v-if="saving">保存中…</span>
+          <span v-else>保存</span>
+        </button>
+      </div>
     </section>
 
     <!-- 画像管理 -->
@@ -66,7 +75,14 @@
                 <span class="text-xs text-slate-500">（小さいほど上に表示）</span>
               </div>
               <div class="flex gap-2">
-                <button class="px-2 py-1 border rounded" @click.stop="saveImage(img)">保存</button>
+                <button
+                  class="px-2 py-1 border rounded disabled:opacity-50"
+                  :disabled="img.__saving"
+                  @click.stop="saveImage(img)"
+                >
+                  <span v-if="img.__saving">保存中…</span>
+                  <span v-else>保存</span>
+                </button>
                 <button class="px-2 py-1 border rounded text-red-600" @click.stop="removeImage(img)">削除</button>
               </div>
             </div>
@@ -76,20 +92,25 @@
       </div>
     </section>
     <Transition name="toast">
-      <div v-if="toastMessage" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-        {{ toastMessage }}
+      <div
+        v-if="toast.message"
+        class="fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50"
+        :class="toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'"
+      >
+        {{ toast.message }}
       </div>
     </Transition>
   </div>
 </template>
 <script setup lang="ts">
 // Toast
-const toastMessage = ref('')
+const toast = reactive({ message: '', type: 'success' as 'success' | 'error' })
 let toastTimer: ReturnType<typeof setTimeout> | null = null
-const showToast = (msg: string) => {
-  toastMessage.value = msg
+const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+  toast.message = msg
+  toast.type = type
   if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => { toastMessage.value = '' }, 1800)
+  toastTimer = setTimeout(() => { toast.message = '' }, 1800)
 }
 // ドラッグ＆ドロップ用
 const dragFrom = ref<number|null>(null)
@@ -123,9 +144,10 @@ const route = useRoute(); const router = useRouter(); const { $api } = useNuxtAp
 const api = useCharactersApi()
 const id = String(route.params.id)
 
+type UiCharacterImage = CharacterImage & { __saving?: boolean }
 const data = ref<Character | null>(null)
 const name = ref(''); const displayName = ref(''); const description = ref(''); const isPublic = ref(true)
-const images = ref<CharacterImage[]>([])
+const images = ref<UiCharacterImage[]>([])
 const tagsCsv = ref('')
 
 const emotions = emotionOptions(true)
@@ -141,20 +163,54 @@ const openPreview = async (img: any) => {
 onMounted(async () => {
   data.value = await api.getMine(id)
   name.value = data.value.name; displayName.value = data.value.displayName; description.value = data.value.description || ''; isPublic.value = !!data.value.isPublic
-  images.value = (data.value.images || []).map(i => ({ ...i }))
+  images.value = (data.value.images || []).map(i => ({ ...i })) as UiCharacterImage[]
   tagsCsv.value = (data.value.tags || []).join(', ')
+  // 初期スナップショット
+  initial.value = JSON.stringify(snapshot())
 })
 
+// 変更検知用（正規化して比較）
+const toTags = (csv: string) => Array.from(new Set(csv.split(',').map(s => s.trim()).filter(Boolean))).slice(0, 20)
+const initial = ref('')
+const snapshot = () => ({
+  name: name.value,
+  displayName: displayName.value,
+  description: description.value,
+  isPublic: isPublic.value,
+  tags: toTags(tagsCsv.value)
+})
+const isDirty = computed(() => initial.value !== JSON.stringify(snapshot()))
+const saving = ref(false)
+
 const save = async () => {
-  const toTags = (csv: string) => Array.from(new Set(csv.split(',').map(s => s.trim()).filter(Boolean))).slice(0, 20)
-  await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value) })
-  data.value = await api.getMine(id)
-  showToast('保存しました')
+  if (saving.value || !isDirty.value) return
+  try {
+    saving.value = true
+    await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value) })
+    data.value = await api.getMine(id)
+    // 初期スナップショット更新
+    initial.value = JSON.stringify(snapshot())
+    showToast('保存しました', 'success')
+  } catch (e) {
+    console.error(e)
+    showToast('保存に失敗しました', 'error')
+  } finally {
+    saving.value = false
+  }
 }
 
-const saveImage = async (img: CharacterImage) => {
-  await api.updateImage(id, img.id, { emotion: img.emotion, emotionLabel: img.emotionLabel, pattern: img.pattern, sortOrder: img.sortOrder })
-  showToast('保存しました')
+const saveImage = async (img: UiCharacterImage) => {
+  if (img.__saving) return
+  try {
+    img.__saving = true
+    await api.updateImage(id, img.id, { emotion: img.emotion, emotionLabel: img.emotionLabel, pattern: img.pattern, sortOrder: img.sortOrder })
+    showToast('保存しました', 'success')
+  } catch (e) {
+    console.error(e)
+    showToast('画像の保存に失敗しました', 'error')
+  } finally {
+    img.__saving = false
+  }
 }
 
 const removeImage = async (img: CharacterImage) => {
