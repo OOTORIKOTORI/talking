@@ -5,7 +5,7 @@
     <div class="text-slate-600">{{ data?.displayName }}</div>
     <p class="mt-2 whitespace-pre-wrap">{{ data?.description }}</p>
     <div v-if="data?.tags?.length" class="mt-2 flex flex-wrap gap-1">
-      <span v-for="t in data?.tags" :key="t" class="px-2 py-0.5 rounded-full bg-slate-100 ring-1 ring-slate-200 text-slate-700 text-xs">{{ t }}</span>
+      <NuxtLink v-for="t in data?.tags" :key="t" :to="`/characters?tags=${encodeURIComponent(t)}`" class="px-2 py-0.5 rounded-full bg-slate-100 ring-1 ring-slate-200 text-slate-700 text-xs hover:bg-slate-200 transition-colors">{{ t }}</NuxtLink>
     </div>
 
     <div class="mt-6 flex gap-3 items-center">
