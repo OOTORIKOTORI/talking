@@ -1,6 +1,12 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-    <h1 class="text-2xl font-semibold mb-4">キャラクター</h1>
+    <h1 class="text-2xl font-semibold">キャラクター</h1>
+    <div class="mt-2 mb-4">
+      <CrossNavTabs :items="[
+        { label: 'アセット', to: '/assets' },
+        { label: 'キャラクター', to: '/characters' }
+      ]" />
+    </div>
     <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
       <div>
         <label class="block text-sm text-slate-600 mb-1">キーワード</label>

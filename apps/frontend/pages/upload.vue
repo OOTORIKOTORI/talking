@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-2xl mx-auto px-4">
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center justify-between mb-4">
         <h1 class="text-3xl font-bold text-gray-900">ファイルアップロード</h1>
         <div class="flex space-x-4">
           <NuxtLink
@@ -16,6 +16,13 @@
           >
             ホーム
           </NuxtLink>
+        </div>
+      </div>
+      <!-- 2ボタンの導線 -->
+      <div class="mb-8">
+        <div class="inline-flex rounded-lg shadow-sm overflow-hidden">
+          <NuxtLink to="/upload" class="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700">アセットをアップロード</NuxtLink>
+          <NuxtLink to="/my/characters/new" class="px-4 py-2 bg-white text-blue-700 font-medium border border-blue-600 hover:bg-blue-50">キャラクターを作成</NuxtLink>
         </div>
       </div>
 

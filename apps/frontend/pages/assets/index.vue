@@ -12,6 +12,12 @@
             ← ホームへ戻る
           </NuxtLink>
         </div>
+        <div class="mt-4">
+          <CrossNavTabs :items="[
+            { label: 'アセット', to: '/assets' },
+            { label: 'キャラクター', to: '/characters' }
+          ]" />
+        </div>
       </div>
     </header>
 

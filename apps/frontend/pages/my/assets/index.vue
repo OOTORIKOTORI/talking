@@ -20,6 +20,12 @@
             </NuxtLink>
           </div>
         </div>
+        <div class="mt-4">
+          <CrossNavTabs :items="[
+            { label: 'アセット', to: '/my/assets' },
+            { label: 'キャラクター', to: '/my/characters' }
+          ]" />
+        </div>
       </div>
     </header>
 
