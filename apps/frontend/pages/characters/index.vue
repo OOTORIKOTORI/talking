@@ -1,12 +1,8 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-    <SectionTabs :items="[{ label: 'アセット', to: '/assets', activePath: '/assets' }, { label: 'キャラクター', to: '/characters', activePath: '/characters' }]" />
+  <SectionTabs :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold mb-2">キャラクター</h1>
-    </div>
-    <div class="mb-4 flex gap-2 text-sm">
-      <NuxtLink to="/assets" class="px-3 py-1 rounded border bg-white">アセット</NuxtLink>
-      <NuxtLink to="/characters" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクター</NuxtLink>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <NuxtLink v-for="c in list" :key="c.id" :to="`/characters/${c.id}`" class="block rounded shadow bg-white overflow-hidden">

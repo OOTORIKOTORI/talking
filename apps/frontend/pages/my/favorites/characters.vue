@@ -1,12 +1,8 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
     <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
-
-    <!-- タブ -->
-    <div class="mb-4 flex gap-2 text-sm">
-      <NuxtLink to="/my/favorites" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
-      <NuxtLink to="/my/favorites/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
-    </div>
+  <SectionTabs :items="[{label:'アセット', to:'/my/favorites', activePrefix:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
+    
 
     <div v-if="list.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
       <CharacterCard v-for="c in list" :key="c.id" :character="c" />

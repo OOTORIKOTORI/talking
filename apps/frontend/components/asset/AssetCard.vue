@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAssets } from '@/composables/useAssets'
+import { useAssetsApi } from '@/composables/useAssets'
 
 const props = defineProps({
   asset: {
@@ -67,10 +67,9 @@ const props = defineProps({
   },
 });
 
-
-const api = useAssets()
+const api = useAssetsApi()
 const isFav = ref(!!props.asset?.isFavorited)
-watch(() => props.asset?.isFavorited, v => { isFav.value = !!v })
+watch(() => props.asset?.isFavorited, v => isFav.value = !!v)
 
 const toggling = ref(false)
 
@@ -87,7 +86,6 @@ const onToggleFav = async (e: MouseEvent) => {
     } else {
       await api.unfavorite(props.asset.id)
     }
-    // 成功したら親のasset.isFavoriteも更新
     if (props.asset) props.asset.isFavorited = isFav.value
   } catch (err) {
     isFav.value = prev

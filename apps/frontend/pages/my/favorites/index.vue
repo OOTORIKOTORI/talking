@@ -1,32 +1,32 @@
 <script setup lang="ts">
+import AssetCard from '@/components/asset/AssetCard.vue'
 definePageMeta({ name: 'my-favorites' })
 
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAssetsApi } from '@/composables/useAssets'
 
 const route = useRoute()
 const router = useRouter()
-
-const favorites = ref([])
+const api = useAssetsApi()
+const favorites = ref<any[]>([])
 
 const safeReplaceQuery = (q: Record<string, any>) => {
   router.replace({ path: route.path, query: q })
 }
+
+onMounted(async () => {
+  favorites.value = await api.listFavorites()
+})
 </script>
 
 <template>
   <div class="mx-auto max-w-6xl p-6">
     <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
-
-    <!-- タブ -->
-    <div class="mb-4 flex gap-2 text-sm">
-      <NuxtLink to="/my/favorites" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
-      <NuxtLink to="/my/favorites/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
-    </div>
+  <SectionTabs :items="[{label:'アセット', to:'/my/favorites', activePrefix:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
+    
 
     <div v-if="favorites.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-      <div v-for="item in favorites" :key="item.id">
-        {{ item.name }}
-      </div>
+      <AssetCard v-for="asset in favorites" :key="asset.id" :asset="asset" :showFavorite="true" />
     </div>
     <div v-else class="text-slate-500">お気に入りのアセットはまだありません。</div>
   </div>

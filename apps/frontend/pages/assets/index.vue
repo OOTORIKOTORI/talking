@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">公開ギャラリー</h1>
         </div>
-        <SectionTabs :items="[{ label: 'アセット', to: '/assets', activePath: '/assets' }, { label: 'キャラクター', to: '/characters', activePath: '/characters' }]" />
+  <SectionTabs :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
       </div>
     </header>
 
@@ -250,6 +250,11 @@ const availablePrimaryTags = computed(() => {
   return [...imageTags, ...audioTags];
 });
 
+const applyFavorites = async (arr:any[])=>{
+  const fav = await api.listFavorites()
+  const set = new Set((fav||[]).map((x:any)=>x.id))
+  return arr.map((x:any)=>({ ...x, isFavorited: set.has(x.id) }))
+}
 // Primary tag label mapping
 const primaryTagLabels: Record<string, string> = {
   IMAGE_BG: '背景',

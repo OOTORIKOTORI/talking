@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
         </div>
-        <SectionTabs :items="[{ label: 'アセット', to: '/my/assets', activePath: '/my/assets' }, { label: 'キャラクター', to: '/my/characters', activePath: '/my/characters' }]" />
+  <SectionTabs :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
       </div>
     </header>
 
@@ -384,6 +384,11 @@ const loadFromQuery = () => {
   }
 };
 
+const applyFavorites = async (arr:any[])=>{
+  const fav = await api.listFavorites()
+  const set = new Set((fav||[]).map((x:any)=>x.id))
+  return arr.map((x:any)=>({ ...x, isFavorited: set.has(x.id) }))
+}
 const performSearch = async () => {
   try {
     loading.value = true;
@@ -418,7 +423,7 @@ const performSearch = async () => {
 
     const res: any = await api.searchMine(params);
     const arr = res?.items ?? [];
-    const mapped = arr.map(api.normalizeAssetFavorite);
+    const mapped = await applyFavorites(arr.map(api.normalizeAssetFavorite));
 
     if (offset.value === 0) {
       assets.value = mapped;
