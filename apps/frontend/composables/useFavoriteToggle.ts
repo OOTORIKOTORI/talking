@@ -1,6 +1,5 @@
 export function useFavoriteToggle() {
-  const { $supabase } = useNuxtApp() as any
-  const supabase = $supabase as any
+  const supabase = useSupabaseClient() as any
   const { $api } = useNuxtApp()
 
   async function ensureLogin(nextPath: string) {

@@ -63,14 +63,8 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 
-// ログイン済みの場合はトップへリダイレクト（クライアントサイドのみ）
-onMounted(async () => {
-  if (process.client) {
-    const supabase = useSupabaseClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) navigateTo('/')
-  }
-})
+// 既存セッションがあっても自動リダイレクトはしない
+// （ログイン画面に留まりたいケースがあるため）
 
 const handleLogin = async () => {
   loading.value = true
@@ -86,7 +80,7 @@ const handleLogin = async () => {
     if (error) throw error
 
     // Redirect to the page they were trying to access or home
-    const redirectTo = (route.query.redirect as string) || '/'
+    const redirectTo = (route.query.next as string) || '/'
     await router.push(redirectTo)
   } catch (error: any) {
     errorMessage.value = error.message || 'ログインに失敗しました'

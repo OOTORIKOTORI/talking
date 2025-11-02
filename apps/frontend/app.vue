@@ -23,21 +23,8 @@
 </template>
 
 <script setup lang="ts">
-// Supabase の自動インポートに依存せず、注入されたクライアントからユーザーを追従
-const user = ref<any | null>(null)
-onMounted(async () => {
-  const { $supabase } = useNuxtApp() as any
-  const supabase = $supabase as any
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    user.value = session?.user ?? null
-  } catch { /* noop */ }
-  try {
-    supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      user.value = session?.user ?? null
-    })
-  } catch { /* noop */ }
-})
+// Supabase module のリアクティブなユーザー参照を利用
+const user = useSupabaseUser()
 
 useHead({
   title: 'Talking',
