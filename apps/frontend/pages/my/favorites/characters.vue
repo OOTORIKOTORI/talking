@@ -20,5 +20,10 @@ import CharacterCard from '@/components/character/CharacterCard.vue'
 import { useCharactersApi } from '@/composables/useCharacters'
 const api = useCharactersApi()
 const list = ref<any[]>([])
+const route = useRoute()
+const router = useRouter()
+const safeReplaceQuery = (q: Record<string, any>) => {
+  router.replace({ path: route.path, query: q })
 onMounted(async () => { list.value = await api.listFavorites() })
+definePageMeta({ name: 'my-favorites-characters' })
 </script>
