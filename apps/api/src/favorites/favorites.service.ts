@@ -20,19 +20,57 @@ export class FavoritesService {
     });
   }
 
-  async list(userId: string, opt: { limit: number; offset: number }) {
+  async list(
+    userId: string,
+    opt: {
+      limit: number
+      offset: number
+      q?: string
+      type?: 'image' | 'audio'
+      primaryTag?: any[]
+      tags?: string[]
+      sort?: 'createdAt:desc' | 'createdAt:asc'
+    },
+  ) {
     const favs = await this.prisma.favorite.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: opt.limit,
       skip: opt.offset,
       select: { assetId: true },
-    });
-    const ids = favs.map(f => f.assetId);
-    if (!ids.length) return { items: [], total: 0 };
-    const assets = await this.prisma.asset.findMany({ where: { id: { in: ids } }, orderBy: { createdAt: 'desc' } });
-    const idSet = new Set(ids);
+    })
+    const ids = favs.map((f) => f.assetId)
+    if (!ids.length) return { items: [], total: 0 }
+
+    // Build where clause with filters
+    const where: any = { id: { in: ids } }
+
+    if (opt.q) {
+      where.OR = [
+        { title: { contains: opt.q, mode: 'insensitive' } },
+        { description: { contains: opt.q, mode: 'insensitive' } },
+        { tags: { hasSome: opt.q.split(/\s+/) } },
+      ]
+    }
+
+    if (opt.type === 'image') {
+      where.contentType = { startsWith: 'image/' }
+    } else if (opt.type === 'audio') {
+      where.contentType = { startsWith: 'audio/' }
+    }
+
+    if (opt.primaryTag?.length) {
+      where.primaryTag = { in: opt.primaryTag }
+    }
+
+    if (opt.tags?.length) {
+      where.tags = { hasSome: opt.tags }
+    }
+
+    const orderBy = opt.sort === 'createdAt:asc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const }
+    const assets = await this.prisma.asset.findMany({ where, orderBy })
+
     // Use isFavorited (past participle) to match frontend expectations
-    return { items: assets.map(a => ({ ...a, isFavorited: true, isFavorite: true })), total: assets.length };
+    return { items: assets.map((a) => ({ ...a, isFavorited: true, isFavorite: true })), total: assets.length }
   }
 }

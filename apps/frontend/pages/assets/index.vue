@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">公開ギャラリー</h1>
         </div>
-  <SectionTabs :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
+  <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
       </div>
     </header>
 
@@ -201,7 +201,7 @@
 <script setup lang="ts">
 import { useFavoriteToggle } from '@/composables/useFavoriteToggle'
 import { useAssetsApi } from '@/composables/useAssets'
-import SectionTabs from '@/components/common/SectionTabs.vue';
+import TabsSwitch from '@/components/common/TabsSwitch.vue';
 const { toggle } = useFavoriteToggle()
 function toggleFavorite(asset: Asset) {
   toggle(asset)

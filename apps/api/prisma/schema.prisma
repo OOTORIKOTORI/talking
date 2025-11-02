@@ -47,6 +47,7 @@ model Asset {
   thumbWidth  Int?            @default(512)
   thumbHeight Int?            @default(512)
   createdAt   DateTime        @default(now())
+  deletedAt   DateTime?
 
   favorites   Favorite[]
 

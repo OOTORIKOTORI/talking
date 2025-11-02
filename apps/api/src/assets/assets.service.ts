@@ -4,6 +4,7 @@ import { S3Client, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/cl
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchProducer } from '../queues/search.producer';
 import { ThumbnailProducer } from '../queues/thumbnail.producer';
+import { PurgeProducer } from '../queues/purge.producer';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
@@ -21,6 +22,7 @@ export class AssetsService {
     private configService: ConfigService,
     private searchProducer: SearchProducer,
     private thumbnailProducer: ThumbnailProducer,
+    private purgeProducer: PurgeProducer,
   ) {
     this.s3PublicBase = this.configService.get<string>('S3_PUBLIC_BASE');
     this.s3Bucket = this.configService.get<string>('S3_BUCKET');
@@ -84,6 +86,11 @@ export class AssetsService {
     const rawLimit = Number(query.limit) || 20;
     const take = Math.min(Math.max(rawLimit, 1), 100);
 
+    const where: any = { deletedAt: null }
+    if (query.ownerId) {
+      where.ownerId = query.ownerId
+    }
+
     const items = await this.prisma.asset.findMany({
       take: take + 1,
       ...(query.cursor && {
@@ -92,11 +99,7 @@ export class AssetsService {
         },
         skip: 1,
       }),
-      ...(query.ownerId && {
-        where: {
-          ownerId: query.ownerId,
-        },
-      }),
+      where,
       orderBy: [
         { createdAt: 'desc' },
         { id: 'desc' },
@@ -124,8 +127,8 @@ export class AssetsService {
   }
 
   async findOne(id: string, userId?: string) {
-    const asset = await this.prisma.asset.findUnique({
-      where: { id },
+    const asset = await this.prisma.asset.findFirst({
+      where: { id, deletedAt: null },
     });
     if (!asset) return null;
     if (userId) {
@@ -180,51 +183,22 @@ export class AssetsService {
       throw new ForbiddenException('You do not own this asset');
     }
 
-    // お気に入りの外部参照を事前に削除（FK違反回避）
-    await this.prisma.favorite.deleteMany({ where: { assetId: id } });
+    // ソフトデリート: deletedAt を設定
+    await this.prisma.asset.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
-    // Collect S3 keys to delete
-    const keysToDelete = [asset.key, asset.thumbKey].filter(Boolean);
-
-    // Delete from S3
-    if (keysToDelete.length > 0) {
-      try {
-        if (keysToDelete.length === 1) {
-          await this.s3Client.send(
-            new DeleteObjectCommand({
-              Bucket: this.s3Bucket,
-              Key: keysToDelete[0],
-            })
-          );
-        } else {
-          await this.s3Client.send(
-            new DeleteObjectsCommand({
-              Bucket: this.s3Bucket,
-              Delete: {
-                Objects: keysToDelete.map(Key => ({ Key })),
-              },
-            })
-          );
-        }
-      } catch (error) {
-        // Idempotent: if object not found in S3, continue
-        if (error.name !== 'NoSuchKey' && error.name !== 'NotFound') {
-          throw error;
-        }
-      }
-    }
-
-    // Delete from database
-    await this.prisma.asset.delete({ where: { id } });
-
-    // Remove from Meilisearch
+    // 検索インデックスから削除
     try {
       const index = await meiliClient.getIndex('assets');
       await index.deleteDocument(id);
     } catch (error) {
-      // Log but don't fail if search deletion fails
       console.error('Failed to delete from Meilisearch:', error);
     }
+
+    // 5分後にハード削除をキューに登録
+    await this.purgeProducer.enqueueHardDelete(id, 5 * 60 * 1000);
 
     return;
   }

@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
         </div>
-  <SectionTabs :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
+  <TabsSwitch :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
       </div>
     </header>
 
@@ -282,7 +282,7 @@
 
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
-import SectionTabs from '@/components/common/SectionTabs.vue';
+import TabsSwitch from '@/components/common/TabsSwitch.vue';
 import { useAssetsApi } from '@/composables/useAssets';
 
 definePageMeta({ 

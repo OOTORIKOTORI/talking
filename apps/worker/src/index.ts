@@ -2,6 +2,7 @@ import { Worker, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { MeiliSearch } from 'meilisearch';
 import './thumbnail/thumbnail.worker';
+import './purge/purge.worker';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const MEILI_HOST = process.env.MEILI_HOST || 'http://localhost:7700';

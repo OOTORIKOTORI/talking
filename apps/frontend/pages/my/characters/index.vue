@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-  <SectionTabs :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
+  <TabsSwitch :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold mb-2">マイキャラクター</h1>
     </div>
@@ -13,7 +13,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import SectionTabs from '@/components/common/SectionTabs.vue';
+import TabsSwitch from '@/components/common/TabsSwitch.vue';
 import { useCharactersApi } from '@/composables/useCharacters'
 const api = useCharactersApi()
 const list = ref<any[]>([])
