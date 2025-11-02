@@ -1,7 +1,6 @@
-import { useSupabaseClient } from '#imports'
-
 export function useFavoriteToggleCharacter() {
-  const supabase = useSupabaseClient()
+  const { $supabase } = useNuxtApp() as any
+  const supabase = $supabase as any
   const { $api } = useNuxtApp()
 
   async function ensureLogin(nextPath: string) {

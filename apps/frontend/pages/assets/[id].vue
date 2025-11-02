@@ -298,8 +298,8 @@ import { getSignedGetUrl } from '@/composables/useSignedUrl';
 
 const route = useRoute();
 const router = useRouter();
-import { useSupabaseClient } from '#imports'
-const supabase = useSupabaseClient();
+const { $supabase } = useNuxtApp() as any
+const supabase = $supabase as any;
 const { getAsset, updateAsset, deleteAsset } = useAssets();
 
 // Get current user session

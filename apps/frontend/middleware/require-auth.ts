@@ -1,5 +1,4 @@
-import { defineNuxtRouteMiddleware, navigateTo } from '#app'
-import { useSupabaseClient } from '#imports'
+import { defineNuxtRouteMiddleware, navigateTo, useNuxtApp } from '#app'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   // SSRでは Supabase composable を使わない
@@ -8,7 +7,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 認証が必要なパスだけチェック（/my/* と /upload）
   if (!(to.path.startsWith('/my') || to.path === '/upload')) return
 
-  const supabase = useSupabaseClient()
+  const { $supabase } = useNuxtApp() as any
+  const supabase = $supabase as any
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {

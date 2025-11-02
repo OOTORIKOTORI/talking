@@ -1,10 +1,10 @@
-
-import { defineNuxtPlugin } from '#app'
-import { useSupabaseClient, useRuntimeConfig } from '#imports'
+import { defineNuxtPlugin, useNuxtApp } from '#app'
+// useRuntimeConfig は Nuxt コアの自動インポートに任せる
 import type { FetchOptions } from 'ofetch'
 
 export default defineNuxtPlugin(() => {
-  const supabase = useSupabaseClient()
+  const { $supabase } = useNuxtApp() as any
+  const supabase = $supabase as any
   const config = useRuntimeConfig()
 
   const api = $fetch.create({
@@ -40,7 +40,7 @@ export default defineNuxtPlugin(() => {
           ];
           if (!allowed.includes(ctx.options.method)) return;
         }
-        await $fetch.raw(ctx.request, ctx.options as FetchOptions)
+  await $fetch.raw(ctx.request as any, ctx.options as any)
       } catch { /* no-op */ }
     },
   })
