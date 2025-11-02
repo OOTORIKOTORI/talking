@@ -1,10 +1,7 @@
 <template>
   <div class="mx-auto max-w-xl p-6">
     <h1 class="text-2xl font-semibold mb-2">新規キャラクター</h1>
-    <div class="mb-4 flex gap-2 text-sm">
-      <NuxtLink to="/upload" class="px-3 py-1 rounded border bg-white">アセットをアップロード</NuxtLink>
-      <NuxtLink to="/my/characters/new" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクターを作成</NuxtLink>
-    </div>
+    <UploadTabs active="character" />
     <form @submit.prevent="submit">
       <label class="block mb-2 text-sm">キャラクター名</label>
       <input v-model="name" class="w-full border rounded px-3 py-2 mb-4" required />
@@ -27,6 +24,7 @@
 </template>
 <script setup lang="ts">
 import { useCharactersApi } from '@/composables/useCharacters'
+import UploadTabs from '@/components/common/UploadTabs.vue'
 const api = useCharactersApi()
 const router = useRouter()
 const name = ref(''); const displayName = ref(''); const description = ref(''); const isPublic = ref(true)

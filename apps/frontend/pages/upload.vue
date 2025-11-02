@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-2xl mx-auto px-4">
-      <div class="flex items-center justify-between mb-4">
-        <h1 class="text-3xl font-bold text-gray-900">ファイルアップロード</h1>
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold mb-2">ファイルアップロード</h1>
         <div class="flex space-x-4">
           <NuxtLink
             to="/my/assets"
@@ -18,13 +18,7 @@
           </NuxtLink>
         </div>
       </div>
-      <!-- 2ボタンの導線 -->
-      <div class="mb-8">
-        <div class="inline-flex rounded-lg shadow-sm overflow-hidden">
-          <NuxtLink to="/upload" class="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700">アセットをアップロード</NuxtLink>
-          <NuxtLink to="/my/characters/new" class="px-4 py-2 bg-white text-blue-700 font-medium border border-blue-600 hover:bg-blue-50">キャラクターを作成</NuxtLink>
-        </div>
-      </div>
+      <UploadTabs active="asset" />
 
       <div class="bg-white rounded-lg shadow p-6 space-y-6">
         <!-- Title Input -->
@@ -218,6 +212,7 @@
 definePageMeta({ middleware: ['require-auth'] })
 
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
+import UploadTabs from '@/components/common/UploadTabs.vue'
 
 const title = ref('')
 const description = ref('')

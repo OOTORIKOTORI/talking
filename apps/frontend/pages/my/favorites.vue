@@ -1,11 +1,11 @@
 <template>
   <div class="mx-auto max-w-6xl px-4 py-8">
-    <div class="flex items-center justify-between mb-2">
-      <h1 class="text-2xl font-semibold">お気に入り</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
       <NuxtLink to="/assets" class="text-sm text-blue-600 hover:underline">公開ギャラリーへ</NuxtLink>
     </div>
 
-    <!-- ページ内タブ（アセット / キャラクター） -->
+    <!-- tabs: keep outside of any <form> to avoid submit -->
     <div class="mb-4 flex gap-2 text-sm">
       <NuxtLink to="/my/favorites" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
       <NuxtLink to="/my/favorites/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
