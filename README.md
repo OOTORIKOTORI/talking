@@ -15,6 +15,13 @@ A monorepo project using pnpm workspaces.
 
 ---
 
+## 最近の主な更新
+
+- 2025-11-02: キャラクター機能の仕様確定（編集UI: 画像クリック拡大／md以上3カラム／D&Dで順序入替／保存トースト／新規は末尾追加）。
+    - 出典: `apps/frontend/pages/my/characters/[id].vue`, `apps/frontend/components/common/ImageLightbox.vue`
+- 2025-11-02: お気に入り（♡）のアセット/キャラクター統一（API: `POST/DELETE /assets/:id/favorite`・`/characters/:id/favorite`、一覧: `/favorites`・`/my/favorites/characters`）。
+    - 出典: フロント `apps/frontend/composables/useAssets.ts`, `apps/frontend/composables/useCharacters.ts`, `apps/frontend/composables/useFavoriteToggle*.ts`; サーバ `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`
+
 
 ## できること（概要）
 - 画像/音声のアップロード（署名PUT→finalize）
@@ -87,3 +94,9 @@ talking/
 ## 詳細
 
 詳細なコマンドとトラブルシューティングは [RUNBOOK.md](./RUNBOOK.md) を参照してください。
+
+---
+
+### ChangeLog (chat handover)
+
+- 2025-11-02: README に最新機能の要点（キャラ編集UI／お気に入り統一/API名）を追記。
