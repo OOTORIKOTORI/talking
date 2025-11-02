@@ -47,6 +47,6 @@ export class CharactersController {
   @Delete('/my/characters/:id')
   @UseGuards(SupabaseAuthGuard)
   async remove(@Req() req: any, @Param('id') id: string) {
-    return this.service.remove(req.user.userId, id);
+    return this.service.deleteMyCharacter(req.user.userId, id);
   }
 }

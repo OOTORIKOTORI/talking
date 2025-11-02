@@ -91,6 +91,11 @@
         <ImageLightbox :open="previewOpen" :src="previewSrc" :alt="name || ''" @close="previewOpen=false" />
       </div>
     </section>
+    <div class="flex justify-end">
+      <button class="px-4 py-2 bg-red-600 text-white rounded" @click="onRemove" :disabled="removing">
+        <span v-if="removing">削除中…</span><span v-else>キャラクターを削除</span>
+      </button>
+    </div>
     <Transition name="toast">
       <div
         v-if="toast.message"
@@ -107,6 +112,7 @@
     </Transition>
   </div>
 </template>
+
 <script setup lang="ts">
 // Toast
 type ToastType = 'success' | 'error'
@@ -155,7 +161,7 @@ import { useCharactersApi } from '@/composables/useCharacters'
 import { EMOTION_JP_LABEL, emotionOptions } from '@/utils/characterLocales'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import { useSignedUrl } from '@/composables/useSignedUrl'
-const route = useRoute(); const router = useRouter(); const { $api } = useNuxtApp()
+const route = useRoute(); const { $api } = useNuxtApp();
 const api = useCharactersApi()
 const id = String(route.params.id)
 
@@ -349,6 +355,20 @@ const pickAndUploadMany = async () => {
   input.click()
 }
 
+const router = useRouter()
+const removing = ref(false)
+const onRemove = async () => {
+  if (!confirm('このキャラクターを完全に削除します。よろしいですか？')) return
+  try {
+    removing.value = true
+    await api.remove(id)
+    showToast('削除しました')
+    await router.push('/my/characters')
+  } finally {
+    removing.value = false
+  }
+}
+
 defineExpose({
   name,
   displayName,
@@ -370,6 +390,7 @@ defineExpose({
   previewSrc
 })
 </script>
+
 <style scoped>
 .toast-enter-active,.toast-leave-active{ transition: opacity .2s, transform .2s }
 .toast-enter-from,.toast-leave-to{ opacity:0; transform: translateY(6px) }

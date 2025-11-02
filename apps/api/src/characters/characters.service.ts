@@ -1,4 +1,3 @@
-
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { CreateCharacterDto } from './dto/create-character.dto';
@@ -29,6 +28,17 @@ export class CharactersService {
     if (!c || c.deletedAt) throw new NotFoundException('Character not found');
     if (c.ownerId !== ownerId) throw new ForbiddenException();
     await this.prisma.character.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { success: true };
+  }
+
+  async deleteMyCharacter(ownerId: string, id: string) {
+    // 所有者チェック
+    const c = await this.prisma.character.findUnique({ where: { id } });
+    if (!c) throw new NotFoundException('Character not found');
+    if (c.ownerId !== ownerId) throw new ForbiddenException();
+
+    // リレーションは Prisma の参照整合性 (onDelete: Cascade) により連鎖削除
+    await this.prisma.character.delete({ where: { id } });
     return { success: true };
   }
 

@@ -15,7 +15,7 @@ export const useCharactersApi = () => {
     getMine: (id: string) => $api<Character>(`/my/characters/${id}`),
     update: (id: string, payload: Partial<Pick<Character,'name'|'displayName'|'description'|'isPublic'|'tags'>>) =>
       $api<Character>(`/my/characters/${id}`, { method: 'PATCH', body: payload }),
-    remove: (id: string) => $api<{success:true}>(`/my/characters/${id}`, { method: 'DELETE' }),
+    remove: (id: string) => $api(`/my/characters/${id}`, { method: 'DELETE' }),
 
     // 画像メタ
     addImage: (id: string, payload: Partial<CharacterImage> & { key: string; contentType: string }) =>
