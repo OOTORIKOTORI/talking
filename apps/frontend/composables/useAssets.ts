@@ -41,6 +41,28 @@ const normalizeAssetFavorite = (a:any) => {
   return { ...a, isFavorited: !!fav };
 };
 
+// シンプルなAPIアクセス用のComposable（正規化を一元化）
+export const useAssetsApi = () => {
+  const $api = useApi()
+
+  const listPublic = async (p: any) => {
+    const res: any = await $api('/assets', { query: p })
+    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite)
+    return res
+  }
+
+  const searchMine = async (p: any) => {
+    const res: any = await $api('/search/assets', { query: { ...p, owner: 'me' } })
+    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite)
+    return res
+  }
+
+  const favorite = (id: string) => $api(`/assets/${id}/favorite`, { method: 'POST' })
+  const unfavorite = (id: string) => $api(`/assets/${id}/favorite`, { method: 'DELETE' })
+
+  return { listPublic, searchMine, favorite, unfavorite, normalizeAssetFavorite }
+}
+
 export const useAssets = () => {
   const api = useApi()
   const runtimeConfig = useRuntimeConfig()
@@ -113,7 +135,7 @@ export const useAssets = () => {
     })
   }
 
-  const searchMine = async (params?: {
+  const searchAssetsMine = async (params?: {
     q?: string;
     limit?: number;
     offset?: number;
@@ -151,17 +173,7 @@ export const useAssets = () => {
     })
   }
 
-  const listPublic = async (p:any)=>{
-    const res:any = await $api('/assets', { query: p });
-    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite);
-    return res;
-  }
-
-  const searchMine = async (p:any)=>{
-    const res:any = await $api('/search/assets', { query: { ...p, owner:'me' } });
-    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite);
-    return res;
-  }
+  // listPublic / searchMine は useAssetsApi() に集約
 
   return {
     listAssets,
@@ -169,9 +181,8 @@ export const useAssets = () => {
     searchAssets,
     updateAsset,
     deleteAsset,
-    searchMine,
+    searchAssetsMine,
     favorite,
     unfavorite,
-    listPublic,
   }
 }

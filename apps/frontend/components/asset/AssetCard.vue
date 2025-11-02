@@ -61,22 +61,12 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  isImage: {
-    type: Boolean,
-    required: false,
-    default: true,
-  },
   showFavorite: {
     type: Boolean,
     default: false,
   },
-  onToggleFavorite: {
-    type: Function,
-    required: false,
-  },
 });
 
-const emit = defineEmits(['thumb-error']);
 
 const api = useAssets()
 const isFav = ref(!!props.asset?.isFavorited)
@@ -89,10 +79,14 @@ const onToggleFav = async (e: MouseEvent) => {
   e.preventDefault()
   if (toggling.value) return
   toggling.value = true
+  const prev = isFav.value
   try {
-    const prev = isFav.value
     isFav.value = !prev
-    await api.toggleFavorite(props.asset.id)
+    if (isFav.value) {
+      await api.favorite(props.asset.id)
+    } else {
+      await api.unfavorite(props.asset.id)
+    }
     // 成功したら親のasset.isFavoriteも更新
     if (props.asset) props.asset.isFavorited = isFav.value
   } catch (err) {
@@ -102,11 +96,6 @@ const onToggleFav = async (e: MouseEvent) => {
     toggling.value = false
   }
 }
-
-// asset.isFavoriteの変更を監視
-watch(() => props.asset?.isFavorite, (newVal) => {
-  isFav.value = !!newVal
-}, { immediate: true })
 
 const isImage = computed(() => props.asset.contentType?.startsWith('image/'))
 const key = computed(() => props.asset.thumbKey || props.asset.key || '')

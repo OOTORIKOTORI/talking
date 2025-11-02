@@ -284,6 +284,7 @@
 import type { Asset } from '@talking/types';
 import SectionTabs from '@/components/common/SectionTabs.vue';
 import { useAssets } from '@/composables/useAssets';
+import { useAssetsApi } from '@/composables/useAssets';
 
 definePageMeta({ 
   middleware: ['require-auth']
@@ -292,7 +293,8 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const { $api } = useNuxtApp();
-const api = useAssets();
+const api = useAssetsApi();
+const assetsOps = useAssets();
 
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
@@ -414,11 +416,17 @@ const performSearch = async () => {
       params.tags = tagsInput.value;
     }
 
-    const res = await api.searchMine(params);
-    const arr = res.items ?? [];
-    assets.value = arr.map(api.normalizeAssetFavorite);
-    
-    total.value = res.total;
+    const res: any = await api.searchMine(params);
+    const arr = res?.items ?? [];
+    const mapped = arr.map(api.normalizeAssetFavorite);
+
+    if (offset.value === 0) {
+      assets.value = mapped;
+    } else {
+      assets.value = [...assets.value, ...mapped];
+    }
+
+    total.value = res?.total ?? total.value;
   } catch (e) {
     error.value = e instanceof Error ? `検索に失敗しました: ${e.message}` : '検索に失敗しました';
   } finally {
@@ -519,7 +527,7 @@ const handleDelete = async (id: string) => {
   }
 
   try {
-    await api.deleteAsset(id);
+  await assetsOps.deleteAsset(id);
     
     // リストから削除
     assets.value = assets.value.filter(a => a.id !== id);

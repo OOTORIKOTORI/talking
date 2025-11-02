@@ -200,6 +200,7 @@
 
 <script setup lang="ts">
 import { useFavoriteToggle } from '@/composables/useFavoriteToggle'
+import { useAssetsApi } from '@/composables/useAssets'
 import SectionTabs from '@/components/common/SectionTabs.vue';
 const { toggle } = useFavoriteToggle()
 function toggleFavorite(asset: Asset) {
@@ -209,7 +210,7 @@ import type { Asset } from '@talking/types';
 
 const route = useRoute();
 const router = useRouter();
-const { searchAssets } = useAssets();
+const api = useAssetsApi();
 
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
@@ -315,18 +316,16 @@ const performSearch = async () => {
       params.tags = tagsInput.value;
     }
 
-    const result = await searchAssets(params);
-    
+    const result: any = await api.listPublic(params);
+
+    const mapped = (result?.items ?? []).map(api.normalizeAssetFavorite);
     if (offset.value === 0) {
-      assets.value = result.items;
+      assets.value = mapped;
     } else {
-      assets.value = [...assets.value, ...result.items];
+      assets.value = [...assets.value, ...mapped];
     }
-    
-    const arr = result.items ?? [];
-    assets.value = arr.map(api.normalizeAssetFavorite);
-    
-    total.value = result.total;
+
+    total.value = result?.total ?? total.value;
   } catch (e) {
     error.value = e instanceof Error ? `検索に失敗しました: ${e.message}` : '検索に失敗しました';
   } finally {
