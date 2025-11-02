@@ -1,4 +1,4 @@
-import { Controller, Post, Delete, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Delete, Get, Param, Req, UseGuards, Query } from '@nestjs/common';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { CharacterFavoritesService } from './character-favorites.service';
 
@@ -22,8 +22,9 @@ export class CharacterFavoritesController {
   }
 
   @Get('/my/favorites/characters')
-  async list(@Req() req: any) {
+  async list(@Req() req: any, @Query('q') q?: string, @Query('tags') tags?: string) {
     const userId = req.user?.userId;
-    return await this.favoritesService.list(userId);
+    const tagArray = tags ? tags.split(',').filter(Boolean) : undefined;
+    return await this.favoritesService.list(userId, { q, tags: tagArray });
   }
 }

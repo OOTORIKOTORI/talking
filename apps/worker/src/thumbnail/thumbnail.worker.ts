@@ -84,15 +84,27 @@ export const thumbnailWorker = new Worker(
       }
       const buffer = Buffer.concat(chunks);
 
-      // Generate thumbnail
-      const thumbnailBuffer = await sharp(buffer)
+        // Generate thumbnails in multiple formats
+        const sharpInstance = sharp(buffer).resize(512, 512, { fit: 'cover' });
+      
+        const thumbnailBuffer = await sharpInstance.clone()
         .resize(512, 512, { fit: 'cover' })
         .webp({ quality: 82 })
         .toBuffer();
 
+        const thumbnailBufferWebp = await sharpInstance.clone()
+          .webp({ quality: 85 })
+          .toBuffer();
+
+        const thumbnailBufferAvif = await sharpInstance.clone()
+          .avif({ quality: 80 })
+          .toBuffer();
+
       // Upload thumbnail to S3
       const basename = asset.key.split('/').pop()?.split('.')[0] || 'thumb';
       const thumbKey = `thumbs/${basename}-${assetId}.webp`;
+        const thumbKeyWebp = `thumbs/${basename}-${assetId}-webp.webp`;
+        const thumbKeyAvif = `thumbs/${basename}-${assetId}-avif.avif`;
 
       const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET,
@@ -102,11 +114,29 @@ export const thumbnailWorker = new Worker(
       });
       await s3Client.send(putCommand);
 
+        // Upload WebP
+        await s3Client.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: thumbKeyWebp,
+          Body: thumbnailBufferWebp,
+          ContentType: 'image/webp',
+        }));
+
+        // Upload AVIF
+        await s3Client.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: thumbKeyAvif,
+          Body: thumbnailBufferAvif,
+          ContentType: 'image/avif',
+        }));
+
       // Update database
       const updated = await prisma.asset.update({
         where: { id: assetId },
         data: {
           thumbKey,
+            thumbKeyWebp,
+            thumbKeyAvif,
           thumbWidth: 512,
           thumbHeight: 512,
         },

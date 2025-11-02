@@ -51,4 +51,11 @@ export class AssetsController {
     await this.assetsService.delete(id, user.userId);
     return { ok: true };
   }
+
+  @Post(':id/restore')
+  @UseGuards(SupabaseAuthGuard)
+  async restore(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.assetsService.restore(id, user.userId);
+    return { ok: true };
+  }
 }

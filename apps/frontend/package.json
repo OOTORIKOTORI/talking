@@ -13,10 +13,12 @@
     "@nuxt/icon": "^2.1.0",
     "@nuxtjs/supabase": "^2.0.1",
     "@talking/types": "workspace:*",
+    "@vueuse/core": "^14.0.0",
     "cookie-es": "^2.0.0",
     "jose": "^6.1.0",
     "nuxt": "^3.14.0",
-    "vue": "^3.5.22"
+    "vue": "^3.5.22",
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.0",

@@ -37,6 +37,17 @@ export const useAssetsApi = () => {
     return Array.isArray(res?.items) ? res.items.map(normalizeAssetFavorite) : []
   }
 
+  // お気に入り一覧（クエリパラメータ付き・サーバ側フィルタ）
+  const listFavoriteAssets = async (query: any = {}): Promise<AssetLike[]> => {
+    // 空値を除外
+    const params: any = { ...query }
+    Object.keys(params).forEach(k => {
+      if (params[k] === '' || params[k] == null) delete params[k]
+    })
+    const res: any = await $api('/favorites', { query: params })
+    return Array.isArray(res?.items) ? res.items.map(normalizeAssetFavorite) : []
+  }
+
   // お気に入りトグル
   const favorite   = (id: string) => $api(`/assets/${id}/favorite`, { method: 'POST' })
   const unfavorite = (id: string) => $api(`/assets/${id}/favorite`, { method: 'DELETE' })
@@ -53,6 +64,7 @@ export const useAssetsApi = () => {
     listPublic,
     searchMine,
     listFavorites,
+    listFavoriteAssets,
     favorite,
     unfavorite,
     applyFavorites,
@@ -77,10 +89,14 @@ export const useAssets = () => {
   const deleteAsset = (id: string) =>
     $api(`/assets/${id}`, { method: 'DELETE' }) as any
 
+    const restoreAsset = (id: string) =>
+      $api(`/assets/${id}/restore`, { method: 'POST' }) as any
+
   return {
     searchAssets,
     getAsset,
     updateAsset,
     deleteAsset,
+      restoreAsset,
   }
 }

@@ -3,7 +3,7 @@
     <!-- Header -->
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-4">
           <h1 class="text-2xl font-bold text-gray-900">アセット詳細</h1>
           <NuxtLink
             to="/assets"
@@ -12,6 +12,7 @@
             ← アセット一覧に戻る
           </NuxtLink>
         </div>
+        <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
       </div>
     </header>
 
@@ -295,11 +296,14 @@
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
+import TabsSwitch from '@/components/common/TabsSwitch.vue';
+import { useToast } from '@/composables/useToast';
 
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient() as any;
-const { getAsset, updateAsset, deleteAsset } = useAssets();
+const { getAsset, updateAsset, deleteAsset, restoreAsset } = useAssets();
+const toast = useToast();
 
 // Get current user session
 const currentUserId = ref<string | null>(null);
@@ -462,13 +466,35 @@ const handleDelete = async () => {
 
   try {
     deleting.value = true;
+      const assetId = asset.value.id;
+      const assetTitle = asset.value.title || 'アセット';
+    
     await deleteAsset(asset.value.id);
     
-    // Redirect to assets list
-    await router.push('/assets');
+      // Show undo toast
+      toast.info(`${assetTitle}を削除しました`, {
+        duration: 5000,
+        action: {
+          label: '元に戻す',
+          onClick: async () => {
+            try {
+              await restoreAsset(assetId);
+              toast.success('復元しました');
+              loadAsset(); // Reload asset
+            } catch (e) {
+              toast.error('復元に失敗しました');
+            }
+          }
+        }
+      });
+    
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/assets');
+      }, 500);
   } catch (e) {
     const message = e instanceof Error ? e.message : '削除に失敗しました';
-    alert(message);
+      toast.error(message);
     deleting.value = false;
   }
 };

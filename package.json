@@ -6,6 +6,9 @@
   "scripts": {
     "lint": "echo (later)",
     "typecheck": "echo (later)",
+      "test": "echo 'Tests will be added'",
+      "test:unit": "echo 'Unit tests will be added'",
+      "test:e2e": "echo 'E2E tests will be added'",
     "build": "pnpm -C apps/api build && pnpm -C apps/frontend build && pnpm -C apps/worker build",
     "dev:infra": "docker compose up -d",
     "dev:api": "pnpm -C apps/api start:dev",

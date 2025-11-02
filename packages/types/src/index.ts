@@ -9,6 +9,8 @@ export interface User {
   updatedAt: Date;
 }
 
+export * from './favorites';
+
 /**
  * Primary tag for asset categorization
  */
@@ -36,6 +38,8 @@ export interface Asset {
   url: string;
   ownerId?: string;
   thumbKey?: string;
+    thumbKeyWebp?: string;
+    thumbKeyAvif?: string;
   thumbWidth?: number;
   thumbHeight?: number;
   createdAt: Date;

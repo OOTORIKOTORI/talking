@@ -44,6 +44,8 @@ model Asset {
   url         String
   ownerId     String?
   thumbKey    String?
+    thumbKeyWebp String?
+    thumbKeyAvif String?
   thumbWidth  Int?            @default(512)
   thumbHeight Int?            @default(512)
   createdAt   DateTime        @default(now())

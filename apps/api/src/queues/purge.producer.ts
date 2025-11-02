@@ -22,17 +22,33 @@ export class PurgeProducer {
    * @param delayMs 遅延時間（ミリ秒）デフォルト5分
    */
   async enqueueHardDelete(assetId: string, delayMs: number = 5 * 60 * 1000) {
+    const jobId = `asset:purge:${assetId}`;
     await this.queue.add(
       'asset:purge',
       { assetId },
       {
+        jobId,
         delay: delayMs,
         attempts: 3,
         backoff: {
           type: 'exponential',
           delay: 1000,
         },
+        removeOnComplete: true,
+        removeOnFail: false,
       }
     );
+  }
+
+  /**
+   * アセットの削除ジョブをキャンセル
+   * @param assetId キャンセルするアセットID
+   */
+  async cancelHardDelete(assetId: string) {
+    const jobId = `asset:purge:${assetId}`;
+    const job = await this.queue.getJob(jobId);
+    if (job) {
+      await job.remove();
+    }
   }
 }

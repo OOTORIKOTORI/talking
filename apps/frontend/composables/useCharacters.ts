@@ -29,5 +29,12 @@ export const useCharactersApi = () => {
     favorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'POST' }),
     unfavorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'DELETE' }),
     listFavorites: () => $api<Character[]>('/my/favorites/characters'),
+    listFavoriteCharacters: (query: any = {}) => {
+      const params: any = { ...query }
+      Object.keys(params).forEach(k => {
+        if (params[k] === '' || params[k] == null) delete params[k]
+      })
+      return $api<Character[]>('/my/favorites/characters', { query: params })
+    },
   }
 }

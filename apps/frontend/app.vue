@@ -19,10 +19,13 @@
       </div>
     </header>
     <NuxtPage />
+      <ToastContainer />
   </div>
 </template>
 
 <script setup lang="ts">
+  import ToastContainer from '@/components/common/ToastContainer.vue'
+
 // Supabase のユーザー情報を取得
 const supabaseClient = useSupabaseClient()
 const user = useSupabaseUser()

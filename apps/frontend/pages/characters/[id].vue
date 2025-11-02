@@ -1,5 +1,8 @@
 <template>
   <div class="mx-auto max-w-5xl p-6">
+    <div class="mb-4">
+      <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
+    </div>
     <NuxtLink to="/characters" class="text-blue-600 text-sm hover:underline">← 一覧へ</NuxtLink>
     <div class="flex items-start justify-between mt-2">
       <div class="flex-1">
@@ -52,6 +55,7 @@ import { useCharactersApi } from '@/composables/useCharacters'
 import { EMOTION_JP_LABEL, emotionOptions } from '@/utils/characterLocales'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import { useSignedUrl } from '@/composables/useSignedUrl'
+import TabsSwitch from '@/components/common/TabsSwitch.vue'
 const route = useRoute()
 const api = useCharactersApi()
 const data = ref<Character | null>(null)

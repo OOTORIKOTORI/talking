@@ -202,4 +202,31 @@ export class AssetsService {
 
     return;
   }
+
+  async restore(id: string, userId: string) {
+    // Load asset
+    const asset = await this.prisma.asset.findUnique({ where: { id } });
+    if (!asset || !asset.deletedAt) {
+      return; // 既に復元されているか存在しない
+    }
+
+    // Check ownership
+    if (asset.ownerId !== userId) {
+      throw new ForbiddenException('You do not own this asset');
+    }
+
+    // deletedAt をクリア
+    await this.prisma.asset.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+
+    // 削除ジョブをキャンセル
+    await this.purgeProducer.cancelHardDelete(id);
+
+    // 検索インデックスに再登録
+    await this.searchProducer.enqueueAsset(asset);
+
+    return;
+  }
   }

@@ -16,47 +16,18 @@ import CharacterCard from '@/components/character/CharacterCard.vue'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
 import { useCharactersApi } from '@/composables/useCharacters'
 import { useQuerySync } from '@/composables/useQuerySync'
+import { watchDebounced } from '@vueuse/core'
 
 definePageMeta({ name: 'my-favorites-characters' })
 
 const api = useCharactersApi()
-const rawList = ref<any[]>([])
-const qs = useQuerySync({ q: '', sort: 'new', tags: '' })
+const list = ref<any[]>([])
+const qs = useQuerySync({ q: '', tags: '' })
 
-// クライアントサイドフィルタリング（暫定）
-const list = computed(() => {
-  let result = rawList.value
-  const q = (qs.value.q || '').toLowerCase()
-  
-  if (q) {
-    result = result.filter((c: any) => {
-      const searchText = [
-        c.name || '',
-        c.displayName || '',
-        (c.tags || []).join(',')
-      ].join(' ').toLowerCase()
-      return searchText.includes(q)
-    })
-  }
-  
-  // tags フィルタ
-  if (qs.value.tags) {
-    const filterTags = qs.value.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-    if (filterTags.length > 0) {
-      result = result.filter((c: any) => {
-        const charTags = c.tags || []
-        return filterTags.some((ft: string) => charTags.includes(ft))
-      })
-    }
-  }
-  
-  // sort (暫定: 'new' はデフォルトのまま)
-  if (qs.value.sort === 'new') {
-    result = [...result].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }
-  
-  return result
-})
+async function load() {
+  list.value = await api.listFavoriteCharacters(qs.value)
+}
 
-onMounted(async () => { rawList.value = await api.listFavorites() })
+onMounted(load)
+watchDebounced(qs, load, { deep: true, debounce: 200 })
 </script>

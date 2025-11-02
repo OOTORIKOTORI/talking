@@ -1,14 +1,17 @@
 <template>
   <div class="w-full h-full bg-gray-100 flex items-center justify-center overflow-hidden">
-    <img
-      v-if="isImage && url"
-      :src="url"
-      :alt="asset.title || 'Asset thumbnail'"
-      class="w-full h-full object-cover"
-      loading="lazy"
-      decoding="async"
-      @error="handleError"
-    />
+    <picture v-if="isImage && url">
+      <source v-if="urlAvif" :srcset="urlAvif" type="image/avif" />
+      <source v-if="urlWebp" :srcset="urlWebp" type="image/webp" />
+      <img
+        :src="url"
+        :alt="asset.title || 'Asset thumbnail'"
+        class="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
+        @error="handleError"
+      />
+    </picture>
     <div v-else-if="isImage" class="flex items-center justify-center bg-gray-200 animate-pulse"></div>
     <div v-else class="flex flex-col items-center justify-center text-gray-400">
       <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -28,16 +31,25 @@ const props = defineProps<{ asset: Asset }>()
 // 画像判定とキー
 const isImage = computed(() => props.asset.contentType?.startsWith('image/'))
 const objectKey = computed(() => props.asset.thumbKey || props.asset.key || null)
+const objectKeyWebp = computed(() => props.asset.thumbKeyWebp || null)
+const objectKeyAvif = computed(() => props.asset.thumbKeyAvif || null)
 
 // 即時フェッチ（キー監視で setKey -> refresh）。IO には依存しない。
 const { url, loading, refresh, setKey } = useSignedUrl(objectKey.value)
+const { url: urlWebp, setKey: setKeyWebp, refresh: refreshWebp } = useSignedUrl(objectKeyWebp.value)
+const { url: urlAvif, setKey: setKeyAvif, refresh: refreshAvif } = useSignedUrl(objectKeyAvif.value)
+
 const lastFetchedAt = ref(0)
 watch(objectKey, (k) => { setKey(k); refresh() }, { immediate: true })
+watch(objectKeyWebp, (k) => { setKeyWebp(k); refreshWebp() }, { immediate: true })
+watch(objectKeyAvif, (k) => { setKeyAvif(k); refreshAvif() }, { immediate: true })
 
 // （任意最適化）タブ復帰時の軽リフレッシュ
 const onVis = () => {
   if (document.visibilityState === 'visible' && isImage.value) {
     refresh()
+    refreshWebp()
+    refreshAvif()
   }
 }
 onMounted(() => document.addEventListener('visibilitychange', onVis))

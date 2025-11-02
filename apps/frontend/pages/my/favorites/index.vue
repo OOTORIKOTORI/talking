@@ -3,66 +3,21 @@ import AssetCard from '@/components/asset/AssetCard.vue'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
 definePageMeta({ name: 'my-favorites' })
 
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAssetsApi } from '@/composables/useAssets'
 import { useQuerySync } from '@/composables/useQuerySync'
+import { watchDebounced } from '@vueuse/core'
 
 const api = useAssetsApi()
-const rawFavorites = ref<any[]>([])
-const qs = useQuerySync({ q: '', sort: 'createdAt:desc', type: '', primary: '', tags: '' })
+const favorites = ref<any[]>([])
+const qs = useQuerySync({ q: '', sort: 'createdAt:desc', type: '', primary: '', tags: '', limit: 50, offset: 0 })
 
-// クライアントサイドフィルタリング（暫定: サーバ統一は別タスク）
-const favorites = computed(() => {
-  let result = rawFavorites.value
-  const q = (qs.value.q || '').toLowerCase()
-  
-  if (q) {
-    result = result.filter((a: any) => {
-      const searchText = [
-        a.title || '',
-        a.description || '',
-        (a.tags || []).join(',')
-      ].join(' ').toLowerCase()
-      return searchText.includes(q)
-    })
-  }
-  
-  // type フィルタ
-  if (qs.value.type === 'image') {
-    result = result.filter((a: any) => a.contentType?.startsWith('image/'))
-  } else if (qs.value.type === 'audio') {
-    result = result.filter((a: any) => a.contentType?.startsWith('audio/'))
-  }
-  
-  // primary タグフィルタ
-  if (qs.value.primary) {
-    result = result.filter((a: any) => a.primaryTag === qs.value.primary)
-  }
-  
-  // tags フィルタ
-  if (qs.value.tags) {
-    const filterTags = qs.value.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-    if (filterTags.length > 0) {
-      result = result.filter((a: any) => {
-        const assetTags = a.tags || []
-        return filterTags.some((ft: string) => assetTags.includes(ft))
-      })
-    }
-  }
-  
-  // sort
-  if (qs.value.sort === 'createdAt:asc') {
-    result = [...result].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-  } else {
-    result = [...result].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }
-  
-  return result
-})
+async function load() {
+  favorites.value = await api.listFavoriteAssets(qs.value)
+}
 
-onMounted(async () => {
-  rawFavorites.value = await api.listFavorites()
-})
+onMounted(load)
+watchDebounced(qs, load, { deep: true, debounce: 200 })
 </script>
 
 <template>
