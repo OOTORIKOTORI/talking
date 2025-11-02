@@ -23,7 +23,8 @@
 </template>
 
 <script setup lang="ts">
-// Supabase module のリアクティブなユーザー参照を利用
+// Supabase のユーザー情報を取得
+const supabaseClient = useSupabaseClient()
 const user = useSupabaseUser()
 
 useHead({
