@@ -18,8 +18,8 @@
 </template>
 <script setup lang="ts">
 import SectionTabs from '@/components/common/SectionTabs.vue';
-import { useMyCharactersApi } from '@/composables/useMyCharacters'
-const api = useMyCharactersApi()
+import { useCharactersApi } from '@/composables/useCharacters'
+const api = useCharactersApi()
 const list = ref<any[]>([])
 onMounted(async () => { list.value = await api.listMine(undefined, 100, 0) })
 </script>
