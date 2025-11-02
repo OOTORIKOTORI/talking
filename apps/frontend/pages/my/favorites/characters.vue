@@ -2,10 +2,10 @@
   <div class="mx-auto max-w-6xl p-6">
     <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
 
-    <!-- tabs -->
+    <!-- タブ -->
     <div class="mb-4 flex gap-2 text-sm">
-      <NuxtLink to="/my/favorites" class="px-3 py-1 rounded border bg-white">アセット</NuxtLink>
-      <NuxtLink to="/my/favorites/characters" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクター</NuxtLink>
+      <NuxtLink to="/my/favorites" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
+      <NuxtLink to="/my/favorites/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
     </div>
 
     <div v-if="list.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -18,12 +18,10 @@
 <script setup lang="ts">
 import CharacterCard from '@/components/character/CharacterCard.vue'
 import { useCharactersApi } from '@/composables/useCharacters'
+
+definePageMeta({ name: 'my-favorites-characters' })
+
 const api = useCharactersApi()
 const list = ref<any[]>([])
-const route = useRoute()
-const router = useRouter()
-const safeReplaceQuery = (q: Record<string, any>) => {
-  router.replace({ path: route.path, query: q })
 onMounted(async () => { list.value = await api.listFavorites() })
-definePageMeta({ name: 'my-favorites-characters' })
 </script>
