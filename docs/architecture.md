@@ -10,8 +10,8 @@
 ### キャラクター
 - モデル: 
   - `Character { id, name, displayName, description, tags[], published, createdAt, ... }`
-  - `CharacterImage { id, characterId, emotion, pattern, label, weight, imageKey }`
-- 立ち絵画像は**複数**。各画像に**感情(日本語, 例: 自然体/嬉しい/悲しい/怒り/驚き/恐れ/照れ/眠い/思案/その他)**、**パターン(服装/ポーズ等)**、**表示ラベル**、**並び順重み(weight, 小さいほど上)**を付与
+  - `CharacterImage { id, characterId, emotion, pattern, label, sortOrder, imageKey }`
+- 立ち絵画像は**複数**。各画像に**感情(日本語, 例: 自然体/嬉しい/悲しい/怒り/驚き/恐れ/照れ/眠い/思案/その他)**、**パターン(服装/ポーズ等)**、**表示ラベル**、**並び順（sortOrder, 小さいほど先頭）**を付与
 - 立ち絵カードは**ドラッグで並べ替え**可能、画像クリックで**拡大プレビュー**(入力欄クリックでは発火しない)
 
 ## お気に入り
@@ -305,3 +305,9 @@ model Asset {
 - アセット管理: `/my/assets`（自分の投稿の編集・削除）
 - お気に入り: `/my/favorites`（お気に入りした公開アセットの一覧）
 - サムネ: `thumbKey` を基点に署名GETで解決したURL画像
+
+---
+
+### ChangeLog (chat handover)
+
+- 2025-11-02: キャラクター節・お気に入り（アセット/キャラ）・タブ導線・署名GET・$api規約を最新版に更新。用語を sortOrder に統一。

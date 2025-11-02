@@ -137,3 +137,9 @@
 - [アーキテクチャ](./architecture.md): システム構成
 - [ワークフロー](./workflow.md): 開発の進め方
 - [ADR](./adr/README.md): 設計判断の記録
+
+---
+
+### ChangeLog (chat handover)
+
+- 2025-11-02: MVP項目にキャラ編集UI・お気に入り統一・タブ統合を反映。βの優先事項を整理。
