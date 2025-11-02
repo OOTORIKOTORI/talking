@@ -4,27 +4,11 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-900">アセット管理</h1>
-          <div class="flex items-center gap-4">
-            <NuxtLink
-              to="/upload"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-            >
-              新規アップロード
-            </NuxtLink>
-            <NuxtLink
-              to="/"
-              class="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              ← ホームへ戻る
-            </NuxtLink>
-          </div>
+          <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
         </div>
-        <div class="mt-4">
-          <CrossNavTabs :items="[
-            { label: 'アセット', to: '/my/assets' },
-            { label: 'キャラクター', to: '/my/characters' }
-          ]" />
+        <div class="mb-4 flex gap-2 text-sm">
+          <NuxtLink to="/my/assets" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
+          <NuxtLink to="/my/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
         </div>
       </div>
     </header>

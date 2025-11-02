@@ -1,11 +1,9 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-    <h1 class="text-2xl font-semibold">キャラクター</h1>
-    <div class="mt-2 mb-4">
-      <CrossNavTabs :items="[
-        { label: 'アセット', to: '/assets' },
-        { label: 'キャラクター', to: '/characters' }
-      ]" />
+    <h1 class="text-2xl font-semibold mb-2">キャラクター</h1>
+    <div class="mb-4 flex gap-2 text-sm">
+      <NuxtLink to="/assets" class="px-3 py-1 rounded border bg-white">アセット</NuxtLink>
+      <NuxtLink to="/characters" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクター</NuxtLink>
     </div>
     <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
       <div>
