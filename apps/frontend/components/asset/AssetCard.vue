@@ -6,18 +6,20 @@
     <!-- 右上 お気に入り -->
     <button
       v-if="showFavorite"
-      class="absolute top-2 right-2 z-10 rounded-full p-2 bg-white/80 backdrop-blur hover:bg-white"
-      :aria-pressed="asset.isFavorite ? 'true' : 'false'"
+      class="absolute top-2 right-2 z-10 rounded-full p-2 bg-white/80 backdrop-blur hover:bg-white transition"
+      :class="{ 'text-red-500': isFav, 'text-gray-400': !isFav, 'opacity-50': toggling }"
+      :aria-pressed="isFav ? 'true' : 'false'"
+      :disabled="toggling"
       aria-label="お気に入り"
       title="お気に入り"
-      @click.stop.prevent="onToggleFavorite && onToggleFavorite(asset)"
+      @click="onToggleFav"
     >
       <!-- filled heart -->
-      <svg v-if="asset.isFavorite" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+      <svg v-if="isFav" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
         <path d="M12 21s-7.053-4.534-9.428-8.24C1.04 10.7 1.24 7.9 3.11 6.2 5.41 4.09 8.53 4.73 10 6.7c1.47-1.97 4.59-2.61 6.89-.5 1.87 1.7 2.07 4.5.54 6.56C19.053 16.466 12 21 12 21z"/>
       </svg>
       <!-- outline heart -->
-      <svg v-else viewBox="0 0 24 24" class="w-5 h-5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <svg v-else viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
       </svg>
     </button>
@@ -52,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+import { useAssets } from '@/composables/useAssets'
 
 const props = defineProps({
   asset: {
@@ -74,6 +77,38 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['thumb-error']);
+
+const api = useAssets()
+const isFav = ref(!!props.asset?.isFavorite)
+const toggling = ref(false)
+
+const onToggleFav = async (e: MouseEvent) => {
+  e.stopPropagation()
+  e.preventDefault()
+  if (toggling.value) return
+  toggling.value = true
+  const prev = isFav.value
+  isFav.value = !prev
+  try {
+    if (prev) {
+      await api.unfavorite(props.asset.id)
+    } else {
+      await api.favorite(props.asset.id)
+    }
+    // 成功したら親のasset.isFavoriteも更新
+    props.asset.isFavorite = isFav.value
+  } catch (err) {
+    isFav.value = prev
+    console.error('Failed to toggle favorite:', err)
+  } finally {
+    toggling.value = false
+  }
+}
+
+// asset.isFavoriteの変更を監視
+watch(() => props.asset?.isFavorite, (newVal) => {
+  isFav.value = !!newVal
+}, { immediate: true })
 
 const isImage = computed(() => props.asset.contentType?.startsWith('image/'))
 const key = computed(() => props.asset.thumbKey || props.asset.key || '')

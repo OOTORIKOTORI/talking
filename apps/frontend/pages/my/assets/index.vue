@@ -6,6 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
         </div>
+        <SectionTabs :items="[{ label: 'アセット', to: '/my/assets', activePath: '/my/assets' }, { label: 'キャラクター', to: '/my/characters', activePath: '/my/characters' }]" />
         <div class="mb-4 flex gap-2 text-sm">
           <NuxtLink to="/my/assets" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
           <NuxtLink to="/my/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
@@ -285,6 +286,8 @@
 
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
+import SectionTabs from '@/components/common/SectionTabs.vue';
+import { useAssets } from '@/composables/useAssets';
 
 definePageMeta({ 
   middleware: ['require-auth']
@@ -293,6 +296,7 @@ definePageMeta({
 const route = useRoute();
 const router = useRouter();
 const { $api } = useNuxtApp();
+const api = useAssets();
 
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
@@ -387,9 +391,16 @@ const performSearch = async () => {
     loading.value = true;
     error.value = null;
 
-    const params: Record<string, any> = {
-      q: searchQuery.value,
-      owner: 'me',
+    const params: {
+      q?: string;
+      limit: number;
+      offset: number;
+      sort: 'createdAt:desc' | 'createdAt:asc';
+      contentType?: 'image' | 'audio';
+      primaryTag?: string;
+      tags?: string;
+    } = {
+      q: searchQuery.value || undefined,
       limit: 20,
       offset: offset.value,
       sort: sortOrder.value,
@@ -407,9 +418,7 @@ const performSearch = async () => {
       params.tags = tagsInput.value;
     }
 
-    const result = await $api('/search/assets', {
-      query: params
-    }) as { items: Asset[], total: number, limit: number, offset: number };
+    const result = await api.searchMine(params);
     
     if (offset.value === 0) {
       assets.value = result.items;
@@ -518,9 +527,7 @@ const handleDelete = async (id: string) => {
   }
 
   try {
-    await $api(`/assets/${id}`, {
-      method: 'DELETE'
-    });
+    await api.deleteAsset(id);
     
     // リストから削除
     assets.value = assets.value.filter(a => a.id !== id);

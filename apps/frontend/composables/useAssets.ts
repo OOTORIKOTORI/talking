@@ -108,11 +108,52 @@ export const useAssets = () => {
     })
   }
 
+  const searchMine = async (params?: {
+    q?: string;
+    limit?: number;
+    offset?: number;
+    contentType?: 'image' | 'audio';
+    primaryTag?: string;
+    tags?: string;
+    sort?: 'createdAt:desc' | 'createdAt:asc';
+  }) => {
+    const result = await api<AssetSearchResponse>('/search/assets', {
+      query: {
+        ...params,
+        owner: 'me',
+      },
+    })
+
+    await applyAssetUrls(result.items, fallbackBase)
+
+    return {
+      items: result.items,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+    }
+  }
+
+  const favorite = async (id: string) => {
+    return await api(`/assets/${id}/favorite`, {
+      method: 'POST',
+    })
+  }
+
+  const unfavorite = async (id: string) => {
+    return await api(`/assets/${id}/favorite`, {
+      method: 'DELETE',
+    })
+  }
+
   return {
     listAssets,
     getAsset,
     searchAssets,
     updateAsset,
     deleteAsset,
+    searchMine,
+    favorite,
+    unfavorite,
   }
 }

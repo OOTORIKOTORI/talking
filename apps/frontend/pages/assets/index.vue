@@ -6,6 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">公開ギャラリー</h1>
         </div>
+        <SectionTabs :items="[{ label: 'アセット', to: '/assets', activePath: '/assets' }, { label: 'キャラクター', to: '/characters', activePath: '/characters' }]" />
         <div class="mb-4 flex gap-2 text-sm">
           <NuxtLink to="/assets" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
           <NuxtLink to="/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
@@ -203,6 +204,7 @@
 
 <script setup lang="ts">
 import { useFavoriteToggle } from '@/composables/useFavoriteToggle'
+import SectionTabs from '@/components/common/SectionTabs.vue';
 const { toggle } = useFavoriteToggle()
 function toggleFavorite(asset: Asset) {
   toggle(asset)

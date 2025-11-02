@@ -1,35 +1,23 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-    <h1 class="text-2xl font-semibold mb-2">キャラクター</h1>
+    <SectionTabs :items="[{ label: 'アセット', to: '/assets', activePath: '/assets' }, { label: 'キャラクター', to: '/characters', activePath: '/characters' }]" />
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold mb-2">キャラクター</h1>
+    </div>
     <div class="mb-4 flex gap-2 text-sm">
       <NuxtLink to="/assets" class="px-3 py-1 rounded border bg-white">アセット</NuxtLink>
       <NuxtLink to="/characters" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">キャラクター</NuxtLink>
     </div>
-    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">キーワード</label>
-        <input v-model="q" type="text" placeholder="キャラクター検索" class="w-full rounded border px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">タグ（カンマ区切り）</label>
-        <input v-model="tagsCsv" type="text" placeholder="tag1, tag2, ..." class="w-full rounded border px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">並び順</label>
-        <select v-model="sort" class="w-full rounded border px-3 py-2">
-          <option value="new">新しい順</option>
-          <option value="old">古い順</option>
-          <option value="name">名前順</option>
-        </select>
-      </div>
-    </div>
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <CharacterCard v-for="c in list" :key="c.id" :character="c" />
+      <NuxtLink v-for="c in list" :key="c.id" :to="`/characters/${c.id}`" class="block rounded shadow bg-white overflow-hidden">
+        <div class="aspect-[3/4]"><CharacterImageThumb :keyOrThumb="c.images?.[0]?.thumbKey || c.images?.[0]?.key || null" :alt="c.name" /></div>
+        <div class="p-3 font-medium line-clamp-1">{{ c.name }}</div>
+      </NuxtLink>
     </div>
   </div>
-  
 </template>
 <script setup lang="ts">
+import SectionTabs from '@/components/common/SectionTabs.vue';
 import { useCharactersApi } from '@/composables/useCharacters'
 const api = useCharactersApi()
 const route = useRoute()

@@ -1,5 +1,6 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
+    <SectionTabs :items="[{ label: 'アセット', to: '/my/assets', activePath: '/my/assets' }, { label: 'キャラクター', to: '/my/characters', activePath: '/my/characters' }]" />
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold mb-2">マイキャラクター</h1>
     </div>
@@ -16,8 +17,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useCharactersApi } from '@/composables/useCharacters'
-const api = useCharactersApi()
+import SectionTabs from '@/components/common/SectionTabs.vue';
+import { useMyCharactersApi } from '@/composables/useMyCharacters'
+const api = useMyCharactersApi()
 const list = ref<any[]>([])
 onMounted(async () => { list.value = await api.listMine(undefined, 100, 0) })
 </script>
