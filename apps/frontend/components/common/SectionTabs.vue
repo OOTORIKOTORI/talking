@@ -22,7 +22,11 @@ const tabClass = (active:boolean)=>
 
 const isActive = (it:{to:string; activePrefix?:string})=>{
   const path = route.path
-  const prefix = it.activePrefix ?? (it.to.endsWith('/') ? it.to : it.to + '/')
-  return path === it.to || path.startsWith(prefix)
+  // If activePrefix is explicitly provided, use prefix matching
+  if (it.activePrefix !== undefined) {
+    return path === it.to || path.startsWith(it.activePrefix)
+  }
+  // Otherwise, use exact match only
+  return path === it.to
 }
 </script>

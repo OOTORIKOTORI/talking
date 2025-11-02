@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AssetCard from '@/components/asset/AssetCard.vue'
+import SectionTabs from '@/components/common/SectionTabs.vue'
 definePageMeta({ name: 'my-favorites' })
 
 import { ref, onMounted } from 'vue'
@@ -22,7 +23,7 @@ onMounted(async () => {
 <template>
   <div class="mx-auto max-w-6xl p-6">
     <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
-  <SectionTabs :items="[{label:'アセット', to:'/my/favorites', activePrefix:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
+  <SectionTabs :items="[{label:'アセット', to:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
     
 
     <div v-if="favorites.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">

@@ -33,6 +33,7 @@ export class CharacterFavoritesService {
         },
       },
     });
-    return favs.map(f => ({ ...f.character, isFavorite: true }));
+    // Use isFavorited (past participle) to match frontend expectations
+    return favs.map(f => ({ ...f.character, isFavorited: true, isFavorite: true }));
   }
 }

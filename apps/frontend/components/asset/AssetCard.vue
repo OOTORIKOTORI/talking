@@ -81,11 +81,14 @@ const toggleFavorite = async (e: MouseEvent) => {
   const prev = isFav.value
   isFav.value = !prev
   try {
-    if (!prev) await api.favorite(props.asset.id)
-    else       await api.unfavorite(props.asset.id)
+    if (!prev) {
+      await api.favorite(props.asset.id)
+    } else {
+      await api.unfavorite(props.asset.id)
+    }
     // ソースも同期
     if (props.asset) props.asset.isFavorited = isFav.value
-  } catch {
+  } catch (err) {
     isFav.value = prev // ロールバック
   } finally {
     toggling.value = false

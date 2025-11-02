@@ -21,8 +21,9 @@ export class CharactersController {
 
   // 公開詳細（公開のみ）
   @Get('/characters/:id')
-  async findPublic(@Param('id') id: string) {
-    return this.service.findPublic(id);
+  @UseGuards(OptionalSupabaseAuthGuard)
+  async findPublic(@Req() req: any, @Param('id') id: string) {
+    return this.service.findPublic(id, req.user?.userId ?? null);
   }
 
   // マイ（作成・更新・削除・自分の詳細）

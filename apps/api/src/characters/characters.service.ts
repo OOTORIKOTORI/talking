@@ -52,19 +52,41 @@ export class CharactersService {
       { description: { contains: q, mode: 'insensitive' } },
     ];
 
-    return this.prisma.character.findMany({
+    const characters = await this.prisma.character.findMany({
       where, take: limit, skip: offset, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       include: { images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], take: 1 } }, // 先頭1枚をサムネに
     });
+    
+    // Check favorites for this user
+    if (userId) {
+      const favoriteIds = await this.prisma.favoriteCharacter.findMany({
+        where: { userId },
+        select: { characterId: true },
+      });
+      const favSet = new Set(favoriteIds.map(f => f.characterId));
+      return characters.map(c => ({ ...c, isFavorited: favSet.has(c.id), isFavorite: favSet.has(c.id) }));
+    }
+    
+    return characters.map(c => ({ ...c, isFavorited: false, isFavorite: false }));
   }
 
-  async findPublic(id: string) {
+  async findPublic(id: string, userId: string | null = null) {
     const c = await this.prisma.character.findFirst({
       where: { id, deletedAt: null, isPublic: true },
       include: { images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
     });
     if (!c) throw new NotFoundException('Character not found');
-    return c;
+    
+    // Check if user has favorited this character
+    let isFavorited = false;
+    if (userId) {
+      const fav = await this.prisma.favoriteCharacter.findUnique({
+        where: { userId_characterId: { userId, characterId: id } },
+      });
+      isFavorited = !!fav;
+    }
+    
+    return { ...c, isFavorited, isFavorite: isFavorited };
   }
 
   async findOwned(ownerId: string, id: string) {

@@ -29,9 +29,10 @@ export class FavoritesService {
       select: { assetId: true },
     });
     const ids = favs.map(f => f.assetId);
-    if (!ids.length) return [];
+    if (!ids.length) return { items: [], total: 0 };
     const assets = await this.prisma.asset.findMany({ where: { id: { in: ids } }, orderBy: { createdAt: 'desc' } });
     const idSet = new Set(ids);
-    return assets.map(a => ({ ...a, isFavorite: idSet.has(a.id) }));
+    // Use isFavorited (past participle) to match frontend expectations
+    return { items: assets.map(a => ({ ...a, isFavorited: true, isFavorite: true })), total: assets.length };
   }
 }
