@@ -34,6 +34,7 @@ export class AssetsService {
       },
       forcePathStyle: this.configService.get<string>('S3_FORCE_PATH_STYLE') === 'true',
     });
+
   }
 
   private validatePrimaryTag(primaryTag: AssetPrimaryTag, contentType: string) {
@@ -179,6 +180,9 @@ export class AssetsService {
       throw new ForbiddenException('You do not own this asset');
     }
 
+    // お気に入りの外部参照を事前に削除（FK違反回避）
+    await this.prisma.favorite.deleteMany({ where: { assetId: id } });
+
     // Collect S3 keys to delete
     const keysToDelete = [asset.key, asset.thumbKey].filter(Boolean);
 
@@ -224,4 +228,4 @@ export class AssetsService {
 
     return;
   }
-}
+  }
