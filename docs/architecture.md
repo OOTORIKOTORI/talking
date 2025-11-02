@@ -1,5 +1,41 @@
 # アーキテクチャ
 
+## ドメイン
+
+### アセット(画像/音声)
+- モデル: `Asset { id, title, description, contentType(image|audio), primaryTag, tags[], fileKey, thumbKey, published, createdAt, ... }`
+- 画像URLは**署名GET `/uploads/signed-get?key=...` の JSON `{url}` を取得してから `<img src>` に適用**(直リンク禁止)
+- 検索: Meilisearch(facets: `contentType`, `primaryTag`, `tags`)
+
+### キャラクター
+- モデル: 
+  - `Character { id, name, displayName, description, tags[], published, createdAt, ... }`
+  - `CharacterImage { id, characterId, emotion, pattern, label, weight, imageKey }`
+- 立ち絵画像は**複数**。各画像に**感情(日本語, 例: 自然体/嬉しい/悲しい/怒り/驚き/恐れ/照れ/眠い/思案/その他)**、**パターン(服装/ポーズ等)**、**表示ラベル**、**並び順重み(weight, 小さいほど上)**を付与
+- 立ち絵カードは**ドラッグで並べ替え**可能、画像クリックで**拡大プレビュー**(入力欄クリックでは発火しない)
+
+## お気に入り
+
+- エンドポイント
+  - アセット: `POST/DELETE /assets/:id/favorite`, 一覧: `GET /favorites`
+  - キャラ  : `POST/DELETE /characters/:id/favorite`, 一覧: `GET /favorites/characters`
+- UI:
+  - 公開ギャラリー・お気に入り・管理一覧で**♡トグル**可能
+  - 一覧画面は**URLクエリにフィルタ状態を保持**(共有/復元OK)
+
+## 画面構成 / 導線
+
+- **公開ギャラリー `/assets`** … アセット/キャラクターの**タブ切替**(共通の検索/並び替えUI)
+- **アセット管理 `/my/assets`** … 自分の投稿。**タブ切替でキャラクター**に移動
+- **アップロード `/upload`** … 「アセットをアップロード / キャラクターを作成」**タブで相互遷移**
+- **お気に入り `/my/favorites`** … アセット/キャラクターの**タブ切替**
+- **マイキャラ `/my/characters`・キャラクター一覧 `/characters`** … 一覧カード→詳細編集
+
+## API/クライアント規約
+- すべてのHTTPは`$api`経由(Authorization自動付与)。**直fetch禁止**
+- 画像URLは**必ず署名GETのJSON `{url}` を解釈**してから適用
+- CIは `--frozen-lockfile` 前提。依存追加/削除時は**lockfileをコミット**
+
 ## Monorepo 構成
 
 このプロジェクトは pnpm workspace による Monorepo 構成です。
