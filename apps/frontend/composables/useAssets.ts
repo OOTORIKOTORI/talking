@@ -58,3 +58,29 @@ export const useAssetsApi = () => {
     applyFavorites,
   }
 }
+
+// Backward-compatible composable used by some pages (detail/explore)
+// Provides search/get/update/delete helpers matching old API surface
+export const useAssets = () => {
+  const $api = useApi()
+
+  const searchAssets = async (query: any = {}) => {
+    // Proxy to server-side search endpoint
+    return $api('/search/assets', { query }) as any
+  }
+
+  const getAsset = (id: string) => $api(`/assets/${id}`) as any
+
+  const updateAsset = (id: string, body: any) =>
+    $api(`/assets/${id}`, { method: 'PATCH', body }) as any
+
+  const deleteAsset = (id: string) =>
+    $api(`/assets/${id}`, { method: 'DELETE' }) as any
+
+  return {
+    searchAssets,
+    getAsset,
+    updateAsset,
+    deleteAsset,
+  }
+}
