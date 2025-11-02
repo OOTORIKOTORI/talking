@@ -7,10 +7,6 @@
           <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
         </div>
         <SectionTabs :items="[{ label: 'アセット', to: '/my/assets', activePath: '/my/assets' }, { label: 'キャラクター', to: '/my/characters', activePath: '/my/characters' }]" />
-        <div class="mb-4 flex gap-2 text-sm">
-          <NuxtLink to="/my/assets" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
-          <NuxtLink to="/my/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
-        </div>
       </div>
     </header>
 
@@ -418,15 +414,11 @@ const performSearch = async () => {
       params.tags = tagsInput.value;
     }
 
-    const result = await api.searchMine(params);
+    const res = await api.searchMine(params);
+    const arr = res.items ?? [];
+    assets.value = arr.map(api.normalizeAssetFavorite);
     
-    if (offset.value === 0) {
-      assets.value = result.items;
-    } else {
-      assets.value = [...assets.value, ...result.items];
-    }
-    
-    total.value = result.total;
+    total.value = res.total;
   } catch (e) {
     error.value = e instanceof Error ? `検索に失敗しました: ${e.message}` : '検索に失敗しました';
   } finally {

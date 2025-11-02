@@ -79,7 +79,9 @@ const props = defineProps({
 const emit = defineEmits(['thumb-error']);
 
 const api = useAssets()
-const isFav = ref(!!props.asset?.isFavorite)
+const isFav = ref(!!props.asset?.isFavorited)
+watch(() => props.asset?.isFavorited, v => { isFav.value = !!v })
+
 const toggling = ref(false)
 
 const onToggleFav = async (e: MouseEvent) => {
@@ -87,16 +89,12 @@ const onToggleFav = async (e: MouseEvent) => {
   e.preventDefault()
   if (toggling.value) return
   toggling.value = true
-  const prev = isFav.value
-  isFav.value = !prev
   try {
-    if (prev) {
-      await api.unfavorite(props.asset.id)
-    } else {
-      await api.favorite(props.asset.id)
-    }
+    const prev = isFav.value
+    isFav.value = !prev
+    await api.toggleFavorite(props.asset.id)
     // 成功したら親のasset.isFavoriteも更新
-    props.asset.isFavorite = isFav.value
+    if (props.asset) props.asset.isFavorited = isFav.value
   } catch (err) {
     isFav.value = prev
     console.error('Failed to toggle favorite:', err)

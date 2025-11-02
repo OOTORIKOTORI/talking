@@ -7,10 +7,6 @@
           <h1 class="text-2xl font-semibold mb-2">公開ギャラリー</h1>
         </div>
         <SectionTabs :items="[{ label: 'アセット', to: '/assets', activePath: '/assets' }, { label: 'キャラクター', to: '/characters', activePath: '/characters' }]" />
-        <div class="mb-4 flex gap-2 text-sm">
-          <NuxtLink to="/assets" class="px-3 py-1 rounded border bg-blue-50 border-blue-300">アセット</NuxtLink>
-          <NuxtLink to="/characters" class="px-3 py-1 rounded border bg-white">キャラクター</NuxtLink>
-        </div>
       </div>
     </header>
 
@@ -326,6 +322,9 @@ const performSearch = async () => {
     } else {
       assets.value = [...assets.value, ...result.items];
     }
+    
+    const arr = result.items ?? [];
+    assets.value = arr.map(api.normalizeAssetFavorite);
     
     total.value = result.total;
   } catch (e) {

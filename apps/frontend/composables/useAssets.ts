@@ -36,6 +36,11 @@ const applyAssetUrl = async (asset: Asset, fallbackBase?: string) => {
   return asset
 }
 
+const normalizeAssetFavorite = (a:any) => {
+  const fav = a?.isFavorited ?? a?.isFavorite ?? a?.favorited ?? a?.favoritedByMe ?? a?.is_favorite;
+  return { ...a, isFavorited: !!fav };
+};
+
 export const useAssets = () => {
   const api = useApi()
   const runtimeConfig = useRuntimeConfig()
@@ -146,6 +151,18 @@ export const useAssets = () => {
     })
   }
 
+  const listPublic = async (p:any)=>{
+    const res:any = await $api('/assets', { query: p });
+    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite);
+    return res;
+  }
+
+  const searchMine = async (p:any)=>{
+    const res:any = await $api('/search/assets', { query: { ...p, owner:'me' } });
+    if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite);
+    return res;
+  }
+
   return {
     listAssets,
     getAsset,
@@ -155,5 +172,6 @@ export const useAssets = () => {
     searchMine,
     favorite,
     unfavorite,
+    listPublic,
   }
 }
