@@ -283,7 +283,6 @@
 <script setup lang="ts">
 import type { Asset } from '@talking/types';
 import SectionTabs from '@/components/common/SectionTabs.vue';
-import { useAssets } from '@/composables/useAssets';
 import { useAssetsApi } from '@/composables/useAssets';
 
 definePageMeta({ 
@@ -294,7 +293,6 @@ const route = useRoute();
 const router = useRouter();
 const { $api } = useNuxtApp();
 const api = useAssetsApi();
-const assetsOps = useAssets();
 
 const assets = ref<Asset[]>([]);
 const loading = ref(false);
@@ -384,11 +382,6 @@ const loadFromQuery = () => {
   }
 };
 
-const applyFavorites = async (arr:any[])=>{
-  const fav = await api.listFavorites()
-  const set = new Set((fav||[]).map((x:any)=>x.id))
-  return arr.map((x:any)=>({ ...x, isFavorited: set.has(x.id) }))
-}
 const performSearch = async () => {
   try {
     loading.value = true;
@@ -423,7 +416,8 @@ const performSearch = async () => {
 
     const res: any = await api.searchMine(params);
     const arr = res?.items ?? [];
-    const mapped = await applyFavorites(arr.map(api.normalizeAssetFavorite));
+    const base = arr.map(api.normalizeAssetFavorite);
+    const mapped = await api.applyFavorites(base);
 
     if (offset.value === 0) {
       assets.value = mapped;
@@ -532,7 +526,7 @@ const handleDelete = async (id: string) => {
   }
 
   try {
-  await assetsOps.deleteAsset(id);
+    await $api(`/assets/${id}`, { method: 'DELETE' });
     
     // リストから削除
     assets.value = assets.value.filter(a => a.id !== id);

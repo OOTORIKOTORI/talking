@@ -12,7 +12,7 @@
       :disabled="toggling"
       aria-label="お気に入り"
       title="お気に入り"
-      @click="onToggleFav"
+      @click="toggleFavorite"
     >
       <!-- filled heart -->
       <svg v-if="isFav" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
@@ -69,27 +69,24 @@ const props = defineProps({
 
 const api = useAssetsApi()
 const isFav = ref(!!props.asset?.isFavorited)
-watch(() => props.asset?.isFavorited, v => isFav.value = !!v)
+watch(() => props.asset?.isFavorited, v => (isFav.value = !!v))
 
 const toggling = ref(false)
 
-const onToggleFav = async (e: MouseEvent) => {
+const toggleFavorite = async (e: MouseEvent) => {
   e.stopPropagation()
   e.preventDefault()
   if (toggling.value) return
   toggling.value = true
   const prev = isFav.value
+  isFav.value = !prev
   try {
-    isFav.value = !prev
-    if (isFav.value) {
-      await api.favorite(props.asset.id)
-    } else {
-      await api.unfavorite(props.asset.id)
-    }
+    if (!prev) await api.favorite(props.asset.id)
+    else       await api.unfavorite(props.asset.id)
+    // ソースも同期
     if (props.asset) props.asset.isFavorited = isFav.value
-  } catch (err) {
-    isFav.value = prev
-    console.error('Failed to toggle favorite:', err)
+  } catch {
+    isFav.value = prev // ロールバック
   } finally {
     toggling.value = false
   }

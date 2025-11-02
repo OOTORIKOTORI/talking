@@ -323,7 +323,8 @@ const performSearch = async () => {
 
     const result: any = await api.listPublic(params);
 
-    const mapped = (result?.items ?? []).map(api.normalizeAssetFavorite);
+    const base = (result?.items ?? []).map(api.normalizeAssetFavorite);
+    const mapped = await api.applyFavorites(base);
     if (offset.value === 0) {
       assets.value = mapped;
     } else {
