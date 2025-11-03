@@ -1,4 +1,5 @@
 <template>
+  <!-- 親から与えられるボックスサイズにフィットさせる -->
   <div :class="[fill ? 'w-full h-full' : 'w-full aspect-[16/9]', 'bg-black relative overflow-hidden rounded']">
     <img v-if="bg" :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-90" />
     <div v-for="(p, i) in portraits" :key="i"

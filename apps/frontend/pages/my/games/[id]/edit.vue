@@ -19,11 +19,10 @@
         ref="wrap"
         class="editor-grid"
         :style="gridStyle"
-        tabindex="0"
         @keydown.esc.prevent.stop="fullscreenProps=false"
       >
         <!-- シーン一覧 (左) -->
-        <aside v-show="!fullscreenProps" class="pane pane-scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
+        <aside v-show="!fullscreenProps" class="pane pane-scenes border rounded p-2" aria-label="scenes">
           <h2 class="font-semibold mb-3 text-lg">シーン</h2>
           <ul class="space-y-2">
             <li
@@ -49,7 +48,7 @@
         </aside>
 
         <!-- ノード一覧 (中央) -->
-        <main v-show="!fullscreenProps" class="pane pane-nodes border border-gray-200 rounded-lg p-4 bg-white" aria-label="nodes">
+        <main v-show="!fullscreenProps" class="pane pane-nodes border rounded p-2" aria-label="nodes">
           <h2 class="font-semibold mb-3 text-lg">ノード</h2>
           <div v-if="!scene" class="text-center py-12 text-gray-500">
             左からシーンを選択してください
@@ -88,11 +87,11 @@
 
         <!-- プロパティ (右) -->
         <section
-          class="pane pane-props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
+          class="pane pane-props border rounded p-2 bg-white overflow-y-auto"
           :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
         >
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-lg">プロパティ</h2>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-semibold">プロパティ</h2>
             <div class="flex items-center gap-2">
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
@@ -580,5 +579,34 @@ function onUp() {
   aspect-ratio: 16 / 9;
   width: auto;
   max-width: 1200px;
+}
+
+/* 全画面時のグリッド：2カラム（左=ステージ / 右=フォーム） */
+.fs-grid{
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  width: 100%;
+}
+.stage-outer{
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+.stage-inner{
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.fs-form{
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: calc(70vh - 32px);
 }
 </style>
