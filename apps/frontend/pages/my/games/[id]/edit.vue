@@ -19,10 +19,11 @@
         ref="wrap"
         class="editor-grid"
         :style="gridStyle"
+        tabindex="0"
         @keydown.esc.prevent.stop="fullscreenProps=false"
       >
         <!-- シーン一覧 (左) -->
-        <aside v-show="!fullscreenProps" class="pane pane-scenes border rounded p-2" aria-label="scenes">
+        <aside v-show="!fullscreenProps" class="pane pane-scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
           <h2 class="font-semibold mb-3 text-lg">シーン</h2>
           <ul class="space-y-2">
             <li
@@ -48,7 +49,7 @@
         </aside>
 
         <!-- ノード一覧 (中央) -->
-        <main v-show="!fullscreenProps" class="pane pane-nodes border rounded p-2" aria-label="nodes">
+        <main v-show="!fullscreenProps" class="pane pane-nodes border border-gray-200 rounded-lg p-4 bg-white" aria-label="nodes">
           <h2 class="font-semibold mb-3 text-lg">ノード</h2>
           <div v-if="!scene" class="text-center py-12 text-gray-500">
             左からシーンを選択してください
@@ -87,11 +88,11 @@
 
         <!-- プロパティ (右) -->
         <section
-          class="pane pane-props border rounded p-2 bg-white overflow-y-auto"
+          class="pane pane-props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
           :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
         >
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="font-semibold">プロパティ</h2>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-lg">プロパティ</h2>
             <div class="flex items-center gap-2">
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
@@ -101,21 +102,24 @@
           </div>
 
           <!-- ミニプレビュー -->
-          <div v-if="node" :class="fullscreenProps ? 'stage-full mb-3' : 'mb-3'">
-            <MiniStage :fill="fullscreenProps" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
-          </div>
-
-          <div v-if="node">
-            <div class="space-y-4">
-              <div>
-                <label class="block mb-1 text-sm font-medium">台詞</label>
-                <textarea
-                  v-model="nodeDraft.text"
-                  class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="6"
-                  placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
-                />
+          <!-- 全画面は 2 カラムに分割：左=ステージ / 右=フォーム -->
+          <div v-if="fullscreenProps && node" class="fs-grid">
+            <div class="stage-outer">
+              <div class="stage-inner">
+                <MiniStage :fill="true" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
               </div>
+            </div>
+            <div class="fs-form">
+              <div class="space-y-4">
+                <div>
+                  <label class="block mb-1 text-sm font-medium">台詞</label>
+                  <textarea
+                    v-model="nodeDraft.text"
+                    class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="6"
+                    placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
+                  />
+                </div>
 
               <div class="space-y-3">
                 <div>
@@ -245,11 +249,162 @@
                   </div>
                 </div>
               </div>
+              </div>
             </div>
           </div>
-          <div v-else class="text-center py-12 text-gray-500">
-            ノードを選択してください
-          </div>
+
+          <!-- 通常表示の場合 -->
+          <template v-if="!fullscreenProps">
+            <div v-if="node" class="mb-3">
+              <MiniStage :fill="false" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+            </div>
+
+            <div v-if="node">
+              <div class="space-y-4">
+                <div>
+                  <label class="block mb-1 text-sm font-medium">台詞</label>
+                  <textarea
+                    v-model="nodeDraft.text"
+                    class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="6"
+                    placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
+                  />
+                </div>
+
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">話者キャラ</label>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-gray-700 truncate flex-1">{{ selectedCharLabel || '未選択' }}</span>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openCharPicker=true">変更</button>
+                      <button v-if="nodeDraft.speakerCharacterId" type="button" class="px-2 py-1 border rounded text-sm" @click="clearChar">クリア</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">話者表記（任意）</label>
+                    <input
+                      v-model="nodeDraft.speakerDisplayName"
+                      class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="例: ??? / 田中 / あだ名"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">背景</label>
+                    <div class="flex items-center gap-2">
+                      <img v-if="bgUrl" :src="bgUrl" class="w-16 h-10 object-cover rounded border" />
+                      <span v-else class="text-xs text-gray-500">未選択</span>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openBgPicker=true">変更</button>
+                      <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">BGM</label>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-700 truncate flex-1">{{ musicTitle || '未選択' }}</span>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openMusicPicker=true">変更</button>
+                      <button v-if="nodeDraft.musicAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.musicAssetId=''">クリア</button>
+                    </div>
+                    <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">SFX</label>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
+                      <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
+                    </div>
+                  </div>
+
+                  <!-- 立ち絵（複数配置） -->
+                  <div class="mt-3">
+                    <div class="flex items-center justify-between">
+                      <label class="block text-sm font-semibold">キャラクター配置</label>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="addPortrait">追加</button>
+                    </div>
+                    <div v-if="(nodeDraft.portraits||[]).length===0" class="text-xs text-gray-500 mt-1">未配置</div>
+                    <div v-for="(p, i) in (nodeDraft.portraits ||= [])" :key="i" class="mt-2 p-2 border rounded">
+                      <div class="flex items-center gap-2">
+                        <img v-if="p.thumb" :src="p.thumb" class="w-12 h-12 object-cover rounded-full border" />
+                        <span class="text-xs text-gray-700 truncate flex-1">{{ p.characterName || p.characterId }}</span>
+                        <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(i)">画像変更</button>
+                        <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(i)">削除</button>
+                      </div>
+                      <div class="grid grid-cols-4 gap-2 mt-2">
+                        <label class="text-xs">X%<input type="number" v-model.number="p.x" class="w-full border rounded px-1 py-0.5" /></label>
+                        <label class="text-xs">Y%<input type="number" v-model.number="p.y" class="w-full border rounded px-1 py-0.5" /></label>
+                        <label class="text-xs">Scale%<input type="number" v-model.number="p.scale" class="w-full border rounded px-1 py-0.5" /></label>
+                        <label class="text-xs">Z<input type="number" v-model.number="p.z" class="w-full border rounded px-1 py-0.5" /></label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium mb-1">次ノードID</label>
+                    <input
+                      v-model="nodeDraft.nextNodeId"
+                      class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="node_xxx"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex gap-2">
+                  <button
+                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    @click="saveNode"
+                  >
+                    保存
+                  </button>
+                  <button
+                    class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+                    @click="addChoice"
+                  >
+                    選択肢追加
+                  </button>
+                  <button
+                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    @click="deleteCurrentNode"
+                  >
+                    削除
+                  </button>
+                </div>
+
+                <div>
+                  <div class="font-semibold mb-2">選択肢</div>
+                  <div v-if="!nodeDraft.choices || nodeDraft.choices.length === 0" class="text-sm text-gray-500">
+                    選択肢はありません
+                  </div>
+                  <div v-else class="space-y-2">
+                    <div
+                      v-for="(c, i) in nodeDraft.choices"
+                      :key="i"
+                      class="flex gap-2 items-center p-2 bg-gray-50 rounded"
+                    >
+                      <input
+                        v-model="c.label"
+                        class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="表示テキスト"
+                      />
+                      <input
+                        v-model="c.targetNodeId"
+                        class="w-40 border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="targetNodeId"
+                      />
+                      <button
+                        class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
+                        @click="removeChoice(i)"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-12 text-gray-500">
+              ノードを選択してください
+            </div>
+          </template>
           <!-- Pickers -->
           <AssetPicker v-model:open="openBgPicker" type="image" @select="(a)=> nodeDraft.bgAssetId = a.id" />
           <AssetPicker v-model:open="openMusicPicker" type="audio" @select="(a)=> nodeDraft.musicAssetId = a.id" />
@@ -552,17 +707,19 @@ function onUp() {
     var(--sz-resizer,8px)
     var(--w-props,420px);
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
+  grid-template-rows: 1fr;          /* ← 行を1本に固定 */
+  box-sizing: border-box;
 }
-.pane{ min-height: calc(100vh - 140px); }
+.pane{ min-height: calc(100vh - 140px); grid-row: 1; }   /* ← どの pane も1行目に固定 */
+.resizer{ grid-row: 1; }                                  /* ← リサイズバーも同じ行に固定 */
 .pane-scenes { grid-column: 1; }
 .pane-nodes  { grid-column: 3; }
 .pane-props  { grid-column: 5; }
 .props-normal{ position: sticky; top: 64px; }
 .props-fullscreen{
-  position: fixed; inset: 0; z-index: 50;
-  max-height: none; border-radius: 0; padding: 16px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  position: fixed; inset: 0; z-index: 50; background: #fff; /* 余白を廃止して全面使用 */
+  padding: 16px; overflow: auto;
 }
 .resizer{
   width: var(--sz-resizer,8px); cursor: col-resize; background: transparent; user-select: none;
@@ -573,40 +730,27 @@ function onUp() {
 .resizer:hover{ background: #e5e7eb; }
 .resizer:active{ background: #cbd5e1; }
 
-/* 全画面時のステージ: 高さ70vh・16:9で1画面収まり */
-.stage-full{
-  height: min(70vh, 720px);
-  aspect-ratio: 16 / 9;
-  width: auto;
-  max-width: 1200px;
-}
-
-/* 全画面時のグリッド：2カラム（左=ステージ / 右=フォーム） */
+/* === 全画面レイアウト（左右2カラム） === */
 .fs-grid{
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 16px;
-  width: 100%;
+  grid-template-columns: minmax(640px, 1fr) minmax(360px, 440px);
+  gap: 24px;
+  align-items: start;
 }
+@media (max-width: 1200px){
+  .fs-grid{ grid-template-columns: 1fr; }
+}
+/* 左カラムのステージは高さ基準でクランプして 16:9 維持 */
 .stage-outer{
-  position: relative;
   width: 100%;
-  padding-top: 56.25%; /* 16:9 */
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  max-height: 72vh;
+  display: flex; justify-content: center; align-items: flex-start;
 }
 .stage-inner{
-  position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
-  width: 100%; height: 100%;
+  /* 画面が広ければ大きく、狭ければ縮む / 高さ72vh以内に収める */
+  width: min(100%, calc(72vh * (16 / 9)));
+  aspect-ratio: 16 / 9;
+  height: auto;
 }
-.fs-form{
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  overflow-y: auto;
-  max-height: calc(70vh - 32px);
-}
+.fs-form{ width: 100%; }
 </style>
