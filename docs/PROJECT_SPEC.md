@@ -139,6 +139,76 @@
 
 ---
 
+## ゲーム制作（β）仕様
+
+### 目的
+Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て、プレビューしながら ADV 風ゲームを制作できる。
+
+### ルーティング / 画面
+- **エディタ**: `/my/games/:id/edit`
+  - 左：シーン一覧、中央：ノード一覧、右：プロパティ（プレビュー含む）
+  - 右ペインは「通常表示 / 全画面」をトグル（UI 文言: *全画面, 通常表示, Fで切替 / Escで閉じる*）
+  - ステージは 16:9、`MiniStage.vue` でプレビュー
+- **プレビュー（プレイヤ）**: `/games/:id/play`（※現状はカメラ未反映。今後対応）
+
+### ドメイン / モデル（Prisma 正）
+- `GameProject { id, ownerId, title, summary?, deletedAt? ... }`
+- `GameScene { id, projectId(FK), name, order, createdAt, updatedAt }`
+- `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, createdAt, updatedAt }`
+- `GameChoice { id, nodeId(FK), order, label, nextNodeId? }`
+
+#### Node.camera JSON
+```ts
+type Camera = { zoom: number /*100–300*/; cx: number /*0–100*/; cy: number /*0–100*/ }
+// 既定: { zoom:100, cx:50, cy:50 }（％はステージ基準）
+```
+
+#### Node.portraits JSON（複数）
+```ts
+type Portrait = {
+  characterId: string
+  imageId: string
+  thumb?: string
+  x: number /*0–100*/      // ％: 左上(0,0) – 右下(100,100)
+  y: number /*0–100*/      // ％: 立ち位置。MiniStage 側で translate(-50%,-100%)
+  scale?: number /*%*/     // ステージ高さに対する％。MiniStage は >60 を 1/3 に近似（150→50）
+  z?: number               // 前後関係。大きいほど手前
+}
+```
+
+### アセットの扱い
+- 画像/音声は **直リンク禁止**。必ず `/uploads/signed-get?key=...` を経由して取得（TTL 失効時は再署名）。
+- フロントは `useAssetMeta().signedFromId()` を利用。
+- 取得 UI:
+  - AssetPicker: 「自分のアセット / お気に入り」タブ + 検索
+  - CharacterPicker → CharacterImagePicker: キャラ→その画像を段階選択
+
+### エディタ操作（右ペイン）
+- 台詞（text）
+- 話者キャラ（speakerCharacterId）と **話者表記（自由入力）** …匿名演出（`???` 等）やあだ名に対応
+- 背景（bgAssetId） … サムネ表示
+- BGM（musicAssetId） … `<audio controls>` で再生/停止可
+- SFX（sfxAssetId） … 予約済み（UI あり、今後プレビュー付与）
+- **キャラクター配置（portraits[]）** … 複数行。各行で画像変更 / 削除 / `x,y,scale,z` を個別調整
+- **カメラ** … 倍率（zoom 100–300%）、中心（cx,cy 0–100%）
+- プレビューは通常/全画面のどちらでも同一ロジックで描画され、見た目が極力一致
+
+### API 概要（認可: 所有者）
+- `GET /games/:id/scenes` / `POST /games/:id/scenes`（Upsert）
+- `GET /games/scenes/:sceneId/nodes` / `POST /games/scenes/:sceneId/nodes`（choices 同梱で Upsert）
+- `DELETE /games/nodes/:nodeId`
+  - 新規 Node 追加時は `order = (scene内 max + 1)` （`GamesService.upsertNode` 参照）
+  - 既存更新は `id` 有無で分岐
+
+### 既知の制限 / TODO
+- プレイヤ `/games/:id/play` は **カメラ未適用**（次フェーズで反映）
+- SFX のプレビュー未実装
+- 選択肢（choices）の UI は最小
+- 画像の遅延読込・AVIF/WebP 最適化は別タスク
+
+---
+
 ### ChangeLog (chat handover)
 
 - 2025-11-02: 実装を根拠にキャラクター機能のモデル/画面/APIを正規化。Favorites をアセット/キャラ横断で統一（楽観更新・一覧同期・正規化関数）。検索/URL 同期のクエリ項目を明記。署名URLの取得/再取得方針と `$api` 経由の根拠を出典付きで追記。既知の落とし穴とテストTODOを整理。
+- 2025-11-04: ゲーム制作（β）仕様を追加。シーン/ノード構造、portraits 配置、カメラ操作、署名 URL 経由の画像/音声取得を明記。
