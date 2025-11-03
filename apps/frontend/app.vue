@@ -6,6 +6,7 @@
         <nav class="flex items-center space-x-4">
          <NuxtLink to="/assets" class="text-gray-700 hover:text-gray-900">公開ギャラリー</NuxtLink>
          <NuxtLink to="/characters" class="text-gray-700 hover:text-gray-900">キャラクター</NuxtLink>
+          <NuxtLink v-if="user" to="/my/games" class="text-gray-700 hover:text-gray-900">ゲーム制作</NuxtLink>
           <NuxtLink v-if="user" to="/upload" class="text-gray-700 hover:text-gray-900">アップロード</NuxtLink>
           <NuxtLink v-if="user" to="/my/assets" class="text-gray-700 hover:text-gray-900">アセット管理</NuxtLink>
          <NuxtLink v-if="user" to="/my/characters" class="text-gray-700 hover:text-gray-900">マイキャラ</NuxtLink>
