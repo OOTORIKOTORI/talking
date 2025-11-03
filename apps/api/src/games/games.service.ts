@@ -117,9 +117,14 @@ export class GamesService {
       const { choices, ...nodeData } = node;
       
       // Update node
+      // Prisma の仕様変更: sceneId を直接渡せないので connect 形式に変換
+      const { sceneId, ...rest } = nodeData as any;
       const updated = await this.prisma.gameNode.update({
         where: { id: node.id },
-        data: nodeData,
+        data: {
+          ...rest,
+          ...(sceneId ? { scene: { connect: { id: sceneId } } } : {}),
+        },
       });
 
       // Update choices if provided
