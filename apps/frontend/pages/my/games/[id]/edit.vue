@@ -23,7 +23,7 @@
         @keydown.esc.prevent.stop="fullscreenProps=false"
       >
         <!-- シーン一覧 (左) -->
-        <aside v-show="!fullscreenProps" class="pane scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
+        <aside v-show="!fullscreenProps" class="pane pane-scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
           <h2 class="font-semibold mb-3 text-lg">シーン</h2>
           <ul class="space-y-2">
             <li
@@ -49,7 +49,7 @@
         </aside>
 
         <!-- ノード一覧 (中央) -->
-        <main v-show="!fullscreenProps" class="pane nodes border border-gray-200 rounded-lg p-4 bg-white" aria-label="nodes">
+        <main v-show="!fullscreenProps" class="pane pane-nodes border border-gray-200 rounded-lg p-4 bg-white" aria-label="nodes">
           <h2 class="font-semibold mb-3 text-lg">ノード</h2>
           <div v-if="!scene" class="text-center py-12 text-gray-500">
             左からシーンを選択してください
@@ -82,13 +82,13 @@
         </main>
 
         <!-- resizer between scenes & nodes -->
-        <div v-show="!fullscreenProps" class="resizer" aria-label="resize-left" @pointerdown="startResize('left', $event)"></div>
+        <div v-show="!fullscreenProps" class="resizer resizer-left" aria-label="resize-left" @pointerdown="startResize('left', $event)"></div>
         <!-- resizer between nodes & props -->
-        <div v-show="!fullscreenProps" class="resizer" aria-label="resize-right" @pointerdown="startResize('right', $event)"></div>
+        <div v-show="!fullscreenProps" class="resizer resizer-right" aria-label="resize-right" @pointerdown="startResize('right', $event)"></div>
 
         <!-- プロパティ (右) -->
         <section
-          class="pane props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
+          class="pane pane-props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
           :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
         >
           <div class="flex items-center justify-between mb-3">
@@ -102,7 +102,9 @@
           </div>
 
           <!-- ミニプレビュー -->
-          <MiniStage v-if="node" class="mb-3" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+          <div v-if="node" :class="fullscreenProps ? 'stage-full mb-3' : 'mb-3'">
+            <MiniStage :fill="fullscreenProps" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+          </div>
 
           <div v-if="node">
             <div class="space-y-4">
@@ -483,6 +485,7 @@ const gridStyle = computed(() => ({
   '--w-scenes': widths.value.scenes + 'px',
   '--w-nodes': widths.value.nodes + 'px',
   '--w-props': widths.value.props + 'px',
+  '--sz-resizer': '8px',
 }) as any)
 
 onMounted(() => {
@@ -522,12 +525,12 @@ function onMove(ev: PointerEvent) {
     w.nodes = Math.max(min.nodes, startWidths.nodes + dx)
     w.props = Math.max(min.props, startWidths.props - dx)
   }
-  // はみ出し抑制（合計がwrap幅を超えないように）
-  const separatorWidth = 12 /* リサイズバー2本 */
-  const gapApprox = 32 /* gap近似 */
-  const total = w.scenes + w.nodes + w.props + separatorWidth + gapApprox
-  if (wrapWidth && total > wrapWidth) {
-    const over = total - wrapWidth
+  // wrap 幅にリサイズバー(×2)とギャップ(×4)を考慮
+  const RES = 8, GAP = 16
+  const maxSum = Math.max(0, wrapWidth - 2*RES - 4*GAP)
+  const sum = w.scenes + w.nodes + w.props
+  if (sum > maxSum) {
+    const over = sum - maxSum
     if (resizing === 'left') w.nodes = Math.max(min.nodes, w.nodes - over)
     else w.props = Math.max(min.props, w.props - over)
   }
@@ -543,26 +546,39 @@ function onUp() {
 <style scoped>
 .editor-grid{
   display: grid;
-  /* 5カラム: [シーン] [リサイズ] [ノード] [リサイズ] [プロパティ] */
-  grid-template-columns: var(--w-scenes,280px) 6px var(--w-nodes,1fr) 6px var(--w-props,420px);
+  grid-template-columns:
+    var(--w-scenes,280px)
+    var(--sz-resizer,8px)
+    var(--w-nodes,1fr)
+    var(--sz-resizer,8px)
+    var(--w-props,420px);
   gap: 1rem;
   align-items: start;
 }
 .pane{ min-height: calc(100vh - 140px); }
+.pane-scenes { grid-column: 1; }
+.pane-nodes  { grid-column: 3; }
+.pane-props  { grid-column: 5; }
 .props-normal{ position: sticky; top: 64px; }
 .props-fullscreen{
   position: fixed; inset: 0; z-index: 50;
   max-height: none; border-radius: 0; padding: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
 }
 .resizer{
-  width: 6px; cursor: col-resize; background: transparent; user-select: none;
+  width: var(--sz-resizer,8px); cursor: col-resize; background: transparent; user-select: none;
+  align-self: stretch; /* 縦に伸ばす */
 }
-/* グリッド配置を明示 */
-.scenes{ grid-column: 1; }
-.nodes{ grid-column: 3; }
-.props{ grid-column: 5; }
-.resizer[aria-label="resize-left"]{ grid-column: 2; }
-.resizer[aria-label="resize-right"]{ grid-column: 4; }
+.resizer-left  { grid-column: 2; }
+.resizer-right { grid-column: 4; }
 .resizer:hover{ background: #e5e7eb; }
 .resizer:active{ background: #cbd5e1; }
+
+/* 全画面時のステージ: 高さ70vh・16:9で1画面収まり */
+.stage-full{
+  height: min(70vh, 720px);
+  aspect-ratio: 16 / 9;
+  width: auto;
+  max-width: 1200px;
+}
 </style>

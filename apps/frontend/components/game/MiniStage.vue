@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full aspect-[16/9] bg-black relative overflow-hidden rounded">
+  <div :class="[fill ? 'w-full h-full' : 'w-full aspect-[16/9]', 'bg-black relative overflow-hidden rounded']">
     <img v-if="bg" :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-90" />
     <div v-for="(p, i) in portraits" :key="i"
          class="absolute will-change-transform"
@@ -20,6 +20,7 @@ import { useAssetMeta } from '@/composables/useAssetMeta'
 const props = defineProps<{
   bgAssetId?: string | null
   portraits: any[]
+  fill?: boolean
 }>()
 
 const { signedFromId } = useAssetMeta()
