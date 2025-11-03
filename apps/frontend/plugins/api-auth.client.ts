@@ -1,38 +1,46 @@
 import { defineNuxtPlugin } from '#app'
-// useRuntimeConfig / useSupabaseClient は Nuxt の自動インポートに任せる（明示 import 不要）
 import type { FetchOptions } from 'ofetch'
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
+  const supabaseClient = useSupabaseClient()
 
   const api = $fetch.create({
     baseURL: config.public.apiBase,
     credentials: 'include',
     onRequest: async ({ options }) => {
       try {
-        const supabase = useSupabaseClient() as any
-        const { data: { session } } = await supabase?.auth?.getSession()
+        console.log('[API Auth] Getting session...')
+        const { data: { session } } = await supabaseClient.auth.getSession()
+        console.log('[API Auth] Session:', session ? 'OK' : 'MISSING')
         const token = session?.access_token
         if (token) {
+          console.log('[API Auth] Token found:', token.substring(0, 20) + '...')
           if (options.headers instanceof Headers) {
             options.headers.set('Authorization', `Bearer ${token}`)
           } else if (typeof options.headers === 'object' && options.headers !== null) {
             (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
           }
+          console.log('[API Auth] Authorization header set')
+        } else {
+          console.warn('[API Auth] No token available!')
         }
-      } catch {
-        // Supabase 未初期化などの場合はスキップ
+      } catch (e) {
+        console.error('[API Auth] Error:', e)
       }
     },
     onResponseError: async (ctx) => {
       if (ctx.response.status !== 401) return
       try {
-        const supabase = useSupabaseClient() as any
-        if (!supabase?.auth) return
-        await supabase.auth.refreshSession()
-        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[API Auth] 401 detected, refreshing session...')
+        await supabaseClient.auth.refreshSession()
+        const { data: { session } } = await supabaseClient.auth.getSession()
         const token = session?.access_token
-        if (!token) return
+        if (!token) {
+          console.warn('[API Auth] Refresh failed, no token')
+          return
+        }
+        console.log('[API Auth] Refresh successful, retrying request')
         if (ctx.options.headers instanceof Headers) {
           ctx.options.headers.set('Authorization', `Bearer ${token}`)
         } else if (typeof ctx.options.headers === 'object' && ctx.options.headers !== null) {
@@ -46,7 +54,9 @@ export default defineNuxtPlugin(() => {
           if (!allowed.includes(ctx.options.method)) return;
         }
         await $fetch.raw(ctx.request as any, ctx.options as any)
-      } catch { /* no-op */ }
+      } catch (e) {
+        console.error('[API Auth] Refresh error:', e)
+      }
     },
   })
 

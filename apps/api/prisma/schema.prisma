@@ -188,6 +188,7 @@ model GameNode {
   musicAssetId String?
   sfxAssetId  String?
   nextNodeId  String?
+  camera      Json?        // {zoom,cx,cy} カメラ設定
   scene       GameScene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
   choices     GameChoice[]
 
