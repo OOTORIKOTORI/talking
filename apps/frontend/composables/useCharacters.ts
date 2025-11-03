@@ -8,8 +8,17 @@ export const useCharactersApi = () => {
       $api<Character[]>('/characters', { query: { q, limit, offset, ...(extra || {}) } }),
     getPublic: (id: string) => $api<Character>(`/characters/${id}`),
 
-    // マイ
-    listMine: (q?: string, limit=20, offset=0) => $api<Character[]>('/characters', { query: { q, limit, offset, publicOnly: 'false' } }),
+    // マイ（後方互換: 旧シグネチャ listMine(q?, limit?, offset?) も受け付ける）
+    listMine: (arg1?: any, limit?: number, offset?: number) => {
+      let query: Record<string, any> = {}
+      if (typeof arg1 === 'object' || arg1 === undefined) {
+        query = { ...(arg1 || {}) }
+      } else {
+        // 旧: (q?: string, limit=20, offset=0)
+        query = { q: arg1, limit: limit ?? 20, offset: offset ?? 0 }
+      }
+      return $api<Character[]>('/my/characters', { query })
+    },
     create: (payload: Pick<Character, 'name'|'displayName'|'description'|'isPublic'>) => 
       $api<Character>('/my/characters', { method: 'POST', body: payload }),
     getMine: (id: string) => $api<Character>(`/my/characters/${id}`),
@@ -28,7 +37,7 @@ export const useCharactersApi = () => {
     // お気に入り
     favorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'POST' }),
     unfavorite: (id: string) => $api<{success:true}>(`/characters/${id}/favorite`, { method: 'DELETE' }),
-    listFavorites: () => $api<Character[]>('/my/favorites/characters'),
+  listFavorites: (params?: Record<string, any>) => $api<Character[]>('/my/favorites/characters', { query: params }),
     listFavoriteCharacters: (query: any = {}) => {
       const params: any = { ...query }
       Object.keys(params).forEach(k => {

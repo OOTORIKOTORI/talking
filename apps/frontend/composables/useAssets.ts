@@ -31,6 +31,13 @@ export const useAssetsApi = () => {
     return res
   }
 
+  // 自分が作成したアセット一覧
+  const listMine = async (params: { type?: 'image'|'audio'; q?: string; limit?: number } = {}) => {
+    const res: any = await $api('/my/assets', { query: params })
+    const list = Array.isArray(res?.items) ? res.items : res
+    return Array.isArray(list) ? list.map(normalizeAssetFavorite) : []
+  }
+
   // お気に入り一覧（APIは /favorites を使う）
   const listFavorites = async (): Promise<AssetLike[]> => {
     const res: any = await $api('/favorites')
@@ -63,6 +70,7 @@ export const useAssetsApi = () => {
     normalizeAssetFavorite,
     listPublic,
     searchMine,
+    listMine,
     listFavorites,
     listFavoriteAssets,
     favorite,

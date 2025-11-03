@@ -26,6 +26,14 @@ export class CharactersController {
     return this.service.findPublic(id, req.user?.userId ?? null);
   }
 
+  // 自分の一覧
+  @Get('/my/characters')
+  @UseGuards(SupabaseAuthGuard)
+  async listMine(@Req() req: any, @Query() q: QueryCharactersDto) {
+    const limit = Number(q.limit ?? 20); const offset = Number(q.offset ?? 0);
+    return this.service.list(req.user.userId, q.q, false, limit, offset);
+  }
+
   // マイ（作成・更新・削除・自分の詳細）
   @Post('/my/characters')
   @UseGuards(SupabaseAuthGuard)

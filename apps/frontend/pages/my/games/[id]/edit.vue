@@ -92,12 +92,16 @@
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-sm font-medium mb-1">話者キャラID</label>
-                  <input
-                    v-model="nodeDraft.speakerCharacterId"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="character_id"
-                  />
+                  <label class="block text-sm font-medium mb-1">話者キャラ</label>
+                  <div class="flex gap-2">
+                    <input
+                      :value="nodeDraft.speakerCharacterId"
+                      readonly
+                      class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50"
+                    />
+                    <button type="button" class="px-2 py-1 border rounded" @click="openCharPicker=true">選択</button>
+                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.speakerCharacterId=''">クリア</button>
+                  </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">話者感情</label>
@@ -108,20 +112,20 @@
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">背景AssetID</label>
-                  <input
-                    v-model="nodeDraft.bgAssetId"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="asset_bg_xxx"
-                  />
+                  <label class="block text-sm font-medium mb-1">背景</label>
+                  <div class="flex gap-2">
+                    <input :value="nodeDraft.bgAssetId" readonly class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50" />
+                    <button type="button" class="px-2 py-1 border rounded" @click="openBgPicker=true">選択</button>
+                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.bgAssetId=''">クリア</button>
+                  </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">BGM AssetID</label>
-                  <input
-                    v-model="nodeDraft.musicAssetId"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="asset_music_xxx"
-                  />
+                  <label class="block text-sm font-medium mb-1">BGM</label>
+                  <div class="flex gap-2">
+                    <input :value="nodeDraft.musicAssetId" readonly class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50" />
+                    <button type="button" class="px-2 py-1 border rounded" @click="openMusicPicker=true">選択</button>
+                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.musicAssetId=''">クリア</button>
+                  </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">SFX AssetID</label>
@@ -197,6 +201,10 @@
           <div v-else class="text-center py-12 text-gray-500">
             ノードを選択してください
           </div>
+          <!-- Pickers -->
+          <AssetPicker v-model:open="openBgPicker" type="image" @select="(a)=> nodeDraft.bgAssetId = a.id" />
+          <AssetPicker v-model:open="openMusicPicker" type="audio" @select="(a)=> nodeDraft.musicAssetId = a.id" />
+          <CharacterPicker v-model:open="openCharPicker" @select="(c)=> nodeDraft.speakerCharacterId = c.id" />
         </section>
       </div>
     </div>
@@ -204,6 +212,8 @@
 </template>
 
 <script setup lang="ts">
+import AssetPicker from '@/components/pickers/AssetPicker.vue'
+import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
 definePageMeta({
   middleware: 'require-auth'
 })
@@ -218,6 +228,9 @@ const scene = ref<any>(null)
 const node = ref<any>(null)
 const nodeDraft = reactive<any>({})
 const loading = ref(true)
+const openBgPicker = ref(false)
+const openMusicPicker = ref(false)
+const openCharPicker = ref(false)
 
 onMounted(async () => {
   try {

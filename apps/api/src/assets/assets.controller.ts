@@ -29,6 +29,13 @@ export class AssetsController {
     return this.assetsService.findAll({ ...query, ownerId: user.userId, userId: user.userId });
   }
 
+  // Alias: /my/assets
+  @Get('/../my/assets')
+  @UseGuards(SupabaseAuthGuard)
+  findMineAlias(@Query() query: QueryAssetsDto, @CurrentUser() user: AuthUser) {
+    return this.assetsService.findAll({ ...query, ownerId: user.userId, userId: user.userId });
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
     const asset = await this.assetsService.findOne(id, user?.userId);
