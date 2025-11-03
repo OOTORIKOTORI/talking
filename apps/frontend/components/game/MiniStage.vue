@@ -4,12 +4,13 @@
     <div v-for="(p, i) in portraits" :key="i"
          class="absolute will-change-transform"
          :style="{
-           left: p.x + '%',
-           top: p.y + '%',
-           transform: `translate(-50%, -100%) scale(${(p.scale || 100) / 100})`,
+           left: (p.x ?? 50) + '%',
+           top:  (p.y ?? 90) + '%',
+           height: scaleToHeight(p.scale) + '%',
+           transform: 'translate(-50%,-100%)',
            zIndex: p.z || 0
          }">
-      <img v-if="p.thumb" :src="p.thumb" class="max-h-64 object-contain drop-shadow-lg" />
+      <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
     </div>
   </div>
 </template>
@@ -33,4 +34,14 @@ watch(
   },
   { immediate: true }
 )
+
+/**
+ * 旧仕様は「固定pxベース × transform scale」。画面サイズで比率がズレた。
+ * 新仕様は「ステージ高さに対する％」。既存データの scale=100~150 をだいたい
+ * 同じ見た目に寄せるため、>60 は 1/3 に丸める（例: 150 → 50%）。
+ */
+function scaleToHeight(s: number | undefined) {
+  if (s == null) return 30
+  return s > 60 ? Math.round(s / 3) : s
+}
 </script>
