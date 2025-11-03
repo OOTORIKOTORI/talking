@@ -26,10 +26,23 @@
 
 <script setup lang="ts">
   import ToastContainer from '@/components/common/ToastContainer.vue'
+  // auto-importの取りこぼしで dev が落ちるため、ここでは composable を使わず $supabase へ直接アクセスする
+  import { useNuxtApp, onMounted } from '#imports'
 
-// Supabase のユーザー情報を取得
-const supabaseClient = useSupabaseClient()
-const user = useSupabaseUser()
+// Supabase のユーザー情報を取得（$supabase 直接参照）
+const user = ref<any>(null)
+onMounted(async () => {
+  const { $supabase } = useNuxtApp() as any
+  const client = $supabase?.client || $supabase
+  if (!client?.auth) return
+  try {
+    const { data: { session } } = await client.auth.getSession()
+    user.value = session?.user || null
+    client.auth.onAuthStateChange((_event: any, session: any) => {
+      user.value = session?.user || null
+    })
+  } catch {}
+})
 
 useHead({
   title: 'Talking',

@@ -15,9 +15,15 @@
         </NuxtLink>
       </div>
 
-      <div class="grid grid-cols-12 gap-4 min-h-[600px]">
+      <div
+        ref="wrap"
+        class="editor-grid"
+        :style="gridStyle"
+        tabindex="0"
+        @keydown.esc.prevent.stop="fullscreenProps=false"
+      >
         <!-- シーン一覧 (左) -->
-        <aside class="col-span-3 border border-gray-200 rounded-lg p-4 bg-white">
+        <aside v-show="!fullscreenProps" class="pane scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
           <h2 class="font-semibold mb-3 text-lg">シーン</h2>
           <ul class="space-y-2">
             <li
@@ -43,7 +49,7 @@
         </aside>
 
         <!-- ノード一覧 (中央) -->
-        <main class="col-span-5 border border-gray-200 rounded-lg p-4 bg-white">
+        <main v-show="!fullscreenProps" class="pane nodes border border-gray-200 rounded-lg p-4 bg-white" aria-label="nodes">
           <h2 class="font-semibold mb-3 text-lg">ノード</h2>
           <div v-if="!scene" class="text-center py-12 text-gray-500">
             左からシーンを選択してください
@@ -75,9 +81,25 @@
           </div>
         </main>
 
+        <!-- resizer between scenes & nodes -->
+        <div v-show="!fullscreenProps" class="resizer" aria-label="resize-left" @pointerdown="startResize('left', $event)"></div>
+        <!-- resizer between nodes & props -->
+        <div v-show="!fullscreenProps" class="resizer" aria-label="resize-right" @pointerdown="startResize('right', $event)"></div>
+
         <!-- プロパティ (右) -->
-        <section class="col-span-4 border border-gray-200 rounded-lg p-4 bg-white max-h-[calc(100vh-140px)] overflow-y-auto sticky top-16">
-          <h2 class="font-semibold mb-3 text-lg">プロパティ</h2>
+        <section
+          class="pane props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
+          :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-lg">プロパティ</h2>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
+                {{ fullscreenProps ? '通常表示' : '全画面' }}
+              </button>
+              <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
+            </div>
+          </div>
 
           <!-- ミニプレビュー -->
           <MiniStage v-if="node" class="mb-3" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
@@ -451,4 +473,96 @@ function addChoice() {
 function removeChoice(index: number) {
   nodeDraft.choices.splice(index, 1)
 }
+
+// ---------- 3ペイン可変 & 全画面 ----------
+const fullscreenProps = ref(false)
+const wrap = ref<HTMLElement | null>(null)
+const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 420 })) // px
+const min = { scenes: 200, nodes: 360, props: 360 }
+const gridStyle = computed(() => ({
+  '--w-scenes': widths.value.scenes + 'px',
+  '--w-nodes': widths.value.nodes + 'px',
+  '--w-props': widths.value.props + 'px',
+}) as any)
+
+onMounted(() => {
+  // 以前の幅を復元
+  const saved = localStorage.getItem('gameEditorPaneWidths')
+  if (saved) {
+    try { Object.assign(widths.value, JSON.parse(saved)) } catch {}
+  }
+  // Fキーで切替
+  window.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+function onKey(e: KeyboardEvent) {
+  if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
+  if (e.key === 'Escape') { fullscreenProps.value = false }
+}
+
+let resizing: 'left' | 'right' | null = null
+let startX = 0, startWidths = { scenes: 0, nodes: 0, props: 0 }, wrapWidth = 0
+function startResize(side: 'left' | 'right', ev: PointerEvent) {
+  resizing = side
+  startX = ev.clientX
+  startWidths = { ...widths.value }
+  wrapWidth = wrap.value?.getBoundingClientRect().width ?? 0
+  ;(ev.target as HTMLElement).setPointerCapture(ev.pointerId)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp, { once: true })
+}
+function onMove(ev: PointerEvent) {
+  if (!resizing) return
+  const dx = ev.clientX - startX
+  const w = { ...startWidths }
+  if (resizing === 'left') {
+    w.scenes = Math.max(min.scenes, startWidths.scenes + dx)
+    w.nodes = Math.max(min.nodes, startWidths.nodes - dx)
+  } else {
+    w.nodes = Math.max(min.nodes, startWidths.nodes + dx)
+    w.props = Math.max(min.props, startWidths.props - dx)
+  }
+  // はみ出し抑制（合計がwrap幅を超えないように）
+  const separatorWidth = 12 /* リサイズバー2本 */
+  const gapApprox = 32 /* gap近似 */
+  const total = w.scenes + w.nodes + w.props + separatorWidth + gapApprox
+  if (wrapWidth && total > wrapWidth) {
+    const over = total - wrapWidth
+    if (resizing === 'left') w.nodes = Math.max(min.nodes, w.nodes - over)
+    else w.props = Math.max(min.props, w.props - over)
+  }
+  widths.value = w
+}
+function onUp() {
+  resizing = null
+  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
+  window.removeEventListener('pointermove', onMove)
+}
 </script>
+
+<style scoped>
+.editor-grid{
+  display: grid;
+  /* 5カラム: [シーン] [リサイズ] [ノード] [リサイズ] [プロパティ] */
+  grid-template-columns: var(--w-scenes,280px) 6px var(--w-nodes,1fr) 6px var(--w-props,420px);
+  gap: 1rem;
+  align-items: start;
+}
+.pane{ min-height: calc(100vh - 140px); }
+.props-normal{ position: sticky; top: 64px; }
+.props-fullscreen{
+  position: fixed; inset: 0; z-index: 50;
+  max-height: none; border-radius: 0; padding: 16px;
+}
+.resizer{
+  width: 6px; cursor: col-resize; background: transparent; user-select: none;
+}
+/* グリッド配置を明示 */
+.scenes{ grid-column: 1; }
+.nodes{ grid-column: 3; }
+.props{ grid-column: 5; }
+.resizer[aria-label="resize-left"]{ grid-column: 2; }
+.resizer[aria-label="resize-right"]{ grid-column: 4; }
+.resizer:hover{ background: #e5e7eb; }
+.resizer:active{ background: #cbd5e1; }
+</style>

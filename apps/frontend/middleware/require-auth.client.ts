@@ -1,11 +1,13 @@
 // ファイル名を .client.ts に（SSR側で Supabase composable 未定義エラーを避ける）
 import { defineNuxtRouteMiddleware, navigateTo } from '#app'
+import { useNuxtApp } from '#imports'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   // 認証必須ページだけで動く前提（例：/my/*）
   if (!to.path.startsWith('/my')) return
 
-  const supabase = useSupabaseClient() as any
+  const { $supabase } = useNuxtApp() as any
+  const supabase = ($supabase?.client || $supabase) as any
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
