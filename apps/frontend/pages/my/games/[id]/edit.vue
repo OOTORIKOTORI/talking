@@ -424,6 +424,7 @@ import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
 import MiniStage from '@/components/game/MiniStage.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
+const baseURL = useRuntimeConfig().public.apiBase
 
 definePageMeta({
   middleware: 'require-auth'
@@ -576,6 +577,31 @@ function selectNode(n: any) {
   if (!nodeDraft.portraits) {
     nodeDraft.portraits = []
   }
+  // 既存データを開いたときに p.thumb を補完
+  hydratePortraitThumbs()
+}
+
+// 既存 portraits のサムネ署名URLを補完する
+async function hydratePortraitThumbs() {
+  if (!nodeDraft.portraits) return
+  for (const p of nodeDraft.portraits) {
+    try {
+      if (p.thumb) continue
+      let key = p.key
+      // key が無ければキャラ画像一覧から該当IDを引いて key/thumbKey を得る
+      if (!key && p.characterId && p.imageId) {
+        const list = await $fetch<any[]>(`/characters/${p.characterId}/images`, { baseURL })
+          .catch(() => $fetch<any[]>(`/my/characters/${p.characterId}/images`, { baseURL }))
+        const hit = list?.find(x => x.id === p.imageId)
+        key = hit?.thumbKey || hit?.key
+      }
+      if (key) {
+        p.thumb = await getSignedGetUrl(key)
+      }
+    } catch (e) {
+      console.warn('thumb hydrate failed', p, e)
+    }
+  }
 }
 
 async function addNode() {
@@ -592,7 +618,15 @@ async function addNode() {
 async function saveNode() {
   if (!scene.value || !node.value) return
   try {
-    await api.upsertNode(scene.value.id, nodeDraft)
+    // 署名URLはDBに保存しない（TTL切れ防止）
+    const payload = JSON.parse(JSON.stringify(nodeDraft))
+    if (Array.isArray(payload.portraits)) {
+      payload.portraits = payload.portraits.map((p: any) => {
+        const { thumb, ...rest } = p
+        return rest
+      })
+    }
+    await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // Update the current node
     const updated = nodes.value.find((n) => n.id === node.value.id)
