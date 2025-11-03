@@ -23,6 +23,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { watchDebounced } from '@vueuse/core'
 import { useAssetsApi } from '@/composables/useAssets'
 import AssetThumbnail from '@/components/AssetThumbnail.vue'
 const props = defineProps<{ open: boolean; type?: 'image'|'audio' }>()
@@ -33,12 +34,13 @@ const q = ref('')
 const items = ref<any[]>([])
 const isImage = (a:any)=> String(a.contentType||'').startsWith('image/')
 const isAudio = (a:any)=> String(a.contentType||'').startsWith('audio/')
-async function load() {
+const doLoad = async () => {
   if (tab.value==='mine') {
     items.value = await api.listMine({ q: q.value || undefined, type: props.type, limit: 100 })
   } else {
-    items.value = await api.listFavoriteAssets({ q: q.value || undefined, type: props.type, limit: 100 } as any).then((r:any)=> (r?.items ?? r) as any[])
+    const result: any = await api.listFavoriteAssets({ q: q.value || undefined, type: props.type, limit: 100 } as any)
+    items.value = Array.isArray(result) ? result : (result?.items ?? result?.results ?? [])
   }
 }
-watch([tab,q], load, { immediate: true })
+watchDebounced([tab, q], doLoad, { immediate: true, debounce: 200 })
 </script>

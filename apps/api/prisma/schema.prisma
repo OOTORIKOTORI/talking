@@ -180,7 +180,8 @@ model GameNode {
   type        GameNodeType @default(DIALOG)
   order       Int         @default(0)
   speakerCharacterId String?
-  speakerEmotion String?
+  speakerDisplayName String?
+  portraitAssetId String?
   text        String?     @db.Text
   bgAssetId   String?
   musicAssetId String?

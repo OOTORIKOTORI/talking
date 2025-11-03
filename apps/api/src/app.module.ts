@@ -8,6 +8,7 @@ import { AssetsModule } from './assets/assets.module';
 import { SearchModule } from './search/search.module';
 import { CharactersModule } from './characters/characters.module';
 import { GamesModule } from './games/games.module';
+import { MyModule } from './my/my.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { GamesModule } from './games/games.module';
   FavoritesModule,
   CharactersModule,
   GamesModule,
+  MyModule,
   ],
 })
 export class AppModule {}

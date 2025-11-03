@@ -20,6 +20,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { watchDebounced } from '@vueuse/core'
 import { useCharactersApi } from '@/composables/useCharacters'
 const props = defineProps<{ open: boolean }>()
 const emits = defineEmits<{(e:'update:open', v:boolean):void; (e:'select', c:any):void}>()
@@ -27,9 +28,13 @@ const api = useCharactersApi()
 const tab = ref<'mine'|'fav'>('mine')
 const q = ref('')
 const items = ref<any[]>([])
-async function load() {
-  if (tab.value==='mine') items.value = await api.listMine({ q: q.value || undefined, limit: 100 }) as any[]
-  else items.value = await api.listFavorites({ q: q.value || undefined, limit: 100 }) as any
+const doLoad = async () => {
+  if (tab.value==='mine') {
+    items.value = await api.listMine({ q: q.value || undefined, limit: 100 }) as any[]
+  } else {
+    const result: any = await api.listFavoriteCharacters({ q: q.value || undefined, limit: 100 })
+    items.value = Array.isArray(result) ? result : (result?.items ?? result?.results ?? [])
+  }
 }
-watch([tab,q], load, { immediate: true })
+watchDebounced([tab, q], doLoad, { immediate: true, debounce: 200 })
 </script>

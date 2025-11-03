@@ -76,7 +76,7 @@
         </main>
 
         <!-- プロパティ (右) -->
-        <section class="col-span-4 border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto">
+        <section class="col-span-4 border border-gray-200 rounded-lg p-4 bg-white max-h-[calc(100vh-140px)] overflow-y-auto sticky top-16">
           <h2 class="font-semibold mb-3 text-lg">プロパティ</h2>
           <div v-if="node">
             <div class="space-y-4">
@@ -86,54 +86,60 @@
                   v-model="nodeDraft.text"
                   class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows="6"
-                  placeholder="ここに台詞を入力..."
+                  placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
                 />
               </div>
 
-              <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-3">
                 <div>
                   <label class="block text-sm font-medium mb-1">話者キャラ</label>
-                  <div class="flex gap-2">
-                    <input
-                      :value="nodeDraft.speakerCharacterId"
-                      readonly
-                      class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50"
-                    />
-                    <button type="button" class="px-2 py-1 border rounded" @click="openCharPicker=true">選択</button>
-                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.speakerCharacterId=''">クリア</button>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-700 truncate flex-1">{{ selectedCharLabel || '未選択' }}</span>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openCharPicker=true">変更</button>
+                    <button v-if="nodeDraft.speakerCharacterId" type="button" class="px-2 py-1 border rounded text-sm" @click="clearChar">クリア</button>
                   </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">話者感情</label>
+                  <label class="block text-sm font-medium mb-1">話者表記（任意）</label>
                   <input
-                    v-model="nodeDraft.speakerEmotion"
+                    v-model="nodeDraft.speakerDisplayName"
                     class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="happy"
+                    placeholder="例: ??? / 田中 / あだ名"
                   />
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">背景</label>
-                  <div class="flex gap-2">
-                    <input :value="nodeDraft.bgAssetId" readonly class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50" />
-                    <button type="button" class="px-2 py-1 border rounded" @click="openBgPicker=true">選択</button>
-                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.bgAssetId=''">クリア</button>
+                  <div class="flex items-center gap-2">
+                    <img v-if="nodeDraft.bgAssetId" :src="signed(nodeDraft.bgAssetId)" class="w-16 h-10 object-cover rounded border" />
+                    <span v-else class="text-xs text-gray-500">未選択</span>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openBgPicker=true">変更</button>
+                    <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">表情 / 立ち絵</label>
+                  <div class="flex items-center gap-2">
+                    <img v-if="nodeDraft.portraitAssetId" :src="signed(nodeDraft.portraitAssetId)" class="w-12 h-12 object-cover rounded-full border" />
+                    <span v-else class="text-xs text-gray-500">未選択</span>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openPortraitPicker=true">選択</button>
+                    <button v-if="nodeDraft.portraitAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.portraitAssetId=''">クリア</button>
                   </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">BGM</label>
-                  <div class="flex gap-2">
-                    <input :value="nodeDraft.musicAssetId" readonly class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50" />
-                    <button type="button" class="px-2 py-1 border rounded" @click="openMusicPicker=true">選択</button>
-                    <button type="button" class="px-2 py-1 border rounded" @click="nodeDraft.musicAssetId=''">クリア</button>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.musicAssetId || '未選択' }}</span>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openMusicPicker=true">変更</button>
+                    <button v-if="nodeDraft.musicAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.musicAssetId=''">クリア</button>
                   </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">SFX AssetID</label>
-                  <input
-                    v-model="nodeDraft.sfxAssetId"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="asset_sfx_xxx"
-                  />
+                  <label class="block text-sm font-medium mb-1">SFX</label>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
+                    <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
+                  </div>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">次ノードID</label>
@@ -204,7 +210,9 @@
           <!-- Pickers -->
           <AssetPicker v-model:open="openBgPicker" type="image" @select="(a)=> nodeDraft.bgAssetId = a.id" />
           <AssetPicker v-model:open="openMusicPicker" type="audio" @select="(a)=> nodeDraft.musicAssetId = a.id" />
-          <CharacterPicker v-model:open="openCharPicker" @select="(c)=> nodeDraft.speakerCharacterId = c.id" />
+          <AssetPicker v-model:open="openPortraitPicker" type="image" @select="(a)=> nodeDraft.portraitAssetId = a.id" />
+          <AssetPicker v-model:open="openSfxPicker" type="audio" @select="(a)=> nodeDraft.sfxAssetId = a.id" />
+          <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
         </section>
       </div>
     </div>
@@ -214,6 +222,8 @@
 <script setup lang="ts">
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
+import { getSignedGetUrl } from '@/composables/useSignedUrl'
+
 definePageMeta({
   middleware: 'require-auth'
 })
@@ -231,11 +241,36 @@ const loading = ref(true)
 const openBgPicker = ref(false)
 const openMusicPicker = ref(false)
 const openCharPicker = ref(false)
+const openPortraitPicker = ref(false)
+const openSfxPicker = ref(false)
+
+// Generate signed URL synchronously for preview
+function signed(key: string | null | undefined): string {
+  if (!key) return ''
+  // For preview, just construct the API endpoint - browser will handle auth
+  return `/api/uploads/signed-get?key=${encodeURIComponent(key)}`
+}
+
+const selectedCharLabel = computed(() => {
+  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
+})
+
+function clearChar() {
+  nodeDraft.speakerCharacterId = ''
+  if (!nodeDraft.speakerDisplayName) nodeDraft.speakerDisplayName = ''
+}
+
+function onCharPicked(c: any) {
+  nodeDraft.speakerCharacterId = c.id
+  if (!nodeDraft.speakerDisplayName) {
+    nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+  }
+}
 
 onMounted(async () => {
   try {
     game.value = await api.get(route.params.id as string)
-    scenes.value = await api.listScenes(game.value.id)
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
   } catch (error) {
     console.error('Failed to load game:', error)
     alert('ゲームの読み込みに失敗しました')
@@ -247,7 +282,7 @@ onMounted(async () => {
 async function selectScene(s: any) {
   scene.value = s
   try {
-    nodes.value = await api.listNodes(s.id)
+    nodes.value = (await api.listNodes(s.id)) as any[]
   } catch (error) {
     console.error('Failed to load nodes:', error)
   }
@@ -260,7 +295,7 @@ async function addScene() {
       name: `Scene ${scenes.value.length + 1}`,
       order: scenes.value.length,
     })
-    scenes.value = await api.listScenes(game.value.id)
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
   } catch (error) {
     console.error('Failed to add scene:', error)
     alert('シーンの追加に失敗しました')
@@ -279,7 +314,7 @@ async function addNode() {
   if (!scene.value) return
   try {
     await api.upsertNode(scene.value.id, { text: '...' })
-    nodes.value = await api.listNodes(scene.value.id)
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
   } catch (error) {
     console.error('Failed to add node:', error)
     alert('ノードの追加に失敗しました')
@@ -290,7 +325,7 @@ async function saveNode() {
   if (!scene.value || !node.value) return
   try {
     await api.upsertNode(scene.value.id, nodeDraft)
-    nodes.value = await api.listNodes(scene.value.id)
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // Update the current node
     const updated = nodes.value.find((n) => n.id === node.value.id)
     if (updated) {
@@ -308,7 +343,7 @@ async function deleteCurrentNode() {
   
   try {
     await api.delNode(node.value.id)
-    nodes.value = await api.listNodes(scene.value.id)
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
     node.value = null
   } catch (error) {
     console.error('Failed to delete node:', error)

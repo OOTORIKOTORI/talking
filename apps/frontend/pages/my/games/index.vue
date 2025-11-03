@@ -75,7 +75,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    list.value = await api.my()
+    list.value = (await api.my()) as any[]
   } catch (error) {
     console.error('Failed to load games:', error)
   } finally {
@@ -88,7 +88,7 @@ async function onCreate() {
   
   try {
     await api.create({ title: title.value })
-    list.value = await api.my()
+    list.value = (await api.my()) as any[]
     title.value = ''
   } catch (error) {
     console.error('Failed to create game:', error)

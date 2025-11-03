@@ -40,7 +40,7 @@
 
           <!-- 台詞 -->
           <div class="text-lg leading-relaxed whitespace-pre-wrap mb-4">
-            {{ text }}
+            {{ displayedText }}
           </div>
 
           <!-- 選択肢 -->
@@ -57,9 +57,9 @@
 
           <!-- 次へボタン -->
           <button
-            v-else-if="nextNodeId"
+            v-else
             class="mt-4 px-6 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors"
-            @click="go(nextNodeId)"
+            @click="advanceWithinNodeOrNext"
           >
             次へ ▶
           </button>
@@ -99,6 +99,9 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
 
+// 台詞の段階表示用
+const segIndex = ref(0)
+
 // BGM/SFX用のaudio要素 (将来実装)
 // const bgmAudio = ref<HTMLAudioElement | null>(null)
 
@@ -125,6 +128,7 @@ function start() {
   // 最初のシーンの最初のノードから開始
   const startScene = game.value.scenes[0]
   if (startScene && startScene.nodes && startScene.nodes.length > 0) {
+    segIndex.value = 0
     current.value = startScene.nodes[0]
   } else {
     error.value = 'ゲームの開始ノードが見つかりません'
@@ -133,6 +137,7 @@ function start() {
 
 function restart() {
   current.value = null
+  segIndex.value = 0
   start()
 }
 
@@ -142,6 +147,7 @@ function go(targetNodeId: string | null) {
     return
   }
   
+  segIndex.value = 0
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
     current.value = nextNode
@@ -151,14 +157,40 @@ function go(targetNodeId: string | null) {
   }
 }
 
+function advanceWithinNodeOrNext() {
+  const segs = segments.value
+  if (segs.length > 1 && segIndex.value < segs.length - 1) {
+    // まだ表示していない段階があるので、次の段階を表示
+    segIndex.value += 1
+    return
+  }
+  // すべて表示済み、または分割なし → 次のノードへ
+  segIndex.value = 0
+  if (nextNodeId.value) {
+    go(nextNodeId.value)
+  }
+}
+
 const speaker = computed(() => {
   if (!current.value) return ''
-  return current.value.speakerCharacterId || ''
+  // speakerDisplayName があれば優先、なければ空
+  return current.value.speakerDisplayName || ''
 })
 
 const text = computed(() => {
   if (!current.value) return ''
   return current.value.text || ''
+})
+
+// ｜で区切られたセグメント
+const segments = computed(() => {
+  const raw = text.value || ''
+  return raw.split('｜').filter((s: string) => s.length > 0 || s === '')
+})
+
+// 現在までに表示するテキスト
+const displayedText = computed(() => {
+  return segments.value.slice(0, segIndex.value + 1).join('')
 })
 
 const choices = computed(() => {

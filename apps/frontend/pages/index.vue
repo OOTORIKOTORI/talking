@@ -68,11 +68,11 @@
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <span class="font-medium">Status:</span>
-                  <span class="ml-2">{{ data.status || 'OK' }}</span>
+                  <span class="ml-2">{{ (data as any).status || 'OK' }}</span>
                 </div>
-                <div v-if="data.timestamp">
+                <div v-if="(data as any).timestamp">
                   <span class="font-medium">Timestamp:</span>
-                  <span class="ml-2">{{ new Date(data.timestamp).toLocaleTimeString() }}</span>
+                  <span class="ml-2">{{ new Date((data as any).timestamp).toLocaleTimeString() }}</span>
                 </div>
               </div>
               <details class="mt-3">

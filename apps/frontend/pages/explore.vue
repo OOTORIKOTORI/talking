@@ -50,7 +50,7 @@ onMounted(async () => {
       listPublic(undefined, 24, 0, { sort: 'new' }),
     ])
 
-    const aItems: MixedItem[] = (assetsRes.items || []).map(a => ({
+    const aItems: MixedItem[] = (assetsRes.items || []).map((a: any) => ({
       kind: 'ASSET',
       key: `a:${a.id}`,
       createdAt: new Date(a.createdAt as any).getTime(),
