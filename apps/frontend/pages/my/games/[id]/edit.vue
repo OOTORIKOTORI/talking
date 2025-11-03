@@ -106,7 +106,10 @@
           <div v-if="fullscreenProps && node" class="fs-grid">
             <div class="stage-outer">
               <div class="stage-inner">
-                <MiniStage :fill="true" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+                <MiniStage :fill="true"
+                           :bg-asset-id="nodeDraft.bgAssetId"
+                           :portraits="nodeDraft.portraits || []"
+                           :camera="nodeDraft.camera" />
               </div>
             </div>
             <div class="fs-form">
@@ -162,6 +165,32 @@
                     <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
                     <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
                     <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
+                  </div>
+                </div>
+
+                <!-- カメラ -->
+                <div>
+                  <div class="font-semibold mb-1">カメラ</div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm w-14">倍率</span>
+                    <input type="range" min="100" max="300" step="5"
+                           v-model.number="nodeDraft.camera.zoom" class="flex-1" />
+                    <input type="number" min="100" max="300" step="5"
+                           v-model.number="nodeDraft.camera.zoom"
+                           class="w-20 border rounded px-2 py-1 text-right" />
+                    <span class="text-sm">%</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm w-14">位置</span>
+                    <span class="text-xs text-gray-500">X</span>
+                    <input type="number" min="0" max="100" step="1"
+                           v-model.number="nodeDraft.camera.cx"
+                           class="w-20 border rounded px-2 py-1 text-right" />
+                    <span class="text-xs text-gray-500">Y</span>
+                    <input type="number" min="0" max="100" step="1"
+                           v-model.number="nodeDraft.camera.cy"
+                           class="w-20 border rounded px-2 py-1 text-right" />
+                    <span class="text-xs text-gray-500">（中心%）</span>
                   </div>
                 </div>
 
@@ -256,7 +285,10 @@
           <!-- 通常表示の場合 -->
           <template v-if="!fullscreenProps">
             <div v-if="node" class="mb-3">
-              <MiniStage :fill="false" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+              <MiniStage :fill="false"
+                         :bg-asset-id="nodeDraft.bgAssetId"
+                         :portraits="nodeDraft.portraits || []"
+                         :camera="nodeDraft.camera" />
             </div>
 
             <div v-if="node">
@@ -312,6 +344,32 @@
                       <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
                       <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
                       <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
+                    </div>
+                  </div>
+
+                  <!-- カメラ -->
+                  <div>
+                    <div class="font-semibold mb-1">カメラ</div>
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-sm w-14">倍率</span>
+                      <input type="range" min="100" max="300" step="5"
+                             v-model.number="nodeDraft.camera.zoom" class="flex-1" />
+                      <input type="number" min="100" max="300" step="5"
+                             v-model.number="nodeDraft.camera.zoom"
+                             class="w-20 border rounded px-2 py-1 text-right" />
+                      <span class="text-sm">%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm w-14">位置</span>
+                      <span class="text-xs text-gray-500">X</span>
+                      <input type="number" min="0" max="100" step="1"
+                             v-model.number="nodeDraft.camera.cx"
+                             class="w-20 border rounded px-2 py-1 text-right" />
+                      <span class="text-xs text-gray-500">Y</span>
+                      <input type="number" min="0" max="100" step="1"
+                             v-model.number="nodeDraft.camera.cy"
+                             class="w-20 border rounded px-2 py-1 text-right" />
+                      <span class="text-xs text-gray-500">（中心%）</span>
                     </div>
                   </div>
 
@@ -576,6 +634,10 @@ function selectNode(n: any) {
   }
   if (!nodeDraft.portraits) {
     nodeDraft.portraits = []
+  }
+  // camera デフォルト補完
+  if (!nodeDraft.camera) {
+    nodeDraft.camera = { zoom: 100, cx: 50, cy: 50 }
   }
   // 既存データを開いたときに p.thumb を補完
   hydratePortraitThumbs()
