@@ -181,7 +181,8 @@ model GameNode {
   order       Int         @default(0)
   speakerCharacterId String?
   speakerDisplayName String?
-  portraitAssetId String?
+  portraitAssetId String?   // 互換維持（将来削除）
+  portraits    Json?        // [{characterId,imageId,key?,x,y,scale,z}]
   text        String?     @db.Text
   bgAssetId   String?
   musicAssetId String?

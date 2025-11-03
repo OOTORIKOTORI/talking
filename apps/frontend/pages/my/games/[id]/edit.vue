@@ -78,6 +78,10 @@
         <!-- プロパティ (右) -->
         <section class="col-span-4 border border-gray-200 rounded-lg p-4 bg-white max-h-[calc(100vh-140px)] overflow-y-auto sticky top-16">
           <h2 class="font-semibold mb-3 text-lg">プロパティ</h2>
+
+          <!-- ミニプレビュー -->
+          <MiniStage v-if="node" class="mb-3" :bg-asset-id="nodeDraft.bgAssetId" :portraits="nodeDraft.portraits || []" />
+
           <div v-if="node">
             <div class="space-y-4">
               <div>
@@ -110,28 +114,20 @@
                 <div>
                   <label class="block text-sm font-medium mb-1">背景</label>
                   <div class="flex items-center gap-2">
-                    <img v-if="nodeDraft.bgAssetId" :src="signed(nodeDraft.bgAssetId)" class="w-16 h-10 object-cover rounded border" />
+                    <img v-if="bgUrl" :src="bgUrl" class="w-16 h-10 object-cover rounded border" />
                     <span v-else class="text-xs text-gray-500">未選択</span>
                     <button type="button" class="px-2 py-1 border rounded text-sm" @click="openBgPicker=true">変更</button>
                     <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
                   </div>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">表情 / 立ち絵</label>
-                  <div class="flex items-center gap-2">
-                    <img v-if="nodeDraft.portraitAssetId" :src="signed(nodeDraft.portraitAssetId)" class="w-12 h-12 object-cover rounded-full border" />
-                    <span v-else class="text-xs text-gray-500">未選択</span>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openPortraitPicker=true">選択</button>
-                    <button v-if="nodeDraft.portraitAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.portraitAssetId=''">クリア</button>
-                  </div>
-                </div>
-                <div>
                   <label class="block text-sm font-medium mb-1">BGM</label>
                   <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.musicAssetId || '未選択' }}</span>
+                    <span class="text-xs text-gray-700 truncate flex-1">{{ musicTitle || '未選択' }}</span>
                     <button type="button" class="px-2 py-1 border rounded text-sm" @click="openMusicPicker=true">変更</button>
                     <button v-if="nodeDraft.musicAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.musicAssetId=''">クリア</button>
                   </div>
+                  <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">SFX</label>
@@ -141,6 +137,30 @@
                     <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
                   </div>
                 </div>
+
+                <!-- 立ち絵（複数配置） -->
+                <div class="mt-3">
+                  <div class="flex items-center justify-between">
+                    <label class="block text-sm font-semibold">キャラクター配置</label>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="addPortrait">追加</button>
+                  </div>
+                  <div v-if="(nodeDraft.portraits||[]).length===0" class="text-xs text-gray-500 mt-1">未配置</div>
+                  <div v-for="(p, i) in (nodeDraft.portraits ||= [])" :key="i" class="mt-2 p-2 border rounded">
+                    <div class="flex items-center gap-2">
+                      <img v-if="p.thumb" :src="p.thumb" class="w-12 h-12 object-cover rounded-full border" />
+                      <span class="text-xs text-gray-700 truncate flex-1">{{ p.characterName || p.characterId }}</span>
+                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(i)">画像変更</button>
+                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(i)">削除</button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 mt-2">
+                      <label class="text-xs">X%<input type="number" v-model.number="p.x" class="w-full border rounded px-1 py-0.5" /></label>
+                      <label class="text-xs">Y%<input type="number" v-model.number="p.y" class="w-full border rounded px-1 py-0.5" /></label>
+                      <label class="text-xs">Scale%<input type="number" v-model.number="p.scale" class="w-full border rounded px-1 py-0.5" /></label>
+                      <label class="text-xs">Z<input type="number" v-model.number="p.z" class="w-full border rounded px-1 py-0.5" /></label>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-sm font-medium mb-1">次ノードID</label>
                   <input
@@ -210,9 +230,9 @@
           <!-- Pickers -->
           <AssetPicker v-model:open="openBgPicker" type="image" @select="(a)=> nodeDraft.bgAssetId = a.id" />
           <AssetPicker v-model:open="openMusicPicker" type="audio" @select="(a)=> nodeDraft.musicAssetId = a.id" />
-          <AssetPicker v-model:open="openPortraitPicker" type="image" @select="(a)=> nodeDraft.portraitAssetId = a.id" />
           <AssetPicker v-model:open="openSfxPicker" type="audio" @select="(a)=> nodeDraft.sfxAssetId = a.id" />
           <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
+          <CharacterImagePicker v-model:open="openCharImagePicker" :character-id="nodeDraft.speakerCharacterId || ''" @select="onImagePicked" />
         </section>
       </div>
     </div>
@@ -222,7 +242,10 @@
 <script setup lang="ts">
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
+import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
+import MiniStage from '@/components/game/MiniStage.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
+import { useAssetMeta } from '@/composables/useAssetMeta'
 
 definePageMeta({
   middleware: 'require-auth'
@@ -230,6 +253,7 @@ definePageMeta({
 
 const route = useRoute()
 const api = useGamesApi()
+const { get: getAsset, signedFromId } = useAssetMeta()
 
 const game = ref<any>(null)
 const scenes = ref<any[]>([])
@@ -241,15 +265,36 @@ const loading = ref(true)
 const openBgPicker = ref(false)
 const openMusicPicker = ref(false)
 const openCharPicker = ref(false)
-const openPortraitPicker = ref(false)
+const openCharImagePicker = ref(false)
 const openSfxPicker = ref(false)
 
-// Generate signed URL synchronously for preview
-function signed(key: string | null | undefined): string {
-  if (!key) return ''
-  // For preview, just construct the API endpoint - browser will handle auth
-  return `/api/uploads/signed-get?key=${encodeURIComponent(key)}`
-}
+const bgUrl = ref<string | null>(null)
+const musicUrl = ref<string | null>(null)
+const musicTitle = ref<string>('')
+const pendingIndex = ref<number | null>(null)
+
+watch(
+  () => nodeDraft.bgAssetId,
+  async (id) => {
+    bgUrl.value = id ? await signedFromId(id, true) : null
+  },
+  { immediate: false }
+)
+
+watch(
+  () => nodeDraft.musicAssetId,
+  async (id) => {
+    if (!id) {
+      musicUrl.value = null
+      musicTitle.value = ''
+      return
+    }
+    const meta = await getAsset(id)
+    musicTitle.value = meta?.title || '(BGM)'
+    musicUrl.value = await signedFromId(id, false)
+  },
+  { immediate: false }
+)
 
 const selectedCharLabel = computed(() => {
   return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
@@ -264,6 +309,48 @@ function onCharPicked(c: any) {
   nodeDraft.speakerCharacterId = c.id
   if (!nodeDraft.speakerDisplayName) {
     nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+  }
+  // If we're adding a new portrait, open the image picker
+  if (pendingIndex.value === -1) {
+    openCharImagePicker.value = true
+  }
+}
+
+async function addPortrait() {
+  if (!nodeDraft.portraits) nodeDraft.portraits = []
+  // First select character
+  pendingIndex.value = -1
+  openCharPicker.value = true
+}
+
+function changePortrait(i: number) {
+  pendingIndex.value = i
+  openCharPicker.value = true
+}
+
+function removePortrait(i: number) {
+  nodeDraft.portraits.splice(i, 1)
+}
+
+async function onImagePicked(img: any) {
+  const url = await getSignedGetUrl(img.thumbKey || img.key)
+  const entry = {
+    characterId: nodeDraft.speakerCharacterId,
+    imageId: img.id,
+    key: img.key,
+    thumb: url,
+    x: 50,
+    y: 80,
+    scale: 100,
+    z: 0,
+    characterName: nodeDraft.speakerDisplayName
+  }
+  if (pendingIndex.value !== null && pendingIndex.value >= 0) {
+    nodeDraft.portraits[pendingIndex.value] = entry
+    pendingIndex.value = null
+  } else if (pendingIndex.value === -1) {
+    nodeDraft.portraits.push(entry)
+    pendingIndex.value = null
   }
 }
 
@@ -307,6 +394,9 @@ function selectNode(n: any) {
   Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
+  }
+  if (!nodeDraft.portraits) {
+    nodeDraft.portraits = []
   }
 }
 

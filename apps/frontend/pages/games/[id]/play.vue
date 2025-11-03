@@ -19,7 +19,19 @@
           class="relative h-96 bg-gray-800 flex items-center justify-center"
           :style="bgStyle"
         >
-          <div v-if="!current" class="text-white text-center">
+          <!-- 立ち絵（複数配置） -->
+          <div v-for="(p, i) in portraits" :key="i"
+               class="absolute will-change-transform pointer-events-none"
+               :style="{
+                 left: p.x + '%',
+                 top: p.y + '%',
+                 transform: `translate(-50%, -100%) scale(${(p.scale || 100) / 100})`,
+                 zIndex: p.z || 0
+               }">
+            <img v-if="p.thumb" :src="p.thumb" class="max-h-96 object-contain drop-shadow-2xl" />
+          </div>
+
+          <div v-if="!current" class="text-white text-center relative z-10">
             <h1 class="text-3xl font-bold mb-4">{{ game.title }}</h1>
             <p v-if="game.summary" class="text-gray-300 mb-6">{{ game.summary }}</p>
             <button
@@ -57,7 +69,7 @@
 
           <!-- 次へボタン -->
           <button
-            v-else
+            v-else-if="nextNodeId"
             class="mt-4 px-6 py-2 bg-blue-500 rounded hover:bg-blue-600 transition-colors"
             @click="advanceWithinNodeOrNext"
           >
@@ -88,9 +100,12 @@
 </template>
 
 <script setup lang="ts">
+import { useAssetMeta } from '@/composables/useAssetMeta'
+
 const route = useRoute()
 const api = useGamesApi()
 const runtimeConfig = useRuntimeConfig()
+const { signedFromId } = useAssetMeta()
 
 const game = ref<any>(null)
 const map = new Map<string, any>()
@@ -102,8 +117,20 @@ const isDev = ref(runtimeConfig.public.isDev || false)
 // 台詞の段階表示用
 const segIndex = ref(0)
 
+// 背景URL
+const bgUrl = ref<string | null>(null)
+
 // BGM/SFX用のaudio要素 (将来実装)
 // const bgmAudio = ref<HTMLAudioElement | null>(null)
+
+// 背景の署名URL解決
+watch(
+  () => current.value?.bgAssetId,
+  async (id) => {
+    bgUrl.value = id ? await signedFromId(id, true) : null
+  },
+  { immediate: true }
+)
 
 onMounted(async () => {
   try {
@@ -204,11 +231,8 @@ const nextNodeId = computed(() => {
 })
 
 const bgStyle = computed(() => {
-  if (!current.value?.bgAssetId) return ''
-  
-  // 署名URL取得 (簡易版: 直接URLを構築)
-  // 本番では useSignedUrl を使用するか、API経由で取得
-  const baseURL = runtimeConfig.public.apiBase
-  return `background-image: url('${baseURL}/uploads/signed-get?key=${current.value.bgAssetId}'); background-size: cover; background-position: center;`
+  return bgUrl.value ? `background-image: url('${bgUrl.value}'); background-size: cover; background-position: center;` : ''
 })
+
+const portraits = computed(() => (current.value?.portraits as any[]) || [])
 </script>

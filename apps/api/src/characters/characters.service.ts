@@ -124,4 +124,19 @@ export class CharactersService {
     await this.prisma.characterImage.delete({ where: { id: imageId } });
     return { success: true };
   }
+
+  async listImages(userId: string|null, characterId: string, publicOnly: boolean) {
+    const c = await this.prisma.character.findUnique({ where: { id: characterId } });
+    if (!c || c.deletedAt) throw new NotFoundException('Character not found');
+    if (publicOnly) {
+      if (!c.isPublic && (!userId || c.ownerId !== userId)) throw new ForbiddenException();
+    } else {
+      if (!userId || c.ownerId !== userId) throw new ForbiddenException();
+    }
+    return this.prisma.characterImage.findMany({
+      where: { characterId },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, key: true, thumbKey: true, emotion: true, emotionLabel: true, pattern: true, width: true, height: true }
+    });
+  }
 }
