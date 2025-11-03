@@ -138,3 +138,67 @@ model CharacterImage {
   @@index([characterId, sortOrder])
   @@map("character_images")
 }
+
+// === Game System =====================================
+enum GameNodeType {
+  DIALOG
+}
+
+model GameProject {
+  id          String      @id @default(cuid())
+  ownerId     String
+  title       String
+  summary     String?     @db.Text
+  coverAssetId String?
+  isPublic    Boolean     @default(false)
+  startSceneId String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  scenes      GameScene[]
+
+  @@index([ownerId, isPublic])
+  @@map("game_projects")
+}
+
+model GameScene {
+  id          String      @id @default(cuid())
+  projectId   String
+  name        String
+  order       Int         @default(0)
+  startNodeId String?
+  project     GameProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodes       GameNode[]
+
+  @@index([projectId, order])
+  @@map("game_scenes")
+}
+
+model GameNode {
+  id          String      @id @default(cuid())
+  sceneId     String
+  type        GameNodeType @default(DIALOG)
+  order       Int         @default(0)
+  speakerCharacterId String?
+  speakerEmotion String?
+  text        String?     @db.Text
+  bgAssetId   String?
+  musicAssetId String?
+  sfxAssetId  String?
+  nextNodeId  String?
+  scene       GameScene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  choices     GameChoice[]
+
+  @@index([sceneId, order])
+  @@map("game_nodes")
+}
+
+model GameChoice {
+  id          String   @id @default(cuid())
+  nodeId      String
+  label       String
+  targetNodeId String
+  node        GameNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("game_choices")
+}
