@@ -8,6 +8,7 @@
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">{{ game.title }}</h1>
         <NuxtLink
+          v-if="game?.id"
           :to="previewHref"
           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
         >
@@ -227,7 +228,7 @@
                     />
                     <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
                   </div>
-                  <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id)=> nodeDraft.nextNodeId=id" />
+                  <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id: string)=> nodeDraft.nextNodeId=id" />
                 </div>
               </div>
 
@@ -491,7 +492,7 @@
           <label>タイプ速度ms/字<input type="number" v-model.number="themeDraft.typewriter.msPerChar" class="w-full border rounded px-2 py-1" /></label>
         </div>
         <div class="flex gap-2 mt-3">
-          <button class="px-3 py-2 bg-gray-100 border rounded" @click="themeDraft = game.value?.messageTheme ? structuredClone(game.value.messageTheme) : themeDraft">リセット</button>
+          <button class="px-3 py-2 bg-gray-100 border rounded" @click="themeDraft = game.value?.messageTheme ? JSON.parse(JSON.stringify(game.value.messageTheme)) : themeDraft">リセット</button>
           <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="saveTheme">保存</button>
         </div>
       </section>
@@ -501,27 +502,7 @@
 </template>
 
 <script setup lang="ts">
-// --- メッセージウィンドウ テーマ編集 ---
-const themeDraft = ref<any>(game.value?.messageTheme ?? {
-  frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
-  name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
-  text:  { color: '#fff', size: 16, lineHeight: 1.8 },
-  typewriter: { msPerChar: 25 }
-})
-watch(() => game.value?.messageTheme, (v)=>{ if(v) themeDraft.value = structuredClone(v) }, { immediate:true })
-
-async function saveTheme() {
-  await $fetch(`/games/${game.value.id}`, { method:'PATCH', body: { messageTheme: themeDraft.value }, baseURL })
-  game.value.messageTheme = structuredClone(themeDraft.value)
-}
 import NodePicker from '@/components/game/NodePicker.vue'
-const openNodePicker = ref(false)
-const previewHref = computed(() => {
-  const params = new URLSearchParams()
-  if (scene.value?.id) params.set('sceneId', scene.value.id)
-  if (node.value?.id) params.set('nodeId', node.value.id)
-  return params.toString() ? `/games/${game.value.id}/play?${params.toString()}` : `/games/${game.value.id}/play`
-})
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
 import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
@@ -538,6 +519,7 @@ const route = useRoute()
 const api = useGamesApi()
 const { get: getAsset, signedFromId } = useAssetMeta()
 
+// Declare all refs first before using them in computed/watch
 const game = ref<any>(null)
 const scenes = ref<any[]>([])
 const nodes = ref<any[]>([])
@@ -550,11 +532,40 @@ const openMusicPicker = ref(false)
 const openCharPicker = ref(false)
 const openCharImagePicker = ref(false)
 const openSfxPicker = ref(false)
+const openNodePicker = ref(false)
 
 const bgUrl = ref<string | null>(null)
 const musicUrl = ref<string | null>(null)
 const musicTitle = ref<string>('')
 const pendingIndex = ref<number | null>(null)
+
+// Place previewHref AFTER game, scene, and node are declared to avoid TDZ error
+const previewHref = computed(() => {
+  const g = game?.value
+  if (!g?.id) return '#'
+  const params = new URLSearchParams()
+  const s = scene?.value
+  const n = node?.value
+  if (s?.id) params.set('sceneId', s.id)
+  if (n?.id) params.set('nodeId', n.id)
+  return params.toString()
+    ? `/games/${g.id}/play?${params.toString()}`
+    : `/games/${g.id}/play`
+})
+
+// --- メッセージウィンドウ テーマ編集 ---
+const themeDraft = ref<any>({
+  frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
+  name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
+  text:  { color: '#fff', size: 16, lineHeight: 1.8 },
+  typewriter: { msPerChar: 25 }
+})
+watch(() => game.value?.messageTheme, (v)=>{ if(v) themeDraft.value = JSON.parse(JSON.stringify(v)) }, { immediate:true })
+
+async function saveTheme() {
+  await $fetch(`/games/${game.value.id}`, { method:'PATCH', body: { messageTheme: themeDraft.value }, baseURL })
+  game.value.messageTheme = JSON.parse(JSON.stringify(themeDraft.value))
+}
 
 watch(
   () => nodeDraft.bgAssetId,
