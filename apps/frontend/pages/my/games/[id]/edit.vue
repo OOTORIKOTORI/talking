@@ -8,7 +8,7 @@
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">{{ game.title }}</h1>
         <NuxtLink
-          :to="`/games/${game.id}/play`"
+          :to="previewHref"
           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
         >
           プレビュー
@@ -219,11 +219,15 @@
 
                 <div>
                   <label class="block text-sm font-medium mb-1">次ノードID</label>
-                  <input
-                    v-model="nodeDraft.nextNodeId"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="node_xxx"
-                  />
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model="nodeDraft.nextNodeId"
+                      class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="node_xxx"
+                    />
+                    <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
+                  </div>
+                  <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id)=> nodeDraft.nextNodeId=id" />
                 </div>
               </div>
 
@@ -476,6 +480,14 @@
 </template>
 
 <script setup lang="ts">
+import NodePicker from '@/components/game/NodePicker.vue'
+const openNodePicker = ref(false)
+const previewHref = computed(() => {
+  const params = new URLSearchParams()
+  if (scene.value?.id) params.set('sceneId', scene.value.id)
+  if (node.value?.id) params.set('nodeId', node.value.id)
+  return params.toString() ? `/games/${game.value.id}/play?${params.toString()}` : `/games/${game.value.id}/play`
+})
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
 import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
