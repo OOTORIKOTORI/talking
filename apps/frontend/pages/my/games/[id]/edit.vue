@@ -658,7 +658,7 @@ async function setSceneStartNode(id:string){
           </div>
 
           <!-- 通常表示の場合 -->
-          <template v-if="!fullscreenProps">
+          <div v-if="!fullscreenProps">
             <div v-if="node" class="mb-3">
               <MiniStage :fill="false"
                          :bg-asset-id="nodeDraft.bgAssetId"
@@ -837,7 +837,7 @@ async function setSceneStartNode(id:string){
             <div v-else class="text-center py-12 text-gray-500">
               ノードを選択してください
             </div>
-          </template>
+          </div>
           <!-- Pickers -->
           <AssetPicker v-model:open="openBgPicker" type="image" @select="(a)=> nodeDraft.bgAssetId = a.id" />
           <AssetPicker v-model:open="openMusicPicker" type="audio" @select="(a)=> nodeDraft.musicAssetId = a.id" />
@@ -851,15 +851,15 @@ async function setSceneStartNode(id:string){
   </div>
 </template>
 
-<template #modal>
-  <MessageThemeModal
-    v-if="openThemeModal"
-    :game-id="game.value.id"
-    :initial="game.value.messageTheme"
-    @close="openThemeModal=false"
-    @saved="(v)=>{ game.value.messageTheme=v }"
-  />
-</template>
+
+<!-- root <template>の末尾に常駐モーダル配置（重複防止済み） -->
+<MessageThemeModal
+  v-if="openThemeModal"
+  :game-id="game.value.id"
+  :initial="game.value.messageTheme"
+  @close="openThemeModal=false"
+  @saved="(v)=>{ game.value.messageTheme=v }"
+/>
 
 <style scoped>
 .editor-grid{
