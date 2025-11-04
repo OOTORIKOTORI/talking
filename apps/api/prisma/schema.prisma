@@ -157,6 +157,13 @@ model GameProject {
   deletedAt   DateTime?
   scenes      GameScene[]
 
+  // NEW: message window/typewriter theme for the whole scenario
+  // Expected structure: { frame: {bg, borderColor, borderWidth, radius, padding, shadow}, 
+  //                       name: {show, bg, color, padding, radius}, 
+  //                       text: {color, size, lineHeight}, 
+  //                       typewriter: {msPerChar} }
+  messageTheme Json?
+
   @@index([ownerId, isPublic])
   @@map("game_projects")
 }
