@@ -11,9 +11,25 @@
       </NuxtLink>
     </div>
 
-    <div v-else-if="game" class="w-full max-w-[1100px]">
+    <div v-else-if="game" class="w-[90vw] max-w-[1400px] mx-auto">
       <div class="rounded-lg overflow-hidden shadow-2xl bg-black">
         <div class="w-full aspect-[16/9] relative">
+          <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded" @click="openFs()">全画面</button>
+  <!-- Fullscreen Overlay -->
+  <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">
+    <div class="absolute inset-0">
+      <MiniStage
+        :fill="true"
+        :bg-asset-id="current?.bgAssetId || undefined"
+        :portraits="portraitsResolved"
+        :camera="camera"
+      />
+      <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
+        <MessageWindow :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
+      </div>
+      <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2" @click="closeFs()">閉じる（Esc）</button>
+    </div>
+  </div>
           <!-- スタートオーバーレイ（current が未設定のときのみ表示） -->
           <div v-if="!current" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
             <div class="text-center">
@@ -84,6 +100,15 @@
         </div>
       </div>
 
+      <!-- BGM同意モーダル -->
+      <div v-if="needConsent" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div class="bg-white rounded-xl shadow-xl p-8 max-w-xs w-full text-center relative z-50">
+          <h2 class="text-lg font-bold mb-4">BGM再生の許可</h2>
+          <p class="mb-6">BGMを再生するには許可が必要です。<br>OKを押すとBGMが流れます。</p>
+          <button class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" @click="giveConsent">OK</button>
+        </div>
+      </div>
+
       <!-- デバッグ情報 (開発時のみ) -->
       <div v-if="isDev" class="mt-4 p-4 bg-gray-800 rounded text-xs text-gray-300">
         <p>Current Node: {{ current?.id }}</p>
@@ -95,6 +120,12 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
+const fullscreen = ref(false)
+function openFs(){ fullscreen.value = true; document.documentElement.classList.add('overflow-hidden') }
+function closeFs(){ fullscreen.value = false; document.documentElement.classList.remove('overflow-hidden') }
+onMounted(() => window.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeFs() }))
+onBeforeUnmount(() => window.removeEventListener('keydown', (e)=>{}))
 import MiniStage from '@/components/game/MiniStage.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import { computed, ref, watch, onMounted } from 'vue'
@@ -133,19 +164,31 @@ watch(
 )
 // Resolve portraits for MiniStage
 
+
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
 const bgmRef = ref<HTMLAudioElement | null>(null)
+const needConsent = ref(false)
+const hasConsent = () => localStorage.getItem('talking.audioConsent') === 'yes'
+function ensureBgm() { bgmRef.value?.play().catch(() => {}) }
+const giveConsent = () => { localStorage.setItem('talking.audioConsent','yes'); needConsent.value = false; ensureBgm() }
+
+// BGM URLが変化したときに同意モーダルを出す
+watch(bgmUrl, (u) => {
+  if (u && !hasConsent()) needConsent.value = true
+}, { immediate: true })
+
+// currentのmusicAssetIdが変化したらBGM URLを更新
 watch(
   () => current.value?.musicAssetId,
   async (id) => { bgmUrl.value = id ? await signedFromId(id, false) : null },
   { immediate: true }
 )
-function ensureBgm() { bgmRef.value?.play().catch(() => {}) }
-// BGM with consent gate
-const needConsent = ref(false)
-const hasConsent = () => localStorage.getItem('talking.audioConsent') === 'yes'
-const giveConsent = () => { localStorage.setItem('talking.audioConsent','yes'); needConsent.value = false; ensureBgm() }
+
+// マウント時に同意済みかつBGMがあれば自動再生
+onMounted(() => {
+  if (hasConsent() && bgmUrl.value) ensureBgm()
+})
 
 // Message theme (project-level setting with fallback)
 const defaultTheme = {
@@ -176,23 +219,24 @@ onMounted(async () => {
 })
 
 function start() {
-  // Priority: explicit nodeId -> sceneId -> first available
+  // 優先順位: nodeId > sceneId(+startNodeId) > startSceneId > 先頭
   const q = route.query as any
   const nodeId = q.nodeId as string | undefined
   const sceneId = q.sceneId as string | undefined
 
   if (nodeId && map.has(nodeId)) {
-    segIndex.value = 0
-    current.value = map.get(nodeId)
-  } else {
-    const scene = (sceneId ? game.value.scenes.find((s:any)=>s.id===sceneId) : game.value.scenes[0])
-    if (scene && scene.nodes?.length) {
-      segIndex.value = 0
-      current.value = scene.nodes[0]
-    } else {
-      error.value = 'ゲームの開始ノードが見つかりません'
-    }
+    segIndex.value = 0; current.value = map.get(nodeId); return
   }
+  const s = sceneId
+    ? game.value.scenes.find((x:any)=>x.id===sceneId)
+    : (game.value.scenes.find((x:any)=>x.id===game.value.startSceneId) || game.value.scenes[0])
+
+  if (!s) { error.value='開始シーンがありません'; return }
+  const startNode = (s as any).startNodeId
+    ? s.nodes.find((n:any)=>n.id===(s as any).startNodeId)
+    : s.nodes?.[0]
+  if (!startNode) { error.value='開始ノードがありません'; return }
+  segIndex.value = 0; current.value = startNode
 
   // BGM consent overlay
   needConsent.value = !!bgmUrl.value && !hasConsent()
@@ -226,6 +270,16 @@ function advanceWithinNodeOrNext() {
   segIndex.value = 0
   if (nextNodeId.value) {
     go(nextNodeId.value)
+    return
+  }
+  // nextNodeIdも選択肢も無い場合はorder順で次へ
+  if (!current.value?.nextNodeId && (!current.value?.choices || current.value.choices.length===0)) {
+    const s = game.value.scenes.find((sc:any)=> sc.nodes?.some((n:any)=>n.id===current.value.id))
+    if (s) {
+      const idx = s.nodes.findIndex((n:any)=>n.id===current.value.id)
+      const next = s.nodes[idx+1]
+      if (next) { current.value = next; segIndex.value = 0; return }
+    }
   }
 }
 

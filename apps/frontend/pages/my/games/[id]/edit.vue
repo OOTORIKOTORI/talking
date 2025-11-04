@@ -1,3 +1,10 @@
+import MessageWindow from '@/components/game/MessageWindow.vue'
+const previewTheme = computed(() => game.value?.messageTheme ?? {
+  frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
+  name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
+  text:  { color: '#fff', size: 14, lineHeight: 1.6 },
+  typewriter: { msPerChar: 20 }
+})
 <template>
   <div class="container mx-auto px-4 py-4">
     <div v-if="loading" class="text-center py-12">
@@ -62,16 +69,24 @@
                 :key="n.id"
                 class="p-3 border border-gray-200 rounded cursor-pointer hover:shadow-md transition-shadow"
                 :class="{ 'border-blue-500 bg-blue-50': n.id === node?.id }"
-                @click="selectNode(n)"
               >
-                <div class="text-xs text-gray-500">#{{ n.order }}</div>
-                <div class="font-medium truncate text-sm">
-                  {{ n.text || '(無題の台詞)' }}
+                <div class="flex items-center">
+                  <div class="text-xs text-gray-500 mr-2">#{{ n.order }}</div>
+                  <div class="font-medium truncate text-sm flex-1" @click="selectNode(n)">
+                    {{ n.text || '(無題の台詞)' }}
+                  </div>
+                  <button class="ml-2 text-xs px-2 py-1 border rounded" @click.stop="setSceneStartNode(n.id)">▶開始ノードに設定</button>
+                  <span v-if="scene?.startNodeId===n.id" class="ml-1 text-[10px] text-green-600">開始</span>
                 </div>
                 <div v-if="n.choices?.length" class="text-xs text-purple-600 mt-1">
                   選択肢 × {{ n.choices.length }}
                 </div>
               </li>
+// シーンの開始ノード設定
+async function setSceneStartNode(id:string){
+  await $fetch(`/games/scenes/${scene.value.id}`, { method:'PATCH', body: { startNodeId: id } })
+  scene.value.startNodeId = id
+}
             </ul>
             <button
               class="mt-4 w-full px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
@@ -98,6 +113,7 @@
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
               </button>
+              <button class="ml-2 px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
               <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
             </div>
           </div>
@@ -107,10 +123,20 @@
           <div v-if="fullscreenProps && node" class="fs-grid">
             <div class="stage-outer">
               <div class="stage-inner">
-                <MiniStage :fill="true"
-                           :bg-asset-id="nodeDraft.bgAssetId"
-                           :portraits="nodeDraft.portraits || []"
-                           :camera="nodeDraft.camera" />
+                <div class="relative w-full h-full">
+                  <MiniStage :fill="true"
+                             :bg-asset-id="nodeDraft.bgAssetId"
+                             :portraits="nodeDraft.portraits || []"
+                             :camera="nodeDraft.camera" />
+                  <div class="absolute inset-x-2 bottom-2">
+                    <MessageWindow
+                      :speaker="nodeDraft.speakerDisplayName || ''"
+                      :text="nodeDraft.text || ''"
+                      :theme="previewTheme"
+                      :animate="true"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div class="fs-form">
@@ -475,38 +501,19 @@
           <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
           <CharacterImagePicker v-model:open="openCharImagePicker" :character-id="nodeDraft.speakerCharacterId || ''" @select="onImagePicked" />
         </section>
-      <!-- シナリオ全体設定（メッセージウィンドウ） -->
-      <section class="mt-6 border-t pt-4">
-        <h3 class="font-semibold mb-2">シナリオ全体設定（メッセージウィンドウ）</h3>
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <label>背景（rgba）<input v-model="themeDraft.frame.bg" class="w-full border rounded px-2 py-1" /></label>
-          <label>枠線色（rgba）<input v-model="themeDraft.frame.borderColor" class="w-full border rounded px-2 py-1" /></label>
-          <label>枠線px<input type="number" v-model.number="themeDraft.frame.borderWidth" class="w-full border rounded px-2 py-1" /></label>
-          <label>角丸px<input type="number" v-model.number="themeDraft.frame.radius" class="w-full border rounded px-2 py-1" /></label>
-          <label>内側余白px<input type="number" v-model.number="themeDraft.frame.padding" class="w-full border rounded px-2 py-1" /></label>
-          <label>名前の表示<input type="checkbox" v-model="themeDraft.name.show" class="ml-2" /></label>
-          <label>名前背景（rgba）<input v-model="themeDraft.name.bg" class="w-full border rounded px-2 py-1" /></label>
-          <label>文字色<input v-model="themeDraft.text.color" class="w-full border rounded px-2 py-1" /></label>
-          <label>文字サイズpx<input type="number" v-model.number="themeDraft.text.size" class="w-full border rounded px-2 py-1" /></label>
-          <label>行間<input type="number" step="0.1" v-model.number="themeDraft.text.lineHeight" class="w-full border rounded px-2 py-1" /></label>
-          <label>タイプ速度ms/字<input type="number" v-model.number="themeDraft.typewriter.msPerChar" class="w-full border rounded px-2 py-1" /></label>
-        </div>
-        <div class="flex gap-2 mt-3">
-          <button class="px-3 py-2 bg-gray-100 border rounded" @click="themeDraft = game.value?.messageTheme ? JSON.parse(JSON.stringify(game.value.messageTheme)) : themeDraft">リセット</button>
-          <button class="px-3 py-2 bg-blue-600 text-white rounded" @click="saveTheme">保存</button>
-        </div>
-      </section>
+      <!-- ...existing code... -->
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+
 import NodePicker from '@/components/game/NodePicker.vue'
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
 import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
 import MiniStage from '@/components/game/MiniStage.vue'
+import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 const baseURL = useRuntimeConfig().public.apiBase
@@ -553,19 +560,20 @@ const previewHref = computed(() => {
     : `/games/${g.id}/play`
 })
 
-// --- メッセージウィンドウ テーマ編集 ---
-const themeDraft = ref<any>({
-  frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
-  name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
-  text:  { color: '#fff', size: 16, lineHeight: 1.8 },
-  typewriter: { msPerChar: 25 }
-})
-watch(() => game.value?.messageTheme, (v)=>{ if(v) themeDraft.value = JSON.parse(JSON.stringify(v)) }, { immediate:true })
 
-async function saveTheme() {
-  await $fetch(`/games/${game.value.id}`, { method:'PATCH', body: { messageTheme: themeDraft.value }, baseURL })
-  game.value.messageTheme = JSON.parse(JSON.stringify(themeDraft.value))
-}
+const openThemeModal = ref(false)
+
+</script>
+
+<template #modal>
+  <MessageThemeModal
+    v-if="openThemeModal"
+    :game-id="game.value.id"
+    :initial="game.value.messageTheme"
+    @close="openThemeModal=false"
+    @saved="(v)=>{ game.value.messageTheme=v }"
+  />
+</template>
 
 watch(
   () => nodeDraft.bgAssetId,
