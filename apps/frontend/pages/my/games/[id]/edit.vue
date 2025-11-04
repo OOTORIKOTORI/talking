@@ -1,10 +1,354 @@
+<script setup lang="ts">
 import MessageWindow from '@/components/game/MessageWindow.vue'
+import NodePicker from '@/components/game/NodePicker.vue'
+import AssetPicker from '@/components/pickers/AssetPicker.vue'
+import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
+import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
+import MiniStage from '@/components/game/MiniStage.vue'
+import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
+import { getSignedGetUrl } from '@/composables/useSignedUrl'
+import { useAssetMeta } from '@/composables/useAssetMeta'
+const baseURL = useRuntimeConfig().public.apiBase
+
+definePageMeta({
+  middleware: 'require-auth'
+})
+
+const route = useRoute()
+const api = useGamesApi()
+const { get: getAsset, signedFromId } = useAssetMeta()
+
+// Declare all refs first before using them in computed/watch
+const game = ref<any>(null)
+const scenes = ref<any[]>([])
+const nodes = ref<any[]>([])
+const scene = ref<any>(null)
+const node = ref<any>(null)
+const nodeDraft = reactive<any>({})
+const loading = ref(true)
+const openBgPicker = ref(false)
+const openMusicPicker = ref(false)
+const openCharPicker = ref(false)
+const openCharImagePicker = ref(false)
+const openSfxPicker = ref(false)
+const openNodePicker = ref(false)
+
+const bgUrl = ref<string | null>(null)
+const musicUrl = ref<string | null>(null)
+const musicTitle = ref<string>('')
+const pendingIndex = ref<number | null>(null)
+
+// Place previewHref AFTER game, scene, and node are declared to avoid TDZ error
+const previewHref = computed(() => {
+  const g = game?.value
+  if (!g?.id) return '#'
+  const params = new URLSearchParams()
+  const s = scene?.value
+  const n = node?.value
+  if (s?.id) params.set('sceneId', s.id)
+  if (n?.id) params.set('nodeId', n.id)
+  return params.toString()
+    ? `/games/${g.id}/play?${params.toString()}`
+    : `/games/${g.id}/play`
+})
+
+const openThemeModal = ref(false)
+
 const previewTheme = computed(() => game.value?.messageTheme ?? {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
   text:  { color: '#fff', size: 14, lineHeight: 1.6 },
   typewriter: { msPerChar: 20 }
 })
+
+watch(
+  () => nodeDraft.bgAssetId,
+  async (id) => {
+    bgUrl.value = id ? await signedFromId(id, true) : null
+  },
+  { immediate: false }
+)
+
+watch(
+  () => nodeDraft.musicAssetId,
+  async (id) => {
+    if (!id) {
+      musicUrl.value = null
+      musicTitle.value = ''
+      return
+    }
+    const meta = await getAsset(id)
+    musicTitle.value = meta?.title || '(BGM)'
+    musicUrl.value = await signedFromId(id, false)
+  },
+  { immediate: false }
+)
+
+const selectedCharLabel = computed(() => {
+  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
+})
+
+function clearChar() {
+  nodeDraft.speakerCharacterId = ''
+  if (!nodeDraft.speakerDisplayName) nodeDraft.speakerDisplayName = ''
+}
+
+function onCharPicked(c: any) {
+  nodeDraft.speakerCharacterId = c.id
+  if (!nodeDraft.speakerDisplayName) {
+    nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+  }
+  // If we're adding a new portrait, open the image picker
+  if (pendingIndex.value === -1) {
+    openCharImagePicker.value = true
+  }
+}
+
+async function addPortrait() {
+  if (!nodeDraft.portraits) nodeDraft.portraits = []
+  // First select character
+  pendingIndex.value = -1
+  openCharPicker.value = true
+}
+
+function changePortrait(i: number) {
+  pendingIndex.value = i
+  openCharPicker.value = true
+}
+
+function removePortrait(i: number) {
+  nodeDraft.portraits.splice(i, 1)
+}
+
+async function onImagePicked(img: any) {
+  const url = await getSignedGetUrl(img.thumbKey || img.key)
+  const entry = {
+    characterId: nodeDraft.speakerCharacterId,
+    imageId: img.id,
+    key: img.key,
+    thumb: url,
+    x: 50,
+    y: 80,
+    scale: 100,
+    z: 0,
+    characterName: nodeDraft.speakerDisplayName
+  }
+  if (pendingIndex.value !== null && pendingIndex.value >= 0) {
+    nodeDraft.portraits[pendingIndex.value] = entry
+    pendingIndex.value = null
+  } else if (pendingIndex.value === -1) {
+    nodeDraft.portraits.push(entry)
+    pendingIndex.value = null
+  }
+}
+
+onMounted(async () => {
+  try {
+    game.value = await api.get(route.params.id as string)
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
+  } catch (error) {
+    console.error('Failed to load game:', error)
+    alert('ゲームの読み込みに失敗しました')
+  } finally {
+    loading.value = false
+  }
+})
+
+async function selectScene(s: any) {
+  scene.value = s
+  try {
+    nodes.value = (await api.listNodes(s.id)) as any[]
+  } catch (error) {
+    console.error('Failed to load nodes:', error)
+  }
+  node.value = null
+}
+
+async function addScene() {
+  try {
+    await api.upsertScene(game.value.id, {
+      name: `Scene ${scenes.value.length + 1}`,
+      order: scenes.value.length,
+    })
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
+  } catch (error) {
+    console.error('Failed to add scene:', error)
+    alert('シーンの追加に失敗しました')
+  }
+}
+
+async function setSceneStartNode(id:string){
+  await $fetch(`/games/scenes/${scene.value.id}`, { method:'PATCH', body: { startNodeId: id } })
+  scene.value.startNodeId = id
+}
+
+function selectNode(n: any) {
+  node.value = n
+  Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
+  if (!nodeDraft.choices) {
+    nodeDraft.choices = []
+  }
+  if (!nodeDraft.portraits) {
+    nodeDraft.portraits = []
+  }
+  // camera デフォルト補完
+  if (!nodeDraft.camera) {
+    nodeDraft.camera = { zoom: 100, cx: 50, cy: 50 }
+  }
+  // 既存データを開いたときに p.thumb を補完
+  hydratePortraitThumbs()
+}
+
+// 既存 portraits のサムネ署名URLを補完する
+async function hydratePortraitThumbs() {
+  if (!nodeDraft.portraits) return
+  for (const p of nodeDraft.portraits) {
+    try {
+      if (p.thumb) continue
+      let key = p.key
+      // key が無ければキャラ画像一覧から該当IDを引いて key/thumbKey を得る
+      if (!key && p.characterId && p.imageId) {
+        const list = await $fetch<any[]>(`/characters/${p.characterId}/images`, { baseURL })
+          .catch(() => $fetch<any[]>(`/my/characters/${p.characterId}/images`, { baseURL }))
+        const hit = list?.find(x => x.id === p.imageId)
+        key = hit?.thumbKey || hit?.key
+      }
+      if (key) {
+        p.thumb = await getSignedGetUrl(key)
+      }
+    } catch (e) {
+      console.warn('thumb hydrate failed', p, e)
+    }
+  }
+}
+
+async function addNode() {
+  if (!scene.value) return
+  try {
+    await api.upsertNode(scene.value.id, { text: '...' })
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
+  } catch (error) {
+    console.error('Failed to add node:', error)
+    alert('ノードの追加に失敗しました')
+  }
+}
+
+async function saveNode() {
+  if (!scene.value || !node.value) return
+  try {
+    // 署名URLはDBに保存しない(TTL切れ防止)
+    const payload = JSON.parse(JSON.stringify(nodeDraft))
+    if (Array.isArray(payload.portraits)) {
+      payload.portraits = payload.portraits.map((p: any) => {
+        const { thumb, ...rest } = p
+        return rest
+      })
+    }
+    await api.upsertNode(scene.value.id, payload)
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
+    // Update the current node
+    const updated = nodes.value.find((n) => n.id === node.value.id)
+    if (updated) {
+      selectNode(updated)
+    }
+  } catch (error) {
+    console.error('Failed to save node:', error)
+    alert('ノードの保存に失敗しました')
+  }
+}
+
+async function deleteCurrentNode() {
+  if (!node.value) return
+  if (!confirm('このノードを削除しますか?')) return
+  
+  try {
+    await api.delNode(node.value.id)
+    nodes.value = (await api.listNodes(scene.value.id)) as any[]
+    node.value = null
+  } catch (error) {
+    console.error('Failed to delete node:', error)
+    alert('ノードの削除に失敗しました')
+  }
+}
+
+function addChoice() {
+  if (!nodeDraft.choices) {
+    nodeDraft.choices = []
+  }
+  nodeDraft.choices.push({ label: '', targetNodeId: '' })
+}
+
+function removeChoice(index: number) {
+  nodeDraft.choices.splice(index, 1)
+}
+
+// ---------- 3ペイン可変 & 全画面 ----------
+const fullscreenProps = ref(false)
+const wrap = ref<HTMLElement | null>(null)
+const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 420 })) // px
+const min = { scenes: 200, nodes: 360, props: 360 }
+const gridStyle = computed(() => ({
+  '--w-scenes': widths.value.scenes + 'px',
+  '--w-nodes': widths.value.nodes + 'px',
+  '--w-props': widths.value.props + 'px',
+  '--sz-resizer': '8px',
+}) as any)
+
+onMounted(() => {
+  // 以前の幅を復元
+  const saved = localStorage.getItem('gameEditorPaneWidths')
+  if (saved) {
+    try { Object.assign(widths.value, JSON.parse(saved)) } catch {}
+  }
+  // Fキーで切替
+  window.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+function onKey(e: KeyboardEvent) {
+  if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
+  if (e.key === 'Escape') { fullscreenProps.value = false }
+}
+
+let resizing: 'left' | 'right' | null = null
+let startX = 0, startWidths = { scenes: 0, nodes: 0, props: 0 }, wrapWidth = 0
+function startResize(side: 'left' | 'right', ev: PointerEvent) {
+  resizing = side
+  startX = ev.clientX
+  startWidths = { ...widths.value }
+  wrapWidth = wrap.value?.getBoundingClientRect().width ?? 0
+  ;(ev.target as HTMLElement).setPointerCapture(ev.pointerId)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp, { once: true })
+}
+function onMove(ev: PointerEvent) {
+  if (!resizing) return
+  const dx = ev.clientX - startX
+  const w = { ...startWidths }
+  if (resizing === 'left') {
+    w.scenes = Math.max(min.scenes, startWidths.scenes + dx)
+    w.nodes = Math.max(min.nodes, startWidths.nodes - dx)
+  } else {
+    w.nodes = Math.max(min.nodes, startWidths.nodes + dx)
+    w.props = Math.max(min.props, startWidths.props - dx)
+  }
+  // wrap 幅にリサイズバー(×2)とギャップ(×4)を考慮
+  const RES = 8, GAP = 16
+  const maxSum = Math.max(0, wrapWidth - 2*RES - 4*GAP)
+  const sum = w.scenes + w.nodes + w.props
+  if (sum > maxSum) {
+    const over = sum - maxSum
+    if (resizing === 'left') w.nodes = Math.max(min.nodes, w.nodes - over)
+    else w.props = Math.max(min.props, w.props - over)
+  }
+  widths.value = w
+}
+function onUp() {
+  resizing = null
+  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
+  window.removeEventListener('pointermove', onMove)
+}
+</script>
+
 <template>
   <div class="container mx-auto px-4 py-4">
     <div v-if="loading" class="text-center py-12">
@@ -148,7 +492,7 @@ async function setSceneStartNode(id:string){
                     class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="6"
                     placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
-                  />
+                  ></textarea>
                 </div>
 
               <div class="space-y-3">
@@ -331,7 +675,7 @@ async function setSceneStartNode(id:string){
                     class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="6"
                     placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
-                  />
+                  ></textarea>
                 </div>
 
                 <div class="space-y-3">
@@ -507,64 +851,6 @@ async function setSceneStartNode(id:string){
   </div>
 </template>
 
-
-import NodePicker from '@/components/game/NodePicker.vue'
-import AssetPicker from '@/components/pickers/AssetPicker.vue'
-import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
-import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
-import MiniStage from '@/components/game/MiniStage.vue'
-import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
-import { getSignedGetUrl } from '@/composables/useSignedUrl'
-import { useAssetMeta } from '@/composables/useAssetMeta'
-const baseURL = useRuntimeConfig().public.apiBase
-
-definePageMeta({
-  middleware: 'require-auth'
-})
-
-const route = useRoute()
-const api = useGamesApi()
-const { get: getAsset, signedFromId } = useAssetMeta()
-
-// Declare all refs first before using them in computed/watch
-const game = ref<any>(null)
-const scenes = ref<any[]>([])
-const nodes = ref<any[]>([])
-const scene = ref<any>(null)
-const node = ref<any>(null)
-const nodeDraft = reactive<any>({})
-const loading = ref(true)
-const openBgPicker = ref(false)
-const openMusicPicker = ref(false)
-const openCharPicker = ref(false)
-const openCharImagePicker = ref(false)
-const openSfxPicker = ref(false)
-const openNodePicker = ref(false)
-
-const bgUrl = ref<string | null>(null)
-const musicUrl = ref<string | null>(null)
-const musicTitle = ref<string>('')
-const pendingIndex = ref<number | null>(null)
-
-// Place previewHref AFTER game, scene, and node are declared to avoid TDZ error
-const previewHref = computed(() => {
-  const g = game?.value
-  if (!g?.id) return '#'
-  const params = new URLSearchParams()
-  const s = scene?.value
-  const n = node?.value
-  if (s?.id) params.set('sceneId', s.id)
-  if (n?.id) params.set('nodeId', n.id)
-  return params.toString()
-    ? `/games/${g.id}/play?${params.toString()}`
-    : `/games/${g.id}/play`
-})
-
-
-const openThemeModal = ref(false)
-
-</script>
-
 <template #modal>
   <MessageThemeModal
     v-if="openThemeModal"
@@ -574,289 +860,6 @@ const openThemeModal = ref(false)
     @saved="(v)=>{ game.value.messageTheme=v }"
   />
 </template>
-
-watch(
-  () => nodeDraft.bgAssetId,
-  async (id) => {
-    bgUrl.value = id ? await signedFromId(id, true) : null
-  },
-  { immediate: false }
-)
-
-watch(
-  () => nodeDraft.musicAssetId,
-  async (id) => {
-    if (!id) {
-      musicUrl.value = null
-      musicTitle.value = ''
-      return
-    }
-    const meta = await getAsset(id)
-    musicTitle.value = meta?.title || '(BGM)'
-    musicUrl.value = await signedFromId(id, false)
-  },
-  { immediate: false }
-)
-
-const selectedCharLabel = computed(() => {
-  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
-})
-
-function clearChar() {
-  nodeDraft.speakerCharacterId = ''
-  if (!nodeDraft.speakerDisplayName) nodeDraft.speakerDisplayName = ''
-}
-
-function onCharPicked(c: any) {
-  nodeDraft.speakerCharacterId = c.id
-  if (!nodeDraft.speakerDisplayName) {
-    nodeDraft.speakerDisplayName = c.displayName || c.name || ''
-  }
-  // If we're adding a new portrait, open the image picker
-  if (pendingIndex.value === -1) {
-    openCharImagePicker.value = true
-  }
-}
-
-async function addPortrait() {
-  if (!nodeDraft.portraits) nodeDraft.portraits = []
-  // First select character
-  pendingIndex.value = -1
-  openCharPicker.value = true
-}
-
-function changePortrait(i: number) {
-  pendingIndex.value = i
-  openCharPicker.value = true
-}
-
-function removePortrait(i: number) {
-  nodeDraft.portraits.splice(i, 1)
-}
-
-async function onImagePicked(img: any) {
-  const url = await getSignedGetUrl(img.thumbKey || img.key)
-  const entry = {
-    characterId: nodeDraft.speakerCharacterId,
-    imageId: img.id,
-    key: img.key,
-    thumb: url,
-    x: 50,
-    y: 80,
-    scale: 100,
-    z: 0,
-    characterName: nodeDraft.speakerDisplayName
-  }
-  if (pendingIndex.value !== null && pendingIndex.value >= 0) {
-    nodeDraft.portraits[pendingIndex.value] = entry
-    pendingIndex.value = null
-  } else if (pendingIndex.value === -1) {
-    nodeDraft.portraits.push(entry)
-    pendingIndex.value = null
-  }
-}
-
-onMounted(async () => {
-  try {
-    game.value = await api.get(route.params.id as string)
-    scenes.value = (await api.listScenes(game.value.id)) as any[]
-  } catch (error) {
-    console.error('Failed to load game:', error)
-    alert('ゲームの読み込みに失敗しました')
-  } finally {
-    loading.value = false
-  }
-})
-
-async function selectScene(s: any) {
-  scene.value = s
-  try {
-    nodes.value = (await api.listNodes(s.id)) as any[]
-  } catch (error) {
-    console.error('Failed to load nodes:', error)
-  }
-  node.value = null
-}
-
-async function addScene() {
-  try {
-    await api.upsertScene(game.value.id, {
-      name: `Scene ${scenes.value.length + 1}`,
-      order: scenes.value.length,
-    })
-    scenes.value = (await api.listScenes(game.value.id)) as any[]
-  } catch (error) {
-    console.error('Failed to add scene:', error)
-    alert('シーンの追加に失敗しました')
-  }
-}
-
-function selectNode(n: any) {
-  node.value = n
-  Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
-  if (!nodeDraft.choices) {
-    nodeDraft.choices = []
-  }
-  if (!nodeDraft.portraits) {
-    nodeDraft.portraits = []
-  }
-  // camera デフォルト補完
-  if (!nodeDraft.camera) {
-    nodeDraft.camera = { zoom: 100, cx: 50, cy: 50 }
-  }
-  // 既存データを開いたときに p.thumb を補完
-  hydratePortraitThumbs()
-}
-
-// 既存 portraits のサムネ署名URLを補完する
-async function hydratePortraitThumbs() {
-  if (!nodeDraft.portraits) return
-  for (const p of nodeDraft.portraits) {
-    try {
-      if (p.thumb) continue
-      let key = p.key
-      // key が無ければキャラ画像一覧から該当IDを引いて key/thumbKey を得る
-      if (!key && p.characterId && p.imageId) {
-        const list = await $fetch<any[]>(`/characters/${p.characterId}/images`, { baseURL })
-          .catch(() => $fetch<any[]>(`/my/characters/${p.characterId}/images`, { baseURL }))
-        const hit = list?.find(x => x.id === p.imageId)
-        key = hit?.thumbKey || hit?.key
-      }
-      if (key) {
-        p.thumb = await getSignedGetUrl(key)
-      }
-    } catch (e) {
-      console.warn('thumb hydrate failed', p, e)
-    }
-  }
-}
-
-async function addNode() {
-  if (!scene.value) return
-  try {
-    await api.upsertNode(scene.value.id, { text: '...' })
-    nodes.value = (await api.listNodes(scene.value.id)) as any[]
-  } catch (error) {
-    console.error('Failed to add node:', error)
-    alert('ノードの追加に失敗しました')
-  }
-}
-
-async function saveNode() {
-  if (!scene.value || !node.value) return
-  try {
-    // 署名URLはDBに保存しない（TTL切れ防止）
-    const payload = JSON.parse(JSON.stringify(nodeDraft))
-    if (Array.isArray(payload.portraits)) {
-      payload.portraits = payload.portraits.map((p: any) => {
-        const { thumb, ...rest } = p
-        return rest
-      })
-    }
-    await api.upsertNode(scene.value.id, payload)
-    nodes.value = (await api.listNodes(scene.value.id)) as any[]
-    // Update the current node
-    const updated = nodes.value.find((n) => n.id === node.value.id)
-    if (updated) {
-      selectNode(updated)
-    }
-  } catch (error) {
-    console.error('Failed to save node:', error)
-    alert('ノードの保存に失敗しました')
-  }
-}
-
-async function deleteCurrentNode() {
-  if (!node.value) return
-  if (!confirm('このノードを削除しますか?')) return
-  
-  try {
-    await api.delNode(node.value.id)
-    nodes.value = (await api.listNodes(scene.value.id)) as any[]
-    node.value = null
-  } catch (error) {
-    console.error('Failed to delete node:', error)
-    alert('ノードの削除に失敗しました')
-  }
-}
-
-function addChoice() {
-  if (!nodeDraft.choices) {
-    nodeDraft.choices = []
-  }
-  nodeDraft.choices.push({ label: '', targetNodeId: '' })
-}
-
-function removeChoice(index: number) {
-  nodeDraft.choices.splice(index, 1)
-}
-
-// ---------- 3ペイン可変 & 全画面 ----------
-const fullscreenProps = ref(false)
-const wrap = ref<HTMLElement | null>(null)
-const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 420 })) // px
-const min = { scenes: 200, nodes: 360, props: 360 }
-const gridStyle = computed(() => ({
-  '--w-scenes': widths.value.scenes + 'px',
-  '--w-nodes': widths.value.nodes + 'px',
-  '--w-props': widths.value.props + 'px',
-  '--sz-resizer': '8px',
-}) as any)
-
-onMounted(() => {
-  // 以前の幅を復元
-  const saved = localStorage.getItem('gameEditorPaneWidths')
-  if (saved) {
-    try { Object.assign(widths.value, JSON.parse(saved)) } catch {}
-  }
-  // Fキーで切替
-  window.addEventListener('keydown', onKey)
-})
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
-function onKey(e: KeyboardEvent) {
-  if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
-  if (e.key === 'Escape') { fullscreenProps.value = false }
-}
-
-let resizing: 'left' | 'right' | null = null
-let startX = 0, startWidths = { scenes: 0, nodes: 0, props: 0 }, wrapWidth = 0
-function startResize(side: 'left' | 'right', ev: PointerEvent) {
-  resizing = side
-  startX = ev.clientX
-  startWidths = { ...widths.value }
-  wrapWidth = wrap.value?.getBoundingClientRect().width ?? 0
-  ;(ev.target as HTMLElement).setPointerCapture(ev.pointerId)
-  window.addEventListener('pointermove', onMove)
-  window.addEventListener('pointerup', onUp, { once: true })
-}
-function onMove(ev: PointerEvent) {
-  if (!resizing) return
-  const dx = ev.clientX - startX
-  const w = { ...startWidths }
-  if (resizing === 'left') {
-    w.scenes = Math.max(min.scenes, startWidths.scenes + dx)
-    w.nodes = Math.max(min.nodes, startWidths.nodes - dx)
-  } else {
-    w.nodes = Math.max(min.nodes, startWidths.nodes + dx)
-    w.props = Math.max(min.props, startWidths.props - dx)
-  }
-  // wrap 幅にリサイズバー(×2)とギャップ(×4)を考慮
-  const RES = 8, GAP = 16
-  const maxSum = Math.max(0, wrapWidth - 2*RES - 4*GAP)
-  const sum = w.scenes + w.nodes + w.props
-  if (sum > maxSum) {
-    const over = sum - maxSum
-    if (resizing === 'left') w.nodes = Math.max(min.nodes, w.nodes - over)
-    else w.props = Math.max(min.props, w.props - over)
-  }
-  widths.value = w
-}
-function onUp() {
-  resizing = null
-  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
-  window.removeEventListener('pointermove', onMove)
-}
-</script>
 
 <style scoped>
 .editor-grid{
