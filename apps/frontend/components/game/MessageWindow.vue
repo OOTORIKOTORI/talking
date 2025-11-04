@@ -1,149 +1,72 @@
 <template>
   <div
-    class="message-window"
-    :style="frameStyle"
-    @click="$emit('click')"
+    class="w-full select-none"
+    :style="{
+      '--bg': theme.frame?.bg ?? 'rgba(0,0,0,0.6)',
+      '--bd': theme.frame?.borderColor ?? 'rgba(255,255,255,0.25)',
+      '--bw': (theme.frame?.borderWidth ?? 2) + 'px',
+      '--br': (theme.frame?.radius ?? 16) + 'px',
+      '--pd': (theme.frame?.padding ?? 16) + 'px'
+    }"
   >
-    <!-- 話者名 -->
     <div
-      v-if="theme.name.show && speaker"
-      class="speaker-name"
-      :style="nameStyle"
+      class="w-full border"
+      :class="theme.frame?.shadow === false ? '' : 'shadow-lg'"
+      :style="{ background: 'var(--bg)', borderColor: 'var(--bd)', borderWidth: 'var(--bw)', borderRadius: 'var(--br)', padding: 'var(--pd)' }"
+      @click="$emit('click')"
     >
-      {{ speaker }}
-    </div>
+      <div
+        v-if="speaker && (theme.name?.show ?? true)"
+        class="inline-block mb-2"
+        :style="{
+          background: theme.name?.bg ?? 'rgba(0,0,0,0.55)',
+          color: theme.name?.color ?? '#fff',
+          borderRadius: (theme.name?.radius ?? 10) + 'px',
+          padding: (theme.name?.padding ?? 8) + 'px'
+        }"
+      >
+        <span class="font-semibold">{{ speaker }}</span>
+      </div>
 
-    <!-- メッセージテキスト -->
-    <div class="message-text" :style="textStyle">
-      {{ animatedText }}
+      <p
+        class="whitespace-pre-wrap"
+        :style="{
+          color: theme.text?.color ?? '#fff',
+          fontSize: (theme.text?.size ?? 16) + 'px',
+          lineHeight: (theme.text?.lineHeight ?? 1.8)
+        }"
+      >
+        {{ shown }}
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
-
-interface MessageTheme {
-  frame: {
-    bg: string
-    borderColor: string
-    borderWidth: number
-    radius: number
-    padding: number
-    shadow: boolean
-  }
-  name: {
-    show: boolean
-    bg: string
-    color: string
-    padding: number
-    radius: number
-  }
-  text: {
-    color: string
-    size: number
-    lineHeight: number
-  }
-  typewriter: {
-    msPerChar: number
-  }
-}
-
 const props = defineProps<{
-  speaker: string
-  text: string
-  theme: MessageTheme
+  speaker?: string | null
+  text: string | null
   animate?: boolean
+  theme?: any
 }>()
 
-defineEmits<{
-  (e: 'click'): void
-}>()
+const theme = computed(() => props.theme ?? {})
+const shown = ref('')
 
-// タイプライター効果用
-const animatedText = ref('')
-let typewriterTimer: NodeJS.Timeout | null = null
+let timer: any = null
+function typeTo(target: string) {
+  clearInterval(timer)
+  if (!props.animate) { shown.value = target; return }
+  shown.value = ''
+  const ms = theme.value?.typewriter?.msPerChar ?? 25
+  let i = 0
+  timer = setInterval(() => {
+    i++
+    shown.value = target.slice(0, i)
+    if (i >= target.length) clearInterval(timer)
+  }, ms)
+}
 
-watch(
-  () => props.text,
-  (newText) => {
-    if (typewriterTimer) {
-      clearInterval(typewriterTimer)
-      typewriterTimer = null
-    }
-
-    if (!props.animate) {
-      animatedText.value = newText
-      return
-    }
-
-    animatedText.value = ''
-    let index = 0
-    
-    typewriterTimer = setInterval(() => {
-      if (index < newText.length) {
-        animatedText.value = newText.substring(0, index + 1)
-        index++
-      } else {
-        if (typewriterTimer) {
-          clearInterval(typewriterTimer)
-          typewriterTimer = null
-        }
-      }
-    }, props.theme.typewriter.msPerChar)
-  },
-  { immediate: true }
-)
-
-onUnmounted(() => {
-  if (typewriterTimer) {
-    clearInterval(typewriterTimer)
-    typewriterTimer = null
-  }
-})
-
-// スタイル計算
-const frameStyle = computed(() => ({
-  backgroundColor: props.theme.frame.bg,
-  borderColor: props.theme.frame.borderColor,
-  borderWidth: `${props.theme.frame.borderWidth}px`,
-  borderStyle: 'solid',
-  borderRadius: `${props.theme.frame.radius}px`,
-  padding: `${props.theme.frame.padding}px`,
-  boxShadow: props.theme.frame.shadow ? '0 4px 20px rgba(0,0,0,0.5)' : 'none',
-  cursor: 'pointer',
-  position: 'relative' as const,
-}))
-
-const nameStyle = computed(() => ({
-  backgroundColor: props.theme.name.bg,
-  color: props.theme.name.color,
-  padding: `${props.theme.name.padding}px`,
-  borderRadius: `${props.theme.name.radius}px`,
-  display: 'inline-block',
-  marginBottom: '8px',
-  fontSize: '0.9em',
-  fontWeight: 'bold',
-}))
-
-const textStyle = computed(() => ({
-  color: props.theme.text.color,
-  fontSize: `${props.theme.text.size}px`,
-  lineHeight: props.theme.text.lineHeight,
-  whiteSpace: 'pre-wrap' as const,
-}))
+watch(() => props.text ?? '', (t) => typeTo(t), { immediate: true })
+onBeforeUnmount(() => clearInterval(timer))
 </script>
-
-<style scoped>
-.message-window {
-  user-select: none;
-}
-
-.speaker-name {
-  user-select: none;
-}
-
-.message-text {
-  user-select: none;
-}
-</style>
