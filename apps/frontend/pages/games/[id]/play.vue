@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import MiniStage from '@/components/game/MiniStage.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 
 const { signedFromId } = useAssetMeta()
@@ -131,6 +131,7 @@ watch(
   },
   { immediate: true, deep: true }
 )
+// Resolve portraits for MiniStage
 
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
@@ -141,6 +142,10 @@ watch(
   { immediate: true }
 )
 function ensureBgm() { bgmRef.value?.play().catch(() => {}) }
+// BGM with consent gate
+const needConsent = ref(false)
+const hasConsent = () => localStorage.getItem('talking.audioConsent') === 'yes'
+const giveConsent = () => { localStorage.setItem('talking.audioConsent','yes'); needConsent.value = false; ensureBgm() }
 
 // Message theme (project-level setting with fallback)
 const defaultTheme = {
@@ -171,14 +176,26 @@ onMounted(async () => {
 })
 
 function start() {
-  // 最初のシーンの最初のノードから開始
-  const startScene = game.value.scenes[0]
-  if (startScene && startScene.nodes && startScene.nodes.length > 0) {
+  // Priority: explicit nodeId -> sceneId -> first available
+  const q = route.query as any
+  const nodeId = q.nodeId as string | undefined
+  const sceneId = q.sceneId as string | undefined
+
+  if (nodeId && map.has(nodeId)) {
     segIndex.value = 0
-    current.value = startScene.nodes[0]
+    current.value = map.get(nodeId)
   } else {
-    error.value = 'ゲームの開始ノードが見つかりません'
+    const scene = (sceneId ? game.value.scenes.find((s:any)=>s.id===sceneId) : game.value.scenes[0])
+    if (scene && scene.nodes?.length) {
+      segIndex.value = 0
+      current.value = scene.nodes[0]
+    } else {
+      error.value = 'ゲームの開始ノードが見つかりません'
+    }
   }
+
+  // BGM consent overlay
+  needConsent.value = !!bgmUrl.value && !hasConsent()
 }
 
 function restart() {
@@ -205,13 +222,7 @@ function go(targetNodeId: string | null) {
 }
 
 function advanceWithinNodeOrNext() {
-  const segs = segments.value
-  if (segs.length > 1 && segIndex.value < segs.length - 1) {
-    // まだ表示していない段階があるので、次の段階を表示
-    segIndex.value += 1
-    return
-  }
-  // すべて表示済み、または分割なし → 次のノードへ
+  // クリックで次のノードへ進む
   segIndex.value = 0
   if (nextNodeId.value) {
     go(nextNodeId.value)
@@ -220,25 +231,10 @@ function advanceWithinNodeOrNext() {
 
 const speaker = computed(() => {
   if (!current.value) return ''
-  // speakerDisplayName があれば優先、なければ空
   return current.value.speakerDisplayName || ''
 })
 
-const text = computed(() => {
-  if (!current.value) return ''
-  return current.value.text || ''
-})
-
-// ｜で区切られたセグメント
-const segments = computed(() => {
-  const raw = text.value || ''
-  return raw.split('｜').filter((s: string) => s.length > 0 || s === '')
-})
-
-// 現在までに表示するテキスト
-const displayedText = computed(() => {
-  return segments.value.slice(0, segIndex.value + 1).join('')
-})
+const displayedText = computed(() => current.value?.text ?? '')
 
 const choices = computed(() => {
   if (!current.value) return []
