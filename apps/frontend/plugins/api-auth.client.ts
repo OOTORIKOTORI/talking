@@ -3,13 +3,17 @@ import type { FetchOptions } from 'ofetch'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
-  const supabaseClient = useSupabaseClient()
 
   const api = $fetch.create({
     baseURL: config.public.apiBase,
     credentials: 'include',
     onRequest: async ({ options }) => {
       try {
+        const supabaseClient = useSupabaseClient?.()
+        if (!supabaseClient) {
+          console.warn('[API Auth] Supabase client not ready')
+          return
+        }
         console.log('[API Auth] Getting session...')
         const { data: { session } } = await supabaseClient.auth.getSession()
         console.log('[API Auth] Session:', session ? 'OK' : 'MISSING')
@@ -32,6 +36,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     onResponseError: async (ctx) => {
       if (ctx.response.status !== 401) return
       try {
+        const supabaseClient = useSupabaseClient?.()
+        if (!supabaseClient) {
+          console.warn('[API Auth] Supabase client not ready on 401')
+          return
+        }
         console.log('[API Auth] 401 detected, refreshing session...')
         await supabaseClient.auth.refreshSession()
         const { data: { session } } = await supabaseClient.auth.getSession()
