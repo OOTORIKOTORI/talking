@@ -1,7 +1,7 @@
 <template>
   <div class="pointer-events-auto">
     <div
-      class="mx-[5%] mb-[3%] w-[90%] border"
+      class="mx-0 w-full border"
       :class="theme.frame?.shadow === false ? '' : 'shadow-lg'"
       :style="{
         background: theme.frame?.bg ?? 'rgba(20,24,36,0.72)',

@@ -13,25 +13,36 @@
 
     <div v-else-if="game" class="w-[90vw] max-w-[1400px] mx-auto">
       <div class="rounded-lg overflow-hidden shadow-2xl bg-black">
-        <div class="w-full aspect-[16/9] relative">
+        <!-- 新しい統一構造 -->
+        <div class="tgk-stage">
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded" @click="openFs()">全画面</button>
+  
   <!-- Fullscreen Overlay -->
   <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">
     <div class="absolute inset-0">
-      <MiniStage
-        :fill="true"
-        :bg-asset-id="current?.bgAssetId || undefined"
-        :portraits="portraitsResolved"
-        :camera="camera"
-      />
-      <div class="absolute inset-x-0 bottom-0 pointer-events-none">
-        <MessageWindow class="pointer-events-none" :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
+      <!-- フルスクリーンも統一構造 -->
+      <div class="tgk-stage w-full h-full">
+        <!-- 内側ラッパー: zoom/パンを適用 -->
+        <div class="tgk-stage__content" :style="{ transform: `scale(${(camera.zoom || 100)/100}) translate(${((50-(camera.cx||50)))}%, ${((50-(camera.cy||50)))}%)` }">
+          <MiniStage
+            :fill="true"
+            :bg-asset-id="current?.bgAssetId || undefined"
+            :portraits="portraitsResolved"
+            :camera="{ zoom: 100, cx: 50, cy: 50 }"
+          />
+        </div>
+        
+        <!-- メッセージウィンドウ（拡大しない） -->
+        <div class="tgk-stage__msg">
+          <MessageWindow class="pointer-events-none" :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
+        </div>
       </div>
       <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2" @click="closeFs()">閉じる（Esc）</button>
     </div>
   </div>
-          <!-- スタートオーバーレイ（current が未設定のときのみ表示） -->
-          <div v-if="!current" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
+          
+          <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
+          <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
             <div class="text-center">
               <h1 class="text-3xl font-bold mb-4">{{ game.title }}</h1>
               <p v-if="game.summary" class="text-gray-300 mb-6">{{ game.summary }}</p>
@@ -44,28 +55,31 @@
             </div>
           </div>
 
-          <MiniStage
-            :fill="true"
-            :bg-asset-id="current?.bgAssetId || undefined"
-            :portraits="portraitsResolved"
-            :camera="camera"
-          />
+          <!-- 内側ラッパー: zoom/パンを適用 -->
+          <div class="tgk-stage__content" :style="{ transform: `scale(${(camera.zoom || 100)/100}) translate(${((50-(camera.cx||50)))}%, ${((50-(camera.cy||50)))}%)` }">
+            <MiniStage
+              :fill="true"
+              :bg-asset-id="current?.bgAssetId || undefined"
+              :portraits="portraitsResolved"
+              :camera="{ zoom: 100, cx: 50, cy: 50 }"
+            />
+          </div>
 
           <!-- hidden on mobile, shown as small control on md+ -->
-          <audio ref="bgmRef" :src="bgmUrl || undefined" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
+          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
 
-          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices) -->
+          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
           <button 
-            v-if="current && (!choices || choices.length === 0)"
+            v-if="current && !showStartScreen && (!choices || choices.length === 0)"
             class="absolute inset-0 z-10" 
             @click="advanceWithinNodeOrNext(); ensureBgm()" 
             aria-label="next"
           ></button>
 
-          <!-- message window (only when current exists) -->
-          <div v-if="current" class="absolute inset-x-0 bottom-0 pointer-events-none z-20">
+          <!-- message window (only when current exists and not on start screen) -->
+          <div v-if="current && !showStartScreen" class="tgk-stage__msg z-20">
             <!-- 選択肢がある場合 -->
-            <div v-if="choices && choices.length > 0" class="mx-[5%] mb-[3%] w-[90%] space-y-2 pointer-events-auto">
+            <div v-if="choices && choices.length > 0" class="w-full space-y-2 pointer-events-auto">
               <button
                 v-for="ch in choices"
                 :key="ch.id"
@@ -77,7 +91,7 @@
             </div>
 
             <!-- 終了時のリスタートボタン -->
-            <div v-else-if="!nextNodeId" class="mx-[5%] mb-[3%] w-[90%] text-center pointer-events-auto">
+            <div v-else-if="!nextNodeId" class="w-full text-center pointer-events-auto">
               <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
               <button
                 @click="restart(); ensureBgm()"
@@ -101,12 +115,27 @@
         </div>
       </div>
 
-      <!-- BGM同意モーダル -->
-      <div v-if="needConsent" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-        <div class="bg-white rounded-xl shadow-xl p-8 max-w-xs w-full text-center relative z-50">
-          <h2 class="text-lg font-bold mb-4">BGM再生の許可</h2>
-          <p class="mb-6">BGMを再生するには許可が必要です。<br>OKを押すとBGMが流れます。</p>
-          <button class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" @click="giveConsent">OK</button>
+      <!-- 音声同意オーバーレイ -->
+      <div v-if="!soundOk && bgmUrl" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
+        <div class="rounded-xl bg-white p-6 shadow-xl w-[min(560px,90vw)]">
+          <h2 class="font-semibold text-lg mb-2">音声の再生について</h2>
+          <p class="text-sm text-gray-600 mb-4">
+            このページでは BGM / 効果音が再生されます。再生を有効にしますか？
+          </p>
+          <div class="flex gap-3 justify-end">
+            <button 
+              class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              @click="denySound"
+            >
+              あとで
+            </button>
+            <button 
+              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              @click="allowSound"
+            >
+              有効にする
+            </button>
+          </div>
         </div>
       </div>
 
@@ -121,12 +150,14 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, nextTick } from 'vue'
 const fullscreen = ref(false)
 function openFs(){ fullscreen.value = true; document.documentElement.classList.add('overflow-hidden') }
 function closeFs(){ fullscreen.value = false; document.documentElement.classList.remove('overflow-hidden') }
-onMounted(() => window.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeFs() }))
-onBeforeUnmount(() => window.removeEventListener('keydown', (e)=>{}))
+
+// Escキーでフルスクリーンを閉じる
+const onEscKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFs() }
+
 import MiniStage from '@/components/game/MiniStage.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import { computed, ref, watch, onMounted } from 'vue'
@@ -144,25 +175,26 @@ const current = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
+const showStartScreen = ref(true) // スタート画面の表示制御
 
-// クエリパラメータの取得
-const sceneIdQ = computed(() => (route.query.sceneId as string | undefined) || undefined)
-const nodeIdQ  = computed(() => (route.query.nodeId  as string | undefined) || undefined)
+// クエリパラメータを文字列に正規化（配列対応）
+function qStr(v: unknown) {
+  if (Array.isArray(v)) return v[0] as string | undefined
+  return v as string | undefined
+}
 
 // 開始シーン・ノードを優先順で解決する関数
 function resolveStart(gameData: any) {
+  if (!gameData?.scenes?.length) return { scene: undefined, node: undefined }
+
+  const sceneIdQ = qStr(route.query.sceneId)
+  const nodeIdQ  = qStr(route.query.nodeId)
+
   // 1. どのシーンから始めるか
-  let scene = gameData?.scenes?.[0]
-  if (sceneIdQ.value) {
-    const found = gameData.scenes.find((s: any) => s.id === sceneIdQ.value)
-    if (found) scene = found
-  }
+  let scene = gameData.scenes.find((s: any) => s.id === sceneIdQ) ?? gameData.scenes[0]
 
   // 2. どのノードから始めるか (優先順: nodeId → scene.startNodeId → 先頭ノード)
-  let node = undefined
-  if (nodeIdQ.value) {
-    node = scene?.nodes?.find((n: any) => n.id === nodeIdQ.value)
-  }
+  let node = scene?.nodes?.find((n: any) => n.id === nodeIdQ)
   if (!node && scene?.startNodeId) {
     node = scene.nodes?.find((n: any) => n.id === scene.startNodeId)
   }
@@ -171,6 +203,23 @@ function resolveStart(gameData: any) {
   }
 
   return { scene, node }
+}
+
+// 開始位置を適用する（データ読込後に必ず呼ぶ）
+function applyStart() {
+  const { scene, node } = resolveStart(game.value)
+  if (node) {
+    segIndex.value = 0
+    current.value = node
+    // クエリパラメータがある場合は自動開始
+    if (route.query.sceneId || route.query.nodeId) {
+      showStartScreen.value = false
+    }
+  } else if (scene) {
+    error.value = '開始ノードがありません'
+  } else {
+    error.value = '開始シーンがありません'
+  }
 }
 
 // 台詞の段階表示用
@@ -197,15 +246,35 @@ watch(
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
 const bgmRef = ref<HTMLAudioElement | null>(null)
-const needConsent = ref(false)
-const hasConsent = () => localStorage.getItem('talking.audioConsent') === 'yes'
-function ensureBgm() { bgmRef.value?.play().catch(() => {}) }
-const giveConsent = () => { localStorage.setItem('talking.audioConsent','yes'); needConsent.value = false; ensureBgm() }
+const soundOk = useState<boolean>('tgk-sound-ok', () => false)
 
-// BGM URLが変化したときに同意モーダルを出す
-watch(bgmUrl, (u) => {
-  if (u && !hasConsent()) needConsent.value = true
-}, { immediate: true })
+// 音声同意の確認
+function checkSoundConsent() {
+  soundOk.value = localStorage.getItem('tgk:soundOk') === '1'
+}
+
+// 音声を有効にする
+function allowSound() {
+  localStorage.setItem('tgk:soundOk', '1')
+  soundOk.value = true
+  nextTick(() => {
+    if (bgmRef.value) {
+      bgmRef.value.play().catch(() => {})
+    }
+  })
+}
+
+// 音声を後回しにする
+function denySound() {
+  soundOk.value = false
+}
+
+// BGMを再生（soundOkの場合のみ）
+function ensureBgm() {
+  if (soundOk.value && bgmRef.value) {
+    bgmRef.value.play().catch(() => {})
+  }
+}
 
 // currentのmusicAssetIdが変化したらBGM URLを更新
 watch(
@@ -213,11 +282,6 @@ watch(
   async (id) => { bgmUrl.value = id ? await signedFromId(id, false) : null },
   { immediate: true }
 )
-
-// マウント時に同意済みかつBGMがあれば自動再生
-onMounted(() => {
-  if (hasConsent() && bgmUrl.value) ensureBgm()
-})
 
 // Message theme (project-level setting with fallback)
 const defaultTheme = {
@@ -229,6 +293,12 @@ const defaultTheme = {
 const theme = computed(() => (game.value as any)?.messageTheme ?? defaultTheme)
 
 onMounted(async () => {
+  // 音声同意を確認
+  checkSoundConsent()
+  
+  // Escキーイベントリスナーを追加
+  window.addEventListener('keydown', onEscKey)
+  
   try {
     game.value = await api.get(route.params.id as string)
     
@@ -240,6 +310,12 @@ onMounted(async () => {
     })
 
     loading.value = false
+    
+    // データ読込完了後に必ず開始位置を適用
+    applyStart()
+    
+    // 音声同意済みかつBGMがあれば自動再生
+    if (soundOk.value && bgmUrl.value) ensureBgm()
   } catch (err: any) {
     console.error('Failed to load game:', err)
     error.value = err.message || 'ゲームの読み込みに失敗しました'
@@ -247,40 +323,38 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onEscKey)
+})
+
 // クエリパラメータが変わったときも再解決（ゲームロード完了後のみ）
-watch(() => [sceneIdQ.value, nodeIdQ.value], () => {
-  if (!game.value || loading.value) return
-  const { scene, node } = resolveStart(game.value)
-  if (scene && node) {
-    segIndex.value = 0
-    current.value = node
-  }
-}, { immediate: false })
+watch(
+  () => [route.query.sceneId, route.query.nodeId, game.value?.scenes?.length],
+  () => {
+    if (game.value && !loading.value) {
+      applyStart()
+    }
+  },
+  { deep: true }
+)
 
 function start() {
-  // resolveStart関数を使用して優先順位通りに開始位置を解決
-  const { scene, node } = resolveStart(game.value)
-
-  if (!scene) {
-    error.value = '開始シーンがありません'
-    return
+  // スタート画面を非表示にして開始
+  showStartScreen.value = false
+  
+  if (!current.value) {
+    applyStart()
   }
-  if (!node) {
-    error.value = '開始ノードがありません'
-    return
-  }
-
-  segIndex.value = 0
-  current.value = node
-
-  // BGM consent overlay
-  needConsent.value = !!bgmUrl.value && !hasConsent()
+  
+  // 音声同意済みならBGMを再生
+  ensureBgm()
 }
 
 function restart() {
+  showStartScreen.value = true
   current.value = null
   segIndex.value = 0
-  start()
+  applyStart()
   ensureBgm()
 }
 

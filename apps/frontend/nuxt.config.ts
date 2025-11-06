@@ -3,6 +3,10 @@ export default defineNuxtConfig({
   components: true,
   ssr: true,
   
+  css: [
+    '~/assets/css/talking-stage.css'
+  ],
+  
   modules: [
      // 既存のモジュール...
      '@nuxtjs/tailwindcss',

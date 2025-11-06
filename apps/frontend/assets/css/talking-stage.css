@@ -1,0 +1,26 @@
+/* Stage 16:9 ビューポート */
+.tgk-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9; /* ここで比率をロック */
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* 実体（背景/キャラ）: ズームやパンはここに適用 */
+.tgk-stage__content {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+}
+
+/* メッセージウィンドウ（拡大しない） */
+.tgk-stage__msg {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 3%;
+  width: auto;
+  pointer-events: none;
+}
+.tgk-stage__msg > * { pointer-events: auto; } /* ボタン類がある場合 */

@@ -467,12 +467,18 @@ function onUp() {
           <div v-if="fullscreenProps && node" class="fs-grid">
             <div class="stage-outer">
               <div class="stage-inner">
-                <div class="relative w-full h-full">
-                  <MiniStage :fill="true"
-                             :bg-asset-id="nodeDraft.bgAssetId"
-                             :portraits="nodeDraft.portraits || []"
-                             :camera="nodeDraft.camera" />
-                  <div class="absolute inset-x-0 bottom-0 pointer-events-none">
+                <!-- 新しい統一構造 -->
+                <div class="tgk-stage">
+                  <!-- 内側ラッパー: zoom/パンを適用 -->
+                  <div class="tgk-stage__content" :style="{ transform: `scale(${(nodeDraft.camera?.zoom || 100)/100}) translate(${((50-(nodeDraft.camera?.cx||50)))}%, ${((50-(nodeDraft.camera?.cy||50)))}%)` }">
+                    <MiniStage :fill="true"
+                               :bg-asset-id="nodeDraft.bgAssetId"
+                               :portraits="nodeDraft.portraits || []"
+                               :camera="{ zoom: 100, cx: 50, cy: 50 }" />
+                  </div>
+                  
+                  <!-- メッセージウィンドウ（拡大しない） -->
+                  <div class="tgk-stage__msg">
                     <MessageWindow
                       class="pointer-events-none"
                       :speaker="nodeDraft.speakerDisplayName || ''"
