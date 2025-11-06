@@ -89,6 +89,26 @@ export class GamesService {
     });
   }
 
+  async patchScene(userId: string, sceneId: string, data: any) {
+    const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
+    if (!s) throw new NotFoundException();
+    const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
+    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+
+    const allowed: any = {};
+    if (typeof data.name === 'string') allowed.name = data.name;
+    if (typeof data.order === 'number') allowed.order = data.order;
+    // startNodeId は string または null を許可
+    if (typeof data.startNodeId === 'string' || data.startNodeId === null) {
+      allowed.startNodeId = data.startNodeId ?? null;
+    }
+
+    if (Object.keys(allowed).length === 0) {
+      return s; // 変更なし
+    }
+    return this.prisma.gameScene.update({ where: { id: sceneId }, data: allowed });
+  }
+
   // Nodes
   async listNodes(userId: string, sceneId: string) {
     const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });

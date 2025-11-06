@@ -54,6 +54,11 @@ export class GamesController {
     return this.games.upsertScene(req.user.userId, pid, b);
   }
 
+  @Patch('scenes/:sceneId')
+  updateScene(@Req() req: any, @Param('sceneId') sceneId: string, @Body() b: any) {
+    return this.games.patchScene(req.user.userId, sceneId, b);
+  }
+
   @Get('scenes/:sceneId/nodes')
   listNodes(@Req() req: any, @Param('sceneId') sid: string) {
     return this.games.listNodes(req.user.userId, sid);
