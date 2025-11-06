@@ -24,8 +24,8 @@
         :portraits="portraitsResolved"
         :camera="camera"
       />
-      <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
-        <MessageWindow :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
+      <div class="absolute inset-x-0 bottom-0 pointer-events-none">
+        <MessageWindow class="pointer-events-none" :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
       </div>
       <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2" @click="closeFs()">閉じる（Esc）</button>
     </div>
@@ -63,9 +63,9 @@
           ></button>
 
           <!-- message window (only when current exists) -->
-          <div v-if="current" class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6 z-20">
+          <div v-if="current" class="absolute inset-x-0 bottom-0 pointer-events-none z-20">
             <!-- 選択肢がある場合 -->
-            <div v-if="choices && choices.length > 0" class="space-y-2 mb-4">
+            <div v-if="choices && choices.length > 0" class="mx-[5%] mb-[3%] w-[90%] space-y-2 pointer-events-auto">
               <button
                 v-for="ch in choices"
                 :key="ch.id"
@@ -77,7 +77,7 @@
             </div>
 
             <!-- 終了時のリスタートボタン -->
-            <div v-else-if="!nextNodeId" class="text-center mb-4">
+            <div v-else-if="!nextNodeId" class="mx-[5%] mb-[3%] w-[90%] text-center pointer-events-auto">
               <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
               <button
                 @click="restart(); ensureBgm()"
@@ -90,6 +90,7 @@
             <!-- 通常のメッセージウィンドウ -->
             <MessageWindow
               v-else
+              class="pointer-events-none"
               :speaker="speaker"
               :text="displayedText"
               :theme="theme"
@@ -245,6 +246,16 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// クエリパラメータが変わったときも再解決（ゲームロード完了後のみ）
+watch(() => [sceneIdQ.value, nodeIdQ.value], () => {
+  if (!game.value || loading.value) return
+  const { scene, node } = resolveStart(game.value)
+  if (scene && node) {
+    segIndex.value = 0
+    current.value = node
+  }
+}, { immediate: false })
 
 function start() {
   // resolveStart関数を使用して優先順位通りに開始位置を解決

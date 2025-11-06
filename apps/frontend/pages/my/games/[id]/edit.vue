@@ -39,19 +39,19 @@ const musicUrl = ref<string | null>(null)
 const musicTitle = ref<string>('')
 const pendingIndex = ref<number | null>(null)
 
-// Place previewHref AFTER game, scene, and node are declared to avoid TDZ error
-const previewHref = computed(() => {
-  const g = game?.value
-  if (!g?.id) return '#'
-  const params = new URLSearchParams()
-  const s = scene?.value
-  const n = node?.value
-  if (s?.id) params.set('sceneId', s.id)
-  if (n?.id) params.set('nodeId', n.id)
-  return params.toString()
-    ? `/games/${g.id}/play?${params.toString()}`
-    : `/games/${g.id}/play`
-})
+// テストプレイを新しいタブで開く
+function openTestPlay() {
+  if (!scene.value || !game.value) return
+  
+  // 開始ノードを決定（優先順: scene.startNodeId → 先頭ノード）
+  const startId = scene.value.startNodeId || scene.value.nodes?.[0]?.id || nodes.value?.[0]?.id
+  
+  // URLを構築
+  const url = `/games/${game.value.id}/play?sceneId=${scene.value.id}` +
+    (startId ? `&nodeId=${startId}` : '')
+  
+  window.open(url, '_blank')
+}
 
 const openThemeModal = ref(false)
 
@@ -363,13 +363,13 @@ function onUp() {
     <div v-else-if="game" class="space-y-4">
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">{{ game.title }}</h1>
-        <NuxtLink
+        <button
           v-if="game?.id"
-          :to="previewHref"
-          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          @click="openTestPlay"
+          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
         >
           テストプレイ
-        </NuxtLink>
+        </button>
       </div>
 
       <div
@@ -472,8 +472,9 @@ function onUp() {
                              :bg-asset-id="nodeDraft.bgAssetId"
                              :portraits="nodeDraft.portraits || []"
                              :camera="nodeDraft.camera" />
-                  <div class="absolute inset-x-2 bottom-2 pointer-events-none">
+                  <div class="absolute inset-x-0 bottom-0 pointer-events-none">
                     <MessageWindow
+                      class="pointer-events-none"
                       :speaker="nodeDraft.speakerDisplayName || ''"
                       :text="nodeDraft.text || ''"
                       :theme="previewTheme"
@@ -666,8 +667,9 @@ function onUp() {
                            :bg-asset-id="nodeDraft.bgAssetId"
                            :portraits="nodeDraft.portraits || []"
                            :camera="nodeDraft.camera" />
-                <div class="absolute inset-x-2 bottom-2 pointer-events-none">
+                <div class="absolute inset-x-0 bottom-0 pointer-events-none">
                   <MessageWindow
+                    class="pointer-events-none"
                     :speaker="nodeDraft.speakerDisplayName || ''"
                     :text="nodeDraft.text || ''"
                     :theme="previewTheme"

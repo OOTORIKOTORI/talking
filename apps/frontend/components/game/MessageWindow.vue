@@ -1,18 +1,15 @@
 <template>
-  <div
-    class="w-full select-none"
-    :style="{
-      '--bg': theme.frame?.bg ?? 'rgba(0,0,0,0.6)',
-      '--bd': theme.frame?.borderColor ?? 'rgba(255,255,255,0.25)',
-      '--bw': (theme.frame?.borderWidth ?? 2) + 'px',
-      '--br': (theme.frame?.radius ?? 16) + 'px',
-      '--pd': (theme.frame?.padding ?? 16) + 'px'
-    }"
-  >
+  <div class="pointer-events-auto">
     <div
-      class="w-full border"
+      class="mx-[5%] mb-[3%] w-[90%] border"
       :class="theme.frame?.shadow === false ? '' : 'shadow-lg'"
-      :style="{ background: 'var(--bg)', borderColor: 'var(--bd)', borderWidth: 'var(--bw)', borderRadius: 'var(--br)', padding: 'var(--pd)' }"
+      :style="{
+        background: theme.frame?.bg ?? 'rgba(20,24,36,0.72)',
+        borderColor: theme.frame?.borderColor ?? 'rgba(255,255,255,0.2)',
+        borderWidth: (theme.frame?.borderWidth ?? 2) + 'px',
+        borderRadius: (theme.frame?.radius ?? 16) + 'px',
+        padding: (theme.frame?.padding ?? 12) + 'px'
+      }"
       @click="$emit('click')"
     >
       <div
@@ -32,7 +29,7 @@
         class="whitespace-pre-wrap"
         :style="{
           color: theme.text?.color ?? '#fff',
-          fontSize: (theme.text?.size ?? 16) + 'px',
+          fontSize: `clamp(12px, ${fontScale}vh, ${theme.text?.size ?? 16}px)`,
           lineHeight: (theme.text?.lineHeight ?? 1.8)
         }"
       >
@@ -52,6 +49,9 @@ const props = defineProps<{
 
 const theme = computed(() => props.theme ?? {})
 const shown = ref('')
+
+/** 親の高さに概ね追従。ビューポートではなく stage 比基準に近い見た目に。 */
+const fontScale = 2.2 // 2.2vh くらいを基準にし、theme.text.size が上限
 
 let timer: any = null
 function typeTo(target: string) {
