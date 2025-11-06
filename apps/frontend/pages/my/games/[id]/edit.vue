@@ -368,7 +368,7 @@ function onUp() {
           :to="previewHref"
           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
         >
-          プレビュー
+          テストプレイ
         </NuxtLink>
       </div>
 
@@ -472,12 +472,13 @@ function onUp() {
                              :bg-asset-id="nodeDraft.bgAssetId"
                              :portraits="nodeDraft.portraits || []"
                              :camera="nodeDraft.camera" />
-                  <div class="absolute inset-x-2 bottom-2">
+                  <div class="absolute inset-x-2 bottom-2 pointer-events-none">
                     <MessageWindow
                       :speaker="nodeDraft.speakerDisplayName || ''"
                       :text="nodeDraft.text || ''"
                       :theme="previewTheme"
                       :animate="true"
+                      :key="nodeDraft.text"
                     />
                   </div>
                 </div>
@@ -660,10 +661,21 @@ function onUp() {
           <!-- 通常表示の場合 -->
           <div v-if="!fullscreenProps">
             <div v-if="node" class="mb-3">
-              <MiniStage :fill="false"
-                         :bg-asset-id="nodeDraft.bgAssetId"
-                         :portraits="nodeDraft.portraits || []"
-                         :camera="nodeDraft.camera" />
+              <div class="relative">
+                <MiniStage :fill="false"
+                           :bg-asset-id="nodeDraft.bgAssetId"
+                           :portraits="nodeDraft.portraits || []"
+                           :camera="nodeDraft.camera" />
+                <div class="absolute inset-x-2 bottom-2 pointer-events-none">
+                  <MessageWindow
+                    :speaker="nodeDraft.speakerDisplayName || ''"
+                    :text="nodeDraft.text || ''"
+                    :theme="previewTheme"
+                    :animate="true"
+                    :key="nodeDraft.text"
+                  />
+                </div>
+              </div>
             </div>
 
             <div v-if="node">
