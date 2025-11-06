@@ -144,6 +144,34 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
 
+// クエリパラメータの取得
+const sceneIdQ = computed(() => (route.query.sceneId as string | undefined) || undefined)
+const nodeIdQ  = computed(() => (route.query.nodeId  as string | undefined) || undefined)
+
+// 開始シーン・ノードを優先順で解決する関数
+function resolveStart(gameData: any) {
+  // 1. どのシーンから始めるか
+  let scene = gameData?.scenes?.[0]
+  if (sceneIdQ.value) {
+    const found = gameData.scenes.find((s: any) => s.id === sceneIdQ.value)
+    if (found) scene = found
+  }
+
+  // 2. どのノードから始めるか (優先順: nodeId → scene.startNodeId → 先頭ノード)
+  let node = undefined
+  if (nodeIdQ.value) {
+    node = scene?.nodes?.find((n: any) => n.id === nodeIdQ.value)
+  }
+  if (!node && scene?.startNodeId) {
+    node = scene.nodes?.find((n: any) => n.id === scene.startNodeId)
+  }
+  if (!node) {
+    node = scene?.nodes?.[0]
+  }
+
+  return { scene, node }
+}
+
 // 台詞の段階表示用
 const segIndex = ref(0)
 
@@ -219,24 +247,20 @@ onMounted(async () => {
 })
 
 function start() {
-  // 優先順位: nodeId > sceneId(+startNodeId) > startSceneId > 先頭
-  const q = route.query as any
-  const nodeId = q.nodeId as string | undefined
-  const sceneId = q.sceneId as string | undefined
+  // resolveStart関数を使用して優先順位通りに開始位置を解決
+  const { scene, node } = resolveStart(game.value)
 
-  if (nodeId && map.has(nodeId)) {
-    segIndex.value = 0; current.value = map.get(nodeId); return
+  if (!scene) {
+    error.value = '開始シーンがありません'
+    return
   }
-  const s = sceneId
-    ? game.value.scenes.find((x:any)=>x.id===sceneId)
-    : (game.value.scenes.find((x:any)=>x.id===game.value.startSceneId) || game.value.scenes[0])
+  if (!node) {
+    error.value = '開始ノードがありません'
+    return
+  }
 
-  if (!s) { error.value='開始シーンがありません'; return }
-  const startNode = (s as any).startNodeId
-    ? s.nodes.find((n:any)=>n.id===(s as any).startNodeId)
-    : s.nodes?.[0]
-  if (!startNode) { error.value='開始ノードがありません'; return }
-  segIndex.value = 0; current.value = startNode
+  segIndex.value = 0
+  current.value = node
 
   // BGM consent overlay
   needConsent.value = !!bgmUrl.value && !hasConsent()
