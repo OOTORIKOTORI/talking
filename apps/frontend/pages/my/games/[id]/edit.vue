@@ -177,8 +177,13 @@ async function addScene() {
   }
 }
 
-async function setSceneStartNode(id:string){
-  await $fetch(`/games/scenes/${scene.value.id}`, { method:'PATCH', body: { startNodeId: id } })
+async function setSceneStartNode(id: string) {
+  if (!scene.value) return
+  await $fetch(`/games/scenes/${scene.value.id}`, {
+    baseURL,
+    method: 'PATCH',
+    body: { startNodeId: id },
+  })
   scene.value.startNodeId = id
 }
 
@@ -426,11 +431,6 @@ function onUp() {
                   選択肢 × {{ n.choices.length }}
                 </div>
               </li>
-// シーンの開始ノード設定
-async function setSceneStartNode(id:string){
-  await $fetch(`/games/scenes/${scene.value.id}`, { method:'PATCH', body: { startNodeId: id } })
-  scene.value.startNodeId = id
-}
             </ul>
             <button
               class="mt-4 w-full px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
