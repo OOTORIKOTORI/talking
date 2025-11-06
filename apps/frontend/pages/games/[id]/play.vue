@@ -162,10 +162,12 @@ import MiniStage from '@/components/game/MiniStage.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
+import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 
 const { signedFromId } = useAssetMeta()
 
 const route = useRoute()
+const router = useRouter()
 const api = useGamesApi()
 const runtimeConfig = useRuntimeConfig()
 
@@ -177,10 +179,47 @@ const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 
-// クエリパラメータを文字列に正規化（配列対応）
+// 音声同意状態
+const soundOk = audioConsent
+
+// クエリパラメータを文字列に正規化(配列対応)
 function qStr(v: unknown) {
   if (Array.isArray(v)) return v[0] as string | undefined
   return v as string | undefined
+}
+
+// 開始シーン・ノードの強制解決（クエリパラメータがない場合はreplaceで追加）
+async function ensureStartQuery() {
+  const q = route.query
+  const sceneIdQ = qStr(q.sceneId)
+  const nodeIdQ = qStr(q.nodeId)
+  
+  // 既にクエリパラメータがあれば何もしない
+  if (sceneIdQ && nodeIdQ) return
+
+  // ゲームデータがない場合は何もしない
+  if (!game.value) return
+
+  const scenes = game.value.scenes
+  if (!scenes?.length) return
+
+  // 開始シーンを決定
+  const scene = scenes.find((s: any) => s.id === sceneIdQ) ?? scenes[0]
+  if (!scene) return
+
+  // 開始ノードを決定(優先順: scene.startNodeId → 先頭ノード)
+  let nodeId = scene.startNodeId
+  if (!nodeId && scene.nodes?.length) {
+    nodeId = scene.nodes[0].id
+  }
+  if (!nodeId) return
+
+  // クエリパラメータをreplaceで追加
+  await router.replace({
+    name: route.name as string,
+    params: route.params,
+    query: { ...q, sceneId: scene.id, nodeId }
+  })
 }
 
 // 開始シーン・ノードを優先順で解決する関数
@@ -205,7 +244,7 @@ function resolveStart(gameData: any) {
   return { scene, node }
 }
 
-// 開始位置を適用する（データ読込後に必ず呼ぶ）
+// 開始位置を適用する(データ読込後に必ず呼ぶ)
 function applyStart() {
   const { scene, node } = resolveStart(game.value)
   if (node) {
@@ -246,30 +285,20 @@ watch(
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
 const bgmRef = ref<HTMLAudioElement | null>(null)
-const soundOk = useState<boolean>('tgk-sound-ok', () => false)
-
-// 音声同意の確認
-function checkSoundConsent() {
-  soundOk.value = localStorage.getItem('tgk:soundOk') === '1'
-}
 
 // 音声を有効にする
-function allowSound() {
-  localStorage.setItem('tgk:soundOk', '1')
-  soundOk.value = true
-  nextTick(() => {
-    if (bgmRef.value) {
-      bgmRef.value.play().catch(() => {})
-    }
-  })
+async function allowSound() {
+  if (bgmRef.value) {
+    await grantAudioConsent([bgmRef.value])
+  }
 }
 
 // 音声を後回しにする
 function denySound() {
-  soundOk.value = false
+  // 何もしない（同意しない状態を維持）
 }
 
-// BGMを再生（soundOkの場合のみ）
+// BGMを再生(soundOkの場合のみ)
 function ensureBgm() {
   if (soundOk.value && bgmRef.value) {
     bgmRef.value.play().catch(() => {})
@@ -294,7 +323,7 @@ const theme = computed(() => (game.value as any)?.messageTheme ?? defaultTheme)
 
 onMounted(async () => {
   // 音声同意を確認
-  checkSoundConsent()
+  initAudioConsent()
   
   // Escキーイベントリスナーを追加
   window.addEventListener('keydown', onEscKey)
@@ -311,11 +340,16 @@ onMounted(async () => {
 
     loading.value = false
     
+    // クエリパラメータがない場合は自動的に追加
+    await ensureStartQuery()
+    
     // データ読込完了後に必ず開始位置を適用
     applyStart()
     
     // 音声同意済みかつBGMがあれば自動再生
-    if (soundOk.value && bgmUrl.value) ensureBgm()
+    if (soundOk.value && bgmUrl.value && bgmRef.value) {
+      bgmRef.value.play().catch(() => {})
+    }
   } catch (err: any) {
     console.error('Failed to load game:', err)
     error.value = err.message || 'ゲームの読み込みに失敗しました'
@@ -327,11 +361,12 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEscKey)
 })
 
-// クエリパラメータが変わったときも再解決（ゲームロード完了後のみ）
+// クエリパラメータが変わったときも再解決(ゲームロード完了後のみ)
 watch(
   () => [route.query.sceneId, route.query.nodeId, game.value?.scenes?.length],
-  () => {
+  async () => {
     if (game.value && !loading.value) {
+      await ensureStartQuery()
       applyStart()
     }
   },

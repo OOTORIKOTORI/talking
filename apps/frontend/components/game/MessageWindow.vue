@@ -1,41 +1,28 @@
 <template>
-  <div class="pointer-events-auto">
+  <div class="mw pointer-events-auto">
     <div
-      class="mx-0 w-full border"
-      :class="theme.frame?.shadow === false ? '' : 'shadow-lg'"
+      v-if="speaker && (theme.name?.show ?? true)"
+      class="name"
       :style="{
-        background: theme.frame?.bg ?? 'rgba(20,24,36,0.72)',
-        borderColor: theme.frame?.borderColor ?? 'rgba(255,255,255,0.2)',
-        borderWidth: (theme.frame?.borderWidth ?? 2) + 'px',
-        borderRadius: (theme.frame?.radius ?? 16) + 'px',
-        padding: (theme.frame?.padding ?? 12) + 'px'
+        background: theme.name?.bg ?? 'rgba(0,0,0,0.55)',
+        color: theme.name?.color ?? '#fff',
+        borderRadius: `calc(${theme.name?.radius ?? 12}px * var(--stage-scale, 1))`,
+        padding: `calc(${theme.name?.padding ?? 8}px * var(--stage-scale, 1))`
       }"
-      @click="$emit('click')"
     >
-      <div
-        v-if="speaker && (theme.name?.show ?? true)"
-        class="inline-block mb-2"
-        :style="{
-          background: theme.name?.bg ?? 'rgba(0,0,0,0.55)',
-          color: theme.name?.color ?? '#fff',
-          borderRadius: (theme.name?.radius ?? 10) + 'px',
-          padding: (theme.name?.padding ?? 8) + 'px'
-        }"
-      >
-        <span class="font-semibold">{{ speaker }}</span>
-      </div>
-
-      <p
-        class="whitespace-pre-wrap"
-        :style="{
-          color: theme.text?.color ?? '#fff',
-          fontSize: `clamp(12px, ${fontScale}vh, ${theme.text?.size ?? 16}px)`,
-          lineHeight: (theme.text?.lineHeight ?? 1.8)
-        }"
-      >
-        {{ shown }}
-      </p>
+      <span class="font-semibold">{{ speaker }}</span>
     </div>
+
+    <p
+      class="text"
+      :style="{
+        color: theme.text?.color ?? '#fff',
+        fontSize: `calc(${theme.text?.size ?? 18}px * var(--stage-scale, 1))`,
+        lineHeight: (theme.text?.lineHeight ?? 1.8)
+      }"
+    >
+      {{ shown }}
+    </p>
   </div>
 </template>
 
@@ -49,9 +36,6 @@ const props = defineProps<{
 
 const theme = computed(() => props.theme ?? {})
 const shown = ref('')
-
-/** 親の高さに概ね追従。ビューポートではなく stage 比基準に近い見た目に。 */
-const fontScale = 2.2 // 2.2vh くらいを基準にし、theme.text.size が上限
 
 let timer: any = null
 function typeTo(target: string) {
@@ -70,3 +54,34 @@ function typeTo(target: string) {
 watch(() => props.text ?? '', (t) => typeTo(t), { immediate: true })
 onBeforeUnmount(() => clearInterval(timer))
 </script>
+
+<style scoped>
+.mw {
+  position: absolute;
+  left: calc(var(--mw-left, 0.07) * 100%);
+  bottom: calc(var(--mw-bottom, 0.05) * 100%);
+  width: calc(var(--mw-w, 0.86) * 100%);
+  background: var(--mw-bg, rgba(20, 24, 36, 0.72));
+  color: var(--mw-fg, #fff);
+  border: var(--mw-border, 2px solid rgba(255, 255, 255, 0.2));
+  border-radius: calc(16px * var(--stage-scale, 1));
+  padding: calc(20px * var(--stage-scale, 1));
+  box-sizing: border-box;
+  line-height: var(--mw-lh, 1.8);
+  backdrop-filter: blur(calc(2px * var(--stage-scale, 1)));
+}
+
+.name {
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: calc(8px * var(--stage-scale, 1));
+  padding: 0.3em 0.8em;
+  border-radius: calc(12px * var(--stage-scale, 1));
+  background: var(--name-bg, rgba(0, 0, 0, 0.55));
+}
+
+.text {
+  white-space: pre-wrap;
+}
+</style>
+
