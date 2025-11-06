@@ -9,6 +9,7 @@ import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 const baseURL = useRuntimeConfig().public.apiBase
+const { $api } = useNuxtApp()
 
 definePageMeta({
   middleware: 'require-auth'
@@ -179,8 +180,7 @@ async function addScene() {
 
 async function setSceneStartNode(id: string) {
   if (!scene.value) return
-  await $fetch(`/games/scenes/${scene.value.id}`, {
-    baseURL,
+  await $api(`/games/scenes/${scene.value.id}`, {
     method: 'PATCH',
     body: { startNodeId: id },
   })
@@ -213,8 +213,8 @@ async function hydratePortraitThumbs() {
       let key = p.key
       // key が無ければキャラ画像一覧から該当IDを引いて key/thumbKey を得る
       if (!key && p.characterId && p.imageId) {
-        const list = await $fetch<any[]>(`/characters/${p.characterId}/images`, { baseURL })
-          .catch(() => $fetch<any[]>(`/my/characters/${p.characterId}/images`, { baseURL }))
+        const list = await $api<any[]>(`/characters/${p.characterId}/images`)
+          .catch(() => $api<any[]>(`/my/characters/${p.characterId}/images`))
         const hit = list?.find(x => x.id === p.imageId)
         key = hit?.thumbKey || hit?.key
       }
@@ -419,9 +419,9 @@ function onUp() {
                 class="p-3 border border-gray-200 rounded cursor-pointer hover:shadow-md transition-shadow"
                 :class="{ 'border-blue-500 bg-blue-50': n.id === node?.id }"
               >
-                <div class="flex items-center">
+                <div class="flex items-center" @click="selectNode(n)">
                   <div class="text-xs text-gray-500 mr-2">#{{ n.order }}</div>
-                  <div class="font-medium truncate text-sm flex-1" @click="selectNode(n)">
+                  <div class="font-medium truncate text-sm flex-1">
                     {{ n.text || '(無題の台詞)' }}
                   </div>
                   <button class="ml-2 text-xs px-2 py-1 border rounded" @click.stop="setSceneStartNode(n.id)">▶開始ノードに設定</button>
@@ -847,19 +847,18 @@ function onUp() {
         </section>
       <!-- ...existing code... -->
       </div>
+
+      <!-- 全体設定モーダル（テンプレート内に配置） -->
+      <MessageThemeModal
+        v-if="openThemeModal"
+        :game-id="game?.id"
+        :initial="game?.messageTheme"
+        @close="openThemeModal=false"
+        @saved="(v)=>{ if (game) game.messageTheme=v }"
+      />
     </div>
   </div>
 </template>
-
-
-<!-- root <template>の末尾に常駐モーダル配置（重複防止済み） -->
-<MessageThemeModal
-  v-if="openThemeModal"
-  :game-id="game.value.id"
-  :initial="game.value.messageTheme"
-  @close="openThemeModal=false"
-  @saved="(v)=>{ game.value.messageTheme=v }"
-/>
 
 <style scoped>
 .editor-grid{
