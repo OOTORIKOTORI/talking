@@ -75,8 +75,8 @@
                 </button>
               </div>
 
-              <!-- 終了時のリスタートボタン -->
-              <div v-else-if="!nextNodeId" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+              <!-- 終了時のリスタートボタン（次のノードも選択肢もシーン内の次も無い場合のみ） -->
+              <div v-else-if="isEndNode" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
                 <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
                 <button
                   @click="restart(); ensureBgm()"
@@ -163,8 +163,8 @@
                 </button>
               </div>
 
-              <!-- 終了時のリスタートボタン -->
-              <div v-else-if="!nextNodeId" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+              <!-- 終了時のリスタートボタン（次のノードも選択肢もシーン内の次も無い場合のみ） -->
+              <div v-else-if="isEndNode" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
                 <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
                 <button
                   @click="restart(); ensureBgm()"
@@ -531,6 +531,30 @@ const choices = computed(() => {
 const nextNodeId = computed(() => {
   if (!current.value) return null
   return current.value.nextNodeId || null
+})
+
+// 終了ノードかどうかを判定（次のノードも選択肢もシーン内の次も無い）
+const isEndNode = computed(() => {
+  if (!current.value) return false
+  
+  // 選択肢がある場合は終了ではない
+  if (choices.value && choices.value.length > 0) return false
+  
+  // nextNodeIdがある場合は終了ではない
+  if (nextNodeId.value) return false
+  
+  // シーン内に次のノードがあるかチェック
+  const scene = game.value?.scenes?.find((s: any) => 
+    s.nodes?.some((n: any) => n.id === current.value.id)
+  )
+  if (scene) {
+    const idx = scene.nodes?.findIndex((n: any) => n.id === current.value.id)
+    if (idx !== undefined && idx >= 0 && scene.nodes[idx + 1]) {
+      return false // 次のノードがある
+    }
+  }
+  
+  return true // すべての遷移先が無い = 終了
 })
 
 // プレイヤにカメラを反映（エディタと共通のカメラ座標系）
