@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MessageWindow from '@/components/game/MessageWindow.vue'
+import StageCanvas from '@/components/game/StageCanvas.vue'
 import NodePicker from '@/components/game/NodePicker.vue'
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
@@ -84,6 +85,28 @@ watch(
   },
   { immediate: false }
 )
+
+// Resolve portraits for preview
+const portraitsResolved = ref<any[]>([])
+watch(
+  () => nodeDraft.portraits,
+  async (list: any[] | undefined) => {
+    const arr = list ?? []
+    portraitsResolved.value = await Promise.all(
+      arr.map(async (p: any) => ({
+        ...p,
+        thumb: p.thumb ?? (p.imageId ? await signedFromId(p.imageId, true) : null),
+      }))
+    )
+  },
+  { immediate: true, deep: true }
+)
+
+// scaleToHeight: 旧仕様の scale 値を％に変換
+function scaleToHeight(s: number | undefined) {
+  if (s == null) return 30
+  return s > 60 ? Math.round(s / 3) : s
+}
 
 const selectedCharLabel = computed(() => {
   return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
@@ -467,18 +490,27 @@ function onUp() {
           <div v-if="fullscreenProps && node" class="fs-grid">
             <div class="stage-outer">
               <div class="stage-inner">
-                <!-- 新しい統一構造 -->
-                <div class="tgk-stage">
-                  <!-- 内側ラッパー: zoom/パンを適用 -->
-                  <div class="tgk-stage__content" :style="{ transform: `scale(${(nodeDraft.camera?.zoom || 100)/100}) translate(${((50-(nodeDraft.camera?.cx||50)))}%, ${((50-(nodeDraft.camera?.cy||50)))}%)` }">
-                    <MiniStage :fill="true"
-                               :bg-asset-id="nodeDraft.bgAssetId"
-                               :portraits="nodeDraft.portraits || []"
-                               :camera="{ zoom: 100, cx: 50, cy: 50 }" />
-                  </div>
+                <!-- StageCanvas を使用して統一構造 -->
+                <StageCanvas style="width: 100%; height: 100%">
+                  <template #background>
+                    <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
+                  </template>
                   
-                  <!-- メッセージウィンドウ（拡大しない） -->
-                  <div class="tgk-stage__msg">
+                  <template #characters>
+                    <div v-for="(p, i) in portraitsResolved" :key="i"
+                         class="absolute will-change-transform"
+                         :style="{
+                           left: (p.x ?? 50) + '%',
+                           top:  (p.y ?? 90) + '%',
+                           height: scaleToHeight(p.scale) + '%',
+                           transform: 'translate(-50%,-100%)',
+                           zIndex: p.z || 0
+                         }">
+                      <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
+                    </div>
+                  </template>
+                  
+                  <template #message>
                     <MessageWindow
                       class="pointer-events-none"
                       :speaker="nodeDraft.speakerDisplayName || ''"
@@ -487,8 +519,8 @@ function onUp() {
                       :animate="true"
                       :key="nodeDraft.text"
                     />
-                  </div>
-                </div>
+                  </template>
+                </StageCanvas>
               </div>
             </div>
             <div class="fs-form">
@@ -669,20 +701,36 @@ function onUp() {
           <div v-if="!fullscreenProps">
             <div v-if="node" class="mb-3">
               <div class="relative">
-                <MiniStage :fill="false"
-                           :bg-asset-id="nodeDraft.bgAssetId"
-                           :portraits="nodeDraft.portraits || []"
-                           :camera="nodeDraft.camera" />
-                <div class="absolute inset-x-0 bottom-0 pointer-events-none">
-                  <MessageWindow
-                    class="pointer-events-none"
-                    :speaker="nodeDraft.speakerDisplayName || ''"
-                    :text="nodeDraft.text || ''"
-                    :theme="previewTheme"
-                    :animate="true"
-                    :key="nodeDraft.text"
-                  />
-                </div>
+                <StageCanvas style="width: 100%; aspect-ratio: 16/9">
+                  <template #background>
+                    <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
+                  </template>
+                  
+                  <template #characters>
+                    <div v-for="(p, i) in portraitsResolved" :key="i"
+                         class="absolute will-change-transform"
+                         :style="{
+                           left: (p.x ?? 50) + '%',
+                           top:  (p.y ?? 90) + '%',
+                           height: scaleToHeight(p.scale) + '%',
+                           transform: 'translate(-50%,-100%)',
+                           zIndex: p.z || 0
+                         }">
+                      <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
+                    </div>
+                  </template>
+                  
+                  <template #message>
+                    <MessageWindow
+                      class="pointer-events-none"
+                      :speaker="nodeDraft.speakerDisplayName || ''"
+                      :text="nodeDraft.text || ''"
+                      :theme="previewTheme"
+                      :animate="true"
+                      :key="nodeDraft.text"
+                    />
+                  </template>
+                </StageCanvas>
               </div>
             </div>
 

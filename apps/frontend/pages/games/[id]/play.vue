@@ -13,107 +13,182 @@
 
     <div v-else-if="game" class="w-[90vw] max-w-[1400px] mx-auto">
       <div class="rounded-lg overflow-hidden shadow-2xl bg-black">
-        <!-- 新しい統一構造 -->
-        <div class="tgk-stage">
-          <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded" @click="openFs()">全画面</button>
+        <!-- StageCanvasを使用して統一構造 -->
+        <StageCanvas style="aspect-ratio: 16/9">
+          <template #background>
+            <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
+          </template>
+          
+          <template #characters>
+            <div v-for="(p, i) in portraitsResolved" :key="i"
+                 class="absolute will-change-transform"
+                 :style="{
+                   left: (p.x ?? 50) + '%',
+                   top:  (p.y ?? 90) + '%',
+                   height: scaleToHeight(p.scale) + '%',
+                   transform: 'translate(-50%,-100%)',
+                   zIndex: p.z || 0
+                 }">
+              <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
+            </div>
+          </template>
+          
+          <template #message>
+            <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded" @click="openFs()">全画面</button>
+            
+            <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
+            <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
+              <div class="text-center">
+                <h1 class="text-3xl font-bold mb-4">{{ game.title }}</h1>
+                <p v-if="game.summary" class="text-gray-300 mb-6">{{ game.summary }}</p>
+                <button
+                  @click="start"
+                  class="px-8 py-3 bg-blue-500 text-white rounded-lg text-xl hover:bg-blue-600 transition-colors"
+                >
+                  スタート
+                </button>
+              </div>
+            </div>
+
+            <!-- hidden on mobile, shown as small control on md+ -->
+            <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
+
+            <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
+            <button 
+              v-if="current && !showStartScreen && (!choices || choices.length === 0)"
+              class="absolute inset-0 z-10" 
+              @click="advanceWithinNodeOrNext(); ensureBgm()" 
+              aria-label="next"
+            ></button>
+
+            <!-- message window (only when current exists and not on start screen) -->
+            <div v-if="current && !showStartScreen">
+              <!-- 選択肢がある場合 -->
+              <div v-if="choices && choices.length > 0" class="absolute left-[7%] right-[7%] bottom-[5%] space-y-2 pointer-events-auto">
+                <button
+                  v-for="ch in choices"
+                  :key="ch.id"
+                  class="w-full px-4 py-3 bg-gray-700 rounded text-left hover:bg-gray-600 transition-colors text-white"
+                  @click="go(ch.targetNodeId); ensureBgm()"
+                >
+                  {{ ch.label }}
+                </button>
+              </div>
+
+              <!-- 終了時のリスタートボタン -->
+              <div v-else-if="!nextNodeId" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+                <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
+                <button
+                  @click="restart(); ensureBgm()"
+                  class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+                >
+                  最初から
+                </button>
+              </div>
+
+              <!-- 通常のメッセージウィンドウ -->
+              <MessageWindow
+                v-else
+                :speaker="speaker"
+                :text="displayedText"
+                :theme="theme"
+                :animate="true"
+                @click="advanceWithinNodeOrNext(); ensureBgm()"
+              />
+            </div>
+          </template>
+        </StageCanvas>
+      </div>
   
   <!-- Fullscreen Overlay -->
   <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">
     <div class="absolute inset-0">
-      <!-- フルスクリーンも統一構造 -->
-      <div class="tgk-stage w-full h-full">
-        <!-- 内側ラッパー: zoom/パンを適用 -->
-        <div class="tgk-stage__content" :style="{ transform: `scale(${(camera.zoom || 100)/100}) translate(${((50-(camera.cx||50)))}%, ${((50-(camera.cy||50)))}%)` }">
-          <MiniStage
-            :fill="true"
-            :bg-asset-id="current?.bgAssetId || undefined"
-            :portraits="portraitsResolved"
-            :camera="{ zoom: 100, cx: 50, cy: 50 }"
-          />
-        </div>
+      <!-- フルスクリーンも StageCanvas で統一 -->
+      <StageCanvas style="width: 100%; height: 100%">
+        <template #background>
+          <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
+        </template>
         
-        <!-- メッセージウィンドウ（拡大しない） -->
-        <div class="tgk-stage__msg">
-          <MessageWindow class="pointer-events-none" :speaker="speaker" :text="displayedText" :theme="theme" :animate="true" />
-        </div>
-      </div>
-      <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2" @click="closeFs()">閉じる（Esc）</button>
+        <template #characters>
+          <div v-for="(p, i) in portraitsResolved" :key="i"
+               class="absolute will-change-transform"
+               :style="{
+                 left: (p.x ?? 50) + '%',
+                 top:  (p.y ?? 90) + '%',
+                 height: scaleToHeight(p.scale) + '%',
+                 transform: 'translate(-50%,-100%)',
+                 zIndex: p.z || 0
+               }">
+            <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
+          </div>
+        </template>
+        
+        <template #message>
+            <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
+            <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
+              <div class="text-center">
+                <h1 class="text-3xl font-bold mb-4">{{ game.title }}</h1>
+                <p v-if="game.summary" class="text-gray-300 mb-6">{{ game.summary }}</p>
+                <button
+                  @click="start"
+                  class="px-8 py-3 bg-blue-500 text-white rounded-lg text-xl hover:bg-blue-600 transition-colors"
+                >
+                  スタート
+                </button>
+              </div>
+            </div>
+
+            <!-- hidden on mobile, shown as small control on md+ -->
+            <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
+
+            <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
+            <button 
+              v-if="current && !showStartScreen && (!choices || choices.length === 0)"
+              class="absolute inset-0 z-10" 
+              @click="advanceWithinNodeOrNext(); ensureBgm()" 
+              aria-label="next"
+            ></button>
+
+            <!-- message window (only when current exists and not on start screen) -->
+            <div v-if="current && !showStartScreen">
+              <!-- 選択肢がある場合 -->
+              <div v-if="choices && choices.length > 0" class="absolute left-[7%] right-[7%] bottom-[5%] space-y-2 pointer-events-auto">
+                <button
+                  v-for="ch in choices"
+                  :key="ch.id"
+                  class="w-full px-4 py-3 bg-gray-700 rounded text-left hover:bg-gray-600 transition-colors text-white"
+                  @click="go(ch.targetNodeId); ensureBgm()"
+                >
+                  {{ ch.label }}
+                </button>
+              </div>
+
+              <!-- 終了時のリスタートボタン -->
+              <div v-else-if="!nextNodeId" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+                <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
+                <button
+                  @click="restart(); ensureBgm()"
+                  class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+                >
+                  最初から
+                </button>
+              </div>
+
+              <!-- 通常のメッセージウィンドウ -->
+              <MessageWindow
+                v-else
+                :speaker="speaker"
+                :text="displayedText"
+                :theme="theme"
+                :animate="true"
+                @click="advanceWithinNodeOrNext(); ensureBgm()"
+              />
+            </div>
+        </template>
+      </StageCanvas>
+      <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2 z-[60]" @click="closeFs()">閉じる（Esc）</button>
     </div>
   </div>
-          
-          <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
-          <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50">
-            <div class="text-center">
-              <h1 class="text-3xl font-bold mb-4">{{ game.title }}</h1>
-              <p v-if="game.summary" class="text-gray-300 mb-6">{{ game.summary }}</p>
-              <button
-                @click="start"
-                class="px-8 py-3 bg-blue-500 text-white rounded-lg text-xl hover:bg-blue-600 transition-colors"
-              >
-                スタート
-              </button>
-            </div>
-          </div>
-
-          <!-- 内側ラッパー: zoom/パンを適用 -->
-          <div class="tgk-stage__content" :style="{ transform: `scale(${(camera.zoom || 100)/100}) translate(${((50-(camera.cx||50)))}%, ${((50-(camera.cy||50)))}%)` }">
-            <MiniStage
-              :fill="true"
-              :bg-asset-id="current?.bgAssetId || undefined"
-              :portraits="portraitsResolved"
-              :camera="{ zoom: 100, cx: 50, cy: 50 }"
-            />
-          </div>
-
-          <!-- hidden on mobile, shown as small control on md+ -->
-          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
-
-          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
-          <button 
-            v-if="current && !showStartScreen && (!choices || choices.length === 0)"
-            class="absolute inset-0 z-10" 
-            @click="advanceWithinNodeOrNext(); ensureBgm()" 
-            aria-label="next"
-          ></button>
-
-          <!-- message window (only when current exists and not on start screen) -->
-          <div v-if="current && !showStartScreen" class="tgk-stage__msg z-20">
-            <!-- 選択肢がある場合 -->
-            <div v-if="choices && choices.length > 0" class="w-full space-y-2 pointer-events-auto">
-              <button
-                v-for="ch in choices"
-                :key="ch.id"
-                class="w-full px-4 py-3 bg-gray-700 rounded text-left hover:bg-gray-600 transition-colors text-white"
-                @click="go(ch.targetNodeId); ensureBgm()"
-              >
-                {{ ch.label }}
-              </button>
-            </div>
-
-            <!-- 終了時のリスタートボタン -->
-            <div v-else-if="!nextNodeId" class="w-full text-center pointer-events-auto">
-              <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-              <button
-                @click="restart(); ensureBgm()"
-                class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-              >
-                最初から
-              </button>
-            </div>
-
-            <!-- 通常のメッセージウィンドウ -->
-            <MessageWindow
-              v-else
-              class="pointer-events-none"
-              :speaker="speaker"
-              :text="displayedText"
-              :theme="theme"
-              :animate="true"
-              @click="advanceWithinNodeOrNext(); ensureBgm()"
-            />
-          </div>
-        </div>
-      </div>
 
       <!-- 音声同意オーバーレイ -->
       <div v-if="!soundOk && bgmUrl" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
@@ -158,7 +233,7 @@ function closeFs(){ fullscreen.value = false; document.documentElement.classList
 // Escキーでフルスクリーンを閉じる
 const onEscKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFs() }
 
-import MiniStage from '@/components/game/MiniStage.vue'
+import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
@@ -279,8 +354,22 @@ watch(
   },
   { immediate: true, deep: true }
 )
-// Resolve portraits for MiniStage
 
+// 背景画像URL
+const bgUrl = ref<string | null>(null)
+watch(
+  () => current.value?.bgAssetId,
+  async (id) => {
+    bgUrl.value = id ? await signedFromId(id, true) : null
+  },
+  { immediate: true }
+)
+
+// scaleToHeight: 旧仕様の scale 値を％に変換
+function scaleToHeight(s: number | undefined) {
+  if (s == null) return 30
+  return s > 60 ? Math.round(s / 3) : s
+}
 
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
