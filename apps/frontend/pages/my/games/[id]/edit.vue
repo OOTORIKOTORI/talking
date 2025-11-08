@@ -63,6 +63,43 @@ const previewTheme = computed(() => game.value?.messageTheme ?? {
   typewriter: { msPerChar: 20 }
 })
 
+// StageCanvas 用のテーマ変換
+const stageTheme = computed(() => {
+  const t = previewTheme.value
+  return {
+    bg: t.frame?.bg || 'rgba(20,24,36,0.72)',
+    border: t.frame?.borderColor || 'rgba(255,255,255,0.2)',
+    radius: t.frame?.radius || 16,
+    padding: t.frame?.padding || 16,
+    nameBg: t.name?.bg || 'rgba(0,0,0,0.55)',
+    textColor: t.text?.color || '#fff',
+    fontSize: t.text?.size || 14,
+    lineHeight: t.text?.lineHeight || 1.6
+  }
+})
+
+// StageCanvas 用のキャラクター配列
+const stageCharacters = computed(() => {
+  return portraitsResolved.value.map((p: any) => ({
+    key: p.imageId || p.characterId || String(Math.random()),
+    url: p.thumb || '',
+    x: p.x ?? 50,
+    y: p.y ?? 80,
+    scale: p.scale ?? 100,
+    z: p.z ?? 0
+  }))
+})
+
+// StageCanvas 用のメッセージ
+const stageMessage = computed(() => {
+  if (!nodeDraft.text) return null
+  return {
+    speaker: nodeDraft.speakerDisplayName || '',
+    text: nodeDraft.text || ''
+  }
+})
+
+
 watch(
   () => nodeDraft.bgAssetId,
   async (id) => {
@@ -491,36 +528,13 @@ function onUp() {
             <div class="stage-outer">
               <div class="stage-inner">
                 <!-- StageCanvas を使用して統一構造 -->
-                <StageCanvas style="width: 100%; height: 100%">
-                  <template #background>
-                    <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
-                  </template>
-                  
-                  <template #characters>
-                    <div v-for="(p, i) in portraitsResolved" :key="i"
-                         class="absolute will-change-transform"
-                         :style="{
-                           left: (p.x ?? 50) + '%',
-                           top:  (p.y ?? 90) + '%',
-                           height: scaleToHeight(p.scale) + '%',
-                           transform: 'translate(-50%,-100%)',
-                           zIndex: p.z || 0
-                         }">
-                      <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
-                    </div>
-                  </template>
-                  
-                  <template #message>
-                    <MessageWindow
-                      class="pointer-events-none"
-                      :speaker="nodeDraft.speakerDisplayName || ''"
-                      :text="nodeDraft.text || ''"
-                      :theme="previewTheme"
-                      :animate="true"
-                      :key="nodeDraft.text"
-                    />
-                  </template>
-                </StageCanvas>
+                <StageCanvas 
+                  style="width: 100%; height: 100%"
+                  :backgroundUrl="bgUrl"
+                  :characters="stageCharacters"
+                  :message="stageMessage"
+                  :theme="stageTheme"
+                />
               </div>
             </div>
             <div class="fs-form">
@@ -701,36 +715,13 @@ function onUp() {
           <div v-if="!fullscreenProps">
             <div v-if="node" class="mb-3">
               <div class="relative">
-                <StageCanvas style="width: 100%; aspect-ratio: 16/9">
-                  <template #background>
-                    <img v-if="bgUrl" :src="bgUrl" class="absolute inset-0 w-full h-full object-cover opacity-90" />
-                  </template>
-                  
-                  <template #characters>
-                    <div v-for="(p, i) in portraitsResolved" :key="i"
-                         class="absolute will-change-transform"
-                         :style="{
-                           left: (p.x ?? 50) + '%',
-                           top:  (p.y ?? 90) + '%',
-                           height: scaleToHeight(p.scale) + '%',
-                           transform: 'translate(-50%,-100%)',
-                           zIndex: p.z || 0
-                         }">
-                      <img v-if="p.thumb" :src="p.thumb" class="h-full w-auto object-contain drop-shadow-lg" />
-                    </div>
-                  </template>
-                  
-                  <template #message>
-                    <MessageWindow
-                      class="pointer-events-none"
-                      :speaker="nodeDraft.speakerDisplayName || ''"
-                      :text="nodeDraft.text || ''"
-                      :theme="previewTheme"
-                      :animate="true"
-                      :key="nodeDraft.text"
-                    />
-                  </template>
-                </StageCanvas>
+                <StageCanvas 
+                  style="width: 100%; aspect-ratio: 16/9"
+                  :backgroundUrl="bgUrl"
+                  :characters="stageCharacters"
+                  :message="stageMessage"
+                  :theme="stageTheme"
+                />
               </div>
             </div>
 
