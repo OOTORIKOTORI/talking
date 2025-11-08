@@ -1,6 +1,6 @@
 <!-- components/game/StageCanvas.vue -->
 <template>
-  <div ref="stageRef" class="stage" :style="stageStyle">
+  <div ref="stageRef" class="stage">
     <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
     <img
       v-for="c in characters"
@@ -37,47 +37,32 @@ const props = defineProps<{
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
-const stageWidth = ref(1280)
-const stageHeight = ref(720)
 
-// リサイズ監視
-function updateSize() {
-  if (stageRef.value) {
-    stageWidth.value = stageRef.value.clientWidth
-    stageHeight.value = stageRef.value.clientHeight
-  }
-}
-
-onMounted(() => {
-  updateSize()
-  window.addEventListener('resize', updateSize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateSize)
-})
-
-const stageStyle = computed(() => ({
-  '--stage-w': `${stageWidth.value}px`,
-  '--stage-h': `${stageHeight.value}px`
-}))
-
+// キャラクター配置スタイル
 function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   // y は足元の位置（0=上端、100=下端）
-  // translate(-50%, -100%) で画像の下端を基準点にする
   return {
     left: `${c.x}%`,
-    bottom: `${100 - c.y}%`,  // top ではなく bottom で位置指定
+    bottom: `${100 - c.y}%`,  // bottom で位置指定
     transform: `translateX(-50%) scale(${c.scale / 100})`,
     transformOrigin: 'bottom center',
     zIndex: String(10 + (c.z ?? 0))
   }
 }
 
+// メッセージウィンドウのサイズを基準サイズに対する比率で計算
+// 基準: 1280x720 (16:9)
+// 幅: 92% (最大1180px)
+// 高さ: 18% (120px〜220px)
+// 下マージン: 4%
+
 const mwStyle = computed(() => ({
-  '--mw-width': 'min(calc(0.92 * var(--stage-w)), 1180px)',
-  '--mw-height': 'clamp(120px, calc(0.18 * var(--stage-h)), 220px)',
-  '--mw-margin-bottom': 'clamp(8px, calc(0.04 * var(--stage-h)), 24px)',
+  '--mw-width': '92%',  // 幅は常に92%
+  '--mw-max-width': '1180px',
+  '--mw-height': '18%',  // 高さは常に18%
+  '--mw-min-height': '120px',
+  '--mw-max-height': '220px',
+  '--mw-margin-bottom': '4%',  // 下マージンは常に4%
   '--mw-bg': props.theme.bg,
   '--mw-border': props.theme.border,
   '--mw-radius': `${props.theme.radius}px`,
@@ -116,7 +101,10 @@ const mwStyle = computed(() => ({
   bottom: var(--mw-margin-bottom);
   transform: translateX(-50%);
   width: var(--mw-width);
+  max-width: var(--mw-max-width);
   height: var(--mw-height);
+  min-height: var(--mw-min-height);
+  max-height: var(--mw-max-height);
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
   border-radius: var(--mw-radius);
