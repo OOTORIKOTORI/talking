@@ -1,6 +1,6 @@
 <!-- components/game/StageCanvas.vue -->
 <template>
-  <div class="stage" :style="stageStyle">
+  <div ref="stageRef" class="stage" :style="stageStyle">
     <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
     <img
       v-for="c in characters"
@@ -18,6 +18,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+
 const props = defineProps<{
   backgroundUrl: string | null
   characters: Array<{ key: string; url: string; x: number; y: number; scale: number; z?: number }>
@@ -34,16 +36,40 @@ const props = defineProps<{
   }
 }>()
 
+const stageRef = ref<HTMLElement | null>(null)
+const stageWidth = ref(1280)
+const stageHeight = ref(720)
+
+// リサイズ監視
+function updateSize() {
+  if (stageRef.value) {
+    stageWidth.value = stageRef.value.clientWidth
+    stageHeight.value = stageRef.value.clientHeight
+  }
+}
+
+onMounted(() => {
+  updateSize()
+  window.addEventListener('resize', updateSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSize)
+})
+
 const stageStyle = computed(() => ({
-  '--stage-w': '100%',
-  '--stage-h': 'auto'
+  '--stage-w': `${stageWidth.value}px`,
+  '--stage-h': `${stageHeight.value}px`
 }))
 
 function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
+  // y は足元の位置（0=上端、100=下端）
+  // translate(-50%, -100%) で画像の下端を基準点にする
   return {
     left: `${c.x}%`,
-    top: `${c.y}%`,
-    transform: `translate(-50%, -100%) scale(${c.scale / 100})`,
+    bottom: `${100 - c.y}%`,  // top ではなく bottom で位置指定
+    transform: `translateX(-50%) scale(${c.scale / 100})`,
+    transformOrigin: 'bottom center',
     zIndex: String(10 + (c.z ?? 0))
   }
 }
@@ -79,8 +105,10 @@ const mwStyle = computed(() => ({
 }
 .ch {
   position: absolute;
-  bottom: 0;
+  max-height: 100%;
+  object-fit: contain;
   will-change: transform;
+  transform-origin: bottom center;
 }
 .mw {
   position: absolute;
