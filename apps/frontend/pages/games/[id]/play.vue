@@ -218,6 +218,7 @@ import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
+import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 
 const { signedFromId } = useAssetMeta()
@@ -326,30 +327,53 @@ const thumbCache = ref<Map<string, string>>(new Map())
 // Resolve portraits (computed で常に最新の thumb を反映)
 const portraitsResolved = computed(() => {
   const arr = current.value?.portraits ?? []
-  return arr.map((p: any) => ({
-    ...p,
-    thumb: p.thumb || thumbCache.value.get(p.imageId) || ''
-  }))
+  return arr.map((p: any) => {
+    const cacheKey = p.imageId || p.key
+    return {
+      ...p,
+      thumb: p.thumb || thumbCache.value.get(cacheKey) || ''
+    }
+  })
 })
 
 // current.portraits が変化したら thumb を補完
 watch(
   () => current.value?.portraits,
   async (list: any[] | undefined) => {
-    if (!list) return
-    // thumb が無い portrait があれば補完
+    if (!list || list.length === 0) return
+    console.log('[play.vue] portraits changed, resolving thumbs...', list)
+    
     for (const p of list) {
-      if (p.imageId && !thumbCache.value.has(p.imageId)) {
+      const cacheKey = p.imageId || p.key
+      if (!cacheKey) {
+        console.warn('[play.vue] portrait has no imageId or key', p)
+        continue
+      }
+      
+      if (!thumbCache.value.has(cacheKey)) {
         try {
-          const url = await signedFromId(p.imageId, true)
+          let url: string | null = null
+          
+          // 優先順位: 1) p.key がある場合は直接署名URL取得、2) imageId から取得
+          if (p.key) {
+            url = await getSignedGetUrl(p.key)
+            console.log('[play.vue] resolved thumb via key for', cacheKey, '→', url)
+          } else if (p.imageId) {
+            url = await signedFromId(p.imageId, true)
+            console.log('[play.vue] resolved thumb via imageId for', cacheKey, '→', url)
+          }
+          
           if (url) {
-            thumbCache.value.set(p.imageId, url)
+            thumbCache.value.set(cacheKey, url)
           }
         } catch (e) {
-          console.warn('thumb resolve failed', p, e)
+          console.warn('[play.vue] thumb resolve failed for', p, e)
         }
+      } else {
+        console.log('[play.vue] using cached thumb for', cacheKey)
       }
     }
+    console.log('[play.vue] thumbCache now has', thumbCache.value.size, 'entries', Array.from(thumbCache.value.keys()))
   },
   { immediate: true, deep: true }
 )
@@ -426,14 +450,17 @@ const stageTheme = computed(() => {
 
 // StageCanvas 用のキャラクター配列
 const stageCharacters = computed(() => {
-  return portraitsResolved.value.map((p: any) => ({
-    key: p.imageId || p.characterId || String(Math.random()),
-    url: p.thumb || '',
-    x: p.x ?? 50,
-    y: p.y ?? 80,
-    scale: p.scale ?? 100,
-    z: p.z ?? 0
-  }))
+  return portraitsResolved.value.map((p: any) => {
+    const cacheKey = p.imageId || p.key
+    return {
+      key: cacheKey || String(Math.random()),
+      url: p.thumb || thumbCache.value.get(cacheKey) || '',
+      x: p.x ?? 50,
+      y: p.y ?? 80,
+      scale: p.scale ?? 100,
+      z: p.z ?? 0
+    }
+  })
 })
 
 // StageCanvas 用のメッセージ (play.vue では null - メッセージウィンドウは別で表示)
