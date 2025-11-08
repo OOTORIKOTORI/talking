@@ -53,13 +53,13 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
 // メッセージウィンドウのサイズを基準サイズに対する比率で計算
 // 基準: 1280x720 (16:9)
 // 幅: 92% (最大1180px)
-// 高さ: 17% (固定比率)
+// 高さ: 22% (固定比率)
 // 下マージン: 3%
 
 const mwStyle = computed(() => ({
   '--mw-width': '92%',  // 幅は常に92%
   '--mw-max-width': '1180px',
-  '--mw-height': '17%',  // 高さは常に17%（固定）
+  '--mw-height': '22%',  // 高さは常に22%（より大きく）
   '--mw-margin-bottom': '3%',  // 下マージンは常に3%
   '--mw-bg': props.theme.bg,
   '--mw-border': props.theme.border,
@@ -103,7 +103,8 @@ const mwStyle = computed(() => ({
   height: var(--mw-height);
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
-  border-radius: var(--mw-radius);
+  /* 角丸をコンテナサイズに応じて調整（最小8px、最大設定値） */
+  border-radius: clamp(8px, calc(var(--mw-height) * 0.1), var(--mw-radius));
   color: var(--mw-text);
   display: flex;
   flex-direction: column;
@@ -112,12 +113,17 @@ const mwStyle = computed(() => ({
 }
 .name {
   background: var(--mw-name-bg);
-  padding: var(--mw-padding);
+  /* padding もコンテナサイズに応じて調整（最小4px、最大設定値） */
+  padding: clamp(4px, calc(var(--mw-height) * 0.05), var(--mw-padding));
   font-weight: 700;
+  /* フォントサイズもコンテナに応じて調整（最小12px、最大設定値） */
+  font-size: clamp(12px, calc(var(--mw-height) * 0.12), var(--mw-fs));
 }
 .text {
-  padding: var(--mw-padding);
-  font-size: var(--mw-fs);
+  /* padding もコンテナサイズに応じて調整（最小6px、最大設定値） */
+  padding: clamp(6px, calc(var(--mw-height) * 0.08), var(--mw-padding));
+  /* フォントサイズもコンテナに応じて調整（最小13px、最大設定値） */
+  font-size: clamp(13px, calc(var(--mw-height) * 0.13), var(--mw-fs));
   line-height: var(--mw-lh);
   white-space: pre-wrap;
 }
