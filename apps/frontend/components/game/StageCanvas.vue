@@ -53,16 +53,14 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
 // メッセージウィンドウのサイズを基準サイズに対する比率で計算
 // 基準: 1280x720 (16:9)
 // 幅: 92% (最大1180px)
-// 高さ: 18% (120px〜220px)
-// 下マージン: 4%
+// 高さ: 17% (固定比率)
+// 下マージン: 3%
 
 const mwStyle = computed(() => ({
   '--mw-width': '92%',  // 幅は常に92%
   '--mw-max-width': '1180px',
-  '--mw-height': '18%',  // 高さは常に18%
-  '--mw-min-height': '120px',
-  '--mw-max-height': '220px',
-  '--mw-margin-bottom': '4%',  // 下マージンは常に4%
+  '--mw-height': '17%',  // 高さは常に17%（固定）
+  '--mw-margin-bottom': '3%',  // 下マージンは常に3%
   '--mw-bg': props.theme.bg,
   '--mw-border': props.theme.border,
   '--mw-radius': `${props.theme.radius}px`,
@@ -103,8 +101,6 @@ const mwStyle = computed(() => ({
   width: var(--mw-width);
   max-width: var(--mw-max-width);
   height: var(--mw-height);
-  min-height: var(--mw-min-height);
-  max-height: var(--mw-max-height);
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
   border-radius: var(--mw-radius);
