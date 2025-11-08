@@ -111,24 +111,25 @@ watch(
   { immediate: false }
 )
 
+// thumb のキャッシュ (portraitsResolved より先に定義)
+const thumbCache = ref<Map<string, string>>(new Map())
+
 // Resolve portraits for preview (computed で常に最新の thumb を反映)
 const portraitsResolved = computed(() => {
   const arr = nodeDraft.portraits ?? []
   return arr.map((p: any) => ({
     ...p,
-    // thumb が既にあればそれを使用、なければ空文字列
-    thumb: p.thumb || ''
+    // thumb が既にあればそれを使用、なければ thumbCache から取得
+    thumb: p.thumb || thumbCache.value.get(p.imageId) || ''
   }))
 })
-
-// thumb のキャッシュ
-const thumbCache = ref<Map<string, string>>(new Map())
 
 // ノード選択時に portraits の thumb を補完
 watch(
   () => nodeDraft.portraits,
   async (list: any[] | undefined) => {
     if (!list) return
+    console.log('[edit.vue] portraits changed, resolving thumbs...', list)
     // thumb が無い portrait があれば補完
     for (const p of list) {
       if (p.imageId) {
@@ -136,24 +137,26 @@ watch(
         if (!thumbCache.value.has(p.imageId)) {
           try {
             const url = await signedFromId(p.imageId, true)
+            console.log('[edit.vue] resolved thumb for', p.imageId, '→', url)
             if (url) {
               thumbCache.value.set(p.imageId, url)
-              // 直接 p.thumb に設定してもリアクティブでないので、
-              // computed で thumbCache から取得する
             }
           } catch (e) {
             console.warn('thumb resolve failed', p, e)
           }
+        } else {
+          console.log('[edit.vue] using cached thumb for', p.imageId)
         }
       }
     }
+    console.log('[edit.vue] thumbCache now has', thumbCache.value.size, 'entries')
   },
   { immediate: true, deep: true }
 )
 
 // StageCanvas 用のキャラクター配列 (thumbCache から取得)
 const stageCharacters = computed(() => {
-  return portraitsResolved.value.map((p: any) => ({
+  const result = portraitsResolved.value.map((p: any) => ({
     key: p.imageId || p.characterId || String(Math.random()),
     url: p.thumb || thumbCache.value.get(p.imageId) || '',
     x: p.x ?? 50,
@@ -161,6 +164,8 @@ const stageCharacters = computed(() => {
     scale: p.scale ?? 100,
     z: p.z ?? 0
   }))
+  console.log('[edit.vue] stageCharacters computed:', result)
+  return result
 })
 
 // scaleToHeight: 旧仕様の scale 値を％に変換
