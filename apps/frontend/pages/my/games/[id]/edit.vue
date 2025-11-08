@@ -123,18 +123,32 @@ watch(
   { immediate: false }
 )
 
-// Resolve portraits for preview
-const portraitsResolved = ref<any[]>([])
+// Resolve portraits for preview (computed で常に最新の thumb を反映)
+const portraitsResolved = computed(() => {
+  const arr = nodeDraft.portraits ?? []
+  return arr.map((p: any) => ({
+    ...p,
+    // thumb が既にあればそれを使用、なければ空文字列
+    thumb: p.thumb || ''
+  }))
+})
+
+// ノード選択時に portraits の thumb を補完
 watch(
   () => nodeDraft.portraits,
   async (list: any[] | undefined) => {
-    const arr = list ?? []
-    portraitsResolved.value = await Promise.all(
-      arr.map(async (p: any) => ({
-        ...p,
-        thumb: p.thumb ?? (p.imageId ? await signedFromId(p.imageId, true) : null),
-      }))
-    )
+    if (!list) return
+    // thumb が無い portrait があれば補完
+    for (const p of list) {
+      if (p.thumb) continue
+      if (p.imageId) {
+        try {
+          p.thumb = await signedFromId(p.imageId, true)
+        } catch (e) {
+          console.warn('thumb resolve failed', p, e)
+        }
+      }
+    }
   },
   { immediate: true, deep: true }
 )
@@ -261,7 +275,9 @@ function selectNode(n: any) {
     nodeDraft.camera = { zoom: 100, cx: 50, cy: 50 }
   }
   // 既存データを開いたときに p.thumb を補完
-  hydratePortraitThumbs()
+  // watch が自動的に実行されるので明示的に呼ぶ必要はないが、
+  // 互換性のため残しておく
+  // hydratePortraitThumbs() は watch で自動実行される
 }
 
 // 既存 portraits のサムネ署名URLを補完する

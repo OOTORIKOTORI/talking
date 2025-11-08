@@ -320,18 +320,31 @@ function applyStart() {
 // 台詞の段階表示用
 const segIndex = ref(0)
 
-// Resolve portraits (thumb via signed GET)
-const portraitsResolved = ref<any[]>([])
+// Resolve portraits (computed で常に最新の thumb を反映)
+const portraitsResolved = computed(() => {
+  const arr = current.value?.portraits ?? []
+  return arr.map((p: any) => ({
+    ...p,
+    thumb: p.thumb || ''
+  }))
+})
+
+// current.portraits が変化したら thumb を補完
 watch(
   () => current.value?.portraits,
   async (list: any[] | undefined) => {
-    const arr = list ?? []
-    portraitsResolved.value = await Promise.all(
-      arr.map(async (p: any) => ({
-        ...p,
-        thumb: p.thumb ?? (p.imageId ? await signedFromId(p.imageId, true) : null),
-      }))
-    )
+    if (!list) return
+    // thumb が無い portrait があれば補完
+    for (const p of list) {
+      if (p.thumb) continue
+      if (p.imageId) {
+        try {
+          p.thumb = await signedFromId(p.imageId, true)
+        } catch (e) {
+          console.warn('thumb resolve failed', p, e)
+        }
+      }
+    }
   },
   { immediate: true, deep: true }
 )
