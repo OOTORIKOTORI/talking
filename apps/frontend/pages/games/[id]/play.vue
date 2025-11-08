@@ -320,12 +320,15 @@ function applyStart() {
 // 台詞の段階表示用
 const segIndex = ref(0)
 
+// thumb のキャッシュ
+const thumbCache = ref<Map<string, string>>(new Map())
+
 // Resolve portraits (computed で常に最新の thumb を反映)
 const portraitsResolved = computed(() => {
   const arr = current.value?.portraits ?? []
   return arr.map((p: any) => ({
     ...p,
-    thumb: p.thumb || ''
+    thumb: p.thumb || thumbCache.value.get(p.imageId) || ''
   }))
 })
 
@@ -336,10 +339,12 @@ watch(
     if (!list) return
     // thumb が無い portrait があれば補完
     for (const p of list) {
-      if (p.thumb) continue
-      if (p.imageId) {
+      if (p.imageId && !thumbCache.value.has(p.imageId)) {
         try {
-          p.thumb = await signedFromId(p.imageId, true)
+          const url = await signedFromId(p.imageId, true)
+          if (url) {
+            thumbCache.value.set(p.imageId, url)
+          }
         } catch (e) {
           console.warn('thumb resolve failed', p, e)
         }

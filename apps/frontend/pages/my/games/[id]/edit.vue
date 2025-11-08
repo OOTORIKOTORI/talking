@@ -78,18 +78,6 @@ const stageTheme = computed(() => {
   }
 })
 
-// StageCanvas 用のキャラクター配列
-const stageCharacters = computed(() => {
-  return portraitsResolved.value.map((p: any) => ({
-    key: p.imageId || p.characterId || String(Math.random()),
-    url: p.thumb || '',
-    x: p.x ?? 50,
-    y: p.y ?? 80,
-    scale: p.scale ?? 100,
-    z: p.z ?? 0
-  }))
-})
-
 // StageCanvas 用のメッセージ
 const stageMessage = computed(() => {
   if (!nodeDraft.text) return null
@@ -133,6 +121,9 @@ const portraitsResolved = computed(() => {
   }))
 })
 
+// thumb のキャッシュ
+const thumbCache = ref<Map<string, string>>(new Map())
+
 // ノード選択時に portraits の thumb を補完
 watch(
   () => nodeDraft.portraits,
@@ -140,18 +131,37 @@ watch(
     if (!list) return
     // thumb が無い portrait があれば補完
     for (const p of list) {
-      if (p.thumb) continue
       if (p.imageId) {
-        try {
-          p.thumb = await signedFromId(p.imageId, true)
-        } catch (e) {
-          console.warn('thumb resolve failed', p, e)
+        // キャッシュから取得、または新規に取得
+        if (!thumbCache.value.has(p.imageId)) {
+          try {
+            const url = await signedFromId(p.imageId, true)
+            if (url) {
+              thumbCache.value.set(p.imageId, url)
+              // 直接 p.thumb に設定してもリアクティブでないので、
+              // computed で thumbCache から取得する
+            }
+          } catch (e) {
+            console.warn('thumb resolve failed', p, e)
+          }
         }
       }
     }
   },
   { immediate: true, deep: true }
 )
+
+// StageCanvas 用のキャラクター配列 (thumbCache から取得)
+const stageCharacters = computed(() => {
+  return portraitsResolved.value.map((p: any) => ({
+    key: p.imageId || p.characterId || String(Math.random()),
+    url: p.thumb || thumbCache.value.get(p.imageId) || '',
+    x: p.x ?? 50,
+    y: p.y ?? 80,
+    scale: p.scale ?? 100,
+    z: p.z ?? 0
+  }))
+})
 
 // scaleToHeight: 旧仕様の scale 値を％に変換
 function scaleToHeight(s: number | undefined) {
