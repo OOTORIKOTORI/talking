@@ -117,53 +117,72 @@ const thumbCache = ref<Map<string, string>>(new Map())
 // Resolve portraits for preview (computed で常に最新の thumb を反映)
 const portraitsResolved = computed(() => {
   const arr = nodeDraft.portraits ?? []
-  return arr.map((p: any) => ({
-    ...p,
-    // thumb が既にあればそれを使用、なければ thumbCache から取得
-    thumb: p.thumb || thumbCache.value.get(p.imageId) || ''
-  }))
+  return arr.map((p: any) => {
+    const cacheKey = p.imageId || p.key
+    return {
+      ...p,
+      // thumb が既にあればそれを使用、なければ thumbCache から取得
+      thumb: p.thumb || thumbCache.value.get(cacheKey) || ''
+    }
+  })
 })
 
 // ノード選択時に portraits の thumb を補完
 watch(
   () => nodeDraft.portraits,
   async (list: any[] | undefined) => {
-    if (!list) return
+    if (!list || list.length === 0) return
     console.log('[edit.vue] portraits changed, resolving thumbs...', list)
     // thumb が無い portrait があれば補完
     for (const p of list) {
-      if (p.imageId) {
-        // キャッシュから取得、または新規に取得
-        if (!thumbCache.value.has(p.imageId)) {
-          try {
-            const url = await signedFromId(p.imageId, true)
-            console.log('[edit.vue] resolved thumb for', p.imageId, '→', url)
-            if (url) {
-              thumbCache.value.set(p.imageId, url)
-            }
-          } catch (e) {
-            console.warn('thumb resolve failed', p, e)
+      // 既に thumbCache にある場合はスキップ
+      const cacheKey = p.imageId || p.key
+      if (!cacheKey) {
+        console.warn('[edit.vue] portrait has no imageId or key', p)
+        continue
+      }
+      
+      if (!thumbCache.value.has(cacheKey)) {
+        try {
+          let url: string | null = null
+          
+          // 優先順位: 1) p.key がある場合は直接署名URL取得、2) imageId から取得
+          if (p.key) {
+            url = await getSignedGetUrl(p.key)
+            console.log('[edit.vue] resolved thumb via key for', cacheKey, '→', url)
+          } else if (p.imageId) {
+            url = await signedFromId(p.imageId, true)
+            console.log('[edit.vue] resolved thumb via imageId for', cacheKey, '→', url)
           }
-        } else {
-          console.log('[edit.vue] using cached thumb for', p.imageId)
+          
+          if (url) {
+            thumbCache.value.set(cacheKey, url)
+          }
+        } catch (e) {
+          console.warn('[edit.vue] thumb resolve failed for', p, e)
         }
+      } else {
+        console.log('[edit.vue] using cached thumb for', cacheKey)
       }
     }
-    console.log('[edit.vue] thumbCache now has', thumbCache.value.size, 'entries')
+    console.log('[edit.vue] thumbCache now has', thumbCache.value.size, 'entries', Array.from(thumbCache.value.keys()))
   },
   { immediate: true, deep: true }
 )
 
 // StageCanvas 用のキャラクター配列 (thumbCache から取得)
 const stageCharacters = computed(() => {
-  const result = portraitsResolved.value.map((p: any) => ({
-    key: p.imageId || p.characterId || String(Math.random()),
-    url: p.thumb || thumbCache.value.get(p.imageId) || '',
-    x: p.x ?? 50,
-    y: p.y ?? 80,
-    scale: p.scale ?? 100,
-    z: p.z ?? 0
-  }))
+  const result = portraitsResolved.value.map((p: any) => {
+    const cacheKey = p.imageId || p.key
+    return {
+      key: cacheKey || String(Math.random()),
+      url: p.thumb || thumbCache.value.get(cacheKey) || '',
+      x: p.x ?? 50,
+      y: p.y ?? 80,
+      scale: p.scale ?? 100,
+      z: p.z ?? 0
+    }
+  })
   console.log('[edit.vue] stageCharacters computed:', result)
   return result
 })
