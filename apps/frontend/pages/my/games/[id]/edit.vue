@@ -593,6 +593,7 @@ function onUp() {
                   :characters="stageCharacters"
                   :message="stageMessage"
                   :theme="stageTheme"
+                  :camera="nodeDraft.camera"
                 />
               </div>
             </div>
@@ -781,6 +782,7 @@ function onUp() {
                   :characters="stageCharacters"
                   :message="stageMessage"
                   :theme="stageTheme"
+                  :camera="nodeDraft.camera"
                 />
               </div>
             </div>
