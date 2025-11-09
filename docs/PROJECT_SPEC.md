@@ -152,12 +152,12 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - **「シナリオ全体設定」**ボタンから**メッセージウィンドウテーマ**を編集可能
     - 背景色・枠線・角丸・余白・名前帯表示・文字色・文字サイズ・行間・タイプ速度を含む
   - ノード編集欄では「開始ノードに設定」ボタンでシーンの `startNodeId` を更新
-  - 「次ノード」は **NodePicker** から選択（台詞冒頭プレビュー付き）
+  - 「次ノード」は **NodePicker（モーダル＋検索・冒頭プレビュー付き）** から選択（キーボード操作・詳細プレビューは今後拡張）
 - **テストプレイ**: `/games/:id/play`
   - クエリ `?sceneId=&nodeId=` を受け取り、指定がない場合は **scene.startNodeId → 先頭ノード**の順で自動補完
   - 初回は **音声同意オーバーレイ**を表示。クリックで `AudioContext.resume()` を呼び出し、BGM自動再生を試みる（失敗時は次の操作で再試行）
   - フルスクリーン化してもノード状態は維持される
-  - ※カメラ(zoom/cx/cy)は今後反映予定
+  - **カメラ（zoom/cx/cy）は StageCanvas に反映**され、背景とキャラクターに拡大・パン変換を適用（メッセージウィンドウは拡大しない）
 
 ### ドメイン / モデル(Prisma 正)
 - `GameProject { id, ownerId, title, summary?, messageTheme Json?, deletedAt? ... }`
@@ -194,7 +194,7 @@ type Portrait = {
   - CharacterPicker → CharacterImagePicker: キャラ→その画像を段階選択
 
 ### メッセージウィンドウ（全体設定）
-`MessageThemeModal.vue` で定義される共通テーマ。
+`MessageThemeModal.vue` で定義される共通テーマ。保存は `PATCH /games/:id` に `{ messageTheme }` を送信。
 
 ```ts
 interface MessageTheme {
@@ -212,11 +212,11 @@ interface MessageTheme {
 - 話者キャラ（speakerCharacterId）と **話者表記（自由入力）** …匿名演出（`???` 等）やあだ名に対応
 - 背景（bgAssetId） … サムネ表示
 - BGM（musicAssetId） … `<audio controls>` で再生/停止可
-- SFX（sfxAssetId） … 予約済み（UI あり、今後プレビュー付与）
+- SFX（sfxAssetId） … UI 実装済み、`<audio controls>` で試聴可
 - **キャラクター配置（portraits[]）** … 複数行。各行で画像変更 / 削除 / `x,y,scale,z` を個別調整
 - **開始ノードの設定**: 各ノード列の「▶開始ノードに設定」ボタンで `GameScene.startNodeId` を PATCH 保存
-- **次ノードの設定**: `nextNodeId` は ID 直入力に加えて **NodePicker** で選択可能（Scene/Node 番号と台詞冒頭プレビューを表示）
-- **カメラ** … 倍率（zoom 100–300%）、中心（cx,cy 0–100%）
+- **次ノードの設定**: `nextNodeId` は ID 直入力に加えて **NodePicker（モーダル＋検索・冒頭プレビュー付き）** で選択可能（キーボード操作・詳細プレビューは今後拡張）
+- **カメラ** … 編集UIは実装済み（倍率 zoom 100–300%、中心 cx,cy 0–100%）。StageCanvas への反映済み（MiniStage にも適用済み）
 - プレビューは通常/全画面のどちらでも同一ロジックで描画され、見た目が一致
 
 ### API 概要（認可: 所有者）
@@ -227,10 +227,9 @@ interface MessageTheme {
   - 既存更新は `id` 有無で分岐
 
 ### 既知の制限 / TODO
-- カメラ（zoom/cx/cy）は今後対応予定
-- SFX のプレビューは未対応（BGMのみ）
 - 音声同意は `localStorage('talking_audio_consent_v1')` で保持
 - 選択肢（choices）の UI は最小
+- NodePicker: キーボード操作・詳細プレビューは今後拡張予定
 - 画像の遅延読込・AVIF/WebP 最適化は別タスク
 
 ---

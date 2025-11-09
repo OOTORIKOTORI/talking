@@ -20,6 +20,7 @@
           :characters="stageCharacters"
           :message="stageMessage"
           :theme="stageTheme"
+          :camera="stageCamera"
         />
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -100,6 +101,7 @@
         :characters="stageCharacters"
         :message="stageMessage"
         :theme="stageTheme"
+        :camera="stageCamera"
       />
       
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -465,6 +467,12 @@ const stageCharacters = computed(() => {
 
 // StageCanvas 用のメッセージ (play.vue では null - メッセージウィンドウは別で表示)
 const stageMessage = computed(() => null)
+
+// StageCanvas 用のカメラ
+const stageCamera = computed(() => {
+  const cam = (current.value as any)?.camera
+  return cam ? { zoom: cam.zoom ?? 100, cx: cam.cx ?? 50, cy: cam.cy ?? 50 } : { zoom: 100, cx: 50, cy: 50 }
+})
 
 onMounted(async () => {
   // 音声同意を確認

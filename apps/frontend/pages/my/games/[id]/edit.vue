@@ -38,6 +38,7 @@ const openNodePicker = ref(false)
 const bgUrl = ref<string | null>(null)
 const musicUrl = ref<string | null>(null)
 const musicTitle = ref<string>('')
+const sfxUrl = ref<string | null>(null)
 const pendingIndex = ref<number | null>(null)
 
 // テストプレイを新しいタブで開く
@@ -107,6 +108,14 @@ watch(
     const meta = await getAsset(id)
     musicTitle.value = meta?.title || '(BGM)'
     musicUrl.value = await signedFromId(id, false)
+  },
+  { immediate: false }
+)
+
+watch(
+  () => nodeDraft.sfxAssetId,
+  async (id) => {
+    sfxUrl.value = id ? await signedFromId(id, true) : null
   },
   { immediate: false }
 )
@@ -641,6 +650,7 @@ function onUp() {
                     <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
                     <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
                   </div>
+                  <audio v-if="sfxUrl" :src="sfxUrl" controls preload="none" class="mt-1 w-full"></audio>
                 </div>
 
                 <!-- カメラ -->
@@ -829,6 +839,7 @@ function onUp() {
                       <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
                       <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
                     </div>
+                    <audio v-if="sfxUrl" :src="sfxUrl" controls preload="none" class="mt-1 w-full"></audio>
                   </div>
 
                   <!-- カメラ -->

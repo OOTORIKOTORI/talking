@@ -1,15 +1,19 @@
 <!-- components/game/StageCanvas.vue -->
 <template>
   <div ref="stageRef" class="stage">
-    <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
-    <img
-      v-for="c in characters"
-      :key="c.key"
-      class="ch"
-      :src="c.url"
-      :style="charStyle(c)"
-      alt=""
-    />
+    <!-- ワールド（背景＋キャラ）: カメラ変換をここに適用 -->
+    <div class="world" :style="worldStyle">
+      <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
+      <img
+        v-for="c in characters"
+        :key="c.key"
+        class="ch"
+        :src="c.url"
+        :style="charStyle(c)"
+        alt=""
+      />
+    </div>
+    <!-- メッセージウィンドウ（拡大しない） -->
     <div v-if="message" class="mw" :style="mwStyle">
       <div v-if="message.speaker" class="name">{{ message.speaker }}</div>
       <div class="text">{{ message.text }}</div>
@@ -34,9 +38,20 @@ const props = defineProps<{
     fontSize: number
     lineHeight: number
   }
+  camera?: { zoom?: number; cx?: number; cy?: number } | null
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
+
+// カメラ変換スタイル（world レイヤーに適用）
+const worldStyle = computed(() => {
+  const z = Math.max(100, Math.min(300, props.camera?.zoom ?? 100)) / 100
+  const cx = props.camera?.cx ?? 50
+  const cy = props.camera?.cy ?? 50
+  const tx = 50 - cx
+  const ty = 50 - cy
+  return { transform: `translate(${tx}%, ${ty}%) scale(${z})`, transformOrigin: 'center center' }
+})
 
 // キャラクター配置スタイル
 function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
@@ -78,6 +93,11 @@ const mwStyle = computed(() => ({
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
+}
+.world {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
 }
 .bg {
   position: absolute;
