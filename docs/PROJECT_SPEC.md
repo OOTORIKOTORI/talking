@@ -146,14 +146,20 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 
 ### ルーティング / 画面
 - **エディタ**: `/my/games/:id/edit`
-  - 左：シーン一覧、中央：ノード一覧、右：プロパティ（プレビュー含む）
-  - 右ペインは「通常表示 / 全画面」をトグル（UI 文言: *全画面, 通常表示, Fで切替 / Escで閉じる*）
-  - ステージは 16:9、`MiniStage.vue` でプレビュー
-- **プレビュー（プレイヤ）**: `/games/:id/play`（※現状はカメラ未反映。今後対応）
+  - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
+  - 右ペインは「通常表示 / 全画面」をトグル(UI: *全画面 / 通常表示*, F で切替・Esc で閉じる)
+  - ステージは 16:9。**StageCanvas.vue + useStageScale** により、通常/全画面いずれも**同一座標系・同一比率**で描画
+  - **「シナリオ全体設定」**ボタンで**メッセージウィンドウのテーマ**(枠/色/角丸/余白/名前帯/本文/タイプライター)をモーダル編集
+  - 次ノードの指定は **NodePicker**(モーダル)から選択(台詞先頭のプレビュー付き)
+- **テストプレイ(プレイヤ)**: `/games/:id/play`
+  - クエリ `?sceneId=&nodeId=` を受け取り、欠落時は **scene.startNodeId → 先頭ノード** の順で補完
+  - **音声同意オーバーレイ**を表示。同意後は BGM を自動再生(ブラウザ制約で失敗時は次のユーザー操作で再試行)
+  - ※カメラ(zoom/cx/cy)は今後反映予定
 
-### ドメイン / モデル（Prisma 正）
+### ドメイン / モデル(Prisma 正)
 - `GameProject { id, ownerId, title, summary?, deletedAt? ... }`
 - `GameScene { id, projectId(FK), name, order, createdAt, updatedAt }`
+  - `startNodeId String?`  … このシーンで**最初に再生するノード**の参照(テストプレイの初期位置に利用)
 - `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, createdAt, updatedAt }`
 - `GameChoice { id, nodeId(FK), order, label, nextNodeId? }`
 
@@ -183,13 +189,28 @@ type Portrait = {
   - AssetPicker: 「自分のアセット / お気に入り」タブ + 検索
   - CharacterPicker → CharacterImagePicker: キャラ→その画像を段階選択
 
-### エディタ操作（右ペイン）
+### メッセージウィンドウ(シナリオ全体設定)
+- モーダル `MessageThemeModal.vue` で**シナリオ全体**のメッセージウィンドウを編集・保存(`GameProject.messageTheme Json?`)
+- スキーマ(実装準拠):  
+  ```ts
+  interface MessageTheme { 
+    frame: { bg: string; borderColor: string; borderWidth: number; radius: number; padding: number; shadow: boolean };
+    name:  { show: boolean; bg: string; color: string; padding: number; radius: number };
+    text:  { color: string; size: number; lineHeight: number };
+    typewriter: { msPerChar: number }; // 1文字表示の速度
+  }
+  ```
+- プレビューは **StageCanvas** 上に `MessageWindow` を重ねて表示。通常/全画面とも**同じ比率**で確認できる
+
+### エディタ操作(右ペイン)
 - 台詞（text）
 - 話者キャラ（speakerCharacterId）と **話者表記（自由入力）** …匿名演出（`???` 等）やあだ名に対応
 - 背景（bgAssetId） … サムネ表示
 - BGM（musicAssetId） … `<audio controls>` で再生/停止可
 - SFX（sfxAssetId） … 予約済み（UI あり、今後プレビュー付与）
 - **キャラクター配置（portraits[]）** … 複数行。各行で画像変更 / 削除 / `x,y,scale,z` を個別調整
+- **開始ノードの設定**: 各ノード列の「▶開始ノードに設定」ボタンで `GameScene.startNodeId` を PATCH 保存
+- **次ノードの設定**: `nextNodeId` は ID 直入力に加えて **NodePicker** で選択可能（Scene/Node 番号と台詞冒頭プレビューを表示）
 - **カメラ** … 倍率（zoom 100–300%）、中心（cx,cy 0–100%）
 - プレビューは通常/全画面のどちらでも同一ロジックで描画され、見た目が極力一致
 
@@ -203,6 +224,7 @@ type Portrait = {
 ### 既知の制限 / TODO
 - プレイヤ `/games/:id/play` は **カメラ未適用**（次フェーズで反映）
 - SFX のプレビュー未実装
+- 音声同意の保持は `localStorage('talking_audio_consent_v1')` を用いる（名称は実装準拠）
 - 選択肢（choices）の UI は最小
 - 画像の遅延読込・AVIF/WebP 最適化は別タスク
 
