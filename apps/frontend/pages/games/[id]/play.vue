@@ -431,7 +431,8 @@ const defaultTheme = {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
   text:  { color: '#fff', size: 16, lineHeight: 1.8 },
-  typewriter: { msPerChar: 25 }
+  typewriter: { msPerChar: 25 },
+  scale: 'md'
 }
 const theme = computed(() => (game.value as any)?.messageTheme ?? defaultTheme)
 

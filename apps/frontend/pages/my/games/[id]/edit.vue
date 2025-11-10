@@ -60,8 +60,8 @@ const openThemeModal = ref(false)
 const previewTheme = computed(() => game.value?.messageTheme ?? {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
-  text:  { color: '#fff', size: 14, lineHeight: 1.6 },
-  typewriter: { msPerChar: 20 },
+  text:  { color: '#fff', size: 16, lineHeight: 1.8 },
+  typewriter: { msPerChar: 25 },
   scale: 'md'
 })
 
@@ -75,8 +75,8 @@ const stageTheme = computed(() => {
     padding: t.frame?.padding || 16,
     nameBg: t.name?.bg || 'rgba(0,0,0,0.55)',
     textColor: t.text?.color || '#fff',
-    fontSize: t.text?.size || 14,
-    lineHeight: t.text?.lineHeight || 1.6,
+    fontSize: t.text?.size || 16,
+    lineHeight: t.text?.lineHeight || 1.8,
     scale: t.scale || 'md'
   }
 })
@@ -411,7 +411,7 @@ function removeChoice(index: number) {
 // ---------- 3ペイン可変 & 全画面 ----------
 const fullscreenProps = ref(false)
 const wrap = ref<HTMLElement | null>(null)
-const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 420 })) // px
+const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 640 })) // px (デフォルト幅を640に拡大)
 const min = { scenes: 200, nodes: 360, props: 360 }
 const gridStyle = computed(() => ({
   '--w-scenes': widths.value.scenes + 'px',
@@ -419,6 +419,12 @@ const gridStyle = computed(() => ({
   '--w-props': widths.value.props + 'px',
   '--sz-resizer': '8px',
 }) as any)
+
+// 幅プリセット (プレビューペインの幅を変更)
+function setPreviewWidth(w: number) {
+  widths.value.props = w
+  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
+}
 
 onMounted(() => {
   // 以前の幅を復元
@@ -575,6 +581,12 @@ function onUp() {
           <div class="flex items-center justify-between mb-3">
             <h2 class="font-semibold text-lg">プロパティ</h2>
             <div class="flex items-center gap-2">
+              <!-- 幅プリセットボタン (通常表示のみ) -->
+              <div v-if="!fullscreenProps" class="flex items-center gap-1 border rounded px-1">
+                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(560)" title="やや広">S</button>
+                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(720)" title="ワイド">M</button>
+                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(900)" title="最大">L</button>
+              </div>
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
               </button>
@@ -992,7 +1004,7 @@ function onUp() {
     var(--sz-resizer,8px)
     var(--w-nodes,1fr)
     var(--sz-resizer,8px)
-    var(--w-props,420px);
+    var(--w-props,640px);
   gap: 1rem;
   align-items: stretch;
   grid-template-rows: 1fr;          /* ← 行を1本に固定 */

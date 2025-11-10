@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useStageScale } from '@/composables/useStageScale'
 
 const props = defineProps<{
   backgroundUrl: string | null
@@ -43,6 +44,9 @@ const props = defineProps<{
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
+
+// useStageScale でステージの実寸を CSS変数に流す
+useStageScale(stageRef)
 
 // カメラ変換スタイル（world レイヤーに適用）
 const worldStyle = computed(() => {
@@ -76,6 +80,10 @@ const mwStyle = computed(() => {
     lg: { w: '96%', h: '26%', mb: '2%', mw: '1280px' }
   }
   const m = MAP[scale]
+  
+  // フォントサイズの倍率係数を計算 (16を基準とする)
+  const fsK = (props.theme.fontSize || 16) / 16
+  
   return {
     '--mw-width': m.w,
     '--mw-max-width': m.mw,
@@ -87,7 +95,7 @@ const mwStyle = computed(() => {
     '--mw-padding': `${props.theme.padding}px`,
     '--mw-name-bg': props.theme.nameBg,
     '--mw-text': props.theme.textColor,
-    '--mw-fs': `${props.theme.fontSize}px`,
+    '--fs-k': String(fsK),
     '--mw-lh': String(props.theme.lineHeight)
   }
 })
@@ -129,8 +137,8 @@ const mwStyle = computed(() => {
   height: var(--mw-height);
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
-  /* 角丸をコンテナサイズに応じて調整（最小8px、最大設定値） */
-  border-radius: clamp(8px, calc(var(--mw-height) * 0.1), var(--mw-radius));
+  /* 角丸をステージ実高さに応じて調整（最小8px、最大設定値） */
+  border-radius: clamp(8px, calc(var(--stage-h-px, 720px) * 0.01), var(--mw-radius));
   color: var(--mw-text);
   display: flex;
   flex-direction: column;
@@ -139,18 +147,20 @@ const mwStyle = computed(() => {
 }
 .name {
   background: var(--mw-name-bg);
-  /* padding もコンテナサイズに応じて調整（最小4px、最大設定値） */
-  padding: clamp(4px, calc(var(--mw-height) * 0.05), var(--mw-padding));
+  /* padding もステージ実高さに応じて調整（最小4px、最大設定値） */
+  padding: clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
   font-weight: 700;
-  /* フォントサイズもコンテナに応じて調整（最小12px、最大設定値） */
-  font-size: clamp(12px, calc(var(--mw-height) * 0.12), var(--mw-fs));
+  /* フォントサイズもステージ実高さに応じて調整（最小12px、最大48px） */
+  font-size: clamp(12px, calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), 48px);
 }
 .text {
-  /* padding もコンテナサイズに応じて調整（最小6px、最大設定値） */
-  padding: clamp(6px, calc(var(--mw-height) * 0.08), var(--mw-padding));
-  /* フォントサイズもコンテナに応じて調整（最小13px、最大設定値） */
-  font-size: clamp(13px, calc(var(--mw-height) * 0.13), var(--mw-fs));
+  flex: 1;
+  /* padding もステージ実高さに応じて調整（最小6px、最大設定値） */
+  padding: clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
+  /* フォントサイズもステージ実高さに応じて調整（最小13px、最大48px） */
+  font-size: clamp(13px, calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), 48px);
   line-height: var(--mw-lh);
   white-space: pre-wrap;
+  overflow-y: auto;
 }
 </style>

@@ -11,9 +11,13 @@ export function useStageScale(elRef: Ref<HTMLElement | null>, baseW = 1280, base
     const h = el.clientHeight
     const s = Math.min(w / baseW, h / baseH)
     scale.value = s
+    
+    // CSS変数に実寸と比率を設定
     el.style.setProperty('--stage-scale', String(s))
     el.style.setProperty('--stage-base-w', `${baseW}px`)
     el.style.setProperty('--stage-base-h', `${baseH}px`)
+    el.style.setProperty('--stage-w-px', `${w}px`)
+    el.style.setProperty('--stage-h-px', `${h}px`)
   }
 
   onMounted(() => { 
@@ -23,7 +27,10 @@ export function useStageScale(elRef: Ref<HTMLElement | null>, baseW = 1280, base
   })
   
   onBeforeUnmount(() => { 
-    if (ro && elRef.value) ro.unobserve(elRef.value)
+    if (ro) {
+      ro.disconnect()
+      ro = null
+    }
   })
 
   return { scale }
