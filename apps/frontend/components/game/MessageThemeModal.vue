@@ -14,7 +14,8 @@
           <div class="p-5">
             <div class="relative aspect-[16/9] bg-neutral-900 rounded-lg overflow-hidden">
               <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-60" alt="preview bg" />
-              <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
+              <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6"
+                   :style="{ '--stage-scale': scaleFactor }">
                 <MessageWindow :speaker="speaker" :text="sample" :theme="draft" :animate="true" />
               </div>
             </div>
@@ -23,6 +24,18 @@
           <!-- form -->
           <div class="px-5 pb-5">
             <div class="grid gap-4 md:grid-cols-2 text-sm">
+              <label>サイズプリセット
+                <select v-model="draft.scale" class="w-full border rounded px-2 py-1 mt-1">
+                  <option value="sm">小</option>
+                  <option value="md">中（標準）</option>
+                  <option value="lg">大</option>
+                </select>
+              </label>
+              <div class="md:col-span-2 text-xs text-gray-500">
+                ※ 詳細(px)は最大値として動作します。画面サイズに応じて自動的に縮小・拡大します。
+              </div>
+
+              <!-- ここから詳細(px)群 -->
               <label>背景（rgba）<input v-model="draft.frame.bg" class="w-full border rounded px-2 py-1 mt-1" /></label>
               <label>枠線色（rgba）<input v-model="draft.frame.borderColor" class="w-full border rounded px-2 py-1 mt-1" /></label>
               <label>枠線px<input type="number" v-model.number="draft.frame.borderWidth" class="w-full border rounded px-2 py-1 mt-1" /></label>
@@ -58,9 +71,15 @@ const defaultTheme = {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
   text:  { color: '#fff', size: 16, lineHeight: 1.8 },
-  typewriter: { msPerChar: 25 }
+  typewriter: { msPerChar: 25 },
+  scale: 'md'
 }
 const draft = ref<any>(props.initial ? structuredClone(props.initial) : structuredClone(defaultTheme))
+
+const scaleFactor = computed(() => {
+  const s = (draft.value?.scale ?? 'md') as 'sm'|'md'|'lg'
+  return s === 'sm' ? 0.9 : s === 'lg' ? 1.15 : 1
+})
 
 const speaker = ref('ガイドさん')
 const sample  = ref('ここにサンプル本文が1文字ずつ表示されます。テーマの変更は即時プレビュー。')

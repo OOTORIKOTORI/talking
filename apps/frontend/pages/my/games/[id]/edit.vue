@@ -61,7 +61,8 @@ const previewTheme = computed(() => game.value?.messageTheme ?? {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
   text:  { color: '#fff', size: 14, lineHeight: 1.6 },
-  typewriter: { msPerChar: 20 }
+  typewriter: { msPerChar: 20 },
+  scale: 'md'
 })
 
 // StageCanvas 用のテーマ変換
@@ -75,7 +76,8 @@ const stageTheme = computed(() => {
     nameBg: t.name?.bg || 'rgba(0,0,0,0.55)',
     textColor: t.text?.color || '#fff',
     fontSize: t.text?.size || 14,
-    lineHeight: t.text?.lineHeight || 1.6
+    lineHeight: t.text?.lineHeight || 1.6,
+    scale: t.scale || 'md'
   }
 })
 

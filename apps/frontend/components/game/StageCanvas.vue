@@ -37,6 +37,7 @@ const props = defineProps<{
     textColor: string
     fontSize: number
     lineHeight: number
+    scale?: 'sm' | 'md' | 'lg'
   }
   camera?: { zoom?: number; cx?: number; cy?: number } | null
 }>()
@@ -65,26 +66,31 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   }
 }
 
-// メッセージウィンドウのサイズを基準サイズに対する比率で計算
-// 基準: 1280x720 (16:9)
-// 幅: 92% (最大1180px)
-// 高さ: 22% (固定比率)
-// 下マージン: 3%
-
-const mwStyle = computed(() => ({
-  '--mw-width': '92%',  // 幅は常に92%
-  '--mw-max-width': '1180px',
-  '--mw-height': '22%',  // 高さは常に22%（より大きく）
-  '--mw-margin-bottom': '3%',  // 下マージンは常に3%
-  '--mw-bg': props.theme.bg,
-  '--mw-border': props.theme.border,
-  '--mw-radius': `${props.theme.radius}px`,
-  '--mw-padding': `${props.theme.padding}px`,
-  '--mw-name-bg': props.theme.nameBg,
-  '--mw-text': props.theme.textColor,
-  '--mw-fs': `${props.theme.fontSize}px`,
-  '--mw-lh': String(props.theme.lineHeight)
-}))
+// メッセージウィンドウのサイズをプリセットで切替
+// sm: やや小さめ / md: 標準 / lg: やや大きめ
+const mwStyle = computed(() => {
+  const scale = props.theme.scale ?? 'md'
+  const MAP: Record<'sm'|'md'|'lg', { w:string; h:string; mb:string; mw:string }> = {
+    sm: { w: '88%', h: '20%', mb: '4%', mw: '1100px' },
+    md: { w: '92%', h: '22%', mb: '3%', mw: '1180px' },
+    lg: { w: '96%', h: '26%', mb: '2%', mw: '1280px' }
+  }
+  const m = MAP[scale]
+  return {
+    '--mw-width': m.w,
+    '--mw-max-width': m.mw,
+    '--mw-height': m.h,
+    '--mw-margin-bottom': m.mb,
+    '--mw-bg': props.theme.bg,
+    '--mw-border': props.theme.border,
+    '--mw-radius': `${props.theme.radius}px`,
+    '--mw-padding': `${props.theme.padding}px`,
+    '--mw-name-bg': props.theme.nameBg,
+    '--mw-text': props.theme.textColor,
+    '--mw-fs': `${props.theme.fontSize}px`,
+    '--mw-lh': String(props.theme.lineHeight)
+  }
+})
 </script>
 
 <style scoped>

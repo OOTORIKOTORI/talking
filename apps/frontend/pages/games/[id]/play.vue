@@ -446,7 +446,8 @@ const stageTheme = computed(() => {
     nameBg: t.name?.bg || 'rgba(0,0,0,0.55)',
     textColor: t.text?.color || '#fff',
     fontSize: t.text?.size || 16,
-    lineHeight: t.text?.lineHeight || 1.8
+    lineHeight: t.text?.lineHeight || 1.8,
+    scale: t.scale || 'md'
   }
 })
 
