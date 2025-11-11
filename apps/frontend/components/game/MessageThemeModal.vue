@@ -104,9 +104,9 @@ const defaultTheme = {
   scale: 'md'
 }
 
-// 旧データの互換性対応
+// 旧データの互換性対応（JSONを使ったディープコピー）
 function normalizeTheme(theme: any) {
-  const normalized = theme ? structuredClone(theme) : structuredClone(defaultTheme)
+  const normalized = theme ? JSON.parse(JSON.stringify(theme)) : JSON.parse(JSON.stringify(defaultTheme))
   
   // text が存在しない場合は初期化
   if (!normalized.text) {
@@ -160,14 +160,17 @@ const toast = useToast()
 
 async function save(){
   try {
-    const v = draft.value
-    await $api(`/games/${props.gameId}`, { method:'PATCH', body: { messageTheme: v } })
+    console.log('[MessageThemeModal] 保存開始', props.gameId, draft.value)
+    const v = JSON.parse(JSON.stringify(draft.value))
+    console.log('[MessageThemeModal] シリアライズ完了', v)
+    const result = await $api(`/games/${props.gameId}`, { method:'PATCH', body: { messageTheme: v } })
+    console.log('[MessageThemeModal] API呼び出し成功', result)
     toast.success('保存しました')
-    emit('saved', structuredClone(v))
+    emit('saved', JSON.parse(JSON.stringify(v)))
     emit('close')
   } catch (error: any) {
-    console.error('保存に失敗しました:', error)
-    toast.error('保存に失敗しました: ' + (error.message || '不明なエラー'))
+    console.error('[MessageThemeModal] 保存に失敗しました:', error)
+    toast.error('保存に失敗しました: ' + (error.message || error.statusText || '不明なエラー'))
   }
 }
 </script>

@@ -166,8 +166,16 @@ const mwStyle = computed(() => {
   transform: translateX(-50%);
   width: var(--mw-width);
   max-width: var(--mw-max-width);
-  /* 高さは自動（内容に追従） */
-  min-height: var(--mw-height);
+  /* 高さは行数分を常に確保（可変ではなく固定） */
+  /* 計算: (フォントサイズ * 行の高さ * 行数) + パディング上下 */
+  height: auto;
+  min-height: calc(
+    clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), var(--fs-max, 48px)) 
+    * var(--mw-lh, 1.8) 
+    * var(--rows, 3) 
+    + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding)) * 2
+    + clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding))
+  );
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
   /* 角丸をステージ実高さに応じて調整（最小8px、最大設定値） */
