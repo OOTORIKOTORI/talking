@@ -39,6 +39,8 @@ const props = defineProps<{
     fontSize: number
     lineHeight: number
     scale?: 'sm' | 'md' | 'lg'
+    fontPreset?: number // 1〜10
+    rows?: number // 1〜6
   }
   camera?: { zoom?: number; cx?: number; cy?: number } | null
 }>()
@@ -47,6 +49,29 @@ const stageRef = ref<HTMLElement | null>(null)
 
 // useStageScale でステージの実寸を CSS変数に流す
 useStageScale(stageRef)
+
+// fontPreset→倍率テーブル
+const presetK: Record<number, number> = {
+  1: 0.70, 2: 0.80, 3: 0.90, 4: 0.95, 5: 1.00,
+  6: 1.08, 7: 1.16, 8: 1.25, 9: 1.35, 10: 1.48
+}
+
+// 旧 fontSize(px) を fontPreset に変換（fontPreset が未指定の場合のみ）
+function pxToPreset(px: number | undefined): number {
+  if (px == null) return 5
+  // 16px を基準に最近傍のプリセットを選択
+  const ratio = px / 16
+  if (ratio <= 0.75) return 1
+  if (ratio <= 0.85) return 2
+  if (ratio <= 0.925) return 3
+  if (ratio <= 0.975) return 4
+  if (ratio <= 1.04) return 5
+  if (ratio <= 1.12) return 6
+  if (ratio <= 1.205) return 7
+  if (ratio <= 1.30) return 8
+  if (ratio <= 1.415) return 9
+  return 10
+}
 
 // カメラ変換スタイル（world レイヤーに適用）
 const worldStyle = computed(() => {
@@ -81,8 +106,12 @@ const mwStyle = computed(() => {
   }
   const m = MAP[scale]
   
-  // フォントサイズの倍率係数を計算 (16を基準とする)
-  const fsK = (props.theme.fontSize || 16) / 16
+  // fontPreset が指定されていればそれを使用、未指定なら旧 fontSize(px) から変換
+  const preset = props.theme.fontPreset ?? pxToPreset(props.theme.fontSize)
+  const fsK = presetK[preset] ?? 1
+  
+  // 表示行数（デフォルト3）
+  const rows = props.theme.rows ?? 3
   
   return {
     '--mw-width': m.w,
@@ -96,6 +125,9 @@ const mwStyle = computed(() => {
     '--mw-name-bg': props.theme.nameBg,
     '--mw-text': props.theme.textColor,
     '--fs-k': String(fsK),
+    '--fs-min': '12px',
+    '--fs-max': '48px',
+    '--rows': String(rows),
     '--mw-lh': String(props.theme.lineHeight)
   }
 })
@@ -134,7 +166,8 @@ const mwStyle = computed(() => {
   transform: translateX(-50%);
   width: var(--mw-width);
   max-width: var(--mw-max-width);
-  height: var(--mw-height);
+  /* 高さは自動（内容に追従） */
+  min-height: var(--mw-height);
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
   /* 角丸をステージ実高さに応じて調整（最小8px、最大設定値） */
@@ -150,17 +183,23 @@ const mwStyle = computed(() => {
   /* padding もステージ実高さに応じて調整（最小4px、最大設定値） */
   padding: clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
   font-weight: 700;
-  /* フォントサイズもステージ実高さに応じて調整（最小12px、最大48px） */
-  font-size: clamp(12px, calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), 48px);
+  /* フォントサイズ: 実ステージ高さ基準（最小12px、最大48px） */
+  font-size: clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), var(--fs-max, 48px));
 }
 .text {
   flex: 1;
   /* padding もステージ実高さに応じて調整（最小6px、最大設定値） */
   padding: clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
-  /* フォントサイズもステージ実高さに応じて調整（最小13px、最大48px） */
-  font-size: clamp(13px, calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), 48px);
+  /* フォントサイズ: 実ステージ高さ基準（最小12px、最大48px） */
+  font-size: clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), var(--fs-max, 48px));
   line-height: var(--mw-lh);
   white-space: pre-wrap;
-  overflow-y: auto;
+  /* スクロールバー非表示＆行クランプ */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--rows, 3);
+  /* 非WebKit向け（将来対応） */
+  line-clamp: var(--rows, 3);
 }
 </style>

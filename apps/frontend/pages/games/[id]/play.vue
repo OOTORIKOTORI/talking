@@ -430,15 +430,36 @@ watch(
 const defaultTheme = {
   frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
   name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
-  text:  { color: '#fff', size: 16, lineHeight: 1.8 },
+  text:  { color: '#fff', size: 16, lineHeight: 1.8, fontPreset: 5, rows: 3 },
   typewriter: { msPerChar: 25 },
   scale: 'md'
 }
 const theme = computed(() => (game.value as any)?.messageTheme ?? defaultTheme)
 
+// 旧 fontSize(px) を fontPreset に変換（fontPreset が未指定の場合のみ）
+function pxToPreset(px: number | undefined): number {
+  if (px == null) return 5
+  const ratio = px / 16
+  if (ratio <= 0.75) return 1
+  if (ratio <= 0.85) return 2
+  if (ratio <= 0.925) return 3
+  if (ratio <= 0.975) return 4
+  if (ratio <= 1.04) return 5
+  if (ratio <= 1.12) return 6
+  if (ratio <= 1.205) return 7
+  if (ratio <= 1.30) return 8
+  if (ratio <= 1.415) return 9
+  return 10
+}
+
 // StageCanvas 用のテーマ変換
 const stageTheme = computed(() => {
   const t = theme.value
+  
+  // fontPreset が指定されていればそれを使用、未指定なら旧 fontSize(px) から変換
+  const preset = t.text?.fontPreset ?? pxToPreset(t.text?.size)
+  const rows = t.text?.rows ?? 3
+  
   return {
     bg: t.frame?.bg || 'rgba(20,24,36,0.72)',
     border: t.frame?.borderColor || 'rgba(255,255,255,0.2)',
@@ -448,7 +469,9 @@ const stageTheme = computed(() => {
     textColor: t.text?.color || '#fff',
     fontSize: t.text?.size || 16,
     lineHeight: t.text?.lineHeight || 1.8,
-    scale: t.scale || 'md'
+    scale: t.scale || 'md',
+    fontPreset: preset,
+    rows: rows
   }
 })
 

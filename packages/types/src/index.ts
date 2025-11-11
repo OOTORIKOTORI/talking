@@ -109,3 +109,37 @@ export interface Character {
   tags?: string[]
   isFavorite?: boolean
 }
+
+// === Message Theme =====================
+export type FontPreset = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type MessageRows = 1 | 2 | 3 | 4 | 5 | 6;
+export type MessageScale = 'sm' | 'md' | 'lg';
+
+export interface MessageTheme {
+  frame?: {
+    bg?: string;
+    borderColor?: string;
+    borderWidth?: number;
+    radius?: number;
+    padding?: number;
+    shadow?: boolean;
+  };
+  name?: {
+    show?: boolean;
+    bg?: string;
+    color?: string;
+    padding?: number;
+    radius?: number;
+  };
+  text?: {
+    color?: string;
+    size?: number; // 旧仕様(px)、fontPreset が優先
+    fontPreset?: FontPreset; // 1〜10のプリセット
+    lineHeight?: number;
+    rows?: MessageRows; // 表示行数（1〜6）
+  };
+  typewriter?: {
+    msPerChar?: number;
+  };
+  scale?: MessageScale; // メッセージウィンドウのサイズプリセット
+}
