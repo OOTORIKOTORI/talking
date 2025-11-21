@@ -166,15 +166,18 @@ const mwStyle = computed(() => {
   transform: translateX(-50%);
   width: var(--mw-width);
   max-width: var(--mw-max-width);
-  /* 高さは行数分を常に確保（可変ではなく固定） */
-  /* 計算: (フォントサイズ * 行の高さ * 行数) + パディング上下 */
-  height: auto;
-  min-height: calc(
+  /* 高さは行数分を常に固定（内容量に関わらず一定） */
+  /* 計算: テキストエリア(フォントサイズ * 行の高さ * 行数 + パディング上下) + 名前エリア(フォントサイズ + パディング上下 + マージン) */
+  height: calc(
+    /* テキストエリア: 本文の行数分 */
     clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), var(--fs-max, 48px)) 
     * var(--mw-lh, 1.8) 
     * var(--rows, 3) 
     + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding)) * 2
-    + clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding))
+    /* 名前エリア: 名前フォントサイズ + パディング上下 + 下マージン */
+    + clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), var(--fs-max, 48px))
+    + clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding)) * 2
+    + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding))
   );
   background: var(--mw-bg);
   border: 2px solid var(--mw-border);
@@ -195,7 +198,6 @@ const mwStyle = computed(() => {
   font-size: clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), var(--fs-max, 48px));
 }
 .text {
-  flex: 1;
   /* padding もステージ実高さに応じて調整（最小6px、最大設定値） */
   padding: clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
   /* フォントサイズ: 実ステージ高さ基準（最小12px、最大48px） */
