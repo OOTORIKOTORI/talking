@@ -40,6 +40,15 @@ const musicUrl = ref<string | null>(null)
 const musicTitle = ref<string>('')
 const sfxUrl = ref<string | null>(null)
 const pendingIndex = ref<number | null>(null)
+const saving = ref(false)
+
+// コピー対象トグル（localStorage永続化）
+const copyOpts = reactive({
+  bg: true,
+  chars: true,
+  bgm: true,
+  camera: true
+})
 
 // テストプレイを新しいタブで開く
 function openTestPlay() {
@@ -295,7 +304,22 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  
+  // コピー対象設定を復元
+  const saved = localStorage.getItem('talking_copy_opts_v1')
+  if (saved) {
+    try {
+      Object.assign(copyOpts, JSON.parse(saved))
+    } catch (e) {
+      console.warn('Failed to parse copyOpts from localStorage', e)
+    }
+  }
 })
+
+// コピー対象トグルの変更を監視して保存
+watch(copyOpts, (newVal) => {
+  localStorage.setItem('talking_copy_opts_v1', JSON.stringify(newVal))
+}, { deep: true })
 
 async function selectScene(s: any) {
   scene.value = s
@@ -384,6 +408,7 @@ async function addNode() {
 
 async function saveNode() {
   if (!scene.value || !node.value) return
+  saving.value = true
   try {
     // 署名URLはDBに保存しない(TTL切れ防止)
     const payload = JSON.parse(JSON.stringify(nodeDraft))
@@ -403,6 +428,69 @@ async function saveNode() {
   } catch (error) {
     console.error('Failed to save node:', error)
     alert('ノードの保存に失敗しました')
+  } finally {
+    saving.value = false
+  }
+}
+
+// 保存して次のノードへ（連結して新規ノードを作成）
+async function saveAndCreateNext() {
+  if (!scene.value || !node.value) return
+  saving.value = true
+  try {
+    // 1) 現在ノードを保存
+    const payload = JSON.parse(JSON.stringify(nodeDraft))
+    if (Array.isArray(payload.portraits)) {
+      payload.portraits = payload.portraits.map((p: any) => {
+        const { thumb, ...rest } = p
+        return rest
+      })
+    }
+    await api.upsertNode(scene.value.id, payload)
+    
+    // 2) コピー元の抽出（thumb除去）
+    const src = JSON.parse(JSON.stringify(nodeDraft))
+    const inherit: any = {}
+    
+    if (copyOpts.bg) inherit.bgAssetId = src.bgAssetId || null
+    if (copyOpts.bgm) inherit.musicAssetId = src.musicAssetId || null
+    if (copyOpts.camera) inherit.camera = src.camera || null
+    if (copyOpts.chars && Array.isArray(src.portraits)) {
+      inherit.portraits = src.portraits.map((p: any) => {
+        const { thumb, ...rest } = p
+        return rest
+      })
+    }
+    
+    // 3) 新規ノードを作成（テキスト/スピーカー/選択肢は初期化）
+    const newPayload = {
+      text: '',
+      speakerDisplayName: '',
+      choices: [],
+      ...inherit
+    }
+    const created = await api.upsertNode(scene.value.id, newPayload) as any
+    
+    // 4) 現在ノードの nextNodeId を新規に更新
+    await api.upsertNode(scene.value.id, { 
+      id: nodeDraft.id, 
+      nextNodeId: created.id 
+    })
+    
+    // 5) 一覧更新＆新規ノードへ遷移
+    nodes.value = await api.listNodes(scene.value.id) as any[]
+    const found = nodes.value.find(n => n.id === created.id) || created
+    selectNode(found)
+    
+    // トースト通知
+    const toast = useToast()
+    toast.success('次のノードを作成して連結しました')
+  } catch (e) {
+    console.error(e)
+    const toast = useToast()
+    toast.error('次ノードの作成に失敗しました')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -754,15 +842,49 @@ function onUp() {
                 </div>
               </div>
 
-              <div class="flex gap-2">
+              <!-- コピー対象トグル -->
+              <div class="border-t pt-3 mt-3">
+                <div class="text-sm font-medium mb-2">次ノード作成時のコピー対象</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="copyOpts.bg" class="rounded" />
+                    背景
+                  </label>
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="copyOpts.chars" class="rounded" />
+                    キャラ
+                  </label>
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="copyOpts.bgm" class="rounded" />
+                    BGM
+                  </label>
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="copyOpts.camera" class="rounded" />
+                    カメラ
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex gap-2 border-t pt-3">
                 <button
-                  class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-400"
+                  :disabled="saving"
                   @click="saveNode"
                 >
-                  保存
+                  {{ saving ? '保存中...' : '保存' }}
                 </button>
                 <button
-                  class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+                  class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-400"
+                  :disabled="saving"
+                  @click="saveAndCreateNext"
+                >
+                  {{ saving ? '保存中...' : '保存して次のノードへ' }}
+                </button>
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  class="flex-1 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
                   @click="addChoice"
                 >
                   選択肢追加
@@ -932,21 +1054,58 @@ function onUp() {
 
                   <div>
                     <label class="block text-sm font-medium mb-1">次ノードID</label>
-                    <input
-                      v-model="nodeDraft.nextNodeId"
-                      class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="node_xxx"
-                    />
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model="nodeDraft.nextNodeId"
+                        class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="node_xxx"
+                      />
+                      <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
+                    </div>
                   </div>
                 </div>
 
-                <div class="flex gap-2">
+                <!-- コピー対象トグル -->
+                <div class="border-t pt-3 mt-3">
+                  <div class="text-sm font-medium mb-2">次ノード作成時のコピー対象</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2 text-sm">
+                      <input type="checkbox" v-model="copyOpts.bg" class="rounded" />
+                      背景
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                      <input type="checkbox" v-model="copyOpts.chars" class="rounded" />
+                      キャラ
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                      <input type="checkbox" v-model="copyOpts.bgm" class="rounded" />
+                      BGM
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                      <input type="checkbox" v-model="copyOpts.camera" class="rounded" />
+                      カメラ
+                    </label>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 border-t pt-3">
                   <button
-                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-400"
+                    :disabled="saving"
                     @click="saveNode"
                   >
-                    保存
+                    {{ saving ? '保存中...' : '保存' }}
                   </button>
+                  <button
+                    class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-400"
+                    :disabled="saving"
+                    @click="saveAndCreateNext"
+                  >
+                    {{ saving ? '保存中...' : '保存して次のノードへ' }}
+                  </button>
+                </div>
+
+                <div class="flex gap-2">
                   <button
                     class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
                     @click="addChoice"
