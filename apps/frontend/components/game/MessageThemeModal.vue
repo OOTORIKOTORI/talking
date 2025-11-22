@@ -212,6 +212,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { MessageThemeV2, RGBA } from '@talking/types'
+import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS } from '@talking/types'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import { migrateToV2, contrastRatio, contrastLevel, toRgba, rgbaToCss } from '@/utils/themeUtils'
@@ -327,32 +328,52 @@ function touchAdvanced() {
 const previewTheme = computed(() => {
   const d = draft.value
   
+  // プリセットから実際の値を計算
+  const fontK = FONT_K[d.fontPreset ?? 5] ?? 1
+  const baseFontSize = 16
+  const fontSize = Math.round(baseFontSize * fontK)
+  
+  const paddingK = PADDING_K[d.paddingPreset ?? 5] ?? 1
+  const basePadding = 16
+  const padding = Math.round(basePadding * paddingK)
+  
+  const radius = RADIUS_PX[d.radiusPreset ?? 5] ?? 12
+  const borderWidth = BORDER_PX[d.borderPreset ?? 3] ?? 2
+  const typeMs = TYPE_MS[d.typeSpeedPreset ?? 6] ?? 40
+  
+  // 上級設定が指定されていればそちらを優先
+  const finalFontSize = advancedTouched.value && d.text?.size ? d.text.size : fontSize
+  const finalPadding = advancedTouched.value && d.frame?.padding ? d.frame.padding : padding
+  const finalRadius = advancedTouched.value && d.frame?.radius ? d.frame.radius : radius
+  const finalBorderWidth = advancedTouched.value && d.frame?.borderWidth ? d.frame.borderWidth : borderWidth
+  const finalTypeMs = advancedTouched.value && d.typewriter?.msPerChar ? d.typewriter.msPerChar : typeMs
+  
   // v2から旧形式へ変換（MessageWindowが期待する形式）
   return {
     frame: {
       bg: rgbaToCss(toRgba(d.frameBg)),
       borderColor: rgbaToCss(toRgba(d.frameBorder)),
-      borderWidth: d.frame?.borderWidth ?? 2,
-      radius: d.frame?.radius ?? 16,
-      padding: d.frame?.padding ?? 16,
+      borderWidth: finalBorderWidth,
+      radius: finalRadius,
+      padding: finalPadding,
       shadow: true,
     },
     name: {
       show: d.name?.show ?? true,
       bg: rgbaToCss(toRgba(d.nameBg)),
       color: '#fff',
-      padding: d.name?.padding ?? 8,
-      radius: d.name?.radius ?? 10,
+      padding: Math.round(finalPadding * 0.5),
+      radius: Math.round(finalRadius * 0.8),
     },
     text: {
       color: rgbaToCss(toRgba(d.textColor)),
-      size: d.text?.size ?? 16,
+      size: finalFontSize,
       lineHeight: d.text?.lineHeight ?? 1.8,
       fontPreset: d.fontPreset ?? 5,
       rows: d.rows ?? 3,
     },
     typewriter: {
-      msPerChar: d.typewriter?.msPerChar ?? 40,
+      msPerChar: finalTypeMs,
     },
     scale: d.scale ?? 'md',
   }
@@ -391,15 +412,34 @@ const toast = useToast()
 async function save() {
   try {
     console.log('[MessageThemeModal] 保存開始', props.gameId, draft.value)
+    
+    // 色をRGBAオブジェクトから文字列へ変換してからシリアライズ
     const v = JSON.parse(JSON.stringify(draft.value))
+    
+    // RGBAオブジェクトをCSS文字列に変換
+    if (v.frameBg && typeof v.frameBg === 'object') {
+      v.frameBg = rgbaToCss(v.frameBg)
+    }
+    if (v.frameBorder && typeof v.frameBorder === 'object') {
+      v.frameBorder = rgbaToCss(v.frameBorder)
+    }
+    if (v.nameBg && typeof v.nameBg === 'object') {
+      v.nameBg = rgbaToCss(v.nameBg)
+    }
+    if (v.textColor && typeof v.textColor === 'object') {
+      v.textColor = rgbaToCss(v.textColor)
+    }
+    
+    console.log('[MessageThemeModal] シリアライズ完了', v)
     const result = await $api(`/games/${props.gameId}`, { method: 'PATCH', body: { messageTheme: v } })
     console.log('[MessageThemeModal] API呼び出し成功', result)
     toast.success('保存しました')
-    emit('saved', JSON.parse(JSON.stringify(v)))
+    emit('saved', v)
     emit('close')
   } catch (error: any) {
     console.error('[MessageThemeModal] 保存に失敗しました:', error)
-    toast.error('保存に失敗しました: ' + (error.message || error.statusText || '不明なエラー'))
+    console.error('[MessageThemeModal] エラー詳細:', error.data, error.message, error.statusText)
+    toast.error('保存に失敗しました: ' + (error.data?.message || error.message || error.statusText || '不明なエラー'))
   }
 }
 
