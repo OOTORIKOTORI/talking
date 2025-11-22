@@ -41,8 +41,8 @@
             </div>
           </div>
 
-          <!-- hidden on mobile, shown as small control on md+ -->
-          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
+          <!-- BGMコントロール (常に存在、位置だけ切り替え) -->
+          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60 md:z-[70]" controls></audio>
 
           <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
           <button 
@@ -119,9 +119,6 @@
             </button>
           </div>
         </div>
-
-        <!-- hidden on mobile, shown as small control on md+ -->
-        <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
 
         <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
         <button 

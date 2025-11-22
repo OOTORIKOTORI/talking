@@ -240,19 +240,67 @@ const selectedCharLabel = computed(() => {
   return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
 })
 
+// 次ノードの表示名を取得
+const nextNodeLabel = computed(() => {
+  if (!nodeDraft.nextNodeId) return '未設定'
+  
+  // 全ノードから検索
+  let foundNode: any = null
+  let sceneIndex = 0
+  let nodeIndex = 0
+  
+  for (let si = 0; si < scenes.value.length; si++) {
+    const scene = scenes.value[si]
+    for (let ni = 0; ni < (scene.nodes?.length || 0); ni++) {
+      const n = scene.nodes[ni]
+      if (n.id === nodeDraft.nextNodeId) {
+        foundNode = n
+        sceneIndex = si + 1
+        nodeIndex = ni + 1
+        break
+      }
+    }
+    if (foundNode) break
+  }
+  
+  if (!foundNode) {
+    // 現在のシーンのノード一覧から探す（scenes.valueに含まれていない場合）
+    const currentNode = nodes.value.find(n => n.id === nodeDraft.nextNodeId)
+    if (currentNode) {
+      const idx = nodes.value.findIndex(n => n.id === nodeDraft.nextNodeId)
+      const preview = (currentNode.text || '').slice(0, 20) + ((currentNode.text || '').length > 20 ? '…' : '')
+      return `#${idx + 1} ${preview || '(無題)'}`
+    }
+    return nodeDraft.nextNodeId
+  }
+  
+  const preview = (foundNode.text || '').slice(0, 20) + ((foundNode.text || '').length > 20 ? '…' : '')
+  return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
+})
+
+// ポートレート選択モードかどうか（nullなら話者選択モード）
+const isPortraitMode = computed(() => pendingIndex.value !== null)
+
 function clearChar() {
   nodeDraft.speakerCharacterId = ''
   if (!nodeDraft.speakerDisplayName) nodeDraft.speakerDisplayName = ''
 }
 
 function onCharPicked(c: any) {
-  nodeDraft.speakerCharacterId = c.id
-  if (!nodeDraft.speakerDisplayName) {
-    nodeDraft.speakerDisplayName = c.displayName || c.name || ''
-  }
-  // If we're adding a new portrait, open the image picker
-  if (pendingIndex.value === -1) {
+  // ポートレートモードの場合
+  if (isPortraitMode.value) {
+    // キャラIDを一時保存して画像選択へ
+    nodeDraft.speakerCharacterId = c.id
+    if (!nodeDraft.speakerDisplayName) {
+      nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+    }
     openCharImagePicker.value = true
+  } else {
+    // 話者選択モードの場合
+    nodeDraft.speakerCharacterId = c.id
+    if (!nodeDraft.speakerDisplayName) {
+      nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+    }
   }
 }
 
@@ -272,19 +320,39 @@ function removePortrait(i: number) {
   nodeDraft.portraits.splice(i, 1)
 }
 
+// 話者キャラ選択を開く（ポートレートモードではない）
+function openSpeakerCharPicker() {
+  pendingIndex.value = null
+  openCharPicker.value = true
+}
+
 async function onImagePicked(img: any) {
   const url = await getSignedGetUrl(img.thumbKey || img.key)
+  
+  // 既存ポートレートの場合は位置・サイズを保持
+  let x = 50, y = 80, scale = 100, z = 0
+  if (pendingIndex.value !== null && pendingIndex.value >= 0) {
+    const existing = nodeDraft.portraits[pendingIndex.value]
+    if (existing) {
+      x = existing.x ?? 50
+      y = existing.y ?? 80
+      scale = existing.scale ?? 100
+      z = existing.z ?? 0
+    }
+  }
+  
   const entry = {
     characterId: nodeDraft.speakerCharacterId,
     imageId: img.id,
     key: img.key,
     thumb: url,
-    x: 50,
-    y: 80,
-    scale: 100,
-    z: 0,
+    x,
+    y,
+    scale,
+    z,
     characterName: nodeDraft.speakerDisplayName
   }
+  
   if (pendingIndex.value !== null && pendingIndex.value >= 0) {
     nodeDraft.portraits[pendingIndex.value] = entry
     pendingIndex.value = null
@@ -400,6 +468,8 @@ async function addNode() {
   try {
     await api.upsertNode(scene.value.id, { text: '...' })
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
+    // scenes.valueも更新して次ノードラベル表示を最新に
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
   } catch (error) {
     console.error('Failed to add node:', error)
     alert('ノードの追加に失敗しました')
@@ -420,6 +490,8 @@ async function saveNode() {
     }
     await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
+    // scenes.valueも更新して次ノードラベル表示を最新に
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
     // Update the current node
     const updated = nodes.value.find((n) => n.id === node.value.id)
     if (updated) {
@@ -479,6 +551,8 @@ async function saveAndCreateNext() {
     
     // 5) 一覧更新＆新規ノードへ遷移
     nodes.value = await api.listNodes(scene.value.id) as any[]
+    // scenes.valueも更新して次ノードラベル表示を最新に
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
     const found = nodes.value.find(n => n.id === created.id) || created
     selectNode(found)
     
@@ -501,6 +575,8 @@ async function deleteCurrentNode() {
   try {
     await api.delNode(node.value.id)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
+    // scenes.valueも更新
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
     node.value = null
   } catch (error) {
     console.error('Failed to delete node:', error)
@@ -739,7 +815,7 @@ function onUp() {
                   <label class="block text-sm font-medium mb-1">話者キャラ</label>
                   <div class="flex items-center gap-2">
                     <span class="text-sm text-gray-700 truncate flex-1">{{ selectedCharLabel || '未選択' }}</span>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openCharPicker=true">変更</button>
+                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSpeakerCharPicker()">変更</button>
                     <button v-if="nodeDraft.speakerCharacterId" type="button" class="px-2 py-1 border rounded text-sm" @click="clearChar">クリア</button>
                   </div>
                 </div>
@@ -831,12 +907,11 @@ function onUp() {
                 <div>
                   <label class="block text-sm font-medium mb-1">次ノードID</label>
                   <div class="flex items-center gap-2">
-                    <input
-                      v-model="nodeDraft.nextNodeId"
-                      class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="node_xxx"
-                    />
+                    <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700">
+                      {{ nextNodeLabel }}
+                    </div>
                     <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
+                    <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=''">クリア</button>
                   </div>
                 </div>
               </div>
@@ -962,7 +1037,7 @@ function onUp() {
                     <label class="block text-sm font-medium mb-1">話者キャラ</label>
                     <div class="flex items-center gap-2">
                       <span class="text-sm text-gray-700 truncate flex-1">{{ selectedCharLabel || '未選択' }}</span>
-                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openCharPicker=true">変更</button>
+                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSpeakerCharPicker()">変更</button>
                       <button v-if="nodeDraft.speakerCharacterId" type="button" class="px-2 py-1 border rounded text-sm" @click="clearChar">クリア</button>
                     </div>
                   </div>
@@ -1054,12 +1129,11 @@ function onUp() {
                   <div>
                     <label class="block text-sm font-medium mb-1">次ノードID</label>
                     <div class="flex items-center gap-2">
-                      <input
-                        v-model="nodeDraft.nextNodeId"
-                        class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="node_xxx"
-                      />
+                      <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700">
+                        {{ nextNodeLabel }}
+                      </div>
                       <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
+                      <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=''">クリア</button>
                     </div>
                   </div>
                 </div>
