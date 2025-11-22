@@ -18,7 +18,11 @@
       :style="{
         color: theme.text?.color ?? '#fff',
         fontSize: `calc(${theme.text?.size ?? 18}px * var(--stage-scale, 1))`,
-        lineHeight: (theme.text?.lineHeight ?? 1.8)
+        lineHeight: (theme.text?.lineHeight ?? 1.8),
+        display: '-webkit-box',
+        WebkitBoxOrient: 'vertical',
+        WebkitLineClamp: theme.text?.rows ?? 3,
+        overflow: 'hidden'
       }"
     >
       {{ shown }}
@@ -69,6 +73,8 @@ onBeforeUnmount(() => clearInterval(timer))
   box-sizing: border-box;
   line-height: var(--mw-lh, 1.8);
   backdrop-filter: blur(calc(2px * var(--stage-scale, 1)));
+  /* 高さを内容に応じて自動調整（最小値を設定） */
+  min-height: fit-content;
 }
 
 .name {
@@ -82,6 +88,7 @@ onBeforeUnmount(() => clearInterval(timer))
 
 .text {
   white-space: pre-wrap;
+  word-wrap: break-word;
 }
 </style>
 

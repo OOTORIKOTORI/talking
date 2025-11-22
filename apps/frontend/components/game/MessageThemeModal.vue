@@ -15,7 +15,7 @@
             <div class="relative aspect-[16/9] bg-neutral-900 rounded-lg overflow-hidden shadow-lg">
               <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-60" alt="preview bg" />
               <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
-                <MessageWindow :speaker="speaker" :text="sample" :theme="previewTheme" :animate="true" />
+                <MessageWindow :key="animationKey" :speaker="speaker" :text="sample" :theme="previewTheme" :animate="true" />
               </div>
             </div>
           </div>
@@ -396,8 +396,31 @@ const contrastWarning = computed(() => {
 
 // プレビュー用サンプル
 const speaker = ref('ガイドさん')
-const sample = ref('ここにサンプル本文が1文字ずつ表示されます。テーマの変更は即時プレビューに反映されます。')
 const bg = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&auto=format&fit=crop&q=60'
+
+// サンプル文字のバリエーション（行数に応じて）
+const sampleTexts: Record<number, string> = {
+  1: 'ここにサンプル本文が1文字ずつ表示されます。',
+  2: 'ここにサンプル本文が1文字ずつ表示されます。\n2行目のテキストも表示されます。',
+  3: 'ここにサンプル本文が1文字ずつ表示されます。\n2行目のテキストも表示されます。\n3行目まで確認できます。',
+  4: 'ここにサンプル本文が1文字ずつ表示されます。\n2行目のテキストも表示されます。\n3行目まで確認できます。\n4行表示のサンプルです。',
+  5: 'ここにサンプル本文が1文字ずつ表示されます。\n2行目のテキストも表示されます。\n3行目まで確認できます。\n4行表示のサンプルです。\n5行目まで表示されています。',
+  6: 'ここにサンプル本文が1文字ずつ表示されます。\n2行目のテキストも表示されます。\n3行目まで確認できます。\n4行表示のサンプルです。\n5行目まで表示されています。\n最大6行まで表示できます。',
+}
+
+// 行数とタイプ速度に応じてサンプルテキストを更新
+const sample = computed(() => {
+  const rows = draft.value.rows ?? 3
+  return sampleTexts[rows] ?? sampleTexts[3]
+})
+
+// タイプ速度が変更されたら再アニメーション用のキー
+const animationKey = ref(0)
+
+// タイプ速度または行数が変更されたら再アニメーション
+watch([() => draft.value.typeSpeedPreset, () => draft.value.rows, () => draft.value.typewriter?.msPerChar], () => {
+  animationKey.value++
+})
 
 // リセット
 function reset() {
