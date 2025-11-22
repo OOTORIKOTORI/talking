@@ -133,6 +133,12 @@
                 </span>
                 <span class="text-gray-500">{{ advancedOpen ? '▲' : '▼' }}</span>
               </button>
+              
+              <!-- 警告バッジ -->
+              <div v-if="advancedTouched" class="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs text-yellow-800">
+                ⚠️ 上級設定を変更すると、プリセット設定より優先されます。混乱を避けるため、どちらか一方のみを使用することを推奨します。
+              </div>
+              
               <div v-if="advancedOpen" class="mt-3 p-4 border rounded bg-gray-50 space-y-3 text-sm">
                 <p class="text-xs text-gray-600">
                   ※ これらの設定は上限値として機能します。画面サイズに応じて自動調整されます。プリセット設定を推奨します。
@@ -140,35 +146,35 @@
                 <div class="grid gap-3 md:grid-cols-2">
                   <label class="flex flex-col">
                     <span class="mb-1">背景色（css文字列）</span>
-                    <input v-model="advancedFrameBg" class="border rounded px-2 py-1" placeholder="rgba(20,24,36,0.72)" />
+                    <input v-model="advancedFrameBg" @input="touchAdvanced" class="border rounded px-2 py-1" placeholder="rgba(20,24,36,0.72)" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">枠線色（css文字列）</span>
-                    <input v-model="advancedFrameBorder" class="border rounded px-2 py-1" placeholder="rgba(255,255,255,0.2)" />
+                    <input v-model="advancedFrameBorder" @input="touchAdvanced" class="border rounded px-2 py-1" placeholder="rgba(255,255,255,0.2)" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">枠線幅(px)</span>
-                    <input type="number" v-model.number="advancedBorderWidth" class="border rounded px-2 py-1" />
+                    <input type="number" v-model.number="advancedBorderWidth" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">角丸(px)</span>
-                    <input type="number" v-model.number="advancedRadius" class="border rounded px-2 py-1" />
+                    <input type="number" v-model.number="advancedRadius" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">内側余白(px)</span>
-                    <input type="number" v-model.number="advancedPadding" class="border rounded px-2 py-1" />
+                    <input type="number" v-model.number="advancedPadding" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">文字サイズ(px)</span>
-                    <input type="number" v-model.number="advancedFontSize" class="border rounded px-2 py-1" />
+                    <input type="number" v-model.number="advancedFontSize" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">行間</span>
-                    <input type="number" step="0.1" v-model.number="advancedLineHeight" class="border rounded px-2 py-1" />
+                    <input type="number" step="0.1" v-model.number="advancedLineHeight" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                   <label class="flex flex-col">
                     <span class="mb-1">タイプ速度(ms/文字)</span>
-                    <input type="number" v-model.number="advancedTypeMs" class="border rounded px-2 py-1" />
+                    <input type="number" v-model.number="advancedTypeMs" @input="touchAdvanced" class="border rounded px-2 py-1" />
                   </label>
                 </div>
               </div>
@@ -309,8 +315,48 @@ const colorPresets = [
   '#ea580c',
 ]
 
-// プレビュー用テーマ（draft を即時反映）
-const previewTheme = computed(() => draft.value)
+// 詳細設定を触ったかのフラグ
+const advancedTouched = ref(false)
+
+// 詳細設定を触った時の処理
+function touchAdvanced() {
+  advancedTouched.value = true
+}
+
+// プレビュー用テーマ（MessageWindow用に旧形式へ変換）
+const previewTheme = computed(() => {
+  const d = draft.value
+  
+  // v2から旧形式へ変換（MessageWindowが期待する形式）
+  return {
+    frame: {
+      bg: rgbaToCss(toRgba(d.frameBg)),
+      borderColor: rgbaToCss(toRgba(d.frameBorder)),
+      borderWidth: d.frame?.borderWidth ?? 2,
+      radius: d.frame?.radius ?? 16,
+      padding: d.frame?.padding ?? 16,
+      shadow: true,
+    },
+    name: {
+      show: d.name?.show ?? true,
+      bg: rgbaToCss(toRgba(d.nameBg)),
+      color: '#fff',
+      padding: d.name?.padding ?? 8,
+      radius: d.name?.radius ?? 10,
+    },
+    text: {
+      color: rgbaToCss(toRgba(d.textColor)),
+      size: d.text?.size ?? 16,
+      lineHeight: d.text?.lineHeight ?? 1.8,
+      fontPreset: d.fontPreset ?? 5,
+      rows: d.rows ?? 3,
+    },
+    typewriter: {
+      msPerChar: d.typewriter?.msPerChar ?? 40,
+    },
+    scale: d.scale ?? 'md',
+  }
+})
 
 // コントラスト警告
 const contrastWarning = computed(() => {
@@ -335,6 +381,7 @@ const bg = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&aut
 // リセット
 function reset() {
   draft.value = migrateToV2(props.initial ?? defaultThemeV2)
+  advancedTouched.value = false
 }
 
 // 保存
@@ -383,6 +430,7 @@ function onFileSelected(e: Event) {
     try {
       const json = JSON.parse(ev.target?.result as string)
       draft.value = migrateToV2(json)
+      advancedTouched.value = false
       toast.success('テーマをインポートしました')
     } catch (err: any) {
       console.error('インポートエラー:', err)
