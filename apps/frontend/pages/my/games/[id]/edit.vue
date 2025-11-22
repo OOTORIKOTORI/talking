@@ -278,6 +278,59 @@ const nextNodeLabel = computed(() => {
   return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
 })
 
+// 選択肢の遷移先ノードラベルを取得
+function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
+  if (!targetNodeId) return '未設定'
+  
+  // 全ノードから検索
+  let foundNode: any = null
+  let sceneIndex = 0
+  let nodeIndex = 0
+  
+  for (let si = 0; si < scenes.value.length; si++) {
+    const scene = scenes.value[si]
+    for (let ni = 0; ni < (scene.nodes?.length || 0); ni++) {
+      const n = scene.nodes[ni]
+      if (n.id === targetNodeId) {
+        foundNode = n
+        sceneIndex = si + 1
+        nodeIndex = ni + 1
+        break
+      }
+    }
+    if (foundNode) break
+  }
+  
+  if (!foundNode) {
+    // 現在のシーンのノード一覧から探す
+    const currentNode = nodes.value.find(n => n.id === targetNodeId)
+    if (currentNode) {
+      const idx = nodes.value.findIndex(n => n.id === targetNodeId)
+      const preview = (currentNode.text || '').slice(0, 20) + ((currentNode.text || '').length > 20 ? '…' : '')
+      return `#${idx + 1} ${preview || '(無題)'}`
+    }
+    return targetNodeId
+  }
+  
+  const preview = (foundNode.text || '').slice(0, 20) + ((foundNode.text || '').length > 20 ? '…' : '')
+  return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
+}
+
+// 選択肢のノード選択モーダル用
+const editingChoiceIndex = ref<number | null>(null)
+
+function openChoiceNodePicker(index: number) {
+  editingChoiceIndex.value = index
+  openNodePicker.value = true
+}
+
+function onChoiceNodeSelected(nodeId: string) {
+  if (editingChoiceIndex.value !== null && nodeDraft.choices && nodeDraft.choices[editingChoiceIndex.value]) {
+    nodeDraft.choices[editingChoiceIndex.value].targetNodeId = nodeId
+    editingChoiceIndex.value = null
+  }
+}
+
 // ポートレート選択モードかどうか（nullなら話者選択モード）
 const isPortraitMode = computed(() => pendingIndex.value !== null)
 
@@ -593,6 +646,23 @@ function addChoice() {
 
 function removeChoice(index: number) {
   nodeDraft.choices.splice(index, 1)
+}
+
+// NodePicker のイベントハンドラ
+function closeNodePicker() {
+  openNodePicker.value = false
+  editingChoiceIndex.value = null
+}
+
+function onNodeSelected(nodeId: string) {
+  if (editingChoiceIndex.value !== null) {
+    // 選択肢の遷移先を設定
+    onChoiceNodeSelected(nodeId)
+  } else {
+    // 次ノードIDを設定
+    nodeDraft.nextNodeId = nodeId
+  }
+  closeNodePicker()
 }
 
 // ---------- 3ペイン可変 & 全画面 ----------
@@ -1202,24 +1272,28 @@ function onUp() {
                     <div
                       v-for="(c, i) in nodeDraft.choices"
                       :key="i"
-                      class="flex gap-2 items-center p-2 bg-gray-50 rounded"
+                      class="p-2 bg-gray-50 rounded"
                     >
-                      <input
-                        v-model="c.label"
-                        class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
-                        placeholder="表示テキスト"
-                      />
-                      <input
-                        v-model="c.targetNodeId"
-                        class="w-40 border border-gray-300 rounded px-2 py-1 text-sm"
-                        placeholder="targetNodeId"
-                      />
-                      <button
-                        class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
-                        @click="removeChoice(i)"
-                      >
-                        削除
-                      </button>
+                      <div class="flex gap-2 items-center mb-2">
+                        <input
+                          v-model="c.label"
+                          class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                          placeholder="表示テキスト"
+                        />
+                        <button
+                          class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
+                          @click="removeChoice(i)"
+                        >
+                          削除
+                        </button>
+                      </div>
+                      <div class="flex gap-2 items-center">
+                        <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-white text-sm text-gray-700">
+                          {{ getChoiceTargetLabel(c.targetNodeId) }}
+                        </div>
+                        <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">選択</button>
+                        <button v-if="c.targetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.targetNodeId=''">クリア</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1235,7 +1309,7 @@ function onUp() {
           <AssetPicker v-model:open="openSfxPicker" type="audio" @select="(a)=> nodeDraft.sfxAssetId = a.id" />
           <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
           <CharacterImagePicker v-model:open="openCharImagePicker" :character-id="nodeDraft.speakerCharacterId || ''" @select="onImagePicked" />
-          <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id: string)=> nodeDraft.nextNodeId=id" />
+          <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="closeNodePicker" @select="onNodeSelected" />
         </section>
       <!-- ...existing code... -->
       </div>

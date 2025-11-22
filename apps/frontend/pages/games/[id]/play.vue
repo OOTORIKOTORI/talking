@@ -41,40 +41,39 @@
             </div>
           </div>
 
-          <!-- BGMコントロール (常に存在、位置だけ切り替え) -->
-          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60 md:z-[70]" controls></audio>
+          <!-- BGMコントロール (常に非表示だが音は鳴る) -->
+          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
 
-          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
+          <!-- whole-stage click to advance & to trigger BGM -->
           <button 
-            v-if="current && !showStartScreen && !showEndScreen && (!choices || choices.length === 0)"
+            v-if="current && !showStartScreen && !showEndScreen && !showChoices"
             class="absolute inset-0 z-10 pointer-events-auto" 
-            @click="advanceWithinNodeOrNext(); ensureBgm()" 
+            @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())" 
             aria-label="next"
           ></button>
 
           <!-- message window (only when current exists and not on start screen) -->
           <div v-if="current && !showStartScreen">
-            <!-- 選択肢がある場合 -->
-            <div v-if="choices && choices.length > 0" class="absolute left-[7%] right-[7%] bottom-[5%] space-y-2 pointer-events-auto">
-              <button
-                v-for="ch in choices"
-                :key="ch.id"
-                class="w-full px-4 py-3 bg-gray-700 rounded text-left hover:bg-gray-600 transition-colors text-white"
-                @click="go(ch.targetNodeId); ensureBgm()"
-              >
-                {{ ch.label }}
-              </button>
+            <!-- 選択肢がある場合（クリック後に表示） -->
+            <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
+              <div class="space-y-3 w-[min(600px,80vw)]">
+                <button
+                  v-for="ch in choices"
+                  :key="ch.id"
+                  class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
+                  @click="go(ch.targetNodeId); ensureBgm()"
+                >
+                  {{ ch.label }}
+                </button>
+              </div>
             </div>
 
-            <!-- 通常のメッセージウィンドウ -->
+            <!-- 通常のメッセージウィンドウ（常に表示） -->
             <MessageWindow
-              v-else
-              class="pointer-events-auto"
               :speaker="speaker"
               :text="displayedText"
               :theme="theme"
               :animate="true"
-              @click="advanceWithinNodeOrNext(); ensureBgm()"
             />
           </div>
           
@@ -120,37 +119,36 @@
           </div>
         </div>
 
-        <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
+        <!-- whole-stage click to advance & to trigger BGM -->
         <button 
-          v-if="current && !showStartScreen && !showEndScreen && (!choices || choices.length === 0)"
+          v-if="current && !showStartScreen && !showEndScreen && !showChoices"
           class="absolute inset-0 z-10 pointer-events-auto" 
-          @click="advanceWithinNodeOrNext(); ensureBgm()" 
+          @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())" 
           aria-label="next"
         ></button>
 
         <!-- message window (only when current exists and not on start screen) -->
         <div v-if="current && !showStartScreen">
-          <!-- 選択肢がある場合 -->
-          <div v-if="choices && choices.length > 0" class="absolute left-[7%] right-[7%] bottom-[5%] space-y-2 pointer-events-auto">
-            <button
-              v-for="ch in choices"
-              :key="ch.id"
-              class="w-full px-4 py-3 bg-gray-700 rounded text-left hover:bg-gray-600 transition-colors text-white"
-              @click="go(ch.targetNodeId); ensureBgm()"
-            >
-              {{ ch.label }}
-            </button>
+          <!-- 選択肢がある場合（クリック後に表示） -->
+          <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
+            <div class="space-y-3 w-[min(600px,80vw)]">
+              <button
+                v-for="ch in choices"
+                :key="ch.id"
+                class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
+                @click="go(ch.targetNodeId); ensureBgm()"
+              >
+                {{ ch.label }}
+              </button>
+            </div>
           </div>
 
-          <!-- 通常のメッセージウィンドウ -->
+          <!-- 通常のメッセージウィンドウ（常に表示） -->
           <MessageWindow
-            v-else
-            class="pointer-events-auto"
             :speaker="speaker"
             :text="displayedText"
             :theme="theme"
             :animate="true"
-            @click="advanceWithinNodeOrNext(); ensureBgm()"
           />
         </div>
         
@@ -235,6 +233,7 @@ const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 const showEndScreen = ref(false) // 終了画面の表示制御
+const showChoices = ref(false) // 選択肢の表示制御
 
 // 音声同意状態
 const soundOk = audioConsent
@@ -564,6 +563,7 @@ function start() {
 function restart() {
   showStartScreen.value = true
   showEndScreen.value = false
+  showChoices.value = false // 選択肢表示をリセット
   current.value = null
   segIndex.value = 0
   applyStart()
@@ -577,6 +577,7 @@ function go(targetNodeId: string | null) {
   }
   
   showEndScreen.value = false
+  showChoices.value = false // 選択肢表示をリセット
   segIndex.value = 0
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
@@ -589,30 +590,21 @@ function go(targetNodeId: string | null) {
 
 function advanceWithinNodeOrNext() {
   segIndex.value = 0
+  showChoices.value = false // 選択肢表示をリセット
   
-  // 1. nextNodeIdがある場合はそれに従う
+  // 選択肢がある場合は選択肢を表示
+  if (hasChoices.value) {
+    showChoices.value = true
+    return
+  }
+  
+  // nextNodeIdがある場合はそれに従う
   if (current.value?.nextNodeId) {
     go(current.value.nextNodeId)
     return
   }
   
-  // 2. nextNodeIdが無い場合はシーン内のorder順で次へ
-  const scene = game.value?.scenes?.find((s: any) => 
-    s.nodes?.some((n: any) => n.id === current.value?.id)
-  )
-  if (scene) {
-    const idx = scene.nodes?.findIndex((n: any) => n.id === current.value?.id)
-    if (idx !== undefined && idx >= 0) {
-      const nextNode = scene.nodes[idx + 1]
-      if (nextNode) {
-        current.value = nextNode
-        segIndex.value = 0
-        return
-      }
-    }
-  }
-  
-  // 3. どちらも無い場合は終了画面を表示
+  // nextNodeIdも選択肢も無い場合は終了画面を表示
   showEndScreen.value = true
 }
 
@@ -627,6 +619,8 @@ const choices = computed(() => {
   if (!current.value) return []
   return current.value.choices || []
 })
+
+const hasChoices = computed(() => choices.value.length > 0)
 
 const nextNodeId = computed(() => {
   if (!current.value) return null
