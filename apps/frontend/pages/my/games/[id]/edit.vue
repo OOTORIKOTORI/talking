@@ -838,7 +838,6 @@ function onUp() {
                     />
                     <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
                   </div>
-                  <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id: string)=> nodeDraft.nextNodeId=id" />
                 </div>
               </div>
 
@@ -1162,6 +1161,7 @@ function onUp() {
           <AssetPicker v-model:open="openSfxPicker" type="audio" @select="(a)=> nodeDraft.sfxAssetId = a.id" />
           <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
           <CharacterImagePicker v-model:open="openCharImagePicker" :character-id="nodeDraft.speakerCharacterId || ''" @select="onImagePicked" />
+          <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="openNodePicker=false" @select="(id: string)=> nodeDraft.nextNodeId=id" />
         </section>
       <!-- ...existing code... -->
       </div>
