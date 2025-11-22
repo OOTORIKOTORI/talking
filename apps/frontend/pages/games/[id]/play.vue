@@ -588,21 +588,31 @@ function go(targetNodeId: string | null) {
 }
 
 function advanceWithinNodeOrNext() {
-  // クリックで次のノードへ進む
   segIndex.value = 0
-  if (nextNodeId.value) {
-    go(nextNodeId.value)
+  
+  // 1. nextNodeIdがある場合はそれに従う
+  if (current.value?.nextNodeId) {
+    go(current.value.nextNodeId)
     return
   }
-  // nextNodeIdも選択肢も無い場合はorder順で次へ
-  if (!current.value?.nextNodeId && (!current.value?.choices || current.value.choices.length===0)) {
-    const s = game.value.scenes.find((sc:any)=> sc.nodes?.some((n:any)=>n.id===current.value.id))
-    if (s) {
-      const idx = s.nodes.findIndex((n:any)=>n.id===current.value.id)
-      const next = s.nodes[idx+1]
-      if (next) { current.value = next; segIndex.value = 0; return }
+  
+  // 2. nextNodeIdが無い場合はシーン内のorder順で次へ
+  const scene = game.value?.scenes?.find((s: any) => 
+    s.nodes?.some((n: any) => n.id === current.value?.id)
+  )
+  if (scene) {
+    const idx = scene.nodes?.findIndex((n: any) => n.id === current.value?.id)
+    if (idx !== undefined && idx >= 0) {
+      const nextNode = scene.nodes[idx + 1]
+      if (nextNode) {
+        current.value = nextNode
+        segIndex.value = 0
+        return
+      }
     }
   }
+  
+  // 3. どちらも無い場合は終了（何もしない）
 }
 
 const speaker = computed(() => {
@@ -627,10 +637,10 @@ const isEndNode = computed(() => {
   if (!current.value) return false
   
   // 選択肢がある場合は終了ではない
-  if (choices.value && choices.value.length > 0) return false
+  if (current.value.choices && current.value.choices.length > 0) return false
   
   // nextNodeIdがある場合は終了ではない
-  if (nextNodeId.value) return false
+  if (current.value.nextNodeId) return false
   
   // シーン内に次のノードがあるかチェック
   const scene = game.value?.scenes?.find((s: any) => 
