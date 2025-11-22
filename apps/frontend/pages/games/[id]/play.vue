@@ -44,9 +44,9 @@
           <!-- hidden on mobile, shown as small control on md+ -->
           <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
 
-          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
+          <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
           <button 
-            v-if="current && !showStartScreen && (!choices || choices.length === 0)"
+            v-if="current && !showStartScreen && !showEndScreen && (!choices || choices.length === 0)"
             class="absolute inset-0 z-10 pointer-events-auto" 
             @click="advanceWithinNodeOrNext(); ensureBgm()" 
             aria-label="next"
@@ -66,17 +66,6 @@
               </button>
             </div>
 
-            <!-- 終了時のリスタートボタン（次のノードも選択肢もシーン内の次も無い場合のみ） -->
-            <div v-else-if="isEndNode" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
-              <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-              <button
-                @click="restart(); ensureBgm()"
-                class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-              >
-                最初から
-              </button>
-            </div>
-
             <!-- 通常のメッセージウィンドウ -->
             <MessageWindow
               v-else
@@ -87,6 +76,17 @@
               :animate="true"
               @click="advanceWithinNodeOrNext(); ensureBgm()"
             />
+          </div>
+          
+          <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
+          <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+            <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
+            <button
+              @click="restart(); ensureBgm()"
+              class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+            >
+              最初から
+            </button>
           </div>
         </div>
       </div>
@@ -123,9 +123,9 @@
         <!-- hidden on mobile, shown as small control on md+ -->
         <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden md:block md:absolute md:right-3 md:top-3 md:opacity-60" controls></audio>
 
-        <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen) -->
+        <!-- whole-stage click to advance & to trigger BGM (only when current exists and no choices and not on start screen and not end screen) -->
         <button 
-          v-if="current && !showStartScreen && (!choices || choices.length === 0)"
+          v-if="current && !showStartScreen && !showEndScreen && (!choices || choices.length === 0)"
           class="absolute inset-0 z-10 pointer-events-auto" 
           @click="advanceWithinNodeOrNext(); ensureBgm()" 
           aria-label="next"
@@ -145,17 +145,6 @@
             </button>
           </div>
 
-          <!-- 終了時のリスタートボタン（次のノードも選択肢もシーン内の次も無い場合のみ） -->
-          <div v-else-if="isEndNode" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
-            <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-            <button
-              @click="restart(); ensureBgm()"
-              class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-            >
-              最初から
-            </button>
-          </div>
-
           <!-- 通常のメッセージウィンドウ -->
           <MessageWindow
             v-else
@@ -166,6 +155,17 @@
             :animate="true"
             @click="advanceWithinNodeOrNext(); ensureBgm()"
           />
+        </div>
+        
+        <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
+        <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+          <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
+          <button
+            @click="restart(); ensureBgm()"
+            class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+          >
+            最初から
+          </button>
         </div>
       </div>
       
@@ -237,6 +237,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
+const showEndScreen = ref(false) // 終了画面の表示制御
 
 // 音声同意状態
 const soundOk = audioConsent
@@ -565,6 +566,7 @@ function start() {
 
 function restart() {
   showStartScreen.value = true
+  showEndScreen.value = false
   current.value = null
   segIndex.value = 0
   applyStart()
@@ -577,6 +579,7 @@ function go(targetNodeId: string | null) {
     return
   }
   
+  showEndScreen.value = false
   segIndex.value = 0
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
@@ -612,7 +615,8 @@ function advanceWithinNodeOrNext() {
     }
   }
   
-  // 3. どちらも無い場合は終了（何もしない）
+  // 3. どちらも無い場合は終了画面を表示
+  showEndScreen.value = true
 }
 
 const speaker = computed(() => {
