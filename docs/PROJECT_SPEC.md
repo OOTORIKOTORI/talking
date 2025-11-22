@@ -196,12 +196,81 @@ type Portrait = {
 ### メッセージウィンドウ（全体設定）
 `MessageThemeModal.vue` で定義される共通テーマ。保存は `PATCH /games/:id` に `{ messageTheme }` を送信。
 
+#### v2（プリセット中心の新仕様）
+v2 では px 直指定から「1〜10段階のプリセット」中心へ移行。色はRGBA対応。既存データは自動でプリセットへ丸め込み。
+
+```ts
+interface MessageThemeV2 {
+  themeVersion: 2;
+  
+  // 既存（継続）
+  rows?: 1|2|3|4|5|6;          // 表示行数（既定3）
+  scale?: 'sm'|'md'|'lg';       // ウィンドウサイズ（既定md、互換用）
+  
+  // 新プリセット（1〜10）
+  fontPreset?: 1|...|10;        // 文字サイズ 既定5
+  windowPreset?: 1|...|10;      // ウィンドウサイズ 既定6（md相当）
+  paddingPreset?: 1|...|10;     // 内側余白 既定5
+  radiusPreset?: 1|...|10;      // 角丸 既定5
+  borderPreset?: 1|...|10;      // 枠線太さ 既定3
+  shadowPreset?: 1|...|10;      // 影強度 既定4
+  typeSpeedPreset?: 1|...|10;   // タイプ速度 既定6（1=ゆっくり、10=高速）
+  
+  // 色（RGBA or HEX string）
+  frameBg?: RGBA | string;      // メッセージ枠背景
+  frameBorder?: RGBA | string;  // 枠線色
+  nameBg?: RGBA | string;       // 名前背景色
+  textColor?: RGBA | string;    // 文字色
+  
+  // 旧値（fallback用、v1互換）
+  frame?: {...};
+  name?: {...};
+  text?: {...};
+  typewriter?: {...};
+}
+
+interface RGBA {
+  r: number;  // 0-255
+  g: number;  // 0-255
+  b: number;  // 0-255
+  a: number;  // 0-1
+}
+```
+
+**プリセットテーブル（定数）**:
+- `FONT_K`: [0, 0.70, 0.80, 0.90, 0.95, 1.00, 1.08, 1.16, 1.25, 1.35, 1.48] （倍率、index 1..10）
+- `PADDING_K`: [0, 0.70, 0.80, 0.90, 0.95, 1.00, 1.10, 1.20, 1.30, 1.40, 1.55]
+- `RADIUS_PX`: [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24]
+- `BORDER_PX`: [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10]
+- `TYPE_MS`: [0, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15] （ms/文字）
+- `WINDOW_PRESET`: 1=小(84%), 6=標準(92%, md相当), 10=大(98%)
+
+**色の扱い**:
+- ColorField コンポーネントで RGB+Alpha ピッカー、HEX/RGBA 手入力、プリセットパレットを提供
+- コントラスト比（WCAG基準）を計算し、閾値（4.5:1/3.0:1）を下回ると警告表示
+
+**互換性**:
+- 旧データ（v1）は読み込み時に `migrateToV2()` で自動変換
+- px値から最寄りプリセットへ丸め（例: 文字16px → fontPreset=5）
+- 保存時に `themeVersion: 2` を付与
+
+**上級設定**:
+- 折り畳みで px 直接入力も可能（上限値として動作、画面サイズに応じて自動調整）
+
+**出典**:
+- 型: `packages/types/src/index.ts` （`MessageThemeV2`, `RGBA`, `FONT_K` 等）
+- UI: `apps/frontend/components/game/MessageThemeModal.vue`
+- ユーティリティ: `apps/frontend/utils/themeUtils.ts` （変換・コントラスト計算）
+- 適用: `apps/frontend/components/game/StageCanvas.vue` （CSS変数へ変換）
+
+#### v1（旧仕様、互換維持）
 ```ts
 interface MessageTheme {
   frame: { bg: string; borderColor: string; borderWidth: number; radius: number; padding: number };
   name: { show: boolean; bg: string; color: string; padding: number; radius: number };
-  text: { color: string; size: number; lineHeight: number };
+  text: { color: string; size: number; lineHeight: number; fontPreset?: 1|...|10; rows?: 1|...|6 };
   typewriter: { msPerChar: number };
+  scale?: 'sm'|'md'|'lg';
 }
 ```
 

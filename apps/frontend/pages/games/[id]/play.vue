@@ -424,53 +424,27 @@ watch(
 )
 
 // Message theme (project-level setting with fallback)
-const defaultTheme = {
-  frame: { bg: 'rgba(20,24,36,0.72)', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 2, radius: 16, padding: 16, shadow: true },
-  name:  { show: true, bg: 'rgba(0,0,0,0.55)', color: '#fff', padding: 8, radius: 10 },
-  text:  { color: '#fff', size: 16, lineHeight: 1.8, fontPreset: 5, rows: 3 },
-  typewriter: { msPerChar: 25 },
-  scale: 'md'
+const defaultThemeV2 = {
+  themeVersion: 2,
+  rows: 3,
+  scale: 'md',
+  fontPreset: 5,
+  windowPreset: 6,
+  paddingPreset: 5,
+  radiusPreset: 5,
+  borderPreset: 3,
+  shadowPreset: 4,
+  typeSpeedPreset: 6,
+  frameBg: { r: 20, g: 24, b: 36, a: 0.72 },
+  frameBorder: { r: 255, g: 255, b: 255, a: 0.2 },
+  nameBg: { r: 0, g: 0, b: 0, a: 0.55 },
+  textColor: { r: 255, g: 255, b: 255, a: 1 },
 }
-const theme = computed(() => (game.value as any)?.messageTheme ?? defaultTheme)
+const theme = computed(() => (game.value as any)?.messageTheme ?? defaultThemeV2)
 
-// 旧 fontSize(px) を fontPreset に変換（fontPreset が未指定の場合のみ）
-function pxToPreset(px: number | undefined): number {
-  if (px == null) return 5
-  const ratio = px / 16
-  if (ratio <= 0.75) return 1
-  if (ratio <= 0.85) return 2
-  if (ratio <= 0.925) return 3
-  if (ratio <= 0.975) return 4
-  if (ratio <= 1.04) return 5
-  if (ratio <= 1.12) return 6
-  if (ratio <= 1.205) return 7
-  if (ratio <= 1.30) return 8
-  if (ratio <= 1.415) return 9
-  return 10
-}
+// StageCanvas はテーマをそのまま渡す（内部で v2 解決される）
+const stageTheme = computed(() => theme.value)
 
-// StageCanvas 用のテーマ変換
-const stageTheme = computed(() => {
-  const t = theme.value
-  
-  // fontPreset が指定されていればそれを使用、未指定なら旧 fontSize(px) から変換
-  const preset = t.text?.fontPreset ?? pxToPreset(t.text?.size)
-  const rows = t.text?.rows ?? 3
-  
-  return {
-    bg: t.frame?.bg || 'rgba(20,24,36,0.72)',
-    border: t.frame?.borderColor || 'rgba(255,255,255,0.2)',
-    radius: t.frame?.radius || 16,
-    padding: t.frame?.padding || 16,
-    nameBg: t.name?.bg || 'rgba(0,0,0,0.55)',
-    textColor: t.text?.color || '#fff',
-    fontSize: t.text?.size || 16,
-    lineHeight: t.text?.lineHeight || 1.8,
-    scale: t.scale || 'md',
-    fontPreset: preset,
-    rows: rows
-  }
-})
 
 // StageCanvas 用のキャラクター配列
 const stageCharacters = computed(() => {

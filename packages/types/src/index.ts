@@ -115,6 +115,15 @@ export type FontPreset = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type MessageRows = 1 | 2 | 3 | 4 | 5 | 6;
 export type MessageScale = 'sm' | 'md' | 'lg';
 
+// RGBA color object (0-255 for RGB, 0-1 for alpha)
+export interface RGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+// v1 互換用（旧型）
 export interface MessageTheme {
   frame?: {
     bg?: string;
@@ -143,3 +152,55 @@ export interface MessageTheme {
   };
   scale?: MessageScale; // メッセージウィンドウのサイズプリセット
 }
+
+// v2 新型（プリセット中心）
+export interface MessageThemeV2 {
+  themeVersion: 2;
+  
+  // 既存（継続）
+  rows?: MessageRows;          // 表示行数（1〜6）既定3
+  scale?: MessageScale;         // ウィンドウサイズ（sm/md/lg）既定md
+  
+  // 新プリセット（1〜10）
+  fontPreset?: FontPreset;      // 既定5
+  windowPreset?: FontPreset;    // 既定6（md相当）
+  paddingPreset?: FontPreset;   // 既定5
+  radiusPreset?: FontPreset;    // 既定5
+  borderPreset?: FontPreset;    // 既定3
+  shadowPreset?: FontPreset;    // 既定4
+  typeSpeedPreset?: FontPreset; // 既定6（早すぎず遅すぎず）
+  
+  // 色（RGBA or HEX string）
+  frameBg?: RGBA | string;      // メッセージ枠背景
+  frameBorder?: RGBA | string;  // 枠線色
+  nameBg?: RGBA | string;       // 名前背景色
+  textColor?: RGBA | string;    // 文字色
+  
+  // 旧値（fallback用、v1互換）
+  frame?: MessageTheme['frame'];
+  name?: MessageTheme['name'];
+  text?: MessageTheme['text'];
+  typewriter?: MessageTheme['typewriter'];
+}
+
+// Preset tables (constants)
+export const FONT_K = [0, 0.70, 0.80, 0.90, 0.95, 1.00, 1.08, 1.16, 1.25, 1.35, 1.48]; // index 1..10
+export const PADDING_K = [0, 0.70, 0.80, 0.90, 0.95, 1.00, 1.10, 1.20, 1.30, 1.40, 1.55];
+export const RADIUS_PX = [0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24];
+export const BORDER_PX = [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
+export const SHADOW_PRESET = [0, 'none', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl'];
+export const TYPE_MS = [0, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15]; // 1=ゆっくり,10=高速
+
+// Window preset (width, height, margin-bottom, max-width)
+export const WINDOW_PRESET: Record<number, { w: string; h: string; mb: string; mw: string }> = {
+  1: { w: '84%', h: '18%', mb: '5%', mw: '1000px' },
+  2: { w: '86%', h: '19%', mb: '4.5%', mw: '1040px' },
+  3: { w: '88%', h: '20%', mb: '4%', mw: '1080px' },
+  4: { w: '90%', h: '21%', mb: '3.5%', mw: '1120px' },
+  5: { w: '92%', h: '22%', mb: '3%', mw: '1180px' },
+  6: { w: '92%', h: '22%', mb: '3%', mw: '1180px' }, // 標準（md）
+  7: { w: '94%', h: '24%', mb: '2.5%', mw: '1240px' },
+  8: { w: '96%', h: '26%', mb: '2%', mw: '1280px' },
+  9: { w: '97%', h: '27%', mb: '2%', mw: '1320px' },
+  10: { w: '98%', h: '28%', mb: '2%', mw: '1360px' },
+};

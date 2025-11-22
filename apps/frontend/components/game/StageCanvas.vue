@@ -24,24 +24,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStageScale } from '@/composables/useStageScale'
+import { resolveThemeV2 } from '@/utils/themeUtils'
+import type { MessageThemeV2, MessageTheme } from '@talking/types'
 
 const props = defineProps<{
   backgroundUrl: string | null
   characters: Array<{ key: string; url: string; x: number; y: number; scale: number; z?: number }>
   message: { speaker?: string; text: string } | null
-  theme: {
-    bg: string
-    border: string
-    radius: number
-    padding: number
-    nameBg: string
-    textColor: string
-    fontSize: number
-    lineHeight: number
-    scale?: 'sm' | 'md' | 'lg'
-    fontPreset?: number // 1〜10
-    rows?: number // 1〜6
-  }
+  theme: MessageThemeV2 | MessageTheme | any
   camera?: { zoom?: number; cx?: number; cy?: number } | null
 }>()
 
@@ -49,29 +39,6 @@ const stageRef = ref<HTMLElement | null>(null)
 
 // useStageScale でステージの実寸を CSS変数に流す
 useStageScale(stageRef)
-
-// fontPreset→倍率テーブル
-const presetK: Record<number, number> = {
-  1: 0.70, 2: 0.80, 3: 0.90, 4: 0.95, 5: 1.00,
-  6: 1.08, 7: 1.16, 8: 1.25, 9: 1.35, 10: 1.48
-}
-
-// 旧 fontSize(px) を fontPreset に変換（fontPreset が未指定の場合のみ）
-function pxToPreset(px: number | undefined): number {
-  if (px == null) return 5
-  // 16px を基準に最近傍のプリセットを選択
-  const ratio = px / 16
-  if (ratio <= 0.75) return 1
-  if (ratio <= 0.85) return 2
-  if (ratio <= 0.925) return 3
-  if (ratio <= 0.975) return 4
-  if (ratio <= 1.04) return 5
-  if (ratio <= 1.12) return 6
-  if (ratio <= 1.205) return 7
-  if (ratio <= 1.30) return 8
-  if (ratio <= 1.415) return 9
-  return 10
-}
 
 // カメラ変換スタイル（world レイヤーに適用）
 const worldStyle = computed(() => {
@@ -95,40 +62,28 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   }
 }
 
-// メッセージウィンドウのサイズをプリセットで切替
-// sm: やや小さめ / md: 標準 / lg: やや大きめ
+// v2テーマを解決してCSS変数に変換
 const mwStyle = computed(() => {
-  const scale = props.theme.scale ?? 'md'
-  const MAP: Record<'sm'|'md'|'lg', { w:string; h:string; mb:string; mw:string }> = {
-    sm: { w: '88%', h: '20%', mb: '4%', mw: '1100px' },
-    md: { w: '92%', h: '22%', mb: '3%', mw: '1180px' },
-    lg: { w: '96%', h: '26%', mb: '2%', mw: '1280px' }
-  }
-  const m = MAP[scale]
-  
-  // fontPreset が指定されていればそれを使用、未指定なら旧 fontSize(px) から変換
-  const preset = props.theme.fontPreset ?? pxToPreset(props.theme.fontSize)
-  const fsK = presetK[preset] ?? 1
-  
-  // 表示行数（デフォルト3）
-  const rows = props.theme.rows ?? 3
+  const resolved = resolveThemeV2(props.theme)
   
   return {
-    '--mw-width': m.w,
-    '--mw-max-width': m.mw,
-    '--mw-height': m.h,
-    '--mw-margin-bottom': m.mb,
-    '--mw-bg': props.theme.bg,
-    '--mw-border': props.theme.border,
-    '--mw-radius': `${props.theme.radius}px`,
-    '--mw-padding': `${props.theme.padding}px`,
-    '--mw-name-bg': props.theme.nameBg,
-    '--mw-text': props.theme.textColor,
-    '--fs-k': String(fsK),
+    '--mw-width': resolved.windowW,
+    '--mw-max-width': resolved.windowMw,
+    '--mw-height': resolved.windowH,
+    '--mw-margin-bottom': resolved.windowMb,
+    '--mw-bg': resolved.frameBgCss,
+    '--mw-border': resolved.frameBorderCss,
+    '--mw-radius': `${resolved.radiusPx}px`,
+    '--mw-padding': `${resolved.paddingK * 16}px`,  // paddingK は倍率なので基準16pxで掛ける
+    '--mw-name-bg': resolved.nameBgCss,
+    '--mw-text': resolved.textColorCss,
+    '--fs-k': String(resolved.fontK),
     '--fs-min': '12px',
     '--fs-max': '48px',
-    '--rows': String(rows),
-    '--mw-lh': String(props.theme.lineHeight)
+    '--rows': String(resolved.rows),
+    '--mw-lh': '1.8',
+    '--mw-border-w': `${resolved.borderPx}px`,
+    '--type-ms': `${resolved.typeMs}ms`,
   }
 })
 </script>
@@ -180,7 +135,7 @@ const mwStyle = computed(() => {
     + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding))
   );
   background: var(--mw-bg);
-  border: 2px solid var(--mw-border);
+  border: var(--mw-border-w, 2px) solid var(--mw-border);
   /* 角丸をステージ実高さに応じて調整（最小8px、最大設定値） */
   border-radius: clamp(8px, calc(var(--stage-h-px, 720px) * 0.01), var(--mw-radius));
   color: var(--mw-text);
