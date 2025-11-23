@@ -335,11 +335,11 @@
             </button>
           </div>
           <div class="flex gap-2">
-            <button @click="reset" class="px-4 py-2 bg-gray-200 border rounded hover:bg-gray-300 text-sm font-medium">
+            <button @click="reset" class="px-4 py-2 bg-gray-200 border rounded hover:bg-gray-300 text-sm font-medium" :disabled="saving">
               リセット
             </button>
-            <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow">
-              保存
+            <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving">
+              {{ saving ? '保存中...' : '保存' }}
             </button>
           </div>
         </div>
@@ -689,11 +689,13 @@ function reset() {
 }
 
 // 保存
-const { $api } = useNuxtApp()
 const toast = useToast()
+const saving = ref(false)
 
 async function save() {
+  saving.value = true
   try {
+    const { $api } = useNuxtApp() // 関数内で取得してSSR問題を回避
     console.log('[MessageThemeModal] 保存開始', props.gameId, draft.value)
     
     // 色をRGBAオブジェクトから文字列へ変換してからシリアライズ
@@ -714,15 +716,25 @@ async function save() {
     }
     
     console.log('[MessageThemeModal] シリアライズ完了', v)
-    const result = await $api(`/games/${props.gameId}`, { method: 'PATCH', body: { messageTheme: v } })
+    const result: any = await $api(`/games/${props.gameId}`, { 
+      method: 'PATCH', 
+      body: { messageTheme: v, themeVersion: 2 } 
+    })
     console.log('[MessageThemeModal] API呼び出し成功', result)
-    toast.success('保存しました')
-    emit('saved', v)
+    
+    // 親へ通知（即時反映させる）
+    emit('saved', result?.messageTheme ?? v)
+    toast.success('全体設定を保存しました')
     emit('close')
   } catch (error: any) {
     console.error('[MessageThemeModal] 保存に失敗しました:', error)
     console.error('[MessageThemeModal] エラー詳細:', error.data, error.message, error.statusText)
-    toast.error('保存に失敗しました: ' + (error.data?.message || error.message || error.statusText || '不明なエラー'))
+    
+    const status = error?.response?.status ?? error?.status
+    const msg = error?.response?._data?.message ?? error?.data?.message ?? error?.message ?? error?.statusText ?? '不明なエラー'
+    toast.error(`保存エラー${status ? ` (${status})` : ''}: ${msg}`)
+  } finally {
+    saving.value = false
   }
 }
 

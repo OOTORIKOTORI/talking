@@ -419,6 +419,27 @@ async function onImagePicked(img: any) {
   }
 }
 
+// Ctrl/⌘+Enter で「保存して次へ」
+function onGlobalKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (!saving.value && node.value) {
+      e.preventDefault()
+      saveAndCreateNext()
+    }
+  }
+  
+  // Ctrl/⌘+K で次ノードID欄からNodePicker起動
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    const el = nextNodeInputRef.value
+    if (el && document.activeElement === el) {
+      e.preventDefault()
+      openNodePicker.value = true
+    }
+  }
+}
+
+const nextNodeInputRef = ref<HTMLElement | null>(null)
+
 onMounted(async () => {
   try {
     game.value = await api.get(route.params.id as string)
@@ -439,6 +460,9 @@ onMounted(async () => {
       console.warn('Failed to parse copyOpts from localStorage', e)
     }
   }
+  
+  // グローバルキーボードイベントリスナー
+  window.addEventListener('keydown', onGlobalKeydown)
 })
 
 // コピー対象トグルの変更を監視して保存
@@ -696,7 +720,10 @@ onMounted(() => {
   // Fキーで切替
   window.addEventListener('keydown', onKey)
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('keydown', onGlobalKeydown)
+})
 function onKey(e: KeyboardEvent) {
   if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
   if (e.key === 'Escape') { fullscreenProps.value = false }
@@ -1225,12 +1252,20 @@ function onUp() {
                   <div>
                     <label class="block text-sm font-medium mb-1">次ノードID</label>
                     <div class="flex items-center gap-2">
-                      <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700">
+                      <div 
+                        ref="nextNodeInputRef"
+                        tabindex="0"
+                        class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
+                        @click="openNodePicker=true"
+                        @keydown.enter.prevent="openNodePicker=true"
+                        title="クリックまたは Ctrl/⌘+K で選択"
+                      >
                         {{ nextNodeLabel }}
                       </div>
                       <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
                       <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=''">クリア</button>
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">次ノードID欄にフォーカス中は Ctrl/⌘+K でも選択できます</p>
                   </div>
                 </div>
 
