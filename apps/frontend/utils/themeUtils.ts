@@ -188,9 +188,35 @@ export function scaleToWindowPreset(scale?: 'sm' | 'md' | 'lg'): FontPreset {
  * 既存データからプリセット値を推定
  */
 export function migrateToV2(v1: MessageTheme | MessageThemeV2 | undefined): MessageThemeV2 {
-  // 既に v2 なら返す
+  // 既に v2 なら、色フィールドをRGBAオブジェクトに正規化してから返す
   if (v1 && 'themeVersion' in v1 && v1.themeVersion === 2) {
-    return v1 as MessageThemeV2
+    const v2 = { ...v1 } as MessageThemeV2
+    
+    console.log('[migrateToV2] v2テーマを正規化中', v2)
+    
+    // 色フィールドが文字列の場合はRGBAオブジェクトに変換
+    if (v2.frameBg && typeof v2.frameBg === 'string') {
+      const parsed = parseColor(v2.frameBg)
+      if (parsed) {
+        console.log('[migrateToV2] frameBg を変換:', v2.frameBg, '→', parsed)
+        v2.frameBg = parsed
+      }
+    }
+    if (v2.frameBorder && typeof v2.frameBorder === 'string') {
+      const parsed = parseColor(v2.frameBorder)
+      if (parsed) v2.frameBorder = parsed
+    }
+    if (v2.nameBg && typeof v2.nameBg === 'string') {
+      const parsed = parseColor(v2.nameBg)
+      if (parsed) v2.nameBg = parsed
+    }
+    if (v2.textColor && typeof v2.textColor === 'string') {
+      const parsed = parseColor(v2.textColor)
+      if (parsed) v2.textColor = parsed
+    }
+    
+    console.log('[migrateToV2] 正規化完了', v2)
+    return v2
   }
 
   const old = v1 as MessageTheme | undefined
@@ -295,6 +321,11 @@ export interface ResolvedTheme {
   nameBgCss: string
   textColorCss: string
   rows: number
+  fontWeight: string
+  fontStyle: string
+  fontFamily: string | undefined
+  textStrokeColorCss: string | undefined
+  textStrokeWidth: number
 }
 
 export function resolveThemeV2(theme: MessageThemeV2 | MessageTheme | undefined): ResolvedTheme {
@@ -316,6 +347,11 @@ export function resolveThemeV2(theme: MessageThemeV2 | MessageTheme | undefined)
   const textColorCss = rgbaToCss(toRgba(v2.textColor))
 
   const rows = v2.rows ?? 3
+  const fontWeight = v2.fontWeight ?? 'normal'
+  const fontStyle = v2.fontStyle ?? 'normal'
+  const fontFamily = v2.fontFamily
+  const textStrokeColorCss = v2.textStrokeColor ? rgbaToCss(toRgba(v2.textStrokeColor)) : undefined
+  const textStrokeWidth = v2.textStrokeWidth ?? 0
 
   return {
     fontK,
@@ -333,5 +369,10 @@ export function resolveThemeV2(theme: MessageThemeV2 | MessageTheme | undefined)
     nameBgCss,
     textColorCss,
     rows,
+    fontWeight,
+    fontStyle,
+    fontFamily,
+    textStrokeColorCss,
+    textStrokeWidth,
   }
 }

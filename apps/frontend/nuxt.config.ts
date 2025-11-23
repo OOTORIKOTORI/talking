@@ -14,6 +14,27 @@ export default defineNuxtConfig({
      '@nuxt/icon',
   ],
 
+  // Google Fonts の設定
+  app: {
+    head: {
+      link: [
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.googleapis.com'
+        },
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.gstatic.com',
+          crossorigin: ''
+        },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@300;400;500;700;900&family=M+PLUS+Rounded+1c:wght@300;400;500;700;900&family=M+PLUS+1p:wght@300;400;500;700;900&family=Kosugi+Maru&family=Kosugi&family=Sawarabi+Mincho&family=Sawarabi+Gothic&family=Zen+Maru+Gothic:wght@300;400;500;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Zen+Old+Mincho:wght@400;500;600;700;900&family=Shippori+Mincho:wght@400;500;600;700;800&family=Shippori+Mincho+B1:wght@400;500;600;700;800&family=Kaisei+Decol:wght@400;500;700&family=Kaisei+Opti:wght@400;500;700&family=Kaisei+Tokumin:wght@400;500;700;800&family=Kaisei+HarunoUmi:wght@400;500;700&family=Kiwi+Maru:wght@300;400;500&family=Stick&family=Potta+One&family=Reggae+One&family=Rock+Salt&family=Dela+Gothic+One&family=Hachi+Maru+Pop&family=Yusei+Magic&family=Train+One&family=Rampart+One&family=Mochiy+Pop+One&family=Mochiy+Pop+P+One&family=DotGothic16&family=RocknRoll+One&family=New+Tegomin&family=Yomogi&family=Slackkey&display=swap'
+        }
+      ]
+    }
+  },
+
   supabase: {
     // Database型定義の警告を無効化
     types: false,

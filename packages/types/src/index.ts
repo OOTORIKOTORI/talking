@@ -176,6 +176,15 @@ export interface MessageThemeV2 {
   nameBg?: RGBA | string;       // 名前背景色
   textColor?: RGBA | string;    // 文字色
   
+  // フォント装飾
+  fontWeight?: 'normal' | 'bold' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  fontStyle?: 'normal' | 'italic';
+  fontFamily?: string; // フォントファミリー（ゴシック、明朝など）
+  
+  // 文字の縁取り
+  textStrokeColor?: RGBA | string; // 縁取り色
+  textStrokeWidth?: number; // 縁取り太さ（px）
+  
   // 旧値（fallback用、v1互換）
   frame?: MessageTheme['frame'];
   name?: MessageTheme['name'];

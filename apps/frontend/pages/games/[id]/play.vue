@@ -18,7 +18,6 @@
           style="aspect-ratio: 16/9"
           :backgroundUrl="bgUrl"
           :characters="stageCharacters"
-          :message="stageMessage"
           :theme="stageTheme"
           :camera="stageCamera"
         />
@@ -53,7 +52,7 @@
           ></button>
 
           <!-- message window (only when current exists and not on start screen) -->
-          <div v-if="current && !showStartScreen">
+          <div v-if="current && !showStartScreen && !fullscreen">
             <!-- 選択肢がある場合（クリック後に表示） -->
             <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
               <div class="space-y-3 w-[min(600px,80vw)]">
@@ -70,15 +69,18 @@
 
             <!-- 通常のメッセージウィンドウ（常に表示） -->
             <MessageWindow
+              :key="`msg-${currentNode?.id}`"
               :speaker="speaker"
               :text="displayedText"
+              :accumulatedPrefix="prefixText"
               :theme="theme"
               :animate="true"
+              @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
             />
           </div>
           
           <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-          <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+          <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
             <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
             <button
               @click="restart(); ensureBgm()"
@@ -98,7 +100,6 @@
         style="width: 100%; height: 100%"
         :backgroundUrl="bgUrl"
         :characters="stageCharacters"
-        :message="stageMessage"
         :theme="stageTheme"
         :camera="stageCamera"
       />
@@ -122,7 +123,7 @@
         <!-- whole-stage click to advance & to trigger BGM -->
         <button 
           v-if="current && !showStartScreen && !showEndScreen && !showChoices"
-          class="absolute inset-0 z-10 pointer-events-auto" 
+          class="absolute inset-0 z-[5] pointer-events-auto" 
           @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())" 
           aria-label="next"
         ></button>
@@ -145,15 +146,18 @@
 
           <!-- 通常のメッセージウィンドウ（常に表示） -->
           <MessageWindow
+            :key="`msg-${currentNode?.id}`"
             :speaker="speaker"
             :text="displayedText"
+            :accumulatedPrefix="prefixText"
             :theme="theme"
             :animate="true"
+            @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
           />
         </div>
         
         <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-        <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto">
+        <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
           <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
           <button
             @click="restart(); ensureBgm()"
@@ -304,7 +308,7 @@ function resolveStart(gameData: any) {
 function applyStart() {
   const { scene, node } = resolveStart(game.value)
   if (node) {
-    segIndex.value = 0
+    accumulatedText.value = ''
     current.value = node
     // クエリパラメータがある場合は自動開始
     if (route.query.sceneId || route.query.nodeId) {
@@ -317,8 +321,8 @@ function applyStart() {
   }
 }
 
-// 台詞の段階表示用
-const segIndex = ref(0)
+// 累積テキスト（前ノードのセリフを継続する場合に使用）
+const accumulatedText = ref('')
 
 // thumb のキャッシュ
 const thumbCache = ref<Map<string, string>>(new Map())
@@ -439,6 +443,10 @@ const defaultThemeV2 = {
   frameBorder: { r: 255, g: 255, b: 255, a: 0.2 },
   nameBg: { r: 0, g: 0, b: 0, a: 0.55 },
   textColor: { r: 255, g: 255, b: 255, a: 1 },
+  gradientDirection: 'none',
+  gradientColor: { r: 40, g: 44, b: 52, a: 0.72 },
+  fontWeight: 'normal',
+  fontStyle: 'normal',
 }
 const theme = computed(() => (game.value as any)?.messageTheme ?? defaultThemeV2)
 
@@ -524,6 +532,7 @@ watch(
 
 function start() {
   // スタート画面を非表示にして開始
+  accumulatedText.value = ''
   showStartScreen.value = false
   
   if (!current.value) {
@@ -535,11 +544,11 @@ function start() {
 }
 
 function restart() {
+  accumulatedText.value = ''
   showStartScreen.value = true
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
   current.value = null
-  segIndex.value = 0
   applyStart()
   ensureBgm()
 }
@@ -552,9 +561,30 @@ function go(targetNodeId: string | null) {
   
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
-  segIndex.value = 0
+  
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
+    console.log('[play.vue] go() - nextNode:', {
+      id: nextNode.id,
+      text: nextNode.text,
+      continuesPreviousText: nextNode.continuesPreviousText
+    })
+    
+    // 次のノードが前のテキストを継続する場合、現在のテキストを累積に追加
+    if (nextNode.continuesPreviousText) {
+      // 現在の完全なテキスト（累積 + 現在のテキスト）を保存
+      const newAccumulated = accumulatedText.value + (current.value?.text ?? '')
+      console.log('[play.vue] go() -継続モード:', {
+        before: accumulatedText.value,
+        currentText: current.value?.text,
+        after: newAccumulated
+      })
+      accumulatedText.value = newAccumulated
+    } else {
+      // 継続しない場合はリセット
+      console.log('[play.vue] go() - リセット')
+      accumulatedText.value = ''
+    }
     current.value = nextNode
   } else {
     console.warn('Node not found:', targetNodeId)
@@ -563,7 +593,6 @@ function go(targetNodeId: string | null) {
 }
 
 function advanceWithinNodeOrNext() {
-  segIndex.value = 0
   showChoices.value = false // 選択肢表示をリセット
   
   // 選択肢がある場合は選択肢を表示
@@ -587,7 +616,26 @@ const speaker = computed(() => {
   return current.value.speakerDisplayName || ''
 })
 
-const displayedText = computed(() => current.value?.text ?? '')
+// 累積テキスト（即座に表示する部分）
+const prefixText = computed(() => {
+  const result = current.value?.continuesPreviousText ? accumulatedText.value : ''
+  console.log('[play.vue] prefixText computed:', {
+    continuesPreviousText: current.value?.continuesPreviousText,
+    accumulatedText: accumulatedText.value,
+    result
+  })
+  return result
+})
+
+// デバッグ用: prefixTextの変化を監視
+watch(prefixText, (newVal) => {
+  console.log('[play.vue] prefixText changed to:', newVal)
+}, { immediate: true })
+
+// 現在のノードのテキスト（タイプライター効果を適用する部分）
+const displayedText = computed(() => {
+  return current.value?.text ?? ''
+})
 
 const choices = computed(() => {
   if (!current.value) return []

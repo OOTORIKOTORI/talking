@@ -196,6 +196,7 @@ model GameNode {
   sfxAssetId  String?
   nextNodeId  String?
   camera      Json?        // {zoom,cx,cy} カメラ設定
+  continuesPreviousText Boolean? @default(false)  // 前ノードのセリフを継続するか
   scene       GameScene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
   choices     GameChoice[]
 

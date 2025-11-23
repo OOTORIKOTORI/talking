@@ -82,6 +82,10 @@ const defaultThemeV2 = {
   frameBorder: { r: 255, g: 255, b: 255, a: 0.2 },
   nameBg: { r: 0, g: 0, b: 0, a: 0.55 },
   textColor: { r: 255, g: 255, b: 255, a: 1 },
+  gradientDirection: 'none',
+  gradientColor: { r: 40, g: 44, b: 52, a: 0.72 },
+  fontWeight: 'normal',
+  fontStyle: 'normal',
 }
 
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
@@ -89,12 +93,36 @@ const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
 // StageCanvas はテーマをそのまま渡す（内部で v2 解決される）
 const stageTheme = computed(() => previewTheme.value)
 
-// StageCanvas 用のメッセージ
+// StageCanvas 用のメッセージ（前ノードのテキストを累積表示）
 const stageMessage = computed(() => {
   if (!nodeDraft.text) return null
+  
+  let displayText = nodeDraft.text || ''
+  
+  // continuesPreviousText が true の場合、前のノードのテキストを累積
+  if (nodeDraft.continuesPreviousText && node.value) {
+    // 現在のノードのインデックスを取得
+    const currentIndex = nodes.value.findIndex(n => n.id === node.value.id)
+    
+    // 累積テキストを構築（前方向にさかのぼる）
+    let accumulatedText = ''
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const prevNode = nodes.value[i]
+      if (prevNode?.text) {
+        accumulatedText = prevNode.text + accumulatedText
+      }
+      // 前のノードが continuesPreviousText = false なら、そこで累積を止める
+      if (!prevNode?.continuesPreviousText) {
+        break
+      }
+    }
+    
+    displayText = accumulatedText + displayText
+  }
+  
   return {
     speaker: nodeDraft.speakerDisplayName || '',
-    text: nodeDraft.text || ''
+    text: displayText
   }
 })
 
@@ -852,8 +880,19 @@ function onUp() {
                     v-model="nodeDraft.text"
                     class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="6"
-                    placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
+                    placeholder="ここに台詞を入力..."
                   ></textarea>
+                </div>
+
+                <!-- 前ノードのセリフを継続 -->
+                <div>
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="nodeDraft.continuesPreviousText" class="rounded" />
+                    <span class="font-medium">前ノードのセリフを消さずに続ける</span>
+                  </label>
+                  <p class="text-xs text-gray-500 mt-1 ml-6">
+                    チェックすると、前のノードのセリフを残したまま、このノードのセリフを追加表示します
+                  </p>
                 </div>
 
               <div class="space-y-3">
@@ -1074,8 +1113,19 @@ function onUp() {
                     v-model="nodeDraft.text"
                     class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="6"
-                    placeholder="ここに台詞を入力... (｜で区切ると段階表示)"
+                    placeholder="ここに台詞を入力..."
                   ></textarea>
+                </div>
+
+                <!-- 前ノードのセリフを継続 -->
+                <div>
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="nodeDraft.continuesPreviousText" class="rounded" />
+                    <span class="font-medium">前ノードのセリフを消さずに続ける</span>
+                  </label>
+                  <p class="text-xs text-gray-500 mt-1 ml-6">
+                    チェックすると、前のノードのセリフを残したまま、このノードのセリフを追加表示します
+                  </p>
                 </div>
 
                 <div class="space-y-3">

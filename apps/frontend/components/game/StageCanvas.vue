@@ -13,18 +13,21 @@
         alt=""
       />
     </div>
-    <!-- メッセージウィンドウ（拡大しない） -->
-    <div v-if="message" class="mw" :style="mwStyle">
-      <div v-if="message.speaker" class="name">{{ message.speaker }}</div>
-      <div class="text">{{ message.text }}</div>
-    </div>
+    <!-- MessageWindowコンポーネントを使用（テーマを統一） -->
+    <MessageWindow
+      v-if="message"
+      :speaker="message.speaker"
+      :text="message.text"
+      :theme="props.theme"
+      :animate="false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useStageScale } from '@/composables/useStageScale'
-import { resolveThemeV2 } from '@/utils/themeUtils'
+import MessageWindow from '@/components/game/MessageWindow.vue'
 import type { MessageThemeV2, MessageTheme } from '@talking/types'
 
 const props = defineProps<{
@@ -61,31 +64,6 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
     zIndex: String(10 + (c.z ?? 0))
   }
 }
-
-// v2テーマを解決してCSS変数に変換
-const mwStyle = computed(() => {
-  const resolved = resolveThemeV2(props.theme)
-  
-  return {
-    '--mw-width': resolved.windowW,
-    '--mw-max-width': resolved.windowMw,
-    '--mw-height': resolved.windowH,
-    '--mw-margin-bottom': resolved.windowMb,
-    '--mw-bg': resolved.frameBgCss,
-    '--mw-border': resolved.frameBorderCss,
-    '--mw-radius': `${resolved.radiusPx}px`,
-    '--mw-padding': `${resolved.paddingK * 16}px`,  // paddingK は倍率なので基準16pxで掛ける
-    '--mw-name-bg': resolved.nameBgCss,
-    '--mw-text': resolved.textColorCss,
-    '--fs-k': String(resolved.fontK),
-    '--fs-min': '12px',
-    '--fs-max': '48px',
-    '--rows': String(resolved.rows),
-    '--mw-lh': '1.8',
-    '--mw-border-w': `${resolved.borderPx}px`,
-    '--type-ms': `${resolved.typeMs}ms`,
-  }
-})
 </script>
 
 <style scoped>
@@ -113,58 +91,5 @@ const mwStyle = computed(() => {
   object-fit: contain;
   will-change: transform;
   transform-origin: bottom center;
-}
-.mw {
-  position: absolute;
-  left: 50%;
-  bottom: var(--mw-margin-bottom);
-  transform: translateX(-50%);
-  width: var(--mw-width);
-  max-width: var(--mw-max-width);
-  /* 高さは行数分を常に固定（内容量に関わらず一定） */
-  /* 計算: テキストエリア(フォントサイズ * 行の高さ * 行数 + パディング上下) + 名前エリア(フォントサイズ + パディング上下 + マージン) */
-  height: calc(
-    /* テキストエリア: 本文の行数分 */
-    clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), var(--fs-max, 48px)) 
-    * var(--mw-lh, 1.8) 
-    * var(--rows, 3) 
-    + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding)) * 2
-    /* 名前エリア: 名前フォントサイズ + パディング上下 + 下マージン */
-    + clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), var(--fs-max, 48px))
-    + clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding)) * 2
-    + clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding))
-  );
-  background: var(--mw-bg);
-  border: var(--mw-border-w, 2px) solid var(--mw-border);
-  /* 角丸をステージ実高さに応じて調整（最小8px、最大設定値） */
-  border-radius: clamp(8px, calc(var(--stage-h-px, 720px) * 0.01), var(--mw-radius));
-  color: var(--mw-text);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 100;
-}
-.name {
-  background: var(--mw-name-bg);
-  /* padding もステージ実高さに応じて調整（最小4px、最大設定値） */
-  padding: clamp(4px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
-  font-weight: 700;
-  /* フォントサイズ: 実ステージ高さ基準（最小12px、最大48px） */
-  font-size: clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.028 * var(--fs-k, 1)), var(--fs-max, 48px));
-}
-.text {
-  /* padding もステージ実高さに応じて調整（最小6px、最大設定値） */
-  padding: clamp(6px, calc(var(--stage-h-px, 720px) * 0.012), var(--mw-padding));
-  /* フォントサイズ: 実ステージ高さ基準（最小12px、最大48px） */
-  font-size: clamp(var(--fs-min, 12px), calc(var(--stage-h-px, 720px) * 0.030 * var(--fs-k, 1)), var(--fs-max, 48px));
-  line-height: var(--mw-lh);
-  white-space: pre-wrap;
-  /* スクロールバー非表示＆行クランプ */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--rows, 3);
-  /* 非WebKit向け（将来対応） */
-  line-clamp: var(--rows, 3);
 }
 </style>
