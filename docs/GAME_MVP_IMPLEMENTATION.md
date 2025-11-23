@@ -65,7 +65,7 @@
 - **話者**: キャラクターID + 感情ラベル
 - **背景**: Asset IDで背景画像を指定
 - **音楽**: BGM Asset ID
-- **効果音**: SFX Asset ID
+- **効果音(SE)**: 内部 `sfxAssetId`。エディタでは「効果音(SE)」と表示
 - **次のノード**: 直線的な遷移用（nextNodeId）
 - **選択肢**: 分岐用（choices配列）
 

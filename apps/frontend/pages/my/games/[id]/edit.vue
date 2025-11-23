@@ -958,7 +958,7 @@ function onUp() {
                   <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium mb-1">SFX</label>
+                  <label class="block text-sm font-medium mb-1">効果音(SE)</label>
                   <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
                     <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
@@ -1191,7 +1191,7 @@ function onUp() {
                     <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium mb-1">SFX</label>
+                    <label class="block text-sm font-medium mb-1">効果音(SE)</label>
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
                       <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>

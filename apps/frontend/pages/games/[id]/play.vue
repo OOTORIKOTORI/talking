@@ -43,6 +43,9 @@
           <!-- BGMコントロール (常に非表示だが音は鳴る) -->
           <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
 
+          <!-- SFX（効果音）コントロール: ノードごとに1回だけ再生 -->
+          <audio ref="sfxRef" :src="sfxUrl || undefined" class="hidden" />
+
           <!-- whole-stage click to advance & to trigger BGM -->
           <button 
             v-if="current && !showStartScreen && !showEndScreen && !showChoices"
@@ -173,7 +176,7 @@
   </div>
 
       <!-- 音声同意オーバーレイ -->
-      <div v-if="!soundOk && bgmUrl" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
+      <div v-if="!soundOk && (bgmUrl || sfxUrl)" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
         <div class="rounded-xl bg-white p-6 shadow-xl w-[min(560px,90vw)]">
           <h2 class="font-semibold text-lg mb-2">音声の再生について</h2>
           <p class="text-sm text-gray-600 mb-4">
@@ -310,6 +313,8 @@ function applyStart() {
   if (node) {
     accumulatedText.value = ''
     current.value = node
+    // ここで効果音を再生
+    void playSfxForCurrentNode()
     // クエリパラメータがある場合は自動開始
     if (route.query.sceneId || route.query.nodeId) {
       showStartScreen.value = false
@@ -401,10 +406,18 @@ function scaleToHeight(s: number | undefined) {
 const bgmUrl = ref<string | null>(null)
 const bgmRef = ref<HTMLAudioElement | null>(null)
 
+// SFX (効果音) wiring: ノードごとに1回だけ鳴らすワンショット
+const sfxUrl = ref<string | null>(null)
+const sfxRef = ref<HTMLAudioElement | null>(null)
+
 // 音声を有効にする
 async function allowSound() {
-  if (bgmRef.value) {
-    await grantAudioConsent([bgmRef.value])
+  const media: HTMLMediaElement[] = []
+  if (bgmRef.value) media.push(bgmRef.value)
+  if (sfxRef.value) media.push(sfxRef.value)
+
+  if (media.length > 0) {
+    await grantAudioConsent(media)
   }
 }
 
@@ -426,6 +439,42 @@ watch(
   async (id) => { bgmUrl.value = id ? await signedFromId(id, false) : null },
   { immediate: true }
 )
+
+// currentのsfxAssetIdが変化したらSFX URLを更新
+watch(
+  () => current.value?.sfxAssetId,
+  async (id) => {
+    if (!id) {
+      sfxUrl.value = null
+      return
+    }
+    sfxUrl.value = await signedFromId(id, false)
+  },
+  { immediate: true }
+)
+
+// 効果音を実際に再生するヘルパー関数
+async function playSfxForCurrentNode() {
+  if (!soundOk.value) return
+  const id = current.value?.sfxAssetId
+  if (!id) return
+
+  // URL は watch 側で通常解決されるが、保険としてここでも解決しておく
+  if (!sfxUrl.value) {
+    sfxUrl.value = await signedFromId(id, false)
+  }
+
+  await nextTick()
+  const el = sfxRef.value
+  if (!el) return
+
+  try {
+    el.currentTime = 0
+    await el.play()
+  } catch (e) {
+    console.warn('[play.vue] failed to play sfx', e)
+  }
+}
 
 // Message theme (project-level setting with fallback)
 const defaultThemeV2 = {
@@ -586,6 +635,8 @@ function go(targetNodeId: string | null) {
       accumulatedText.value = ''
     }
     current.value = nextNode
+    // 遷移先ノードの効果音を再生
+    void playSfxForCurrentNode()
   } else {
     console.warn('Node not found:', targetNodeId)
     current.value = null

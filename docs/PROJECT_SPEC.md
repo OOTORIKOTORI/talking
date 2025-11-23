@@ -164,6 +164,8 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 - **テストプレイ**: `/games/:id/play`
   - クエリ `?sceneId=&nodeId=` を受け取り、指定がない場合は **scene.startNodeId → 先頭ノード**の順で自動補完
   - 初回は **音声同意オーバーレイ**を表示。クリックで `AudioContext.resume()` を呼び出し、BGM自動再生を試みる（失敗時は次の操作で再試行）
+  - ノードに `sfxAssetId` が設定されている場合、そのノードへ遷移したタイミングで効果音(SE)を1回再生する
+  - 効果音(SE)の再生も音声同意(`audioConsent`)に従う。BGMまたは効果音のいずれかが存在する場合は、初回に音声同意オーバーレイを表示する
   - フルスクリーン化してもノード状態は維持される
   - **カメラ（zoom/cx/cy）は StageCanvas に反映**され、背景とキャラクターに拡大・パン変換を適用（メッセージウィンドウは拡大しない）
 
@@ -324,7 +326,7 @@ interface MessageTheme {
 - 話者キャラ（speakerCharacterId）と **話者表記（自由入力）** …匿名演出（`???` 等）やあだ名に対応
 - 背景（bgAssetId） … サムネ表示
 - BGM（musicAssetId） … `<audio controls>` で再生/停止可
-- SFX（sfxAssetId） … UI 実装済み、`<audio controls>` で試聴可
+- 効果音（SE, sfxAssetId） … エディタ上のラベルは「効果音(SE)」。`<audio controls>` で試聴可
 - **キャラクター配置（portraits[]）** … 複数行。各行で画像変更 / 削除 / `x,y,scale,z` を個別調整
 
 <!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->
