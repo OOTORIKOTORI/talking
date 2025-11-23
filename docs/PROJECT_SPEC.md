@@ -174,7 +174,7 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - `messageTheme`: メッセージウィンドウテーマ設定（後述）
 - `GameScene { id, projectId(FK), name, order, startNodeId String?, createdAt, updatedAt }`
   - `startNodeId`: シーン開始ノードID（テストプレイ初期位置に使用）
-- `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, createdAt, updatedAt }`
+- `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, cameraFx Json?, createdAt, updatedAt }`
 - `GameChoice { id, nodeId(FK), order, label, nextNodeId? }`
 
 #### Node.camera JSON
@@ -182,6 +182,40 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 type Camera = { zoom: number /*100–300*/; cx: number /*0–100*/; cy: number /*0–100*/ }
 // 既定: { zoom:100, cx:50, cy:50 }（％はステージ基準）
 ```
+
+#### Node.cameraFx JSON（カメラ演出）
+
+```ts
+type Camera = { zoom: number; cx: number; cy: number }
+
+type CameraPoint = {
+  zoom?: number  // 100–300 (%)
+  cx?: number   // 0–100 (%)
+  cy?: number   // 0–100 (%)
+}
+
+type CameraFxMode = 'cut' | 'together' | 'pan-then-zoom' | 'zoom-then-pan'
+
+type GameNodeCameraFx = {
+  from?: CameraPoint    // ノード開始時のカメラ（省略時は前ノードの camera または現在カメラ）
+  to?: CameraPoint      // ノード終了時のカメラ（省略時はこのノードの camera）
+  durationMs?: number   // アニメーション時間(ms)。0 以下 or 未指定ではアニメなし
+  mode?: CameraFxMode   // アニメの順序。省略時 'together'
+}
+```
+
+* テストプレイでは、ノードに入ったタイミングで以下のルールでカメラを決定し、`StageCanvas` に反映する:
+  * 開始カメラ:
+    * `cameraFx.from` があればそれを使う（不足プロパティは前ノードの camera を補完）
+    * なければ前ノードの camera（先頭ノードでは `{zoom:100,cx:50,cy:50}`）
+  * 終了カメラ:
+    * `cameraFx.to` があればそれを使う（不足プロパティはこのノードの camera を補完）
+    * なければこのノードの `camera`
+
+* `mode` / `durationMs` に応じて、ズームとパンを `requestAnimationFrame` で補間して動かす。
+* `cameraFx` が未設定、`mode: "cut"`、`durationMs <= 0` の場合は、従来どおりカット切替。
+
+※ UI では当面、from/to の詳細編集は行わず、「前ノード → このノード」のパターンに対するモードと時間を指定する簡易 UI を提供する。
 
 #### Node.portraits JSON（複数）
 ```ts

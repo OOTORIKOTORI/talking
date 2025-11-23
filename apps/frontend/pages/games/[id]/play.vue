@@ -18,6 +18,7 @@
           style="aspect-ratio: 16/9"
           :backgroundUrl="bgUrl"
           :characters="stageCharacters"
+          :message="stageMessage"
           :theme="stageTheme"
           :camera="stageCamera"
         />
@@ -72,7 +73,7 @@
 
             <!-- 通常のメッセージウィンドウ（常に表示） -->
             <MessageWindow
-              :key="`msg-${currentNode?.id}`"
+              :key="`msg-${current?.id}`"
               :speaker="speaker"
               :text="displayedText"
               :accumulatedPrefix="prefixText"
@@ -103,6 +104,7 @@
         style="width: 100%; height: 100%"
         :backgroundUrl="bgUrl"
         :characters="stageCharacters"
+        :message="stageMessage"
         :theme="stageTheme"
         :camera="stageCamera"
       />
@@ -149,7 +151,7 @@
 
           <!-- 通常のメッセージウィンドウ（常に表示） -->
           <MessageWindow
-            :key="`msg-${currentNode?.id}`"
+            :key="`msg-${current?.id}`"
             :speaker="speaker"
             :text="displayedText"
             :accumulatedPrefix="prefixText"
@@ -237,6 +239,62 @@ const map = new Map<string, any>()
 const current = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+// CameraFx 型定義
+type Camera = { zoom: number; cx: number; cy: number }
+
+type CameraPoint = {
+  zoom?: number
+  cx?: number
+  cy?: number
+}
+
+type CameraFxMode = 'cut' | 'together' | 'pan-then-zoom' | 'zoom-then-pan'
+
+type GameNodeCameraFx = {
+  from?: CameraPoint
+  to?: CameraPoint
+  durationMs?: number
+  mode?: CameraFxMode
+}
+
+function clampZoom(v: number): number {
+  return Math.max(100, Math.min(300, v))
+}
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(100, v))
+}
+
+// node.camera から Camera を解決（デフォルト＋クランプ）
+function resolveNodeCamera(node: any | null | undefined): Camera {
+  const cam = (node as any)?.camera ?? {}
+  const zoomRaw = typeof cam.zoom === 'number' ? cam.zoom : 100
+  const cxRaw = typeof cam.cx === 'number' ? cam.cx : 50
+  const cyRaw = typeof cam.cy === 'number' ? cam.cy : 50
+  return {
+    zoom: clampZoom(zoomRaw),
+    cx: clamp01(cxRaw),
+    cy: clamp01(cyRaw),
+  }
+}
+
+// CameraPoint と fallback Camera から最終 Camera を作る
+function resolveCameraPoint(pt: CameraPoint | undefined, fallback: Camera): Camera {
+  if (!pt) return fallback
+  const zoom = typeof pt.zoom === 'number' ? pt.zoom : fallback.zoom
+  const cx = typeof pt.cx === 'number' ? pt.cx : fallback.cx
+  const cy = typeof pt.cy === 'number' ? pt.cy : fallback.cy
+  return {
+    zoom: clampZoom(zoom),
+    cx: clamp01(cx),
+    cy: clamp01(cy),
+  }
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t
+}
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 const showEndScreen = ref(false) // 終了画面の表示制御
@@ -313,6 +371,10 @@ function applyStart() {
   if (node) {
     accumulatedText.value = ''
     current.value = node
+
+    // ノード開始時にカメラを適用（前ノードは無し）
+    applyCameraForNode(null, node)
+
     // ここで効果音を再生
     void playSfxForCurrentNode()
     // クエリパラメータがある場合は自動開始
@@ -521,11 +583,134 @@ const stageCharacters = computed(() => {
 // StageCanvas 用のメッセージ (play.vue では null - メッセージウィンドウは別で表示)
 const stageMessage = computed(() => null)
 
-// StageCanvas 用のカメラ
-const stageCamera = computed(() => {
-  const cam = (current.value as any)?.camera
-  return cam ? { zoom: cam.zoom ?? 100, cx: cam.cx ?? 50, cy: cam.cy ?? 50 } : { zoom: 100, cx: 50, cy: 50 }
-})
+// StageCanvas 用のカメラ（アニメーション対応）
+const currentCamera = ref<Camera>({ zoom: 100, cx: 50, cy: 50 })
+
+// StageCanvas に渡すカメラ（アニメの結果を反映）
+const stageCamera = computed(() => currentCamera.value)
+
+// カメラアニメーション管理
+let cameraAnimId: number | null = null
+
+function stopCameraAnimation() {
+  if (cameraAnimId != null) {
+    cancelAnimationFrame(cameraAnimId)
+    cameraAnimId = null
+  }
+}
+
+function applyCameraInstant(cam: Camera) {
+  stopCameraAnimation()
+  currentCamera.value = cam
+}
+
+function animateCamera(from: Camera, to: Camera, fx: GameNodeCameraFx) {
+  stopCameraAnimation()
+
+  const duration = fx.durationMs ?? 0
+  if (duration <= 0) {
+    applyCameraInstant(to)
+    return
+  }
+
+  const mode: CameraFxMode = fx.mode ?? 'together'
+  const start: Camera = { ...from }
+  const end: Camera = { ...to }
+
+  const startTime = performance.now()
+
+  const step = (now: number) => {
+    const elapsed = now - startTime
+    const tRaw = duration <= 0 ? 1 : Math.min(1, elapsed / duration)
+    const t = tRaw // ひとまず線形。必要なら ease を検討
+
+    let zoom: number
+    let cx: number
+    let cy: number
+
+    if (mode === 'pan-then-zoom') {
+      const mid = 0.5
+      if (t <= mid) {
+        const tt = t / mid
+        cx = lerp(start.cx, end.cx, tt)
+        cy = lerp(start.cy, end.cy, tt)
+        zoom = start.zoom
+      } else {
+        const tt = (t - mid) / (1 - mid)
+        cx = end.cx
+        cy = end.cy
+        zoom = lerp(start.zoom, end.zoom, tt)
+      }
+    } else if (mode === 'zoom-then-pan') {
+      const mid = 0.5
+      if (t <= mid) {
+        const tt = t / mid
+        zoom = lerp(start.zoom, end.zoom, tt)
+        cx = start.cx
+        cy = start.cy
+      } else {
+        const tt = (t - mid) / (1 - mid)
+        zoom = end.zoom
+        cx = lerp(start.cx, end.cx, tt)
+        cy = lerp(start.cy, end.cy, tt)
+      }
+    } else {
+      // together / その他未知値はまとめて扱う
+      zoom = lerp(start.zoom, end.zoom, t)
+      cx = lerp(start.cx, end.cx, t)
+      cy = lerp(start.cy, end.cy, t)
+    }
+
+    currentCamera.value = {
+      zoom: clampZoom(zoom),
+      cx: clamp01(cx),
+      cy: clamp01(cy),
+    }
+
+    if (elapsed < duration) {
+      cameraAnimId = requestAnimationFrame(step)
+    } else {
+      cameraAnimId = null
+      currentCamera.value = {
+        zoom: clampZoom(end.zoom),
+        cx: clamp01(end.cx),
+        cy: clamp01(end.cy),
+      }
+    }
+  }
+
+  cameraAnimId = requestAnimationFrame(step)
+}
+
+function applyCameraForNode(prevNode: any | null, node: any | null) {
+  if (!node) return
+
+  const fx = (node as any).cameraFx as GameNodeCameraFx | null | undefined
+
+  // 終了カメラ（デフォルト: このノードの camera）
+  const endBase = resolveNodeCamera(node)
+  const endCam = resolveCameraPoint(fx?.to, endBase)
+
+  // CameraFx 無し or cut / duration<=0 の場合は即座に適用
+  if (!fx || fx.mode === 'cut' || !fx.durationMs || fx.durationMs <= 0) {
+    applyCameraInstant(endCam)
+    return
+  }
+
+  // 開始カメラ（デフォルト: 前ノード or 現在カメラ）
+  let startBase: Camera
+  if (fx.from) {
+    // 明示指定
+    const fallback = prevNode ? resolveNodeCamera(prevNode) : currentCamera.value
+    startBase = resolveCameraPoint(fx.from, fallback)
+  } else if (prevNode) {
+    startBase = resolveNodeCamera(prevNode)
+  } else {
+    startBase = currentCamera.value
+  }
+
+  animateCamera(startBase, endCam, fx)
+}
 
 onMounted(async () => {
   // 音声同意を確認
@@ -565,6 +750,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEscKey)
+  stopCameraAnimation()
 })
 
 // クエリパラメータが変わったときも再解決(ゲームロード完了後のみ)
@@ -618,6 +804,8 @@ function go(targetNodeId: string | null) {
       text: nextNode.text,
       continuesPreviousText: nextNode.continuesPreviousText
     })
+
+    const prevNode = current.value
     
     // 次のノードが前のテキストを継続する場合、現在のテキストを累積に追加
     if (nextNode.continuesPreviousText) {
@@ -635,6 +823,10 @@ function go(targetNodeId: string | null) {
       accumulatedText.value = ''
     }
     current.value = nextNode
+
+    // ノード遷移時にカメラ演出を適用
+    applyCameraForNode(prevNode, nextNode)
+
     // 遷移先ノードの効果音を再生
     void playSfxForCurrentNode()
   } else {
