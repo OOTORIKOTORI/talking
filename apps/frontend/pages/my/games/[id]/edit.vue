@@ -257,6 +257,11 @@ const stageCharacters = computed(() => {
   return result
 })
 
+// StageCanvas 用のカメラ（リアクティブに更新）
+const stageCamera = computed(() => {
+  return nodeDraft.camera ?? { zoom: 100, cx: 50, cy: 50 }
+})
+
 // scaleToHeight: 旧仕様の scale 値を％に変換
 function scaleToHeight(s: number | undefined) {
   if (s == null) return 30
@@ -918,7 +923,7 @@ function onUp() {
                   :characters="stageCharacters"
                   :message="stageMessage"
                   :theme="stageTheme"
-                  :camera="nodeDraft.camera"
+                  :camera="stageCamera"
                 />
               </div>
             </div>
@@ -1196,7 +1201,7 @@ function onUp() {
                   :characters="stageCharacters"
                   :message="stageMessage"
                   :theme="stageTheme"
-                  :camera="nodeDraft.camera"
+                  :camera="stageCamera"
                 />
               </div>
             </div>
@@ -1292,6 +1297,52 @@ function onUp() {
                              v-model.number="nodeDraft.camera.cy"
                              class="w-20 border rounded px-2 py-1 text-right" />
                       <span class="text-xs text-gray-500">（中心%）</span>
+                    </div>
+                  </div>
+
+                  <!-- カメラ演出 (MVP) -->
+                  <div class="mt-3 border-t pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="font-semibold">カメラ演出</div>
+                      <label class="flex items-center gap-1 text-xs">
+                        <input
+                          type="checkbox"
+                          v-model="cameraFxEnabled"
+                          class="rounded"
+                        />
+                        有効
+                      </label>
+                    </div>
+
+                    <div v-if="cameraFxEnabled" class="space-y-2 text-sm">
+                      <div class="flex items-center gap-2">
+                        <span class="w-20">モード</span>
+                        <select
+                          v-model="nodeDraft.cameraFx.mode"
+                          class="border rounded px-2 py-1 flex-1"
+                        >
+                          <option value="together">ズーム＋パン同時</option>
+                          <option value="pan-then-zoom">パン → ズーム</option>
+                          <option value="zoom-then-pan">ズーム → パン</option>
+                          <option value="cut">カット切替</option>
+                        </select>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        <span class="w-20">時間</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="50"
+                          v-model.number="nodeDraft.cameraFx.durationMs"
+                          class="w-28 border rounded px-2 py-1 text-right"
+                        />
+                        <span class="text-xs text-gray-500">ms</span>
+                      </div>
+
+                      <p class="text-xs text-gray-500">
+                        開始位置は「前ノードのカメラ」または cameraFx.from、終了位置は「このノードのカメラ」または cameraFx.to になります。
+                      </p>
                     </div>
                   </div>
 
