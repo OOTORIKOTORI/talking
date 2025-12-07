@@ -1,6 +1,6 @@
 <!-- components/game/StageCanvas.vue -->
 <template>
-  <div ref="stageRef" class="stage">
+  <div ref="stageRef" class="stage" :style="stageStyle">
     <!-- ワールド（背景＋キャラ）: カメラ変換をここに適用 -->
     <div class="world" :style="worldStyle">
       <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
@@ -13,6 +13,12 @@
         alt=""
       />
     </div>
+    
+    <!-- エフェクトレイヤー -->
+    <div class="effect-layer">
+      <div v-if="effectState.flash" class="flash" :style="flashStyle"></div>
+    </div>
+    
     <!-- MessageWindowコンポーネントを使用（テーマを統一） -->
     <MessageWindow
       v-if="message"
@@ -29,6 +35,7 @@ import { ref, computed } from 'vue'
 import { useStageScale } from '@/composables/useStageScale'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import type { MessageThemeV2, MessageTheme } from '@talking/types'
+import type { EffectState } from '@/composables/useVisualEffects'
 
 const props = defineProps<{
   backgroundUrl: string | null
@@ -36,12 +43,24 @@ const props = defineProps<{
   message: { speaker?: string; text: string } | null
   theme: MessageThemeV2 | MessageTheme | any
   camera?: { zoom?: number; cx?: number; cy?: number } | null
+  effectState?: EffectState
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
 
 // useStageScale でステージの実寸を CSS変数に流す
 useStageScale(stageRef)
+
+// ステージ全体のスタイル（shake エフェクト適用）
+const stageStyle = computed(() => {
+  const shake = props.effectState?.shake
+  if (shake) {
+    return {
+      transform: `translate(${shake.translateX}px, ${shake.translateY}px)`,
+    }
+  }
+  return {}
+})
 
 // カメラ変換スタイル（world レイヤーに適用）
 const worldStyle = computed(() => {
@@ -51,6 +70,18 @@ const worldStyle = computed(() => {
   const tx = 50 - cx
   const ty = 50 - cy
   return { transform: `translate(${tx}%, ${ty}%) scale(${z})`, transformOrigin: 'center center' }
+})
+
+// フラッシュエフェクトのスタイル
+const flashStyle = computed(() => {
+  const flash = props.effectState?.flash
+  if (flash) {
+    return {
+      backgroundColor: flash.color,
+      opacity: flash.opacity,
+    }
+  }
+  return {}
 })
 
 // キャラクター配置スタイル
@@ -72,6 +103,7 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
+  will-change: transform;
 }
 .world {
   position: absolute;
@@ -92,4 +124,16 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   will-change: transform;
   transform-origin: bottom center;
 }
+.effect-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.flash {
+  position: absolute;
+  inset: 0;
+  will-change: opacity;
+}
 </style>
+

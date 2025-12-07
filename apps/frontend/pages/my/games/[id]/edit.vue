@@ -9,6 +9,8 @@ import MiniStage from '@/components/game/MiniStage.vue'
 import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
+import { useVisualEffects } from '@/composables/useVisualEffects'
+import type { VisualEffect } from '@talking/types'
 const baseURL = useRuntimeConfig().public.apiBase
 const { $api } = useNuxtApp()
 
@@ -42,6 +44,9 @@ const sfxUrl = ref<string | null>(null)
 const pendingIndex = ref<number | null>(null)
 const saving = ref(false)
 
+// ビジュアルエフェクト
+const { effectState, playEffect, stopEffect } = useVisualEffects()
+
 // コピー対象トグル（localStorage永続化）
 const copyOpts = reactive({
   bg: true,
@@ -72,6 +77,13 @@ const cameraFxEnabled = computed({
     }
   },
 })
+
+// ビジュアルエフェクトのプレビュー
+function previewVisualEffect() {
+  if (nodeDraft.visualFx) {
+    playEffect(nodeDraft.visualFx)
+  }
+}
 
 // テストプレイを新しいタブで開く
 function openTestPlay() {
@@ -543,6 +555,14 @@ function selectNode(n: any) {
   if (!nodeDraft.camera) {
     nodeDraft.camera = { zoom: 100, cx: 50, cy: 50 }
   }
+  // cameraFx デフォルト補完
+  if (!nodeDraft.cameraFx) {
+    nodeDraft.cameraFx = null
+  }
+  // visualFx デフォルト補完
+  if (!nodeDraft.visualFx) {
+    nodeDraft.visualFx = {}
+  }
   // 既存データを開いたときに p.thumb を補完
   // watch が自動的に実行されるので明示的に呼ぶ必要はないが、
   // 互換性のため残しておく
@@ -597,6 +617,10 @@ async function saveNode() {
         return rest
       })
     }
+    // visualFx が空オブジェクトまたは type が未設定なら null にする
+    if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
+      payload.visualFx = null
+    }
     await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // scenes.valueも更新して次ノードラベル表示を最新に
@@ -626,6 +650,10 @@ async function saveAndCreateNext() {
         const { thumb, ...rest } = p
         return rest
       })
+    }
+    // visualFx が空オブジェクトまたは type が未設定なら null にする
+    if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
+      payload.visualFx = null
     }
     await api.upsertNode(scene.value.id, payload)
     
@@ -924,6 +952,7 @@ function onUp() {
                   :message="stageMessage"
                   :theme="stageTheme"
                   :camera="stageCamera"
+                  :effectState="effectState"
                 />
               </div>
             </div>
@@ -1067,6 +1096,63 @@ function onUp() {
                   </div>
                 </div>
 
+                <!-- ビジュアルエフェクト -->
+                <div class="mt-3 border-t pt-3">
+                  <div class="font-semibold mb-2">ビジュアルエフェクト</div>
+                  <div class="space-y-2">
+                    <div>
+                      <label class="block text-xs font-medium mb-1">種類</label>
+                      <select
+                        v-model="nodeDraft.visualFx.type"
+                        class="w-full border rounded px-2 py-1 text-sm"
+                      >
+                        <option :value="undefined">なし</option>
+                        <option value="shake">画面揺れ</option>
+                        <option value="flash">フラッシュ</option>
+                      </select>
+                    </div>
+                    <div v-if="nodeDraft.visualFx?.type">
+                      <label class="block text-xs font-medium mb-1">強度</label>
+                      <div class="flex gap-2">
+                        <label class="flex items-center gap-1 text-sm">
+                          <input
+                            type="radio"
+                            v-model="nodeDraft.visualFx.intensity"
+                            value="small"
+                            class="rounded"
+                          />
+                          小
+                        </label>
+                        <label class="flex items-center gap-1 text-sm">
+                          <input
+                            type="radio"
+                            v-model="nodeDraft.visualFx.intensity"
+                            value="medium"
+                            class="rounded"
+                          />
+                          中
+                        </label>
+                        <label class="flex items-center gap-1 text-sm">
+                          <input
+                            type="radio"
+                            v-model="nodeDraft.visualFx.intensity"
+                            value="large"
+                            class="rounded"
+                          />
+                          大
+                        </label>
+                      </div>
+                    </div>
+                    <button
+                      v-if="nodeDraft.visualFx?.type"
+                      class="w-full px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                      @click="previewVisualEffect"
+                    >
+                      プレビュー
+                    </button>
+                  </div>
+                </div>
+
                 <!-- 立ち絵（複数配置） -->
                 <div class="mt-3">
                   <div class="flex items-center justify-between">
@@ -1202,6 +1288,7 @@ function onUp() {
                   :message="stageMessage"
                   :theme="stageTheme"
                   :camera="stageCamera"
+                  :effectState="effectState"
                 />
               </div>
             </div>
@@ -1343,6 +1430,63 @@ function onUp() {
                       <p class="text-xs text-gray-500">
                         開始位置は「前ノードのカメラ」または cameraFx.from、終了位置は「このノードのカメラ」または cameraFx.to になります。
                       </p>
+                    </div>
+                  </div>
+
+                  <!-- ビジュアルエフェクト -->
+                  <div class="mt-3 border-t pt-3">
+                    <div class="font-semibold mb-2">ビジュアルエフェクト</div>
+                    <div class="space-y-2">
+                      <div>
+                        <label class="block text-xs font-medium mb-1">種類</label>
+                        <select
+                          v-model="nodeDraft.visualFx.type"
+                          class="w-full border rounded px-2 py-1 text-sm"
+                        >
+                          <option :value="undefined">なし</option>
+                          <option value="shake">画面揺れ</option>
+                          <option value="flash">フラッシュ</option>
+                        </select>
+                      </div>
+                      <div v-if="nodeDraft.visualFx?.type">
+                        <label class="block text-xs font-medium mb-1">強度</label>
+                        <div class="flex gap-2">
+                          <label class="flex items-center gap-1 text-sm">
+                            <input
+                              type="radio"
+                              v-model="nodeDraft.visualFx.intensity"
+                              value="small"
+                              class="rounded"
+                            />
+                            小
+                          </label>
+                          <label class="flex items-center gap-1 text-sm">
+                            <input
+                              type="radio"
+                              v-model="nodeDraft.visualFx.intensity"
+                              value="medium"
+                              class="rounded"
+                            />
+                            中
+                          </label>
+                          <label class="flex items-center gap-1 text-sm">
+                            <input
+                              type="radio"
+                              v-model="nodeDraft.visualFx.intensity"
+                              value="large"
+                              class="rounded"
+                            />
+                            大
+                          </label>
+                        </div>
+                      </div>
+                      <button
+                        v-if="nodeDraft.visualFx?.type"
+                        class="w-full px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                        @click="previewVisualEffect"
+                      >
+                        プレビュー
+                      </button>
                     </div>
                   </div>
 

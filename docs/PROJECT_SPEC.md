@@ -168,13 +168,15 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - 効果音(SE)の再生も音声同意(`audioConsent`)に従う。BGMまたは効果音のいずれかが存在する場合は、初回に音声同意オーバーレイを表示する
   - フルスクリーン化してもノード状態は維持される
   - **カメラ（zoom/cx/cy）は StageCanvas に反映**され、背景とキャラクターに拡大・パン変換を適用（メッセージウィンドウは拡大しない）
+  - **セリフ継続表示**: `continuesPreviousText` が true のノードでは、前ノードのテキストを消さずに残し、現在のノードのテキストを追加表示する。連続する継続フラグを遡って累積表示する（会話の流れを維持したまま演出可能）
 
 ### ドメイン / モデル(Prisma 正)
 - `GameProject { id, ownerId, title, summary?, messageTheme Json?, deletedAt? ... }`
   - `messageTheme`: メッセージウィンドウテーマ設定（後述）
 - `GameScene { id, projectId(FK), name, order, startNodeId String?, createdAt, updatedAt }`
   - `startNodeId`: シーン開始ノードID（テストプレイ初期位置に使用）
-- `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, cameraFx Json?, createdAt, updatedAt }`
+- `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, cameraFx Json?, continuesPreviousText Boolean?, createdAt, updatedAt }`
+  - `continuesPreviousText`: 前ノードのセリフを消さずに継続表示するフラグ（省略時 false）。true の場合、このノードのテキストを前ノードのテキストに追加して表示する。エディタでは「前ノードのセリフを消さずに続ける」チェックボックスで設定。
 - `GameChoice { id, nodeId(FK), order, label, nextNodeId? }`
 
 #### Node.camera JSON
@@ -216,6 +218,12 @@ type GameNodeCameraFx = {
 * `cameraFx` が未設定、`mode: "cut"`、`durationMs <= 0` の場合は、従来どおりカット切替。
 
 ※ UI では当面、from/to の詳細編集は行わず、「前ノード → このノード」のパターンに対するモードと時間を指定する簡易 UI を提供する。
+
+**エディタでの設定**:
+- 「カメラ演出」セクションで有効/無効をチェックボックスで切り替え
+- モード選択: 「ズーム＋パン同時」「パン → ズーム」「ズーム → パン」「カット切替」
+- アニメーション時間（ms）を数値入力（0以下または未設定でアニメなし）
+- 通常表示・全画面表示の両方で設定可能
 
 #### Node.portraits JSON（複数）
 ```ts
@@ -267,6 +275,14 @@ interface MessageThemeV2 {
   frameBorder?: RGBA | string;  // 枠線色
   nameBg?: RGBA | string;       // 名前背景色
   textColor?: RGBA | string;    // 文字色
+  
+  // グラデーション
+  gradientDirection?: 'none'|'to-b'|'to-t'|'to-r'|'to-l';  // グラデーション方向（既定 'none'）
+  gradientColor?: RGBA | string;  // グラデーション終点色（方向が'none'以外の場合に使用）
+  
+  // フォントスタイル
+  fontWeight?: 'normal'|'bold';   // フォント太さ（既定 'normal'）
+  fontStyle?: 'normal'|'italic';  // フォントスタイル（既定 'normal'）
   
   // 旧値（fallback用、v1互換）
   frame?: {...};
@@ -386,6 +402,9 @@ interface MessageTheme {
 
 - **開始ノードの設定**: 各ノード列の「▶開始ノードに設定」ボタンで `GameScene.startNodeId` を PATCH 保存
 - **カメラ** … 編集UIは実装済み（倍率 zoom 100–300%、中心 cx,cy 0–100%）。StageCanvas への反映済み（MiniStage にも適用済み）
+- **カメラ演出（cameraFx）** … エディタで「カメラ演出」セクションから設定可能。テストプレイでは `requestAnimationFrame` で滑らかなカメラアニメーションを実現
+- **ビジュアルエフェクト（visualFx）** … 「ビジュアルエフェクト」セクションで設定。画面揺れ（shake）とフラッシュ（flash）の2種類、それぞれ小・中・大の3段階強度を選択可能。エディタではプレビューボタンで即座に確認でき、テストプレイではノード表示時に自動再生。画面全体（背景・キャラクター・メッセージウィンドウ含む）に適用され、`requestAnimationFrame` ベースの滑らかなアニメーション
+- **セリフ継続表示（continuesPreviousText）** … 「前ノードのセリフを消さずに続ける」チェックボックスで設定。会話の流れを維持した演出が可能
 
 **プレビュー**:
 - 通常表示：右ペインに16:9のステージを表示、幅プリセット（S/M/L）で調整可能
@@ -399,6 +418,74 @@ interface MessageTheme {
   - 新規 Node 追加時は `order = (scene内 max + 1)` （`GamesService.upsertNode` 参照）
   - 既存更新は `id` 有無で分岐
 
+**GameNode データ構造**:
+<!-- impl: apps/api/prisma/schema.prisma, packages/types/src/index.ts -->
+```ts
+interface GameNode {
+  id: string;
+  sceneId: string;
+  type: 'DIALOG';
+  order: number;
+  speakerCharacterId?: string;
+  speakerDisplayName?: string;
+  text?: string;
+  bgAssetId?: string;
+  musicAssetId?: string;
+  sfxAssetId?: string;
+  nextNodeId?: string;
+  continuesPreviousText?: boolean;
+  portraits?: Array<{
+    characterId: string;
+    imageId: string;
+    key?: string;
+    x: number;  // 0-100%
+    y: number;  // 0-100%
+    scale: number;  // %
+    z?: number;
+  }>;
+  camera?: {
+    zoom: number;  // 100-300%
+    cx: number;    // 0-100% (center x)
+    cy: number;    // 0-100% (center y)
+  };
+  cameraFx?: {
+    from?: { zoom?: number; cx?: number; cy?: number };
+    to?: { zoom?: number; cx?: number; cy?: number };
+    durationMs?: number;
+    mode?: 'cut' | 'together' | 'pan-then-zoom' | 'zoom-then-pan';
+  };
+  visualFx?: {
+    type: 'shake' | 'flash';
+    intensity: 'small' | 'medium' | 'large';
+  };
+  choices?: Array<{
+    id: string;
+    label: string;
+    targetNodeId: string;
+  }>;
+}
+```
+
+**ビジュアルエフェクト詳細**:
+<!-- impl: apps/frontend/composables/useVisualEffects.ts -->
+- **画面揺れ (shake)**:
+  - small: 強度5px, 300ms, 30Hz
+  - medium: 強度12px, 500ms, 30Hz
+  - large: 強度25px, 700ms, 30Hz
+  - 減衰する振動（`decay = 1 - progress`）、X軸とY軸で異なる振幅
+- **フラッシュ (flash)**:
+  - small: 不透明度0.4, 200ms, 白色
+  - medium: 不透明度0.7, 300ms, 白色
+  - large: 不透明度1.0, 400ms, 白色
+  - フェードアウトアニメーション
+
+**エフェクト実装**:
+<!-- impl: apps/frontend/components/game/StageCanvas.vue -->
+- `.stage` 全体に `transform` でshake適用（背景・キャラ・メッセージ含む）
+- エフェクトレイヤー（`.effect-layer`）でflashを表示（z-index: 50）
+- `requestAnimationFrame` ベースの滑らかなアニメーション
+- クリーンアップ処理（`cancelAnimationFrame`）で適切に停止
+
 ### 既知の制限 / TODO
 - 音声同意は `localStorage('talking_audio_consent_v1')` で保持
 - 選択肢（choices）の UI は最小
@@ -411,3 +498,5 @@ interface MessageTheme {
 
 - 2025-11-02: 実装を根拠にキャラクター機能のモデル/画面/APIを正規化。Favorites をアセット/キャラ横断で統一（楽観更新・一覧同期・正規化関数）。検索/URL 同期のクエリ項目を明記。署名URLの取得/再取得方針と `$api` 経由の根拠を出典付きで追記。既知の落とし穴とテストTODOを整理。
 - 2025-11-04: ゲーム制作（β）仕様を追加。シーン/ノード構造、portraits 配置、カメラ操作、署名 URL 経由の画像/音声取得を明記。
+- 2025-12-07: ゲーム制作機能を拡張。`continuesPreviousText`（セリフ継続表示）と `cameraFx`（カメラ演出）フィールドを追加。MessageThemeV2 にグラデーション（`gradientDirection`, `gradientColor`）とフォントスタイル（`fontWeight`, `fontStyle`）プロパティを追加。カメラ演出では4つのアニメーションモード（together/pan-then-zoom/zoom-then-pan/cut）を実装し、`requestAnimationFrame` で滑らかな動きを実現。エディタではキーボードショートカット（Ctrl/⌘+Enter, Ctrl/⌘+K, F, Esc）を拡充し、NodePicker による次ノード選択と「保存して次のノードへ」機能を強化。`visualFx`（ビジュアルエフェクト）を追加し、画面揺れ（shake）とフラッシュ（flash）の2種類×3段階強度のプリセットエフェクトを実装。エディタでのプレビュー機能とテストプレイでの自動再生に対応。
+

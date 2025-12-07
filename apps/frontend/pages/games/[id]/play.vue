@@ -21,6 +21,7 @@
           :message="stageMessage"
           :theme="stageTheme"
           :camera="stageCamera"
+          :effectState="effectState"
         />
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -107,6 +108,7 @@
         :message="stageMessage"
         :theme="stageTheme"
         :camera="stageCamera"
+        :effectState="effectState"
       />
       
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -226,6 +228,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
+import { useVisualEffects } from '@/composables/useVisualEffects'
 
 const { signedFromId } = useAssetMeta()
 
@@ -298,6 +301,9 @@ function lerp(a: number, b: number, t: number): number {
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 const showEndScreen = ref(false) // 終了画面の表示制御
+
+// ビジュアルエフェクト
+const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
 
 // 音声同意状態
@@ -456,6 +462,17 @@ watch(
     bgUrl.value = id ? await signedFromId(id, true) : null
   },
   { immediate: true }
+)
+
+// ビジュアルエフェクトの自動再生
+watch(
+  current,
+  (node) => {
+    if (node?.visualFx) {
+      playEffect(node.visualFx)
+    }
+  },
+  { immediate: false }
 )
 
 // scaleToHeight: 旧仕様の scale 値を％に変換

@@ -213,3 +213,13 @@ export const WINDOW_PRESET: Record<number, { w: string; h: string; mb: string; m
   9: { w: '97%', h: '27%', mb: '2%', mw: '1320px' },
   10: { w: '98%', h: '28%', mb: '2%', mw: '1360px' },
 };
+
+// === Visual Effects ===================
+export type VisualEffectType = 'shake' | 'flash';
+export type VisualEffectIntensity = 'small' | 'medium' | 'large';
+
+export interface VisualEffect {
+  type: VisualEffectType;
+  intensity: VisualEffectIntensity;
+}
+
