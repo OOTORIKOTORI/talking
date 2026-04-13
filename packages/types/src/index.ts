@@ -223,3 +223,12 @@ export interface VisualEffect {
   intensity: VisualEffectIntensity;
 }
 
+// === Color Filter (Screen overlay) ====
+export type ColorFilterType = 'none' | 'sepia' | 'monochrome' | 'dark' | 'night' | 'dream';
+
+export interface ColorFilter {
+  type: ColorFilterType;
+  opacity?: number; // 0-100, default 50
+  durationMs?: number; // フェード時間、default 500ms
+}
+

@@ -1,11 +1,11 @@
 # Supabase 認証セットアップガイド
 
-## 認証方式（最終仕様）
+## 認証方式（現行仕様）
 
-このプロジェクトでは **Supabase Auth + HS256/JWT Secret 検証** を使用します。
+このプロジェクトでは **Supabase Auth + API 側 JWT 検証** を使用します。
 
 - **フロントエンド**: `@supabase/supabase-js` で Email/Password 認証
-- **API**: Nest Guard が `SUPABASE_JWT_SECRET` で `Authorization: Bearer` を検証
+- **API**: Nest Guard が `SUPABASE_JWKS_URL` を優先し、必要時のみ `SUPABASE_JWT_SECRET` へフォールバック
 
 ---
 
@@ -23,7 +23,8 @@
 
 - **Project URL**: `https://<your-project-ref>.supabase.co`
 - **anon (public) key**: `eyJhbGc...`（公開鍵）
-- **JWT Secret**: `your-jwt-secret-here`（**API 側で使用**）
+- **JWKS URL**: `https://<your-project-ref>.supabase.co/auth/v1/.well-known/jwks.json`（**API 側で優先使用**）
+- **JWT Secret (Legacy)**: `your-jwt-secret-here`（**API 側フォールバック用**）
 
 ### 3. フロントエンド（Nuxt）の設定
 
@@ -40,11 +41,13 @@ NUXT_PUBLIC_API_BASE=http://localhost:4000
 `apps/api/.env` に以下を設定:
 
 ```env
-# Supabase Auth (HS256 JWT 検証)
+# Supabase Auth (JWKS 優先 + Legacy Secret フォールバック)
+SUPABASE_PROJECT_REF=<your-project-ref>
+SUPABASE_JWKS_URL=https://<your-project-ref>.supabase.co/auth/v1/.well-known/jwks.json
 SUPABASE_JWT_SECRET=your-jwt-secret-here
 ```
 
-> **重要:** `SUPABASE_JWT_SECRET` は Supabase ダッシュボード → Settings → API → **JWT Secret** からコピーしてください。
+> **重要:** `SUPABASE_JWKS_URL` は常に有効にしてください。`SUPABASE_JWT_SECRET` は移行期間の互換用です。
 
 ### 5. 起動して確認
 
@@ -163,3 +166,16 @@ API 起動時に以下のログが出ます:
 - [Supabase Auth Documentation](https://supabase.com/docs/guides/auth)
 - [Nuxt Supabase Module](https://supabase.nuxtjs.org/)
 - [jose (JWT library)](https://github.com/panva/jose)
+
+---
+
+## 今後の移行計画（要対応）
+
+現状は既存環境との互換性のため、`SUPABASE_JWKS_URL` 優先 + `SUPABASE_JWT_SECRET` フォールバックで運用しています。
+
+本番運用では、以下を実施して **JWKS-only** へ移行してください。
+
+1. すべての環境で `SUPABASE_JWKS_URL` 検証が成功することを確認
+2. API ログで `SUPABASE_JWT_SECRET` フォールバックが使われていないことを確認
+3. `.env` の `SUPABASE_JWT_SECRET` 依存を廃止（設定削除）
+4. 認証ガードを JWKS 専用実装へ簡素化

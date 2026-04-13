@@ -51,3 +51,4 @@ apps/api/prisma/migrations/*_*
 *.tsbuildinfo
 review.patch.txt
 memo.txt
+エラーログ.txt

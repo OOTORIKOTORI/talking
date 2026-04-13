@@ -16,6 +16,7 @@
 - サーバ側フィルタ統一(Meili facets: `contentType/primaryTag/tags/q/sort`)— お気に入りも同スキーマ
 - E2E/ユニット(♡トグル、署名GET再取得、編集/削除ガード、アップロード一連)
 - 削除UX(Undo/Trash → バッチ実削除)
+- 認証運用の整理（`SUPABASE_JWKS_URL` 優先運用から **JWKS-only** へ移行し、`SUPABASE_JWT_SECRET` フォールバック依存を廃止）
 - 将来: 会話辞書とキャラクターの連動(感情→表情画像の自動選択)
 
 ---

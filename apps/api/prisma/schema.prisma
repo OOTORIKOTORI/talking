@@ -198,6 +198,7 @@ model GameNode {
   camera      Json?        // {zoom,cx,cy} カメラ設定
   cameraFx    Json?        // カメラ演出設定 { from?, to?, durationMs?, mode? }
   visualFx    Json?        // ビジュアルエフェクト設定 { type: 'shake' | 'flash', intensity: 'small' | 'medium' | 'large' }
+  colorFilter Json?        // 画面全体カラーフィルター { type, opacity, durationMs }
   continuesPreviousText Boolean? @default(false)  // 前ノードのセリフを継続するか
   scene       GameScene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
   choices     GameChoice[]

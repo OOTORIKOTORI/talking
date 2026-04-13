@@ -563,6 +563,10 @@ function selectNode(n: any) {
   if (!nodeDraft.visualFx) {
     nodeDraft.visualFx = {}
   }
+  // colorFilter デフォルト補完
+  if (!nodeDraft.colorFilter) {
+    nodeDraft.colorFilter = { type: 'none', opacity: 50, durationMs: 500 }
+  }
   // 既存データを開いたときに p.thumb を補完
   // watch が自動的に実行されるので明示的に呼ぶ必要はないが、
   // 互換性のため残しておく
@@ -621,6 +625,10 @@ async function saveNode() {
     if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
       payload.visualFx = null
     }
+    // colorFilter が 'none' なら null にする
+    if (payload.colorFilter && payload.colorFilter.type === 'none') {
+      payload.colorFilter = null
+    }
     await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // scenes.valueも更新して次ノードラベル表示を最新に
@@ -654,6 +662,10 @@ async function saveAndCreateNext() {
     // visualFx が空オブジェクトまたは type が未設定なら null にする
     if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
       payload.visualFx = null
+    }
+    // colorFilter が 'none' なら null にする
+    if (payload.colorFilter && payload.colorFilter.type === 'none') {
+      payload.colorFilter = null
     }
     await api.upsertNode(scene.value.id, payload)
     
@@ -953,6 +965,7 @@ function onUp() {
                   :theme="stageTheme"
                   :camera="stageCamera"
                   :effectState="effectState"
+                  :colorFilter="nodeDraft.colorFilter"
                 />
               </div>
             </div>
@@ -1153,6 +1166,53 @@ function onUp() {
                   </div>
                 </div>
 
+                <!-- カラーフィルター -->
+                <div class="mt-3 border-t pt-3">
+                  <div class="font-semibold mb-2">カラーフィルター（画面全体）</div>
+                  <div class="space-y-2">
+                    <div>
+                      <label class="block text-xs font-medium mb-1">フィルター</label>
+                      <select
+                        v-model="nodeDraft.colorFilter.type"
+                        class="w-full border rounded px-2 py-1 text-sm"
+                      >
+                        <option value="none">なし</option>
+                        <option value="sepia">セピア（回想）</option>
+                        <option value="monochrome">モノクロ</option>
+                        <option value="dark">暗転</option>
+                        <option value="night">夜</option>
+                        <option value="dream">夢</option>
+                      </select>
+                    </div>
+                    <div v-if="nodeDraft.colorFilter?.type !== 'none'">
+                      <label class="block text-xs font-medium mb-1">不透明度: {{ nodeDraft.colorFilter.opacity }}%</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        v-model.number="nodeDraft.colorFilter.opacity"
+                        class="w-full"
+                      />
+                    </div>
+                    <div v-if="nodeDraft.colorFilter?.type !== 'none'">
+                      <label class="block text-xs font-medium mb-1">フェード時間</label>
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          v-model.number="nodeDraft.colorFilter.durationMs"
+                          class="w-24 border rounded px-2 py-1 text-right text-sm"
+                        />
+                        <span class="text-xs text-gray-500">ms</span>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                      フィルターは次ノードで解除するまで継続されます
+                    </p>
+                  </div>
+                </div>
+
                 <!-- 立ち絵（複数配置） -->
                 <div class="mt-3">
                   <div class="flex items-center justify-between">
@@ -1289,6 +1349,7 @@ function onUp() {
                   :theme="stageTheme"
                   :camera="stageCamera"
                   :effectState="effectState"
+                  :colorFilter="nodeDraft.colorFilter"
                 />
               </div>
             </div>
@@ -1487,6 +1548,53 @@ function onUp() {
                       >
                         プレビュー
                       </button>
+                    </div>
+                  </div>
+
+                  <!-- カラーフィルター -->
+                  <div class="mt-3 border-t pt-3">
+                    <div class="font-semibold mb-2">カラーフィルター（画面全体）</div>
+                    <div class="space-y-2">
+                      <div>
+                        <label class="block text-xs font-medium mb-1">フィルター</label>
+                        <select
+                          v-model="nodeDraft.colorFilter.type"
+                          class="w-full border rounded px-2 py-1 text-sm"
+                        >
+                          <option value="none">なし</option>
+                          <option value="sepia">セピア（回想）</option>
+                          <option value="monochrome">モノクロ</option>
+                          <option value="dark">暗転</option>
+                          <option value="night">夜</option>
+                          <option value="dream">夢</option>
+                        </select>
+                      </div>
+                      <div v-if="nodeDraft.colorFilter?.type !== 'none'">
+                        <label class="block text-xs font-medium mb-1">不透明度: {{ nodeDraft.colorFilter.opacity }}%</label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          v-model.number="nodeDraft.colorFilter.opacity"
+                          class="w-full"
+                        />
+                      </div>
+                      <div v-if="nodeDraft.colorFilter?.type !== 'none'">
+                        <label class="block text-xs font-medium mb-1">フェード時間</label>
+                        <div class="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            v-model.number="nodeDraft.colorFilter.durationMs"
+                            class="w-24 border rounded px-2 py-1 text-right text-sm"
+                          />
+                          <span class="text-xs text-gray-500">ms</span>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-500">
+                        フィルターは次ノードで解除するまで継続されます
+                      </p>
                     </div>
                   </div>
 
@@ -1690,15 +1798,21 @@ function onUp() {
   grid-template-columns: minmax(640px, 1fr) minmax(360px, 440px);
   gap: 24px;
   align-items: start;
+  height: calc(100vh - 80px); /* ヘッダー分を差し引いた高さ */
+  overflow: hidden; /* グリッド全体のスクロールを防ぐ */
 }
 @media (max-width: 1200px){
   .fs-grid{ grid-template-columns: 1fr; }
 }
-/* 左カラムのステージは高さ基準でクランプして 16:9 維持 */
+/* 左カラムのステージは高さ基準でクランプして 16:9 維持 / 固定表示 */
 .stage-outer{
   width: 100%;
   max-height: 72vh;
-  display: flex; justify-content: center; align-items: flex-start;
+  display: flex; 
+  justify-content: center; 
+  align-items: flex-start;
+  position: sticky; /* プレビューを固定 */
+  top: 0;
 }
 .stage-inner{
   /* 画面が広ければ大きく、狭ければ縮む / 高さ72vh以内に収める */
@@ -1706,5 +1820,11 @@ function onUp() {
   aspect-ratio: 16 / 9;
   height: auto;
 }
-.fs-form{ width: 100%; }
+/* 右カラムのフォームをスクロール可能に */
+.fs-form{ 
+  width: 100%; 
+  overflow-y: auto; /* 右側だけスクロール */
+  height: calc(100vh - 80px); /* ヘッダー分を差し引いた高さ */
+  padding-right: 8px; /* スクロールバー分の余白 */
+}
 </style>

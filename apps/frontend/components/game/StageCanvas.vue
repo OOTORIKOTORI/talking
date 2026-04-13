@@ -19,6 +19,9 @@
       <div v-if="effectState.flash" class="flash" :style="flashStyle"></div>
     </div>
     
+    <!-- カラーフィルターレイヤー -->
+    <div v-if="colorFilter && colorFilter.type !== 'none'" class="filter-layer" :style="filterStyle"></div>
+    
     <!-- MessageWindowコンポーネントを使用（テーマを統一） -->
     <MessageWindow
       v-if="message"
@@ -34,7 +37,7 @@
 import { ref, computed } from 'vue'
 import { useStageScale } from '@/composables/useStageScale'
 import MessageWindow from '@/components/game/MessageWindow.vue'
-import type { MessageThemeV2, MessageTheme } from '@talking/types'
+import type { MessageThemeV2, MessageTheme, ColorFilter } from '@talking/types'
 import type { EffectState } from '@/composables/useVisualEffects'
 
 const props = defineProps<{
@@ -44,6 +47,7 @@ const props = defineProps<{
   theme: MessageThemeV2 | MessageTheme | any
   camera?: { zoom?: number; cx?: number; cy?: number } | null
   effectState?: EffectState
+  colorFilter?: ColorFilter | null
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
@@ -82,6 +86,44 @@ const flashStyle = computed(() => {
     }
   }
   return {}
+})
+
+// カラーフィルターのスタイル
+const filterStyle = computed(() => {
+  const filter = props.colorFilter
+  if (!filter || filter.type === 'none') return {}
+  
+  const opacity = (filter.opacity ?? 50) / 100
+  const duration = filter.durationMs ?? 500
+  
+  // フィルタータイプに応じた色とブレンドモード
+  let color = 'rgba(0, 0, 0, 0)'
+  let mixBlendMode = 'normal'
+  
+  switch (filter.type) {
+    case 'sepia':
+      color = `rgba(112, 66, 20, ${opacity})`
+      break
+    case 'monochrome':
+      color = `rgba(128, 128, 128, ${opacity})`
+      mixBlendMode = 'saturation'
+      break
+    case 'dark':
+      color = `rgba(0, 0, 0, ${opacity})`
+      break
+    case 'night':
+      color = `rgba(25, 25, 60, ${opacity})`
+      break
+    case 'dream':
+      color = `rgba(255, 220, 255, ${opacity * 0.6})`
+      break
+  }
+  
+  return {
+    backgroundColor: color,
+    mixBlendMode,
+    transition: `background-color ${duration}ms ease-in-out, opacity ${duration}ms ease-in-out`
+  }
 })
 
 // キャラクター配置スタイル
@@ -134,6 +176,13 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   position: absolute;
   inset: 0;
   will-change: opacity;
+}
+.filter-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  will-change: background-color, opacity;
 }
 </style>
 

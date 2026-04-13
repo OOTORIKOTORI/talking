@@ -22,6 +22,7 @@
           :theme="stageTheme"
           :camera="stageCamera"
           :effectState="effectState"
+          :colorFilter="currentColorFilter"
         />
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -109,6 +110,7 @@
         :theme="stageTheme"
         :camera="stageCamera"
         :effectState="effectState"
+        :colorFilter="currentColorFilter"
       />
       
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -378,6 +380,9 @@ function applyStart() {
     accumulatedText.value = ''
     current.value = node
 
+    // カラーフィルターを初期化
+    currentColorFilter.value = node.colorFilter || null
+
     // ノード開始時にカメラを適用（前ノードは無し）
     applyCameraForNode(null, node)
 
@@ -603,6 +608,9 @@ const stageMessage = computed(() => null)
 // StageCanvas 用のカメラ（アニメーション対応）
 const currentCamera = ref<Camera>({ zoom: 100, cx: 50, cy: 50 })
 
+// StageCanvas 用のカラーフィルター（継続管理）
+const currentColorFilter = ref<any>(null)
+
 // StageCanvas に渡すカメラ（アニメの結果を反映）
 const stageCamera = computed(() => currentCamera.value)
 
@@ -801,6 +809,7 @@ function restart() {
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
   current.value = null
+  currentColorFilter.value = null // カラーフィルターをリセット
   applyStart()
   ensureBgm()
 }
@@ -840,6 +849,12 @@ function go(targetNodeId: string | null) {
       accumulatedText.value = ''
     }
     current.value = nextNode
+
+    // カラーフィルターの更新（次ノードで指定があればそれを使用、なければ現在のフィルターを継続）
+    if (nextNode.colorFilter !== undefined) {
+      currentColorFilter.value = nextNode.colorFilter
+    }
+    // colorFilter が undefined の場合は現在のフィルターを継続（何もしない）
 
     // ノード遷移時にカメラ演出を適用
     applyCameraForNode(prevNode, nextNode)

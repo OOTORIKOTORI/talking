@@ -2,19 +2,23 @@ import { defineNuxtPlugin } from '#app'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
-  const supabaseClient = useSupabaseClient()
+  const supabaseClient = (nuxtApp.$supabase?.client || nuxtApp.$supabase) as any
+
+  if (!supabaseClient?.auth) {
+    console.error('[API Auth] Supabase client is not available')
+  }
 
   // トークンキャッシュ
   let cachedToken: string | null = null
 
   // 初期セッション取得
-  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  supabaseClient?.auth?.getSession().then(({ data: { session } }: any) => {
     cachedToken = session?.access_token || null
     console.log('[API Auth] Initial session loaded:', cachedToken ? 'YES' : 'NO')
   })
 
   // セッション変化を監視
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+  supabaseClient?.auth?.onAuthStateChange((event: any, session: any) => {
     console.log('[API Auth] Auth state changed:', event)
     cachedToken = session?.access_token || null
   })
