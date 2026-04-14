@@ -5,11 +5,15 @@ const prisma = new PrismaClient()
 async function deleteAllAssets() {
   try {
     console.log('🗑️  アセットデータを削除しています...')
-    
-    // トランザクションで削除（関連データも含めて）
-    const result = await prisma.asset.deleteMany({})
-    
-    console.log(`✅ ${result.count} 件のアセットを削除しました`)
+
+    // Favorite は Asset を参照しているため先に削除する
+    const [deletedFavorites, deletedAssets] = await prisma.$transaction([
+      prisma.favorite.deleteMany({}),
+      prisma.asset.deleteMany({}),
+    ])
+
+    console.log(`✅ ${deletedFavorites.count} 件のお気に入りを削除しました`)
+    console.log(`✅ ${deletedAssets.count} 件のアセットを削除しました`)
     
     // Meilisearchのインデックスもクリア（オプション）
     console.log('💡 Meilisearchのインデックスは手動でクリアしてください:')
