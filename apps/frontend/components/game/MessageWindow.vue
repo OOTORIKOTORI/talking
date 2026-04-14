@@ -4,12 +4,17 @@
     :style="mwStyle"
     @click="$emit('click', $event)"
   >
-    <div
-      v-if="speaker && showName"
-      class="name"
-      :style="nameStyle"
-    >
-      <span class="font-semibold">{{ speaker }}</span>
+    <div class="name-row">
+      <div
+        v-if="speaker && showName"
+        class="name"
+        :style="nameStyle"
+      >
+        <span class="font-semibold">{{ speaker }}</span>
+      </div>
+      <div class="name-actions" @click.stop>
+        <slot name="name-actions" />
+      </div>
     </div>
 
     <p
@@ -166,6 +171,20 @@ onBeforeUnmount(() => clearInterval(timer))
   background: var(--name-bg, rgba(0, 0, 0, 0.55));
   color: #fff;
   font-size: calc(var(--name-font-size, 16px) * var(--stage-scale, 1));
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--stage-scale, 1));
+  margin-bottom: calc(8px * var(--stage-scale, 1));
+}
+
+.name-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--stage-scale, 1));
+  pointer-events: auto;
 }
 
 .text {

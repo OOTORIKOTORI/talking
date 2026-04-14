@@ -1,9 +1,57 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+const SAVE_SLOT_LIMITS = {
+  MANUAL: 100,
+  AUTO: 5,
+  QUICK: 1,
+} as const;
+
+type SaveSlotType = keyof typeof SAVE_SLOT_LIMITS;
 
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
+
+  private async assertGameOwner(userId: string, gameId: string) {
+    const g = await this.prisma.gameProject.findUnique({ where: { id: gameId } });
+    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    return g;
+  }
+
+  private normalizeSlotType(slotType: unknown): SaveSlotType {
+    const v = String(slotType ?? '')
+      .trim()
+      .toUpperCase();
+    if (v === 'MANUAL' || v === 'AUTO' || v === 'QUICK') return v;
+    throw new BadRequestException('slotType must be MANUAL, AUTO, or QUICK');
+  }
+
+  private normalizeSlotIndex(slotType: SaveSlotType, slotIndex: unknown) {
+    const n = Number(slotIndex);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new BadRequestException('slotIndex must be a positive integer');
+    }
+    const max = SAVE_SLOT_LIMITS[slotType];
+    if (n > max) {
+      throw new BadRequestException(
+        `slotIndex is out of range for ${slotType}. allowed: 1-${max}`,
+      );
+    }
+    return n;
+  }
+
+  private ensurePayload(payload: unknown) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new BadRequestException('payload must be a JSON object');
+    }
+  }
 
   async myList(userId: string) {
     return this.prisma.gameProject.findMany({
@@ -68,7 +116,14 @@ export class GamesService {
         allowed.messageTheme = theme ?? null;
       }
     }
-
+    if ('gameUiTheme' in (data ?? {})) {
+      const ui = data.gameUiTheme
+      if (ui && typeof ui === 'object' && !Array.isArray(ui)) {
+        allowed.gameUiTheme = ui
+      } else {
+        allowed.gameUiTheme = ui ?? null
+      }
+    }
     if (Object.keys(allowed).length === 0) return g;
     return this.prisma.gameProject.update({ where: { id }, data: allowed });
   }
@@ -223,5 +278,141 @@ export class GamesService {
     if (!g || g.ownerId !== userId) throw new ForbiddenException();
     await this.prisma.gameChoice.deleteMany({ where: { nodeId } });
     await this.prisma.gameNode.delete({ where: { id: nodeId } });
+  }
+
+  // Save Slots (manual:100, auto:5, quick:1)
+  async listSaves(userId: string, gameId: string) {
+    await this.assertGameOwner(userId, gameId);
+    const saves = await this.prisma.gameSave.findMany({
+      where: { gameId, userId },
+      orderBy: [{ slotType: 'asc' }, { slotIndex: 'asc' }, { updatedAt: 'desc' }],
+    });
+    return {
+      limits: {
+        manual: SAVE_SLOT_LIMITS.MANUAL,
+        auto: SAVE_SLOT_LIMITS.AUTO,
+        quick: SAVE_SLOT_LIMITS.QUICK,
+        total: SAVE_SLOT_LIMITS.MANUAL + SAVE_SLOT_LIMITS.AUTO + SAVE_SLOT_LIMITS.QUICK,
+      },
+      saves,
+    };
+  }
+
+  async getSave(userId: string, gameId: string, slotType: unknown, slotIndex: unknown) {
+    await this.assertGameOwner(userId, gameId);
+    const normalizedType = this.normalizeSlotType(slotType);
+    const normalizedIndex = this.normalizeSlotIndex(normalizedType, slotIndex);
+    const save = await this.prisma.gameSave.findUnique({
+      where: {
+        gameId_userId_slotType_slotIndex: {
+          gameId,
+          userId,
+          slotType: normalizedType,
+          slotIndex: normalizedIndex,
+        },
+      },
+    });
+    if (!save) throw new NotFoundException('save not found');
+    return save;
+  }
+
+  async upsertSave(
+    userId: string,
+    gameId: string,
+    input: {
+      slotType: unknown;
+      slotIndex: unknown;
+      payload: unknown;
+      title?: unknown;
+      expectedVersion?: unknown;
+    },
+  ) {
+    await this.assertGameOwner(userId, gameId);
+    const normalizedType = this.normalizeSlotType(input?.slotType);
+    const normalizedIndex = this.normalizeSlotIndex(normalizedType, input?.slotIndex);
+    this.ensurePayload(input?.payload);
+
+    const expectedVersion =
+      typeof input?.expectedVersion === 'number' && Number.isInteger(input.expectedVersion)
+        ? input.expectedVersion
+        : null;
+    const title = typeof input?.title === 'string' ? input.title.trim() : null;
+
+    const existing = await this.prisma.gameSave.findUnique({
+      where: {
+        gameId_userId_slotType_slotIndex: {
+          gameId,
+          userId,
+          slotType: normalizedType,
+          slotIndex: normalizedIndex,
+        },
+      },
+    });
+
+    if (existing && expectedVersion !== null && existing.version !== expectedVersion) {
+      throw new ConflictException('save version conflict');
+    }
+
+    if (!existing) {
+      return this.prisma.gameSave.create({
+        data: {
+          gameId,
+          userId,
+          slotType: normalizedType,
+          slotIndex: normalizedIndex,
+          title,
+          payload: input.payload as any,
+          version: 1,
+        },
+      });
+    }
+
+    return this.prisma.gameSave.update({
+      where: { id: existing.id },
+      data: {
+        title,
+        payload: input.payload as any,
+        version: { increment: 1 },
+      },
+    });
+  }
+
+  async autoSave(
+    userId: string,
+    gameId: string,
+    input: { payload: unknown; title?: unknown; expectedVersion?: unknown },
+  ) {
+    await this.assertGameOwner(userId, gameId);
+    const lastAutoSave = await this.prisma.gameSave.findFirst({
+      where: { gameId, userId, slotType: 'AUTO' },
+      orderBy: [{ updatedAt: 'desc' }, { slotIndex: 'desc' }],
+    });
+
+    const slotIndex = lastAutoSave ? (lastAutoSave.slotIndex % SAVE_SLOT_LIMITS.AUTO) + 1 : 1;
+    return this.upsertSave(userId, gameId, {
+      slotType: 'AUTO',
+      slotIndex,
+      payload: input?.payload,
+      title:
+        typeof input?.title === 'string' && input.title.trim().length > 0
+          ? input.title
+          : `Auto ${slotIndex}`,
+      expectedVersion: input?.expectedVersion,
+    });
+  }
+
+  async deleteSave(userId: string, gameId: string, slotType: unknown, slotIndex: unknown) {
+    await this.assertGameOwner(userId, gameId);
+    const normalizedType = this.normalizeSlotType(slotType);
+    const normalizedIndex = this.normalizeSlotIndex(normalizedType, slotIndex);
+    const deleted = await this.prisma.gameSave.deleteMany({
+      where: {
+        gameId,
+        userId,
+        slotType: normalizedType,
+        slotIndex: normalizedIndex,
+      },
+    });
+    return { ok: true, deleted: deleted.count };
   }
 }

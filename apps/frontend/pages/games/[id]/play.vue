@@ -76,7 +76,24 @@
               :theme="theme"
               :animate="true"
               @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
-            />
+            >
+              <template #name-actions>
+                <button
+                  class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
+                  :style="uiQuickButtonStyle"
+                  @click.stop="openSaveLoadModal('save')"
+                >
+                  SAVE
+                </button>
+                <button
+                  class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
+                  :style="uiQuickButtonStyle"
+                  @click.stop="openSaveLoadModal('load')"
+                >
+                  LOAD
+                </button>
+              </template>
+            </MessageWindow>
           </div>
           
           <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
@@ -160,7 +177,24 @@
             :theme="theme"
             :animate="true"
             @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
-          />
+          >
+            <template #name-actions>
+              <button
+                class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
+                :style="uiQuickButtonStyle"
+                @click.stop="openSaveLoadModal('save')"
+              >
+                SAVE
+              </button>
+              <button
+                class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
+                :style="uiQuickButtonStyle"
+                @click.stop="openSaveLoadModal('load')"
+              >
+                LOAD
+              </button>
+            </template>
+          </MessageWindow>
         </div>
         
         <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
@@ -178,6 +212,102 @@
       <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2 z-[60]" @click="closeFs()">閉じる（Esc）</button>
     </div>
   </div>
+
+      <!-- Save/Load Modal -->
+      <div v-if="saveLoadOpen" class="fixed inset-0 z-[220] flex items-center justify-center p-4" :style="uiModalOverlayStyle">
+        <div class="w-[min(980px,94vw)] max-h-[86vh] shadow-2xl overflow-hidden border" :style="uiModalBoxStyle">
+          <div class="px-5 py-4 border-b flex items-center justify-between" :style="{ borderColor: uiModalBoxStyle.borderColor }">
+            <div>
+              <h3 class="text-lg font-semibold">セーブ / ロード</h3>
+              <p class="text-xs opacity-70 mt-1">手動100・オート5・クイック1（合計106）</p>
+            </div>
+            <button class="px-3 py-1.5 text-sm rounded opacity-70 hover:opacity-100 transition-opacity border" :style="{ borderColor: uiModalBoxStyle.borderColor }" @click="closeSaveLoadModal">閉じる</button>
+          </div>
+
+          <div class="px-5 pt-4 flex items-center gap-2 border-b" :style="{ borderColor: uiModalBoxStyle.borderColor }">
+            <button
+              v-for="tab in slotTabs"
+              :key="tab.key"
+              class="px-3 py-2 text-sm rounded-t border transition-colors"
+              :style="activeSlotType === tab.key
+                ? { ...uiAccentStyle, borderColor: uiAccentStyle.backgroundColor, color: '#fff' }
+                : { borderColor: 'transparent', opacity: '0.65' }"
+              @click="activeSlotType = tab.key"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <div class="px-5 py-4 border-b flex items-center gap-3" :style="{ borderColor: uiModalBoxStyle.borderColor }">
+            <label class="text-sm opacity-70">操作:</label>
+            <button
+              class="px-3 py-1.5 text-sm rounded border transition-colors"
+              :style="modalMode === 'save' ? { ...uiAccentStyle, borderColor: uiAccentStyle.backgroundColor, color: '#000' } : { borderColor: uiModalBoxStyle.borderColor, opacity: '0.65' }"
+              @click="modalMode = 'save'"
+            >
+              セーブ
+            </button>
+            <button
+              class="px-3 py-1.5 text-sm rounded border transition-colors"
+              :style="modalMode === 'load' ? { ...uiLoadAccentStyle, borderColor: uiLoadAccentStyle.backgroundColor, color: '#000' } : { borderColor: uiModalBoxStyle.borderColor, opacity: '0.65' }"
+              @click="modalMode = 'load'"
+            >
+              ロード
+            </button>
+            <div class="text-xs opacity-50 ml-auto">{{ activeSlotTypeLabel }}: {{ activeLimit }} 枠</div>
+          </div>
+
+          <div class="px-5 py-4 overflow-auto max-h-[52vh]">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                v-for="slot in activeSlots"
+                :key="`${slot.slotType}-${slot.slotIndex}`"
+                class="w-full text-left rounded-lg border px-3 py-3 transition-colors"
+                :style="selectedSlotKey === `${slot.slotType}-${slot.slotIndex}`
+                  ? { borderColor: uiSlotSelectedBorder, backgroundColor: uiSlotFilledBg }
+                  : { borderColor: uiModalBoxStyle.borderColor, backgroundColor: slot.record ? uiSlotFilledBg : uiSlotEmptyBg }"
+                @click="selectedSlotKey = `${slot.slotType}-${slot.slotIndex}`"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-medium">{{ slotLabel(slot.slotType, slot.slotIndex) }}</span>
+                  <span class="text-xs opacity-50">{{ slot.updatedAtLabel || 'EMPTY' }}</span>
+                </div>
+                <div class="mt-1 text-sm opacity-80 truncate">{{ slot.title || '未設定タイトル' }}</div>
+                <div class="mt-1 text-xs opacity-50 truncate">{{ slot.preview || 'データなし' }}</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t flex items-center gap-2" :style="{ borderColor: uiModalBoxStyle.borderColor }">
+            <button
+              class="px-4 py-2 rounded text-sm font-medium transition-colors"
+              :style="modalMode === 'save' ? uiAccentStyle : uiLoadAccentStyle"
+              :disabled="savingOrLoading || !selectedSlot"
+              @click="modalMode === 'save' ? saveToSelectedSlot() : loadFromSelectedSlot()"
+            >
+              {{ modalMode === 'save' ? 'この枠にセーブ' : 'この枠をロード' }}
+            </button>
+            <button
+              class="px-4 py-2 rounded text-sm opacity-70 hover:opacity-100 border transition-colors"
+              :style="{ borderColor: uiModalBoxStyle.borderColor }"
+              :disabled="savingOrLoading || !selectedSlot || !selectedSlot.record"
+              @click="deleteSelectedSlot()"
+            >
+              削除
+            </button>
+            <button
+              class="px-4 py-2 rounded text-sm opacity-60 hover:opacity-100 border transition-colors"
+              :style="{ borderColor: uiModalBoxStyle.borderColor }"
+              :disabled="savingOrLoading"
+              @click="refreshSaves()"
+            >
+              再読込
+            </button>
+            <span v-if="savingOrLoading" class="text-xs opacity-50 ml-2">処理中...</span>
+            <span class="text-xs opacity-40 ml-auto">ロード成功時は自動で閉じます</span>
+          </div>
+        </div>
+      </div>
 
       <!-- 音声同意オーバーレイ -->
       <div v-if="!soundOk && (bgmUrl || sfxUrl)" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
@@ -220,7 +350,14 @@ function openFs(){ fullscreen.value = true; document.documentElement.classList.a
 function closeFs(){ fullscreen.value = false; document.documentElement.classList.remove('overflow-hidden') }
 
 // Escキーでフルスクリーンを閉じる
-const onEscKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFs() }
+const onEscKey = (e: KeyboardEvent) => {
+  if (e.key !== 'Escape') return
+  if (saveLoadOpen.value) {
+    closeSaveLoadModal()
+    return
+  }
+  closeFs()
+}
 
 import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
@@ -229,6 +366,7 @@ import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 import { useVisualEffects } from '@/composables/useVisualEffects'
+import { useToast } from '@/composables/useToast'
 
 const { signedFromId } = useAssetMeta()
 
@@ -236,6 +374,7 @@ const route = useRoute()
 const router = useRouter()
 const api = useGamesApi()
 const runtimeConfig = useRuntimeConfig()
+const toast = useToast()
 
 const game = ref<any>(null)
 const map = new Map<string, any>()
@@ -302,9 +441,110 @@ const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 const showEndScreen = ref(false) // 終了画面の表示制御
 
+// ゲームUI設定（セーブロード画面テーマ）
+const gameUiTheme = computed(() => (game.value as any)?.gameUiTheme ?? {})
+
+// セーブロードモーダルへ適用するスタイル（ユーザー設定 or デフォルト）
+const uiModalOverlayStyle = computed(() => ({
+  backgroundColor: gameUiTheme.value.modalOverlayColor || 'rgba(0,0,0,0.65)',
+}))
+const uiModalBoxStyle = computed(() => ({
+  backgroundColor: gameUiTheme.value.modalBgColor || '#0f172a',
+  color: gameUiTheme.value.modalTextColor || '#f1f5f9',
+  borderColor: gameUiTheme.value.modalBorderColor || '#334155',
+  borderRadius: `${gameUiTheme.value.modalRadius ?? 16}px`,
+}))
+const uiAccentStyle = computed(() => ({
+  backgroundColor: gameUiTheme.value.modalAccentColor || '#10b981',
+}))
+const uiLoadAccentStyle = computed(() => ({
+  backgroundColor: gameUiTheme.value.modalLoadAccentColor || '#38bdf8',
+}))
+const uiSlotFilledBg = computed(() => gameUiTheme.value.slotFilledBg || 'rgba(255,255,255,0.07)')
+const uiSlotEmptyBg = computed(() => gameUiTheme.value.slotEmptyBg || 'rgba(255,255,255,0.04)')
+const uiSlotSelectedBorder = computed(() => gameUiTheme.value.slotSelectedBorder || '#60a5fa')
+const uiQuickButtonStyle = computed(() => ({
+  backgroundColor: gameUiTheme.value.quickButtonBg || 'rgba(255,255,255,0.15)',
+  color: gameUiTheme.value.quickButtonText || '#ffffff',
+}))
+
 // ビジュアルエフェクト
 const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
+
+type SaveSlotType = 'MANUAL' | 'AUTO' | 'QUICK'
+type ModalMode = 'save' | 'load'
+
+const slotTypeLabels: Record<SaveSlotType, string> = {
+  MANUAL: '手動',
+  AUTO: 'オート',
+  QUICK: 'クイック',
+}
+
+const saveLoadOpen = ref(false)
+const modalMode = ref<ModalMode>('save')
+const activeSlotType = ref<SaveSlotType>('MANUAL')
+const selectedSlotKey = ref<string>('MANUAL-1')
+const saveListData = ref<any[]>([])
+const saveLimits = ref({ manual: 100, auto: 5, quick: 1, total: 106 })
+const savingOrLoading = ref(false)
+
+const slotTabs = [
+  { key: 'MANUAL' as SaveSlotType, label: '手動' },
+  { key: 'AUTO' as SaveSlotType, label: 'オート' },
+  { key: 'QUICK' as SaveSlotType, label: 'クイック' },
+]
+
+const activeLimit = computed(() => {
+  if (activeSlotType.value === 'AUTO') return saveLimits.value.auto
+  if (activeSlotType.value === 'QUICK') return saveLimits.value.quick
+  return saveLimits.value.manual
+})
+
+const activeSlotTypeLabel = computed(() => slotTypeLabels[activeSlotType.value])
+
+const recordsByKey = computed(() => {
+  const m = new Map<string, any>()
+  for (const r of saveListData.value) {
+    m.set(`${r.slotType}-${r.slotIndex}`, r)
+  }
+  return m
+})
+
+const activeSlots = computed(() => {
+  const slots: Array<{
+    slotType: SaveSlotType
+    slotIndex: number
+    record: any | null
+    title: string
+    preview: string
+    updatedAtLabel: string
+  }> = []
+  for (let i = 1; i <= activeLimit.value; i++) {
+    const key = `${activeSlotType.value}-${i}`
+    const rec = recordsByKey.value.get(key) ?? null
+    const payload = rec?.payload ?? {}
+    const preview = payload?.context?.textPreview ?? payload?.context?.speaker ?? ''
+    slots.push({
+      slotType: activeSlotType.value,
+      slotIndex: i,
+      record: rec,
+      title: rec?.title ?? '',
+      preview: typeof preview === 'string' ? preview : '',
+      updatedAtLabel: rec?.updatedAt
+        ? new Date(rec.updatedAt).toLocaleString('ja-JP', { hour12: false })
+        : '',
+    })
+  }
+  return slots
+})
+
+const selectedSlot = computed(() => {
+  const [slotTypeRaw, slotIndexRaw] = selectedSlotKey.value.split('-')
+  const slotType = (slotTypeRaw || activeSlotType.value) as SaveSlotType
+  const slotIndex = Number(slotIndexRaw || 1)
+  return activeSlots.value.find(s => s.slotType === slotType && s.slotIndex === slotIndex) ?? null
+})
 
 // 音声同意状態
 const soundOk = audioConsent
@@ -313,6 +553,160 @@ const soundOk = audioConsent
 function qStr(v: unknown) {
   if (Array.isArray(v)) return v[0] as string | undefined
   return v as string | undefined
+}
+
+function slotLabel(slotType: SaveSlotType, slotIndex: number) {
+  return `${slotTypeLabels[slotType]} ${slotIndex}`
+}
+
+watch(activeSlotType, (newType) => {
+  selectedSlotKey.value = `${newType}-1`
+})
+
+function openSaveLoadModal(mode: ModalMode) {
+  modalMode.value = mode
+  saveLoadOpen.value = true
+  void refreshSaves()
+}
+
+function closeSaveLoadModal() {
+  saveLoadOpen.value = false
+}
+
+async function refreshSaves() {
+  if (!game.value?.id) return
+  try {
+    const res: any = await api.listSaves(game.value.id)
+    saveListData.value = Array.isArray(res?.saves) ? res.saves : []
+    if (res?.limits) {
+      saveLimits.value = {
+        manual: Number(res.limits.manual ?? 100),
+        auto: Number(res.limits.auto ?? 5),
+        quick: Number(res.limits.quick ?? 1),
+        total: Number(res.limits.total ?? 106),
+      }
+    }
+  } catch (e: any) {
+    toast.error(e?.data?.message || e?.message || 'セーブ一覧の取得に失敗しました')
+  }
+}
+
+function findSceneIdByNodeId(nodeId: string | null | undefined) {
+  if (!nodeId || !game.value?.scenes) return null
+  for (const s of game.value.scenes) {
+    if (s.nodes?.some((n: any) => n.id === nodeId)) return s.id
+  }
+  return null
+}
+
+function buildSavePayload() {
+  return {
+    schemaVersion: 1,
+    progress: {
+      nodeId: current.value?.id ?? null,
+      accumulatedText: accumulatedText.value,
+      showEndScreen: showEndScreen.value,
+      colorFilter: currentColorFilter.value ?? null,
+    },
+    context: {
+      sceneId: findSceneIdByNodeId(current.value?.id),
+      speaker: speaker.value,
+      textPreview: (current.value?.text ?? '').slice(0, 120),
+      savedAt: new Date().toISOString(),
+    },
+    ext: {},
+  }
+}
+
+async function saveToSelectedSlot() {
+  if (!game.value?.id || !selectedSlot.value) return
+  savingOrLoading.value = true
+  try {
+    const rec = selectedSlot.value.record
+    await api.upsertSave(game.value.id, {
+      slotType: selectedSlot.value.slotType,
+      slotIndex: selectedSlot.value.slotIndex,
+      title: `${slotLabel(selectedSlot.value.slotType, selectedSlot.value.slotIndex)} / ${speaker.value || 'No Speaker'}`,
+      payload: buildSavePayload(),
+      expectedVersion: typeof rec?.version === 'number' ? rec.version : undefined,
+    })
+    await refreshSaves()
+    toast.success(`${slotLabel(selectedSlot.value.slotType, selectedSlot.value.slotIndex)} にセーブしました`)
+  } catch (e: any) {
+    const status = e?.statusCode || e?.status || e?.data?.statusCode
+    if (status === 409) {
+      toast.warning('他端末更新と競合しました。最新状態を再読込してから再度セーブしてください')
+    } else {
+      toast.error(e?.data?.message || e?.message || 'セーブに失敗しました')
+    }
+  } finally {
+    savingOrLoading.value = false
+  }
+}
+
+async function loadFromSelectedSlot() {
+  if (!game.value?.id || !selectedSlot.value) return
+  savingOrLoading.value = true
+  try {
+    const rec: any = await api.getSave(
+      game.value.id,
+      selectedSlot.value.slotType,
+      selectedSlot.value.slotIndex,
+    )
+    const payload = rec?.payload ?? {}
+    const progress = payload?.progress ?? {}
+    const targetNodeId = progress?.nodeId
+    if (!targetNodeId || !map.has(targetNodeId)) {
+      throw new Error('保存先ノードが見つかりません')
+    }
+
+    const node = map.get(targetNodeId)
+    accumulatedText.value = typeof progress?.accumulatedText === 'string' ? progress.accumulatedText : ''
+    showStartScreen.value = false
+    showEndScreen.value = !!progress?.showEndScreen
+    showChoices.value = false
+
+    const prevNode = current.value
+    current.value = node
+    if (progress?.colorFilter !== undefined) {
+      currentColorFilter.value = progress.colorFilter
+    } else {
+      currentColorFilter.value = node.colorFilter ?? null
+    }
+
+    applyCameraForNode(prevNode, node)
+    await playSfxForCurrentNode()
+
+    const sceneId = findSceneIdByNodeId(targetNodeId)
+    if (sceneId) {
+      await router.replace({
+        name: route.name as string,
+        params: route.params,
+        query: { ...route.query, sceneId, nodeId: targetNodeId },
+      })
+    }
+
+    closeSaveLoadModal()
+    toast.success(`${slotLabel(selectedSlot.value.slotType, selectedSlot.value.slotIndex)} をロードしました`)
+  } catch (e: any) {
+    toast.error(e?.data?.message || e?.message || 'ロードに失敗しました')
+  } finally {
+    savingOrLoading.value = false
+  }
+}
+
+async function deleteSelectedSlot() {
+  if (!game.value?.id || !selectedSlot.value || !selectedSlot.value.record) return
+  savingOrLoading.value = true
+  try {
+    await api.deleteSave(game.value.id, selectedSlot.value.slotType, selectedSlot.value.slotIndex)
+    await refreshSaves()
+    toast.success(`${slotLabel(selectedSlot.value.slotType, selectedSlot.value.slotIndex)} を削除しました`)
+  } catch (e: any) {
+    toast.error(e?.data?.message || e?.message || '削除に失敗しました')
+  } finally {
+    savingOrLoading.value = false
+  }
 }
 
 // 開始シーン・ノードの強制解決（クエリパラメータがない場合はreplaceで追加）

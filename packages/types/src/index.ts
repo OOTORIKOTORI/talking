@@ -214,6 +214,34 @@ export const WINDOW_PRESET: Record<number, { w: string; h: string; mb: string; m
   10: { w: '98%', h: '28%', mb: '2%', mw: '1360px' },
 };
 
+// === Game UI Theme (save/load screen, buttons, etc.) ====
+export interface GameUiTheme {
+  /** セーブ/ロードモーダルの背景オーバーレイ色 (CSS color string) */
+  modalOverlayColor?: string;
+  /** モーダル本体の背景色 */
+  modalBgColor?: string;
+  /** モーダル本体のテキスト色 */
+  modalTextColor?: string;
+  /** モーダル本体のアクセントカラー (セーブボタンなど) */
+  modalAccentColor?: string;
+  /** モーダル本体のロードアクセント色 */
+  modalLoadAccentColor?: string;
+  /** モーダル本体の枠線色 */
+  modalBorderColor?: string;
+  /** モーダル角丸 (px) */
+  modalRadius?: number;
+  /** スロットカードの背景色（空） */
+  slotEmptyBg?: string;
+  /** スロットカードの背景色（データあり） */
+  slotFilledBg?: string;
+  /** 選択中スロット枠線色 */
+  slotSelectedBorder?: string;
+  /** SAVE/LOADボタンの背景色 */
+  quickButtonBg?: string;
+  /** SAVE/LOADボタンのテキスト色 */
+  quickButtonText?: string;
+}
+
 // === Visual Effects ===================
 export type VisualEffectType = 'shake' | 'flash';
 export type VisualEffectIntensity = 'small' | 'medium' | 'large';

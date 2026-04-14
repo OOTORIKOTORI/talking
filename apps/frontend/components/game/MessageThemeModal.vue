@@ -3,13 +3,28 @@
     <div class="flex min-h-screen items-center justify-center p-4 md:p-6">
       <div class="w-[min(1200px,96vw)] max-h-[calc(100vh-4rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
         <!-- ヘッダー（固定） -->
-        <div class="flex items-center justify-between p-5 border-b">
-          <h3 class="font-semibold text-lg">シナリオ全体設定（メッセージウィンドウ v2）</h3>
-          <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none" @click="$emit('close')" title="閉じる">✕</button>
+        <div class="flex items-center justify-between px-5 pt-5 pb-0 border-b">
+          <div class="flex items-end gap-0">
+            <h3 class="font-semibold text-lg mr-6 pb-3">シナリオ全体設定</h3>
+            <button
+              v-for="tab in modalTabs"
+              :key="tab.key"
+              class="px-4 py-3 text-sm border-b-2 transition-colors"
+              :class="activeModalTab === tab.key
+                ? 'border-blue-600 text-blue-700 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-800'"
+              @click="activeModalTab = tab.key"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none pb-3" @click="$emit('close')" title="閉じる">✕</button>
         </div>
 
         <!-- スクロール可能なコンテンツ領域 -->
         <div class="overflow-y-auto flex-1">
+          <!-- ===== メッセージウィンドウ タブ ===== -->
+          <template v-if="activeModalTab === 'message'">
           <!-- ライブプレビュー -->
           <div class="p-5 bg-gray-50">
             <div class="relative aspect-[16/9] bg-neutral-900 rounded-lg overflow-hidden shadow-lg">
@@ -322,6 +337,179 @@
               </div>
             </section>
           </div>
+          </template>
+
+          <!-- ===== その他UI タブ ===== -->
+          <template v-if="activeModalTab === 'ui'">
+          <div class="px-5 py-5 space-y-6">
+
+            <!-- プレビュー -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-blue-600">👁️</span> プレビュー</h4>
+              <div class="rounded-xl overflow-hidden border border-gray-200">
+                <!-- モーダル風プレビュー -->
+                <div class="p-4 text-sm font-medium" :style="{ background: uiDraft.modalOverlayColor || 'rgba(0,0,0,0.65)', display: 'flex', justifyContent: 'center' }">
+                  <div class="w-full max-w-sm rounded-xl border p-4 space-y-3"
+                    :style="{ background: uiDraft.modalBgColor || '#1e293b', borderColor: uiDraft.modalBorderColor || '#475569', color: uiDraft.modalTextColor || '#f1f5f9' }"
+                  >
+                    <div class="font-semibold">セーブ / ロード</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="rounded-lg border p-2 text-xs" :style="{ background: uiDraft.slotFilledBg || 'rgba(255,255,255,0.07)', borderColor: uiDraft.slotSelectedBorder || '#60a5fa' }">
+                        <div class="font-medium">手動 1</div>
+                        <div class="opacity-60 mt-1 truncate">サンプルデータ</div>
+                      </div>
+                      <div class="rounded-lg border p-2 text-xs" :style="{ background: uiDraft.slotEmptyBg || 'rgba(255,255,255,0.04)', borderColor: uiDraft.modalBorderColor || '#475569' }">
+                        <div class="font-medium">手動 2</div>
+                        <div class="opacity-40 mt-1">データなし</div>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="px-3 py-1.5 rounded text-xs font-medium" :style="{ background: uiDraft.modalAccentColor || '#10b981', color: '#fff' }">この枠にセーブ</button>
+                      <button class="px-3 py-1.5 rounded text-xs font-medium" :style="{ background: uiDraft.modalLoadAccentColor || '#38bdf8', color: '#fff' }">ロード</button>
+                    </div>
+                    <div class="text-xs text-right opacity-50 mt-1">
+                      SAVE / LOAD ボタン →
+                      <span class="inline-block rounded px-2 py-0.5 text-[10px]" :style="{ background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)', color: uiDraft.quickButtonText || '#fff' }">SAVE</span>
+                      <span class="inline-block rounded px-2 py-0.5 text-[10px] ml-1" :style="{ background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)', color: uiDraft.quickButtonText || '#fff' }">LOAD</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- テーマプリセット -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-indigo-600">🎨</span> テーマプリセット
+              </h4>
+              <p class="text-sm text-gray-600 mb-3">雰囲気に合ったテーマを一発適用（プレビューで色をすぐ確認できます）</p>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button
+                  v-for="(preset, key) in uiThemePresets"
+                  :key="key"
+                  class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+                  :title="preset.description"
+                  @click="applyUiPreset(key as any)"
+                >
+                  <div class="w-full h-4 rounded flex overflow-hidden">
+                    <div class="flex-1" :style="{ background: preset.settings.modalBgColor }"></div>
+                    <div class="w-4" :style="{ background: preset.settings.modalAccentColor }"></div>
+                    <div class="w-4" :style="{ background: preset.settings.modalLoadAccentColor }"></div>
+                  </div>
+                  <span class="text-xl mt-1">{{ preset.icon }}</span>
+                  <span class="text-xs font-medium">{{ preset.name }}</span>
+                  <span class="text-[10px] text-gray-500 text-center">{{ preset.description }}</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- かんたん設定 -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-blue-600">📐</span> かんたん設定
+              </h4>
+              <div class="grid gap-4 md:grid-cols-2 text-sm">
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">オーバーレイ濃さ（1=薄 〜 10=濃）</span>
+                  <input v-model.number="uiOverlayOpacity" type="range" min="1" max="10" step="1" class="mt-1" />
+                  <span class="text-xs text-gray-600 text-center">{{ uiOverlayOpacity }}</span>
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">角丸（0=角張 〜 10=丸）</span>
+                  <input v-model.number="uiRadiusPreset" type="range" min="0" max="10" step="1" class="mt-1" />
+                  <span class="text-xs text-gray-600 text-center">{{ uiDraft.modalRadius ?? 16 }}px</span>
+                </label>
+              </div>
+            </section>
+
+            <!-- 色設定 -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-purple-600">🎨</span> 色設定</h4>
+              <div class="space-y-4">
+                <ColorField
+                  :modelValue="uiDraft.modalBgColor || '#0f172a'"
+                  label="モーダル背景色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.modalBgColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.modalTextColor || '#f1f5f9'"
+                  label="テキスト色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.modalTextColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.modalBorderColor || '#334155'"
+                  label="枠線色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.modalBorderColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.modalAccentColor || '#10b981'"
+                  label="セーブボタン色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.modalAccentColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.modalLoadAccentColor || '#38bdf8'"
+                  label="ロードボタン色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.modalLoadAccentColor = rgbaToCss(v)"
+                />
+              </div>
+            </section>
+
+            <!-- スロットカード -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-amber-600">🗃️</span> スロットカード</h4>
+              <div class="space-y-4">
+                <ColorField
+                  :modelValue="uiDraft.slotEmptyBg || 'rgba(255,255,255,0.04)'"
+                  label="空スロット背景"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.slotEmptyBg = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.slotFilledBg || 'rgba(255,255,255,0.07)'"
+                  label="データありスロット背景"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.slotFilledBg = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.slotSelectedBorder || '#60a5fa'"
+                  label="選択中枠線色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.slotSelectedBorder = rgbaToCss(v)"
+                />
+              </div>
+            </section>
+
+            <!-- SAVE/LOADクイックボタン -->
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-cyan-600">💾</span> SAVE / LOAD クイックボタン（話者名横）</h4>
+              <div class="space-y-4">
+                <ColorField
+                  :modelValue="uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)'"
+                  label="ボタン背景色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.quickButtonBg = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="uiDraft.quickButtonText || '#ffffff'"
+                  label="ボタンテキスト色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => uiDraft.quickButtonText = rgbaToCss(v)"
+                />
+              </div>
+            </section>
+
+            <!-- リセット -->
+            <div class="flex justify-end">
+              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetUi">その他UIをリセット</button>
+            </div>
+          </div>
+          </template>
+
         </div>
 
         <!-- フッター（固定） -->
@@ -353,14 +541,22 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { MessageThemeV2, RGBA } from '@talking/types'
+import type { MessageThemeV2, RGBA, GameUiTheme } from '@talking/types'
 import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS } from '@talking/types'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import { migrateToV2, contrastRatio, contrastLevel, toRgba, rgbaToCss } from '@/utils/themeUtils'
 
-const props = defineProps<{ gameId: string; initial?: any }>()
-const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()
+const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiTheme }>()
+const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
+
+// タブ
+type ModalTabKey = 'message' | 'ui'
+const activeModalTab = ref<ModalTabKey>('message')
+const modalTabs: { key: ModalTabKey; label: string }[] = [
+  { key: 'message', label: 'メッセージウィンドウ' },
+  { key: 'ui', label: 'その他UI' },
+]
 
 // デフォルトテーマ（v2）
 const defaultThemeV2: MessageThemeV2 = {
@@ -387,6 +583,137 @@ const defaultThemeV2: MessageThemeV2 = {
 
 // v1→v2 マイグレーション
 const draft = ref<MessageThemeV2>(migrateToV2(props.initial ?? defaultThemeV2))
+
+// --- その他UI設定 draft ---
+const defaultUiTheme: GameUiTheme = {}
+const uiDraft = ref<GameUiTheme>({ ...defaultUiTheme, ...(props.initialUi ?? {}) })
+function resetUi() { uiDraft.value = { ...defaultUiTheme } }
+
+// UIカラープリセットパレット
+const uiColorPresets = [
+  '#0f172a', '#1e293b', '#334155', '#475569',
+  '#ffffff', '#f1f5f9', '#000000',
+  '#10b981', '#38bdf8', '#60a5fa',
+  '#f59e0b', '#ec4899', '#ffd700',
+  'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.07)', 'rgba(255,255,255,0.04)',
+  'rgba(0,0,0,0.65)',
+]
+
+// UIテーマプリセット定義
+const uiThemePresets = {
+  dark: {
+    name: 'ダーク',
+    icon: '🌙',
+    description: '暗色・シックなスタンダード',
+    settings: {
+      modalOverlayColor: 'rgba(0,0,0,0.65)', modalBgColor: '#0f172a', modalTextColor: '#f1f5f9',
+      modalBorderColor: '#334155', modalAccentColor: '#10b981', modalLoadAccentColor: '#38bdf8',
+      modalRadius: 16, slotEmptyBg: 'rgba(255,255,255,0.04)', slotFilledBg: 'rgba(255,255,255,0.1)',
+      slotSelectedBorder: '#60a5fa', quickButtonBg: 'rgba(255,255,255,0.15)', quickButtonText: '#ffffff',
+    },
+  },
+  light: {
+    name: 'ライト',
+    icon: '☀️',
+    description: '明るく清潔感のあるデザイン',
+    settings: {
+      modalOverlayColor: 'rgba(0,0,0,0.4)', modalBgColor: '#ffffff', modalTextColor: '#1e293b',
+      modalBorderColor: '#e2e8f0', modalAccentColor: '#16a34a', modalLoadAccentColor: '#0284c7',
+      modalRadius: 12, slotEmptyBg: 'rgba(0,0,0,0.03)', slotFilledBg: 'rgba(0,0,0,0.08)',
+      slotSelectedBorder: '#3b82f6', quickButtonBg: 'rgba(0,0,0,0.15)', quickButtonText: '#1e293b',
+    },
+  },
+  fantasy: {
+    name: 'ファンタジー',
+    icon: '🏰',
+    description: '紫×金の幻想的なデザイン',
+    settings: {
+      modalOverlayColor: 'rgba(20,0,40,0.75)', modalBgColor: '#1e0a3c', modalTextColor: '#f0e68c',
+      modalBorderColor: '#b8860b', modalAccentColor: '#ffd700', modalLoadAccentColor: '#9370db',
+      modalRadius: 4, slotEmptyBg: 'rgba(255,215,0,0.05)', slotFilledBg: 'rgba(255,215,0,0.12)',
+      slotSelectedBorder: '#ffd700', quickButtonBg: 'rgba(255,215,0,0.2)', quickButtonText: '#ffd700',
+    },
+  },
+  retro: {
+    name: 'レトロ',
+    icon: '🎮',
+    description: 'ドット絵・レトロゲーム風',
+    settings: {
+      modalOverlayColor: 'rgba(0,0,0,0.85)', modalBgColor: '#000000', modalTextColor: '#00ff00',
+      modalBorderColor: '#00ff00', modalAccentColor: '#00cc00', modalLoadAccentColor: '#00aaff',
+      modalRadius: 0, slotEmptyBg: 'rgba(0,255,0,0.05)', slotFilledBg: 'rgba(0,255,0,0.15)',
+      slotSelectedBorder: '#00ff00', quickButtonBg: 'rgba(0,255,0,0.15)', quickButtonText: '#00ff00',
+    },
+  },
+  scifi: {
+    name: 'SF',
+    icon: '🚀',
+    description: '未来的なサイバーパンク調',
+    settings: {
+      modalOverlayColor: 'rgba(0,10,30,0.85)', modalBgColor: '#020b18', modalTextColor: '#00e5ff',
+      modalBorderColor: '#0288d1', modalAccentColor: '#00e5ff', modalLoadAccentColor: '#7c4dff',
+      modalRadius: 2, slotEmptyBg: 'rgba(0,229,255,0.05)', slotFilledBg: 'rgba(0,229,255,0.12)',
+      slotSelectedBorder: '#00e5ff', quickButtonBg: 'rgba(0,229,255,0.15)', quickButtonText: '#00e5ff',
+    },
+  },
+  japanese: {
+    name: '和風',
+    icon: '🎌',
+    description: '和紙・墨のような落ち着いたデザイン',
+    settings: {
+      modalOverlayColor: 'rgba(0,0,0,0.6)', modalBgColor: '#f5f0e8', modalTextColor: '#2d1a00',
+      modalBorderColor: '#8b5e3c', modalAccentColor: '#8b1a1a', modalLoadAccentColor: '#2e5a2e',
+      modalRadius: 8, slotEmptyBg: 'rgba(0,0,0,0.04)', slotFilledBg: 'rgba(139,90,60,0.1)',
+      slotSelectedBorder: '#8b1a1a', quickButtonBg: 'rgba(139,90,60,0.2)', quickButtonText: '#2d1a00',
+    },
+  },
+  horror: {
+    name: 'ホラー',
+    icon: '👻',
+    description: '血のように赤い恐怖のデザイン',
+    settings: {
+      modalOverlayColor: 'rgba(0,0,0,0.9)', modalBgColor: '#0d0000', modalTextColor: '#cc0000',
+      modalBorderColor: '#660000', modalAccentColor: '#cc0000', modalLoadAccentColor: '#440044',
+      modalRadius: 0, slotEmptyBg: 'rgba(200,0,0,0.05)', slotFilledBg: 'rgba(200,0,0,0.12)',
+      slotSelectedBorder: '#cc0000', quickButtonBg: 'rgba(200,0,0,0.2)', quickButtonText: '#cc0000',
+    },
+  },
+  pastel: {
+    name: 'パステル',
+    icon: '🌸',
+    description: 'やわらかく可愛いデザイン',
+    settings: {
+      modalOverlayColor: 'rgba(255,200,220,0.5)', modalBgColor: '#fff0f5', modalTextColor: '#6d2b6d',
+      modalBorderColor: '#f0b8d8', modalAccentColor: '#e8719c', modalLoadAccentColor: '#82c8e8',
+      modalRadius: 20, slotEmptyBg: 'rgba(232,113,156,0.05)', slotFilledBg: 'rgba(232,113,156,0.15)',
+      slotSelectedBorder: '#e8719c', quickButtonBg: 'rgba(232,113,156,0.2)', quickButtonText: '#6d2b6d',
+    },
+  },
+} as const
+
+function applyUiPreset(key: keyof typeof uiThemePresets) {
+  uiDraft.value = { ...uiThemePresets[key].settings }
+}
+
+// オーバーレイ濃さ（1=薄 〜 10=濃 → alpha 0.1〜1.0 にマッピング）
+const uiOverlayOpacity = computed({
+  get: () => {
+    const parsed = toRgba(uiDraft.value.modalOverlayColor, { r: 0, g: 0, b: 0, a: 0.65 })
+    return Math.max(1, Math.min(10, Math.round(parsed.a * 10)))
+  },
+  set: (v: number) => {
+    const opacity = Math.max(0.1, Math.min(1, v / 10))
+    const parsed = toRgba(uiDraft.value.modalOverlayColor, { r: 0, g: 0, b: 0, a: opacity })
+    parsed.a = opacity
+    uiDraft.value.modalOverlayColor = rgbaToCss(parsed)
+  },
+})
+
+// 角丸プリセット（0〜10 → 0〜32px）
+const uiRadiusPreset = computed({
+  get: () => Math.round((uiDraft.value.modalRadius ?? 16) / 3.2),
+  set: (v: number) => { uiDraft.value.modalRadius = Math.round(v * 3.2) },
+})
 
 // テーマプリセット定義（雰囲気重視、行数・サイズは保持）
 const themePresets = {
@@ -718,12 +1045,12 @@ async function save() {
     console.log('[MessageThemeModal] シリアライズ完了', v)
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
-      body: { messageTheme: v }
+      body: { messageTheme: v, gameUiTheme: uiDraft.value }
     })
     console.log('[MessageThemeModal] API呼び出し成功', result)
     
     // 親へ通知（即時反映させる）
-    emit('saved', result?.messageTheme ?? v)
+    emit('saved', { messageTheme: result?.messageTheme ?? v, gameUiTheme: result?.gameUiTheme ?? uiDraft.value })
     toast.success('全体設定を保存しました')
     emit('close')
   } catch (error: any) {

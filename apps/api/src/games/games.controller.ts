@@ -44,6 +44,41 @@ export class GamesController {
     return this.games.softDelete(req.user.userId, id);
   }
 
+  @Get(':id/saves')
+  listSaves(@Req() req: any, @Param('id') id: string) {
+    return this.games.listSaves(req.user.userId, id);
+  }
+
+  @Get(':id/saves/:slotType/:slotIndex')
+  getSave(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('slotType') slotType: string,
+    @Param('slotIndex') slotIndex: string,
+  ) {
+    return this.games.getSave(req.user.userId, id, slotType, slotIndex);
+  }
+
+  @Post(':id/saves')
+  upsertSave(@Req() req: any, @Param('id') id: string, @Body() b: any) {
+    return this.games.upsertSave(req.user.userId, id, b);
+  }
+
+  @Post(':id/saves/auto')
+  autoSave(@Req() req: any, @Param('id') id: string, @Body() b: any) {
+    return this.games.autoSave(req.user.userId, id, b);
+  }
+
+  @Delete(':id/saves/:slotType/:slotIndex')
+  deleteSave(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('slotType') slotType: string,
+    @Param('slotIndex') slotIndex: string,
+  ) {
+    return this.games.deleteSave(req.user.userId, id, slotType, slotIndex);
+  }
+
   @Get(':id/scenes')
   listScenes(@Req() req: any, @Param('id') pid: string) {
     return this.games.listScenes(req.user.userId, pid);

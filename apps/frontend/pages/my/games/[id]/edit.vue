@@ -1752,8 +1752,9 @@ function onUp() {
         v-if="openThemeModal"
         :game-id="game?.id"
         :initial="game?.messageTheme"
+        :initial-ui="game?.gameUiTheme"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) game.messageTheme=v }"
+        @saved="(v)=>{ if (game) { game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme } }"
       />
     </div>
   </div>
