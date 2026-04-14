@@ -260,7 +260,7 @@ const stageCharacters = computed(() => {
       key: cacheKey || String(Math.random()),
       url: p.thumb || thumbCache.value.get(cacheKey) || '',
       x: p.x ?? 50,
-      y: p.y ?? 80,
+      y: p.y ?? 100,
       scale: p.scale ?? 100,
       z: p.z ?? 0
     }
@@ -427,12 +427,12 @@ async function onImagePicked(img: any) {
   const url = await getSignedGetUrl(img.thumbKey || img.key)
   
   // 既存ポートレートの場合は位置・サイズを保持
-  let x = 50, y = 80, scale = 100, z = 0
+  let x = 50, y = 100, scale = 100, z = 0
   if (pendingIndex.value !== null && pendingIndex.value >= 0) {
     const existing = nodeDraft.portraits[pendingIndex.value]
     if (existing) {
       x = existing.x ?? 50
-      y = existing.y ?? 80
+      y = existing.y ?? 100
       scale = existing.scale ?? 100
       z = existing.z ?? 0
     }

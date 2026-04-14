@@ -26,7 +26,7 @@
         />
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
-        <div class="absolute inset-0 pointer-events-none">
+        <div v-if="!fullscreen" class="absolute inset-0 pointer-events-none">
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
           
           <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
@@ -42,12 +42,6 @@
               </button>
             </div>
           </div>
-
-          <!-- BGMコントロール (常に非表示だが音は鳴る) -->
-          <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
-
-          <!-- SFX（効果音）コントロール: ノードごとに1回だけ再生 -->
-          <audio ref="sfxRef" :src="sfxUrl || undefined" class="hidden" />
 
           <!-- whole-stage click to advance & to trigger BGM -->
           <button 
@@ -97,6 +91,10 @@
           </div>
         </div>
       </div>
+
+      <!-- BGM/SFXはモード切替時にも継続させるため常時マウント -->
+      <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
+      <audio ref="sfxRef" :src="sfxUrl || undefined" class="hidden" />
   
   <!-- Fullscreen Overlay -->
   <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">

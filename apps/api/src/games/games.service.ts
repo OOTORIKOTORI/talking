@@ -45,7 +45,32 @@ export class GamesService {
   async update(userId: string, id: string, data: any) {
     const g = await this.prisma.gameProject.findUnique({ where: { id } });
     if (!g || g.ownerId !== userId) throw new ForbiddenException();
-    return this.prisma.gameProject.update({ where: { id }, data });
+
+    const allowed: any = {};
+    if (typeof data?.title === 'string') allowed.title = data.title;
+    if ('summary' in (data ?? {})) allowed.summary = data.summary ?? null;
+    if (typeof data?.coverAssetId === 'string' || data?.coverAssetId === null) {
+      allowed.coverAssetId = data.coverAssetId ?? null;
+    }
+    if (typeof data?.isPublic === 'boolean') allowed.isPublic = data.isPublic;
+    if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
+      allowed.startSceneId = data.startSceneId ?? null;
+    }
+
+    if ('messageTheme' in (data ?? {})) {
+      const theme = data.messageTheme;
+      if (theme && typeof theme === 'object' && !Array.isArray(theme)) {
+        allowed.messageTheme = {
+          ...theme,
+          ...(typeof data?.themeVersion === 'number' ? { themeVersion: data.themeVersion } : {}),
+        };
+      } else {
+        allowed.messageTheme = theme ?? null;
+      }
+    }
+
+    if (Object.keys(allowed).length === 0) return g;
+    return this.prisma.gameProject.update({ where: { id }, data: allowed });
   }
 
   async softDelete(userId: string, id: string) {

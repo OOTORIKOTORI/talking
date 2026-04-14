@@ -716,9 +716,9 @@ async function save() {
     }
     
     console.log('[MessageThemeModal] シリアライズ完了', v)
-    const result: any = await $api(`/games/${props.gameId}`, { 
-      method: 'PATCH', 
-      body: { messageTheme: v, themeVersion: 2 } 
+    const result: any = await $api(`/games/${props.gameId}`, {
+      method: 'PATCH',
+      body: { messageTheme: v }
     })
     console.log('[MessageThemeModal] API呼び出し成功', result)
     
