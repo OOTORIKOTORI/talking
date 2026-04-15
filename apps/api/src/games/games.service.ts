@@ -239,7 +239,11 @@ export class GamesService {
               nodeId: node.id,
               label: c.label,
               targetNodeId: c.targetNodeId,
-            })),
+              condition: c.condition ?? null,
+              effects: c.effects ?? null,
+              alternateTargetNodeId: c.alternateTargetNodeId || null,
+              alternateCondition: c.alternateCondition ?? null,
+            })) as any,
           });
         }
       }
@@ -257,12 +261,25 @@ export class GamesService {
     });
 
     const { choices, ...nodeData } = node;
+    const choiceCreate = Array.isArray(choices) && choices.length > 0
+      ? {
+          create: choices.map((c: any) => ({
+            label: c.label,
+            targetNodeId: c.targetNodeId,
+            condition: c.condition ?? null,
+            effects: c.effects ?? null,
+            alternateTargetNodeId: c.alternateTargetNodeId || null,
+            alternateCondition: c.alternateCondition ?? null,
+          })) as any,
+        }
+      : undefined
     
     return this.prisma.gameNode.create({
       data: {
         sceneId,
         order: (max._max.order ?? 0) + 1,
         ...nodeData,
+        ...(choiceCreate ? { choices: choiceCreate } : {}),
       },
       include: { choices: true },
     });

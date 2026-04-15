@@ -60,7 +60,7 @@
                   v-for="ch in choices"
                   :key="ch.id"
                   class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
-                  @click="go(ch.targetNodeId); ensureBgm()"
+                  @click="selectChoice(ch)"
                 >
                   {{ ch.label }}
                 </button>
@@ -161,7 +161,7 @@
                 v-for="ch in choices"
                 :key="ch.id"
                 class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
-                @click="go(ch.targetNodeId); ensureBgm()"
+                @click="selectChoice(ch)"
               >
                 {{ ch.label }}
               </button>
@@ -367,6 +367,7 @@ import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 import { useVisualEffects } from '@/composables/useVisualEffects'
 import { useToast } from '@/composables/useToast'
+import { applyChoiceEffects, filterVisibleChoices, resolveChoiceTarget } from '@/utils/gameState'
 
 const { signedFromId } = useAssetMeta()
 
@@ -471,6 +472,7 @@ const uiQuickButtonStyle = computed(() => ({
 // ビジュアルエフェクト
 const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
+const gameState = ref<Record<string, any>>({})
 
 type SaveSlotType = 'MANUAL' | 'AUTO' | 'QUICK'
 type ModalMode = 'save' | 'load'
@@ -601,12 +603,13 @@ function findSceneIdByNodeId(nodeId: string | null | undefined) {
 
 function buildSavePayload() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     progress: {
       nodeId: current.value?.id ?? null,
       accumulatedText: accumulatedText.value,
       showEndScreen: showEndScreen.value,
       colorFilter: currentColorFilter.value ?? null,
+      state: { ...gameState.value },
     },
     context: {
       sceneId: findSceneIdByNodeId(current.value?.id),
@@ -662,6 +665,9 @@ async function loadFromSelectedSlot() {
 
     const node = map.get(targetNodeId)
     accumulatedText.value = typeof progress?.accumulatedText === 'string' ? progress.accumulatedText : ''
+    gameState.value = progress?.state && typeof progress.state === 'object'
+      ? { ...progress.state }
+      : {}
     showStartScreen.value = false
     showEndScreen.value = !!progress?.showEndScreen
     showChoices.value = false
@@ -1185,6 +1191,7 @@ watch(
 function start() {
   // スタート画面を非表示にして開始
   accumulatedText.value = ''
+  gameState.value = {}
   showStartScreen.value = false
   
   if (!current.value) {
@@ -1197,12 +1204,22 @@ function start() {
 
 function restart() {
   accumulatedText.value = ''
+  gameState.value = {}
   showStartScreen.value = true
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
   current.value = null
   currentColorFilter.value = null // カラーフィルターをリセット
   applyStart()
+  ensureBgm()
+}
+
+function selectChoice(choice: any) {
+  const nextState = applyChoiceEffects(gameState.value as any, choice?.effects)
+  gameState.value = nextState
+  showChoices.value = false
+  showEndScreen.value = false
+  go(resolveChoiceTarget(choice, nextState))
   ensureBgm()
 }
 
@@ -1306,7 +1323,7 @@ const displayedText = computed(() => {
 
 const choices = computed(() => {
   if (!current.value) return []
-  return current.value.choices || []
+  return filterVisibleChoices(current.value.choices || [], gameState.value as any)
 })
 
 const hasChoices = computed(() => choices.value.length > 0)

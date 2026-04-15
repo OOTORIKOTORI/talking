@@ -360,18 +360,81 @@ function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
   return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
 }
 
+function normalizeChoiceDrafts() {
+  if (!Array.isArray(nodeDraft.choices)) {
+    nodeDraft.choices = []
+    return
+  }
+
+  nodeDraft.choices = nodeDraft.choices.map((choice: any) => ({
+    label: choice?.label ?? '',
+    targetNodeId: choice?.targetNodeId ?? '',
+    effects: Array.isArray(choice?.effects) ? choice.effects : [],
+    condition: choice?.condition && typeof choice.condition === 'object' ? choice.condition : null,
+    alternateTargetNodeId: choice?.alternateTargetNodeId ?? '',
+    alternateCondition:
+      choice?.alternateCondition && typeof choice.alternateCondition === 'object'
+        ? choice.alternateCondition
+        : null,
+  }))
+}
+
+function sanitizeChoicesForSave(choices: any[] | undefined) {
+  if (!Array.isArray(choices)) return []
+
+  return choices.map((choice: any) => ({
+    label: choice?.label ?? '',
+    targetNodeId: choice?.targetNodeId ?? '',
+    effects: Array.isArray(choice?.effects)
+      ? choice.effects.filter((effect: any) => effect?.key?.trim())
+      : [],
+    condition: choice?.condition?.key?.trim() ? choice.condition : null,
+    alternateTargetNodeId: choice?.alternateTargetNodeId ?? '',
+    alternateCondition: choice?.alternateCondition?.key?.trim() ? choice.alternateCondition : null,
+  }))
+}
+
+function createEmptyChoiceCondition() {
+  return { key: '', operator: 'gte', value: 1 }
+}
+
+function addChoiceEffect(choice: any) {
+  if (!Array.isArray(choice.effects)) {
+    choice.effects = []
+  }
+  choice.effects.push({ key: '', op: 'add', value: 1 })
+}
+
+function removeChoiceEffect(choice: any, effectIndex: number) {
+  if (!Array.isArray(choice.effects)) return
+  choice.effects.splice(effectIndex, 1)
+}
+
+function enableChoiceCondition(choice: any, field: 'condition' | 'alternateCondition') {
+  if (!choice[field]) {
+    choice[field] = createEmptyChoiceCondition()
+  }
+}
+
+function isUnaryChoiceOperator(op: string | undefined) {
+  return op === 'truthy' || op === 'falsy'
+}
+
 // 選択肢のノード選択モーダル用
 const editingChoiceIndex = ref<number | null>(null)
+const editingChoiceTargetField = ref<'targetNodeId' | 'alternateTargetNodeId'>('targetNodeId')
 
-function openChoiceNodePicker(index: number) {
+function openChoiceNodePicker(index: number, field: 'targetNodeId' | 'alternateTargetNodeId' = 'targetNodeId') {
   editingChoiceIndex.value = index
+  editingChoiceTargetField.value = field
   openNodePicker.value = true
 }
 
 function onChoiceNodeSelected(nodeId: string) {
   if (editingChoiceIndex.value !== null && nodeDraft.choices && nodeDraft.choices[editingChoiceIndex.value]) {
-    nodeDraft.choices[editingChoiceIndex.value].targetNodeId = nodeId
+    nodeDraft.choices[editingChoiceIndex.value][editingChoiceTargetField.value] = nodeId
     editingChoiceIndex.value = null
+    editingChoiceTargetField.value = 'targetNodeId'
   }
 }
 
@@ -548,6 +611,7 @@ function selectNode(n: any) {
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
   }
+  normalizeChoiceDrafts()
   if (!nodeDraft.portraits) {
     nodeDraft.portraits = []
   }
@@ -621,6 +685,9 @@ async function saveNode() {
         return rest
       })
     }
+    if (Array.isArray(payload.choices)) {
+      payload.choices = sanitizeChoicesForSave(payload.choices)
+    }
     // visualFx が空オブジェクトまたは type が未設定なら null にする
     if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
       payload.visualFx = null
@@ -658,6 +725,9 @@ async function saveAndCreateNext() {
         const { thumb, ...rest } = p
         return rest
       })
+    }
+    if (Array.isArray(payload.choices)) {
+      payload.choices = sanitizeChoicesForSave(payload.choices)
     }
     // visualFx が空オブジェクトまたは type が未設定なら null にする
     if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
@@ -737,7 +807,14 @@ function addChoice() {
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
   }
-  nodeDraft.choices.push({ label: '', targetNodeId: '' })
+  nodeDraft.choices.push({
+    label: '',
+    targetNodeId: '',
+    effects: [],
+    condition: null,
+    alternateTargetNodeId: '',
+    alternateCondition: null,
+  })
 }
 
 function removeChoice(index: number) {
@@ -748,6 +825,7 @@ function removeChoice(index: number) {
 function closeNodePicker() {
   openNodePicker.value = false
   editingChoiceIndex.value = null
+  editingChoiceTargetField.value = 'targetNodeId'
 }
 
 function onNodeSelected(nodeId: string) {
@@ -1312,24 +1390,108 @@ function onUp() {
                   <div
                     v-for="(c, i) in nodeDraft.choices"
                     :key="i"
-                    class="flex gap-2 items-center p-2 bg-gray-50 rounded"
+                    class="p-2 bg-gray-50 rounded space-y-2"
                   >
-                    <input
-                      v-model="c.label"
-                      class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
-                      placeholder="表示テキスト"
-                    />
-                    <input
-                      v-model="c.targetNodeId"
-                      class="w-40 border border-gray-300 rounded px-2 py-1 text-sm"
-                      placeholder="targetNodeId"
-                    />
-                    <button
-                      class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
-                      @click="removeChoice(i)"
-                    >
-                      削除
-                    </button>
+                    <div class="flex gap-2 items-center">
+                      <input
+                        v-model="c.label"
+                        class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                        placeholder="表示テキスト"
+                      />
+                      <button
+                        class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
+                        @click="removeChoice(i)"
+                      >
+                        削除
+                      </button>
+                    </div>
+
+                    <div class="flex gap-2 items-center">
+                      <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-white text-sm text-gray-700">
+                        {{ getChoiceTargetLabel(c.targetNodeId) }}
+                      </div>
+                      <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">通常遷移先</button>
+                    </div>
+
+                    <div class="border-t pt-2">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-xs font-semibold text-gray-700">状態操作</div>
+                        <button class="px-2 py-1 text-xs bg-emerald-100 border rounded hover:bg-emerald-200" @click="addChoiceEffect(c)">追加</button>
+                      </div>
+                      <div v-if="!c.effects || c.effects.length === 0" class="text-xs text-gray-500">なし</div>
+                      <div v-else class="space-y-1">
+                        <div v-for="(effect, ei) in c.effects" :key="ei" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                          <input v-model="effect.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                          <select v-model="effect.op" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            <option value="set">代入</option>
+                            <option value="add">加算</option>
+                            <option value="sub">減算</option>
+                          </select>
+                          <input v-model="effect.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="値" />
+                          <button class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500" @click="removeChoiceEffect(c, ei)">削除</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="border-t pt-2">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-xs font-semibold text-gray-700">特別選択肢条件</div>
+                        <div class="flex gap-1">
+                          <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'condition')">設定</button>
+                          <button v-if="c.condition" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.condition = null">クリア</button>
+                        </div>
+                      </div>
+                      <p v-if="!c.condition" class="text-xs text-gray-500">未設定なら常に表示</p>
+                      <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input v-model="c.condition.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                        <select v-model="c.condition.operator" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                          <option value="eq">一致</option>
+                          <option value="ne">不一致</option>
+                          <option value="gt">より大きい</option>
+                          <option value="gte">以上</option>
+                          <option value="lt">より小さい</option>
+                          <option value="lte">以下</option>
+                          <option value="truthy">ON</option>
+                          <option value="falsy">OFF</option>
+                        </select>
+                        <input v-if="!isUnaryChoiceOperator(c.condition.operator)" v-model="c.condition.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="基準値" />
+                        <div v-else class="text-xs text-gray-500 flex items-center px-2">値不要</div>
+                      </div>
+                    </div>
+
+                    <div class="border-t pt-2">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-xs font-semibold text-gray-700">条件分岐先</div>
+                        <div class="flex gap-1">
+                          <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'alternateCondition')">設定</button>
+                          <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; c.alternateTargetNodeId = ''">クリア</button>
+                        </div>
+                      </div>
+                      <p v-if="!c.alternateCondition" class="text-xs text-gray-500">未設定なら通常遷移のみ</p>
+                      <div v-else class="space-y-2">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <input v-model="c.alternateCondition.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                          <select v-model="c.alternateCondition.operator" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            <option value="eq">一致</option>
+                            <option value="ne">不一致</option>
+                            <option value="gt">より大きい</option>
+                            <option value="gte">以上</option>
+                            <option value="lt">より小さい</option>
+                            <option value="lte">以下</option>
+                            <option value="truthy">ON</option>
+                            <option value="falsy">OFF</option>
+                          </select>
+                          <input v-if="!isUnaryChoiceOperator(c.alternateCondition.operator)" v-model="c.alternateCondition.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="基準値" />
+                          <div v-else class="text-xs text-gray-500 flex items-center px-2">値不要</div>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                          <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-white text-sm text-gray-700">
+                            {{ getChoiceTargetLabel(c.alternateTargetNodeId) }}
+                          </div>
+                          <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i, 'alternateTargetNodeId')">特殊遷移先</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1705,7 +1867,7 @@ function onUp() {
                     <div
                       v-for="(c, i) in nodeDraft.choices"
                       :key="i"
-                      class="p-2 bg-gray-50 rounded"
+                      class="p-2 bg-gray-50 rounded space-y-2"
                     >
                       <div class="flex gap-2 items-center mb-2">
                         <input
@@ -1724,8 +1886,89 @@ function onUp() {
                         <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-white text-sm text-gray-700">
                           {{ getChoiceTargetLabel(c.targetNodeId) }}
                         </div>
-                        <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">選択</button>
+                        <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">通常遷移先</button>
                         <button v-if="c.targetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.targetNodeId=''">クリア</button>
+                      </div>
+
+                      <div class="border-t pt-2">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-xs font-semibold text-gray-700">状態操作</div>
+                          <button class="px-2 py-1 text-xs bg-emerald-100 border rounded hover:bg-emerald-200" @click="addChoiceEffect(c)">追加</button>
+                        </div>
+                        <div v-if="!c.effects || c.effects.length === 0" class="text-xs text-gray-500">なし</div>
+                        <div v-else class="space-y-1">
+                          <div v-for="(effect, ei) in c.effects" :key="ei" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                            <input v-model="effect.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                            <select v-model="effect.op" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                              <option value="set">代入</option>
+                              <option value="add">加算</option>
+                              <option value="sub">減算</option>
+                            </select>
+                            <input v-model="effect.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="値" />
+                            <button class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500" @click="removeChoiceEffect(c, ei)">削除</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="border-t pt-2">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-xs font-semibold text-gray-700">特別選択肢条件</div>
+                          <div class="flex gap-1">
+                            <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'condition')">設定</button>
+                            <button v-if="c.condition" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.condition = null">クリア</button>
+                          </div>
+                        </div>
+                        <p v-if="!c.condition" class="text-xs text-gray-500">未設定なら常に表示</p>
+                        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <input v-model="c.condition.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                          <select v-model="c.condition.operator" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            <option value="eq">一致</option>
+                            <option value="ne">不一致</option>
+                            <option value="gt">より大きい</option>
+                            <option value="gte">以上</option>
+                            <option value="lt">より小さい</option>
+                            <option value="lte">以下</option>
+                            <option value="truthy">ON</option>
+                            <option value="falsy">OFF</option>
+                          </select>
+                          <input v-if="!isUnaryChoiceOperator(c.condition.operator)" v-model="c.condition.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="基準値" />
+                          <div v-else class="text-xs text-gray-500 flex items-center px-2">値不要</div>
+                        </div>
+                      </div>
+
+                      <div class="border-t pt-2">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-xs font-semibold text-gray-700">条件分岐先</div>
+                          <div class="flex gap-1">
+                            <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'alternateCondition')">設定</button>
+                            <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; c.alternateTargetNodeId = ''">クリア</button>
+                          </div>
+                        </div>
+                        <p v-if="!c.alternateCondition" class="text-xs text-gray-500">未設定なら通常遷移のみ</p>
+                        <div v-else class="space-y-2">
+                          <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <input v-model="c.alternateCondition.key" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="変数名" />
+                            <select v-model="c.alternateCondition.operator" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                              <option value="eq">一致</option>
+                              <option value="ne">不一致</option>
+                              <option value="gt">より大きい</option>
+                              <option value="gte">以上</option>
+                              <option value="lt">より小さい</option>
+                              <option value="lte">以下</option>
+                              <option value="truthy">ON</option>
+                              <option value="falsy">OFF</option>
+                            </select>
+                            <input v-if="!isUnaryChoiceOperator(c.alternateCondition.operator)" v-model="c.alternateCondition.value" class="border border-gray-300 rounded px-2 py-1 text-sm" placeholder="基準値" />
+                            <div v-else class="text-xs text-gray-500 flex items-center px-2">値不要</div>
+                          </div>
+                          <div class="flex gap-2 items-center">
+                            <div class="flex-1 px-2 py-1 border border-gray-300 rounded bg-white text-sm text-gray-700">
+                              {{ getChoiceTargetLabel(c.alternateTargetNodeId) }}
+                            </div>
+                            <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i, 'alternateTargetNodeId')">特殊遷移先</button>
+                            <button v-if="c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateTargetNodeId=''">クリア</button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
