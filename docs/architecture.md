@@ -279,7 +279,7 @@ talking/
 ```prisma
 model Asset {
   id          String          @id @default(cuid())
-  ownerId     String?
+  ownerId     String?         // 現行スキーマでは nullable（既存データ互換）。通常の認証アップロードでは必ず設定される
   key         String          @unique
   thumbKey    String?
   thumbWidth  Int?            @default(512)
@@ -295,6 +295,12 @@ model Asset {
   favorites   Favorite[]
 }
 ```
+
+#### ソフトデリートについて
+- `Asset.deletedAt` が非 null のレコードは論理削除済みとして扱う
+- `GET /assets` と `GET /assets/mine` では `deletedAt: null` のものだけを返す
+- `DELETE /assets/:id` は物理削除ではなく `deletedAt` に現在時刻をセットする
+- 論理削除後、検索インデックスから除外し、MinIO 上の実ファイルは `purge` キュー経由で遅延ハード削除される
 
 ### Character
 ```prisma
@@ -326,6 +332,23 @@ model CharacterImage {
   pattern      String?
   sortOrder    Int              @default(0)
   character    Character        @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+```
+
+#### CharacterEmotion enum
+```prisma
+enum CharacterEmotion {
+  NEUTRAL   // 自然体
+  HAPPY     // 嬉しい
+  SAD       // 悲しい
+  ANGRY     // 怒り
+  SURPRISED // 驚き
+  FEAR      // 恐れ
+  DISGUST   // 嫌悪
+  SHY       // 照れ
+  SLEEPY    // 眠い
+  THINKING  // 思案
+  OTHER     // その他
 }
 ```
 
@@ -368,10 +391,12 @@ model FavoriteCharacter {
 3. `thumbs/` に保存し、`Asset.thumbKey` を更新
 
 ### 検索インデックス更新（Search Queue）
-1. Asset の作成・更新・削除時に `search-index` キューへジョブ投入
-2. Worker が Meilisearch の `assets` インデックスへ upsert / remove を実行
-3. facets は `contentType`, `primaryTag`, `tags` を利用
-4. 公開ギャラリー `/assets` はアセット/キャラクターのタブ切替を持ち、同一検索体験で扱う
+1. Asset の作成・更新・削除時に `search-index` キューへジョブ投入する
+2. Worker が Meilisearch の `assets` インデックスへ upsert / remove を実行する
+3. `assets` インデックスの facets は `contentType`, `primaryTag`, `tags`
+4. 現行実装では Character 用の Meilisearch ジョブ投入や `characters` インデックス更新は未実装
+5. キャラクター一覧 / 詳細は `GET /characters` 系 API で Prisma を使って取得し、`deletedAt: null` と `isPublic` 条件で絞り込む
+6. 公開ギャラリー `/assets` のタブ切替 UI は共通だが、全文検索インデックスとして稼働しているのは現状 `assets` のみ
 
 ---
 
@@ -419,3 +444,4 @@ model FavoriteCharacter {
 ### ChangeLog (chat handover)
 - 2025-11-02: キャラクター節・お気に入り・タブ導線・署名GET・`$api` 規約を最新版に更新
 - 2026-04-16: レビューによる大幅更新 — キャラクター / ゲームの URL・API・データモデル追加、認証方式（JWKS）修正、お気に入りAPIパス統一、Favorite / CharacterImage モデル追記
+- 2026-04-16 (2): Asset.ownerId nullable 確認・ソフトデリート挙動追記・CharacterEmotion enum 定義追加・キャラクター検索インデックス設定追記
