@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { jwtVerify, decodeJwt, createRemoteJWKSet } from 'jose';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
@@ -56,10 +56,9 @@ export class SupabaseAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
+
     // If Supabase is not configured, allow all requests (dev mode)
     if (!this.isConfigured) {
-      console.log('[SupabaseAuthGuard] Auth disabled (dev mode)');
       request.user = {
         userId: 'dev-user-123',
         email: 'dev@example.com',
@@ -68,24 +67,12 @@ export class SupabaseAuthGuard implements CanActivate {
     }
 
     const authHeader = request.headers.authorization;
-    
-    console.log('[SupabaseAuthGuard] JWT Secret configured:', this.isConfigured);
-    console.log('[SupabaseAuthGuard] Auth header:', authHeader ? 'present' : 'missing');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('[SupabaseAuthGuard] Missing or invalid authorization header');
       throw new UnauthorizedException('Missing or invalid authorization header');
     }
 
     const token = authHeader.substring(7);
-
-    try {
-      // 署名検証前に iss/aud を確認
-      const preview = decodeJwt(token);
-      console.log('[SupabaseAuthGuard] Token iss:', preview.iss, 'aud:', preview.aud, 'sub:', preview.sub);
-    } catch (err) {
-      console.log('[SupabaseAuthGuard] Failed to decode JWT preview:', err.message);
-    }
 
     try {
       const { payload } = await this.verifyToken(token);
@@ -96,10 +83,8 @@ export class SupabaseAuthGuard implements CanActivate {
         email: payload.email,
       };
 
-      console.log('[SupabaseAuthGuard] Auth successful:', payload.email);
       return true;
-    } catch (error) {
-      console.log('[SupabaseAuthGuard] JWT verification failed:', error.message);
+    } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

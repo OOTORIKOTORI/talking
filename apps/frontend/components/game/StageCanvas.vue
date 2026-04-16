@@ -16,7 +16,7 @@
     
     <!-- エフェクトレイヤー -->
     <div class="effect-layer">
-      <div v-if="effectState.flash" class="flash" :style="flashStyle"></div>
+      <div v-if="props.effectState?.flash" class="flash" :style="flashStyle"></div>
     </div>
     
     <!-- カラーフィルターレイヤー -->
@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, type CSSProperties } from 'vue'
 import { useStageScale } from '@/composables/useStageScale'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import type { MessageThemeV2, MessageTheme, ColorFilter } from '@talking/types'
@@ -89,17 +89,17 @@ const flashStyle = computed(() => {
 })
 
 // カラーフィルターのスタイル
-const filterStyle = computed(() => {
+const filterStyle = computed<CSSProperties>(() => {
   const filter = props.colorFilter
   if (!filter || filter.type === 'none') return {}
-  
+
   const opacity = (filter.opacity ?? 50) / 100
   const duration = filter.durationMs ?? 500
-  
+
   // フィルタータイプに応じた色とブレンドモード
   let color = 'rgba(0, 0, 0, 0)'
-  let mixBlendMode = 'normal'
-  
+  let mixBlendMode: CSSProperties['mixBlendMode'] = 'normal'
+
   switch (filter.type) {
     case 'sepia':
       color = `rgba(112, 66, 20, ${opacity})`

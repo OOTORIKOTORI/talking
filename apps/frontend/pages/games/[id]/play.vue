@@ -77,7 +77,6 @@
               :animate="true"
               :show-backlog-button="true"
               @backlog="backlog.open()"
-              @complete="pushCurrentToBacklog()"
               @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
             >
               <template #name-actions>
@@ -181,7 +180,6 @@
             :animate="true"
             :show-backlog-button="true"
             @backlog="backlog.open()"
-            @complete="pushCurrentToBacklog()"
             @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
           >
             <template #name-actions>
@@ -383,7 +381,7 @@ import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables
 import { useVisualEffects } from '@/composables/useVisualEffects'
 import { useBacklog } from '@/composables/useBacklog'
 import { useToast } from '@/composables/useToast'
-import { applyChoiceEffects, filterVisibleChoices, resolveChoiceTarget } from '@/utils/gameState'
+import { appendBacklogEntry, applyChoiceEffects, filterVisibleChoices, resolveChoiceTarget } from '@/utils/gameState'
 
 const { signedFromId } = useAssetMeta()
 
@@ -838,39 +836,33 @@ watch(
   () => current.value?.portraits,
   async (list: any[] | undefined) => {
     if (!list || list.length === 0) return
-    console.log('[play.vue] portraits changed, resolving thumbs...', list)
-    
+
     for (const p of list) {
       const cacheKey = p.imageId || p.key
       if (!cacheKey) {
         console.warn('[play.vue] portrait has no imageId or key', p)
         continue
       }
-      
+
       if (!thumbCache.value.has(cacheKey)) {
         try {
           let url: string | null = null
-          
+
           // 優先順位: 1) p.key がある場合は直接署名URL取得、2) imageId から取得
           if (p.key) {
             url = await getSignedGetUrl(p.key)
-            console.log('[play.vue] resolved thumb via key for', cacheKey, '→', url)
           } else if (p.imageId) {
             url = await signedFromId(p.imageId, true)
-            console.log('[play.vue] resolved thumb via imageId for', cacheKey, '→', url)
           }
-          
+
           if (url) {
             thumbCache.value.set(cacheKey, url)
           }
         } catch (e) {
           console.warn('[play.vue] thumb resolve failed for', p, e)
         }
-      } else {
-        console.log('[play.vue] using cached thumb for', cacheKey)
       }
     }
-    console.log('[play.vue] thumbCache now has', thumbCache.value.size, 'entries', Array.from(thumbCache.value.keys()))
   },
   { immediate: true, deep: true }
 )
@@ -1249,33 +1241,21 @@ function go(targetNodeId: string | null) {
     current.value = null
     return
   }
-  
+
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
-  
+
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
-    console.log('[play.vue] go() - nextNode:', {
-      id: nextNode.id,
-      text: nextNode.text,
-      continuesPreviousText: nextNode.continuesPreviousText
-    })
-
     const prevNode = current.value
-    
+
     // 次のノードが前のテキストを継続する場合、現在のテキストを累積に追加
     if (nextNode.continuesPreviousText) {
       // 現在の完全なテキスト（累積 + 現在のテキスト）を保存
       const newAccumulated = accumulatedText.value + (current.value?.text ?? '')
-      console.log('[play.vue] go() -継続モード:', {
-        before: accumulatedText.value,
-        currentText: current.value?.text,
-        after: newAccumulated
-      })
       accumulatedText.value = newAccumulated
     } else {
       // 継続しない場合はリセット
-      console.log('[play.vue] go() - リセット')
       accumulatedText.value = ''
     }
     current.value = nextNode
@@ -1323,42 +1303,23 @@ const speaker = computed(() => {
 })
 
 function pushCurrentToBacklog() {
-  if (!current.value?.id || !current.value?.text) return
+  const nextEntries = appendBacklogEntry(
+    backlog.entries.value,
+    current.value,
+    prefixText.value,
+  )
 
-  const fullText = `${prefixText.value}${current.value.text}`
-  const entry = {
-    nodeId: current.value.id,
-    speakerName: current.value.speakerDisplayName ?? null,
-    text: fullText,
-  }
-  const last = backlog.entries.value[backlog.entries.value.length - 1]
-
-  if (
-    last?.nodeId === entry.nodeId &&
-    last?.speakerName === entry.speakerName &&
-    last?.text === entry.text
-  ) {
+  if (nextEntries.length === backlog.entries.value.length) {
     return
   }
 
-  backlog.push(entry)
+  backlog.push(nextEntries[nextEntries.length - 1]!)
 }
 
 // 累積テキスト（即座に表示する部分）
 const prefixText = computed(() => {
-  const result = current.value?.continuesPreviousText ? accumulatedText.value : ''
-  console.log('[play.vue] prefixText computed:', {
-    continuesPreviousText: current.value?.continuesPreviousText,
-    accumulatedText: accumulatedText.value,
-    result
-  })
-  return result
+  return current.value?.continuesPreviousText ? accumulatedText.value : ''
 })
-
-// デバッグ用: prefixTextの変化を監視
-watch(prefixText, (newVal) => {
-  console.log('[play.vue] prefixText changed to:', newVal)
-}, { immediate: true })
 
 // 現在のノードのテキスト（タイプライター効果を適用する部分）
 const displayedText = computed(() => {

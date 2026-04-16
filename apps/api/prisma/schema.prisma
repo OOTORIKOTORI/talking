@@ -20,38 +20,26 @@ enum AssetPrimaryTag {
   AUDIO_OTHER
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
-  @@map("users")
-}
-
 model Asset {
-  id          String          @id @default(cuid())
-  key         String          @unique
-  title       String?
-  description String?
-  tags        String[]        @default([])
-  primaryTag  AssetPrimaryTag @default(IMAGE_OTHER)
-  contentType String
-  size        Int
-  url         String
-  ownerId     String?
-  thumbKey    String?
-    thumbKeyWebp String?
-    thumbKeyAvif String?
-  thumbWidth  Int?            @default(512)
-  thumbHeight Int?            @default(512)
-  createdAt   DateTime        @default(now())
-  deletedAt   DateTime?
+  id           String          @id @default(cuid())
+  key          String          @unique
+  title        String?
+  description  String?
+  tags         String[]        @default([])
+  primaryTag   AssetPrimaryTag @default(IMAGE_OTHER)
+  contentType  String
+  size         Int
+  url          String
+  ownerId      String?
+  thumbKey     String?
+  thumbKeyWebp String?
+  thumbKeyAvif String?
+  thumbWidth   Int?            @default(512)
+  thumbHeight  Int?            @default(512)
+  createdAt    DateTime        @default(now())
+  deletedAt    DateTime?
 
-  favorites   Favorite[]
+  favorites Favorite[]
 
   @@index([createdAt])
   @@index([ownerId])
@@ -64,7 +52,7 @@ model Favorite {
   assetId   String
   createdAt DateTime @default(now())
 
-  asset     Asset    @relation(fields: [assetId], references: [id])
+  asset Asset @relation(fields: [assetId], references: [id])
 
   @@unique([userId, assetId])
   @@index([userId, createdAt])
@@ -76,7 +64,7 @@ model FavoriteCharacter {
   characterId String
   createdAt   DateTime @default(now())
 
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, characterId])
   @@index([userId, createdAt])
@@ -99,41 +87,41 @@ enum CharacterEmotion {
 }
 
 model Character {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   ownerId     String
   name        String
   displayName String
   description String?
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPublic    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
-  tags        String[] @default([])
+  tags        String[]  @default([])
 
-  images      CharacterImage[]
-  favorites   FavoriteCharacter[]
+  images    CharacterImage[]
+  favorites FavoriteCharacter[]
 
   @@index([ownerId, createdAt])
   @@map("characters")
 }
 
 model CharacterImage {
-  id           String            @id @default(cuid())
+  id           String           @id @default(cuid())
   characterId  String
-  key          String            // S3 object key
-  thumbKey     String?           // Optional thumbnail key
+  key          String // S3 object key
+  thumbKey     String? // Optional thumbnail key
   width        Int?
   height       Int?
   contentType  String
   size         Int?
-  emotion      CharacterEmotion  @default(NEUTRAL)
-  emotionLabel String?           // 任意の表示用ラベル（例: 楽しい/通常）
-  pattern      String?           // ポーズ/服装などのバリエーション名
-  sortOrder    Int               @default(0)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  emotion      CharacterEmotion @default(NEUTRAL)
+  emotionLabel String? // 任意の表示用ラベル（例: 楽しい/通常）
+  pattern      String? // ポーズ/服装などのバリエーション名
+  sortOrder    Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@index([characterId, sortOrder])
   @@map("character_images")
@@ -151,18 +139,18 @@ enum GameSaveSlotType {
 }
 
 model GameProject {
-  id          String      @id @default(cuid())
-  ownerId     String
-  title       String
-  summary     String?     @db.Text
+  id           String      @id @default(cuid())
+  ownerId      String
+  title        String
+  summary      String?     @db.Text
   coverAssetId String?
-  isPublic    Boolean     @default(false)
+  isPublic     Boolean     @default(false)
   startSceneId String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
-  scenes      GameScene[]
-  saves       GameSave[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  scenes       GameScene[]
+  saves        GameSave[]
 
   // NEW: message window/typewriter theme for the whole scenario
   // Expected structure: { frame: {bg, borderColor, borderWidth, radius, padding, shadow}, 
@@ -178,17 +166,17 @@ model GameProject {
 }
 
 model GameSave {
-  id          String           @id @default(cuid())
-  gameId      String
-  userId      String
-  slotType    GameSaveSlotType
-  slotIndex   Int
-  title       String?
-  payload     Json
-  version     Int              @default(1)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  game        GameProject      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id        String           @id @default(cuid())
+  gameId    String
+  userId    String
+  slotType  GameSaveSlotType
+  slotIndex Int
+  title     String?
+  payload   Json
+  version   Int              @default(1)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  game      GameProject      @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([gameId, userId, slotType, slotIndex])
   @@index([userId, gameId, updatedAt])
@@ -210,41 +198,41 @@ model GameScene {
 }
 
 model GameNode {
-  id          String      @id @default(cuid())
-  sceneId     String
-  type        GameNodeType @default(DIALOG)
-  order       Int         @default(0)
-  speakerCharacterId String?
-  speakerDisplayName String?
-  portraitAssetId String?   // 互換維持（将来削除）
-  portraits    Json?        // [{characterId,imageId,key?,x,y,scale,z}]
-  text        String?     @db.Text
-  bgAssetId   String?
-  musicAssetId String?
-  sfxAssetId  String?
-  nextNodeId  String?
-  camera      Json?        // {zoom,cx,cy} カメラ設定
-  cameraFx    Json?        // カメラ演出設定 { from?, to?, durationMs?, mode? }
-  visualFx    Json?        // ビジュアルエフェクト設定 { type: 'shake' | 'flash', intensity: 'small' | 'medium' | 'large' }
-  colorFilter Json?        // 画面全体カラーフィルター { type, opacity, durationMs }
-  continuesPreviousText Boolean? @default(false)  // 前ノードのセリフを継続するか
-  scene       GameScene   @relation(fields: [sceneId], references: [id], onDelete: Cascade)
-  choices     GameChoice[]
+  id                    String       @id @default(cuid())
+  sceneId               String
+  type                  GameNodeType @default(DIALOG)
+  order                 Int          @default(0)
+  speakerCharacterId    String?
+  speakerDisplayName    String?
+  portraitAssetId       String? // 互換維持（将来削除）
+  portraits             Json? // [{characterId,imageId,key?,x,y,scale,z}]
+  text                  String?      @db.Text
+  bgAssetId             String?
+  musicAssetId          String?
+  sfxAssetId            String?
+  nextNodeId            String?
+  camera                Json? // {zoom,cx,cy} カメラ設定
+  cameraFx              Json? // カメラ演出設定 { from?, to?, durationMs?, mode? }
+  visualFx              Json? // ビジュアルエフェクト設定 { type: 'shake' | 'flash', intensity: 'small' | 'medium' | 'large' }
+  colorFilter           Json? // 画面全体カラーフィルター { type, opacity, durationMs }
+  continuesPreviousText Boolean?     @default(false) // 前ノードのセリフを継続するか
+  scene                 GameScene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  choices               GameChoice[]
 
   @@index([sceneId, order])
   @@map("game_nodes")
 }
 
 model GameChoice {
-  id                   String   @id @default(cuid())
-  nodeId               String
-  label                String
-  targetNodeId         String
-  condition            Json?
-  effects              Json?
+  id                    String   @id @default(cuid())
+  nodeId                String
+  label                 String
+  targetNodeId          String
+  condition             Json?
+  effects               Json?
   alternateTargetNodeId String?
-  alternateCondition   Json?
-  node                 GameNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  alternateCondition    Json?
+  node                  GameNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@map("game_choices")
 }

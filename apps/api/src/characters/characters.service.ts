@@ -1,12 +1,12 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateCharacterDto } from './dto/create-character.dto';
 import { UpdateCharacterDto } from './dto/update-character.dto';
 import { CreateCharacterImageDto } from './dto/create-image.dto';
 
 @Injectable()
 export class CharactersService {
-  private readonly prisma: PrismaClient = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(ownerId: string, dto: CreateCharacterDto) {
     const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
@@ -16,11 +16,11 @@ export class CharactersService {
   }
 
   async update(ownerId: string, id: string, dto: UpdateCharacterDto) {
-  const c = await this.prisma.character.findUnique({ where: { id } });
-  if (!c || c.deletedAt) throw new NotFoundException('Character not found');
-  if (c.ownerId !== ownerId) throw new ForbiddenException();
-  const tags = dto.tags ? dto.tags.map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined
-  return this.prisma.character.update({ where: { id }, data: { ...dto, ...(tags !== undefined ? { tags } : {}) } });
+    const c = await this.prisma.character.findUnique({ where: { id } });
+    if (!c || c.deletedAt) throw new NotFoundException('Character not found');
+    if (c.ownerId !== ownerId) throw new ForbiddenException();
+    const tags = dto.tags ? dto.tags.map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined
+    return this.prisma.character.update({ where: { id }, data: { ...dto, ...(tags !== undefined ? { tags } : {}) } });
   }
 
   async remove(ownerId: string, id: string) {
@@ -28,17 +28,6 @@ export class CharactersService {
     if (!c || c.deletedAt) throw new NotFoundException('Character not found');
     if (c.ownerId !== ownerId) throw new ForbiddenException();
     await this.prisma.character.update({ where: { id }, data: { deletedAt: new Date() } });
-    return { success: true };
-  }
-
-  async deleteMyCharacter(ownerId: string, id: string) {
-    // 所有者チェック
-    const c = await this.prisma.character.findUnique({ where: { id } });
-    if (!c) throw new NotFoundException('Character not found');
-    if (c.ownerId !== ownerId) throw new ForbiddenException();
-
-    // リレーションは Prisma の参照整合性 (onDelete: Cascade) により連鎖削除
-    await this.prisma.character.delete({ where: { id } });
     return { success: true };
   }
 

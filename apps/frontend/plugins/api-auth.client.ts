@@ -2,7 +2,8 @@ import { defineNuxtPlugin } from '#app'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
-  const supabaseClient = (nuxtApp.$supabase?.client || nuxtApp.$supabase) as any
+  const supabase = (nuxtApp as any).$supabase
+  const supabaseClient = (supabase?.client || supabase) as any
 
   if (!supabaseClient?.auth) {
     console.error('[API Auth] Supabase client is not available')
@@ -14,12 +15,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   // 初期セッション取得
   supabaseClient?.auth?.getSession().then(({ data: { session } }: any) => {
     cachedToken = session?.access_token || null
-    console.log('[API Auth] Initial session loaded:', cachedToken ? 'YES' : 'NO')
   })
 
   // セッション変化を監視
-  supabaseClient?.auth?.onAuthStateChange((event: any, session: any) => {
-    console.log('[API Auth] Auth state changed:', event)
+  supabaseClient?.auth?.onAuthStateChange((_event: any, session: any) => {
     cachedToken = session?.access_token || null
   })
 
@@ -28,7 +27,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     credentials: 'include',
     async onRequest({ options }) {
       // キャッシュがない場合は最新のセッションを取得
-      if (!cachedToken) {
+      if (!cachedToken && supabaseClient?.auth) {
         const { data: { session } } = await supabaseClient.auth.getSession()
         cachedToken = session?.access_token || null
       }
@@ -44,13 +43,10 @@ export default defineNuxtPlugin((nuxtApp) => {
     },
     async onResponseError({ response, options, request }) {
       // 401エラー時はトークンをリフレッシュしてリトライ
-      if (response.status === 401) {
-        console.log('[API Auth] 401 error, refreshing token...')
-        
+      if (response.status === 401 && supabaseClient?.auth) {
         const { data, error } = await supabaseClient.auth.refreshSession()
         if (!error && data.session) {
           cachedToken = data.session.access_token
-          console.log('[API Auth] Token refreshed, retrying...')
           
           // リトライ（ヘッダー更新）
           const headers = options.headers instanceof Headers 
@@ -61,7 +57,7 @@ export default defineNuxtPlugin((nuxtApp) => {
           options.headers = headers
           
           // 再リクエスト
-          return $fetch(request as string, options)
+          return $fetch(request as string, options as any)
         } else {
           console.error('[API Auth] Token refresh failed:', error)
           // リフレッシュ失敗時はログイン画面へ

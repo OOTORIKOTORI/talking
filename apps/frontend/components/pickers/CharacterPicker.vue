@@ -20,7 +20,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { watchDebounced } from '@vueuse/core'
+import { onBeforeUnmount, watch } from 'vue'
 import { useCharactersApi } from '@/composables/useCharacters'
 const props = defineProps<{ open: boolean }>()
 const emits = defineEmits<{(e:'update:open', v:boolean):void; (e:'select', c:any):void}>()
@@ -36,5 +36,19 @@ const doLoad = async () => {
     items.value = Array.isArray(result) ? result : (result?.items ?? result?.results ?? [])
   }
 }
-watchDebounced([tab, q], doLoad, { immediate: true, debounce: 200 })
+let loadTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  [tab, q],
+  () => {
+    if (loadTimer) clearTimeout(loadTimer)
+    loadTimer = setTimeout(() => {
+      void doLoad()
+    }, 200)
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => {
+  if (loadTimer) clearTimeout(loadTimer)
+})
 </script>

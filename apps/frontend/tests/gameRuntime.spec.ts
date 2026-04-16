@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  appendBacklogEntry,
   applyChoiceEffects,
   evaluateChoiceCondition,
   filterVisibleChoices,
@@ -43,5 +44,28 @@ describe('Game Runtime', () => {
     const visible = filterVisibleChoices(choices, { affection: 4 })
     expect(visible).toHaveLength(2)
     expect(resolveChoiceTarget(choices[1], { affection: 5 })).toBe('secret')
+  })
+
+  it('should append one backlog entry and ignore duplicates', () => {
+    const next = appendBacklogEntry([], {
+      id: 'node-1',
+      text: 'こんにちは',
+      speakerDisplayName: '案内人',
+    }, '前文')
+
+    expect(next).toHaveLength(1)
+    expect(next[0]).toEqual({
+      nodeId: 'node-1',
+      speakerName: '案内人',
+      text: '前文こんにちは',
+    })
+
+    const deduped = appendBacklogEntry(next, {
+      id: 'node-1',
+      text: 'こんにちは',
+      speakerDisplayName: '案内人',
+    }, '前文')
+
+    expect(deduped).toHaveLength(1)
   })
 })

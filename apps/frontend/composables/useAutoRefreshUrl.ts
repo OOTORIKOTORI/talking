@@ -40,7 +40,6 @@ export const useAutoRefreshUrl = (initialKey: string) => {
     try {
       const response = await fetch(target.src, { method: 'HEAD' });
       if (response.status === 403) {
-        console.log('Detected 403 error, refreshing signed URL');
         await refreshUrl(key);
       }
     } catch (e) {

@@ -3,10 +3,9 @@ import AssetCard from '@/components/asset/AssetCard.vue'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
 definePageMeta({ name: 'my-favorites' })
 
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useAssetsApi } from '@/composables/useAssets'
 import { useQuerySync } from '@/composables/useQuerySync'
-import { watchDebounced } from '@vueuse/core'
 
 const api = useAssetsApi()
 const favorites = ref<any[]>([])
@@ -17,7 +16,22 @@ async function load() {
 }
 
 onMounted(load)
-watchDebounced(qs, load, { deep: true, debounce: 200 })
+
+let loadTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  qs,
+  () => {
+    if (loadTimer) clearTimeout(loadTimer)
+    loadTimer = setTimeout(() => {
+      void load()
+    }, 200)
+  },
+  { deep: true }
+)
+
+onBeforeUnmount(() => {
+  if (loadTimer) clearTimeout(loadTimer)
+})
 </script>
 
 <template>

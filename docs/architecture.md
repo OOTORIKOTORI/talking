@@ -3,7 +3,7 @@
 ## ドメイン
 
 ### アセット（画像/音声）
-- モデル: `Asset { id, ownerId, key, thumbKey, title, description, contentType, primaryTag, tags[], size, createdAt, ... }`
+- モデル: `Asset { id, ownerId, key, url, thumbKey, title, description, contentType, primaryTag, tags[], size, createdAt, ... }`
 - 画像URLは **署名付き GET `/uploads/signed-get?key=...` の JSON `{ url }` を取得してから `<img src>` に適用** する（直リンク禁止）
 - 検索: Meilisearch（facets: `contentType`, `primaryTag`, `tags`）
 

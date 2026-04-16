@@ -266,9 +266,6 @@ const handleSubmit = async () => {
 
     emit('success', updatedAsset);
     close();
-
-    // Show success toast (you can implement a toast system later)
-    console.log('保存しました');
   } catch (error: any) {
     console.error('Failed to update asset:', error);
 

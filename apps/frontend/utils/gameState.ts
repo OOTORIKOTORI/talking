@@ -1,3 +1,5 @@
+import type { BacklogEntry } from '@talking/types'
+
 export type GameStateValue = string | number | boolean | null
 export type GameState = Record<string, GameStateValue>
 
@@ -119,10 +121,40 @@ export function resolveChoiceTarget(choice: any, state: GameState): string | nul
   return normalTarget || null
 }
 
-export function filterVisibleChoices<T extends { condition?: GameChoiceCondition | null }>(
+export function filterVisibleChoices<T extends Record<string, any>>(
   choices: T[] | null | undefined,
   state: GameState,
 ): T[] {
   if (!Array.isArray(choices)) return []
-  return choices.filter(choice => evaluateChoiceCondition(choice.condition, state))
+  return choices.filter(choice =>
+    evaluateChoiceCondition(
+      (choice as { condition?: GameChoiceCondition | null }).condition,
+      state,
+    ),
+  )
+}
+
+export function appendBacklogEntry(
+  entries: BacklogEntry[],
+  node: { id?: string | null; text?: string | null; speakerDisplayName?: string | null } | null | undefined,
+  prefixText = '',
+): BacklogEntry[] {
+  if (!node?.id || !node?.text) return entries
+
+  const entry: BacklogEntry = {
+    nodeId: node.id,
+    speakerName: node.speakerDisplayName ?? null,
+    text: `${prefixText}${node.text}`,
+  }
+
+  const last = entries[entries.length - 1]
+  if (
+    last?.nodeId === entry.nodeId &&
+    last?.speakerName === entry.speakerName &&
+    last?.text === entry.text
+  ) {
+    return entries
+  }
+
+  return [...entries, entry]
 }

@@ -1,19 +1,39 @@
 // IntersectionObserver for lazy loading optimization
-import { useIntersectionObserver } from '@vueuse/core'
+import { onBeforeUnmount, watch } from 'vue'
 
 export function useIoOnce(el: Ref<HTMLElement | undefined>, callback: () => void) {
-  const { stop } = useIntersectionObserver(
+  let observer: IntersectionObserver | null = null
+
+  const stop = () => {
+    observer?.disconnect()
+    observer = null
+  }
+
+  watch(
     el,
-    ([entry]) => {
-      if (entry.isIntersecting) {
-        callback()
-        stop()
-      }
+    (target) => {
+      stop()
+
+      if (!target || typeof IntersectionObserver === 'undefined') return
+
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) {
+            callback()
+            stop()
+          }
+        },
+        {
+          threshold: 0.1,
+        }
+      )
+
+      observer.observe(target)
     },
-    {
-      threshold: 0.1,
-    }
+    { immediate: true }
   )
+
+  onBeforeUnmount(stop)
 
   return stop
 }

@@ -57,17 +57,6 @@ const emit = defineEmits<{
   complete: []
 }>()
 
-// デバッグログ - すべてのpropsを監視
-watch(() => props, (newVal) => {
-  console.log('[MessageWindow] ALL props:', {
-    speaker: newVal.speaker,
-    text: newVal.text,
-    animate: newVal.animate,
-    accumulatedPrefix: newVal.accumulatedPrefix,
-    hasAccumulatedPrefix: !!newVal.accumulatedPrefix
-  })
-}, { immediate: true, deep: true })
-
 const theme = computed(() => props.theme ?? {})
 
 // テーマをv2形式に解決

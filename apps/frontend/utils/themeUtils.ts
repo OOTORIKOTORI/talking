@@ -191,14 +191,11 @@ export function migrateToV2(v1: MessageTheme | MessageThemeV2 | undefined): Mess
   // 既に v2 なら、色フィールドをRGBAオブジェクトに正規化してから返す
   if (v1 && 'themeVersion' in v1 && v1.themeVersion === 2) {
     const v2 = { ...v1 } as MessageThemeV2
-    
-    console.log('[migrateToV2] v2テーマを正規化中', v2)
-    
+
     // 色フィールドが文字列の場合はRGBAオブジェクトに変換
     if (v2.frameBg && typeof v2.frameBg === 'string') {
       const parsed = parseColor(v2.frameBg)
       if (parsed) {
-        console.log('[migrateToV2] frameBg を変換:', v2.frameBg, '→', parsed)
         v2.frameBg = parsed
       }
     }
@@ -214,8 +211,7 @@ export function migrateToV2(v1: MessageTheme | MessageThemeV2 | undefined): Mess
       const parsed = parseColor(v2.textColor)
       if (parsed) v2.textColor = parsed
     }
-    
-    console.log('[migrateToV2] 正規化完了', v2)
+
     return v2
   }
 

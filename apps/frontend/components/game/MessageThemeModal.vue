@@ -1105,7 +1105,6 @@ async function save() {
   saving.value = true
   try {
     const { $api } = useNuxtApp() // 関数内で取得してSSR問題を回避
-    console.log('[MessageThemeModal] 保存開始', props.gameId, draft.value)
     
     // 色をRGBAオブジェクトから文字列へ変換してからシリアライズ
     const v = JSON.parse(JSON.stringify(draft.value))
@@ -1124,12 +1123,10 @@ async function save() {
       v.textColor = rgbaToCss(v.textColor)
     }
     
-    console.log('[MessageThemeModal] シリアライズ完了', v)
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
       body: { messageTheme: v, gameUiTheme: uiDraft.value, backlogTheme: backlogDraft.value }
     })
-    console.log('[MessageThemeModal] API呼び出し成功', result)
     
     // 親へ通知（即時反映させる）
     emit('saved', {

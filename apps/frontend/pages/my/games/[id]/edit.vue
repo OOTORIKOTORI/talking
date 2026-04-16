@@ -214,7 +214,6 @@ watch(
   () => nodeDraft.portraits,
   async (list: any[] | undefined) => {
     if (!list || list.length === 0) return
-    console.log('[edit.vue] portraits changed, resolving thumbs...', list)
     // thumb が無い portrait があれば補完
     for (const p of list) {
       // 既に thumbCache にある場合はスキップ
@@ -231,10 +230,8 @@ watch(
           // 優先順位: 1) p.key がある場合は直接署名URL取得、2) imageId から取得
           if (p.key) {
             url = await getSignedGetUrl(p.key)
-            console.log('[edit.vue] resolved thumb via key for', cacheKey, '→', url)
           } else if (p.imageId) {
             url = await signedFromId(p.imageId, true)
-            console.log('[edit.vue] resolved thumb via imageId for', cacheKey, '→', url)
           }
           
           if (url) {
@@ -243,18 +240,15 @@ watch(
         } catch (e) {
           console.warn('[edit.vue] thumb resolve failed for', p, e)
         }
-      } else {
-        console.log('[edit.vue] using cached thumb for', cacheKey)
       }
     }
-    console.log('[edit.vue] thumbCache now has', thumbCache.value.size, 'entries', Array.from(thumbCache.value.keys()))
   },
   { immediate: true, deep: true }
 )
 
 // StageCanvas 用のキャラクター配列 (thumbCache から取得)
 const stageCharacters = computed(() => {
-  const result = portraitsResolved.value.map((p: any) => {
+  return portraitsResolved.value.map((p: any) => {
     const cacheKey = p.imageId || p.key
     return {
       key: cacheKey || String(Math.random()),
@@ -265,8 +259,6 @@ const stageCharacters = computed(() => {
       z: p.z ?? 0
     }
   })
-  console.log('[edit.vue] stageCharacters computed:', result)
-  return result
 })
 
 // StageCanvas 用のカメラ（リアクティブに更新）
@@ -405,9 +397,9 @@ function addChoiceEffect(choice: any) {
   choice.effects.push({ key: '', op: 'add', value: 1 })
 }
 
-function removeChoiceEffect(choice: any, effectIndex: number) {
+function removeChoiceEffect(choice: any, effectIndex: number | string) {
   if (!Array.isArray(choice.effects)) return
-  choice.effects.splice(effectIndex, 1)
+  choice.effects.splice(Number(effectIndex), 1)
 }
 
 function enableChoiceCondition(choice: any, field: 'condition' | 'alternateCondition') {
@@ -424,8 +416,8 @@ function isUnaryChoiceOperator(op: string | undefined) {
 const editingChoiceIndex = ref<number | null>(null)
 const editingChoiceTargetField = ref<'targetNodeId' | 'alternateTargetNodeId'>('targetNodeId')
 
-function openChoiceNodePicker(index: number, field: 'targetNodeId' | 'alternateTargetNodeId' = 'targetNodeId') {
-  editingChoiceIndex.value = index
+function openChoiceNodePicker(index: number | string, field: 'targetNodeId' | 'alternateTargetNodeId' = 'targetNodeId') {
+  editingChoiceIndex.value = Number(index)
   editingChoiceTargetField.value = field
   openNodePicker.value = true
 }
@@ -471,13 +463,13 @@ async function addPortrait() {
   openCharPicker.value = true
 }
 
-function changePortrait(i: number) {
-  pendingIndex.value = i
+function changePortrait(i: number | string) {
+  pendingIndex.value = Number(i)
   openCharPicker.value = true
 }
 
-function removePortrait(i: number) {
-  nodeDraft.portraits.splice(i, 1)
+function removePortrait(i: number | string) {
+  nodeDraft.portraits.splice(Number(i), 1)
 }
 
 // 話者キャラ選択を開く（ポートレートモードではない）
@@ -817,8 +809,8 @@ function addChoice() {
   })
 }
 
-function removeChoice(index: number) {
-  nodeDraft.choices.splice(index, 1)
+function removeChoice(index: number | string) {
+  nodeDraft.choices.splice(Number(index), 1)
 }
 
 // NodePicker のイベントハンドラ
@@ -1302,8 +1294,8 @@ function onUp() {
                     <div class="flex items-center gap-2">
                       <img v-if="p.thumb" :src="p.thumb" class="w-12 h-12 object-cover rounded-full border" />
                       <span class="text-xs text-gray-700 truncate flex-1">{{ p.characterName || p.characterId }}</span>
-                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(i)">画像変更</button>
-                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(i)">削除</button>
+                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(Number(i))">画像変更</button>
+                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(Number(i))">削除</button>
                     </div>
                     <div class="grid grid-cols-4 gap-2 mt-2">
                       <label class="text-xs">X%<input type="number" v-model.number="p.x" class="w-full border rounded px-1 py-0.5" /></label>
