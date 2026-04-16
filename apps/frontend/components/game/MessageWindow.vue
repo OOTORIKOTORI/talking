@@ -15,11 +15,12 @@
       <div class="name-actions" @click.stop>
         <button
           v-if="showBacklogButton"
-          class="window-btn"
+          class="window-btn window-btn--backlog"
           title="バックログ"
           @click.stop="emit('backlog')"
         >
           <Icon name="mdi:text-box-outline" />
+          <span class="window-btn-label">LOG</span>
         </button>
         <slot name="name-actions" />
       </div>
@@ -225,6 +226,23 @@ onBeforeUnmount(() => clearInterval(timer))
 
 .window-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.window-btn--backlog {
+  min-width: 48px;
+  height: 28px;
+  padding: 0 8px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.window-btn-label {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  line-height: 1;
 }
 
 .text {

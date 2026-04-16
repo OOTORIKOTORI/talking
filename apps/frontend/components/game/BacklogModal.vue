@@ -81,7 +81,7 @@ onUnmounted(() => document.removeEventListener('keyup', onKey))
 
 .backlog-modal {
   width: min(680px, 85vw);
-  max-height: 70vh;
+  height: 70vh;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
