@@ -45,7 +45,9 @@ NUXT_PUBLIC_API_BASE=http://localhost:4000
 #### API (`apps/api/.env`)
 
 ```env
-# Supabase Auth (HS256 JWT 検証)
+# Supabase Auth (JWKS JWT 検証)
+SUPABASE_JWKS_URL=https://<your-project-ref>.supabase.co/auth/v1/.well-known/jwks.json
+# レガシーフォールバック（既存データ互換、将来的に廃止予定）
 SUPABASE_JWT_SECRET=<Supabase ダッシュボードの JWT Secret>
 
 # S3/MinIO
@@ -59,7 +61,7 @@ MEILI_HOST=http://localhost:7700
 MEILI_KEY=masterKey123
 ```
 
-> **重要:** `SUPABASE_JWT_SECRET` は Supabase ダッシュボード → Settings → API → **JWT Secret** からコピーしてください。
+> **重要:** `SUPABASE_JWKS_URL` の `<your-project-ref>` は Supabase ダッシュボード → Settings → General → **Reference ID** から取得してください。`SUPABASE_JWT_SECRET` は移行期間の互換用です。
 
 ### Nuxt モジュール
 - `@nuxt/icon` を **modules** に登録して `<Icon>` を使用（SFCで `from '@nuxt/icon'` の直接importは不要）
@@ -143,10 +145,10 @@ pnpm dev:all
 - Network タブで `Authorization: Bearer` が付いているか確認
 - 付いていない場合 → `$api` composable を使う（`useApi.ts`）
 
-#### 原因 2: SUPABASE_JWT_SECRET が間違っている
+#### 原因 2: SUPABASE_JWKS_URL が間違っている
 
-1. Supabase ダッシュボード → Settings → API → **JWT Secret** を確認
-2. `apps/api/.env` の `SUPABASE_JWT_SECRET` と一致しているか確認
+1. Supabase ダッシュボード → Settings → General → **Reference ID** を確認
+2. `apps/api/.env` の `SUPABASE_JWKS_URL` が `https://<ref>.supabase.co/auth/v1/.well-known/jwks.json` の形式になっているか確認
 3. 修正後、API を再起動
 
 #### 原因 3: トークンの期限切れ
@@ -156,7 +158,7 @@ pnpm dev:all
 
 #### 原因 4: フロントとAPIで異なる Supabase プロジェクトを参照
 
-- `apps/frontend/.env` の `SUPABASE_URL` と `apps/api/.env` の `SUPABASE_JWT_SECRET` が**同一プロジェクト**のものか確認
+- `apps/frontend/.env` の `SUPABASE_URL` と `apps/api/.env` の `SUPABASE_JWKS_URL` / `SUPABASE_JWT_SECRET` が **同一プロジェクト**のものか確認
 
 ### Docker サービスが Unhealthy
 
