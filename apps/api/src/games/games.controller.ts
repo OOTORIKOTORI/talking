@@ -12,6 +12,7 @@ import {
 import { GamesService } from './games.service';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { OptionalSupabaseAuthGuard } from '../auth/optional-supabase-auth.guard';
+import { UpdateGameDto } from './dto/update-game.dto';
 
 @UseGuards(SupabaseAuthGuard)
 @Controller('games')
@@ -35,7 +36,7 @@ export class GamesController {
   }
 
   @Patch(':id')
-  update(@Req() req: any, @Param('id') id: string, @Body() b: any) {
+  update(@Req() req: any, @Param('id') id: string, @Body() b: UpdateGameDto) {
     return this.games.update(req.user.userId, id, b);
   }
 

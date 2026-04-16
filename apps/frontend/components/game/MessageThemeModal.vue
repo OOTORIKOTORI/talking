@@ -510,6 +510,70 @@
           </div>
           </template>
 
+          <!-- ===== バックログ タブ ===== -->
+          <template v-if="activeModalTab === 'backlog'">
+          <div class="px-5 py-5 space-y-6">
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-violet-600">📜</span> プレビュー</h4>
+              <div class="rounded-xl p-4 border" :style="backlogPreviewStyle">
+                <div class="space-y-3 max-h-[220px] overflow-y-auto">
+                  <div class="border-b border-white/10 pb-2">
+                    <div :style="backlogSpeakerStyle">案内役</div>
+                    <p class="m-0 leading-7">ここに最新の会話ログが上から表示されます。</p>
+                  </div>
+                  <div class="border-b border-white/10 pb-2">
+                    <div :style="backlogSpeakerStyle">主人公</div>
+                    <p class="m-0 leading-7">背景色・文字色・話者色・文字サイズを確認できます。</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-blue-600">📐</span> かんたん設定</h4>
+              <div class="grid gap-4 md:grid-cols-2 text-sm">
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">プリセット (1〜10)</span>
+                  <input v-model.number="backlogDraft.preset" type="range" min="1" max="10" class="mt-1" />
+                  <span class="text-xs text-gray-600 text-center">{{ backlogDraft.preset }}</span>
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">フォントサイズ (px)</span>
+                  <input v-model.number="backlogDraft.fontSize" type="number" min="10" max="24" class="border rounded px-3 py-2" />
+                </label>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-purple-600">🎨</span> 色設定</h4>
+              <div class="space-y-4">
+                <ColorField
+                  :modelValue="backlogDraft.bgColor"
+                  label="背景色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => backlogDraft.bgColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="backlogDraft.textColor"
+                  label="テキスト色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => backlogDraft.textColor = rgbaToCss(v)"
+                />
+                <ColorField
+                  :modelValue="backlogDraft.speakerColor"
+                  label="話者名の色"
+                  :presets="uiColorPresets"
+                  @update:modelValue="(v) => backlogDraft.speakerColor = rgbaToCss(v)"
+                />
+              </div>
+            </section>
+
+            <div class="flex justify-end">
+              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetBacklog">バックログ設定をリセット</button>
+            </div>
+          </div>
+          </template>
+
         </div>
 
         <!-- フッター（固定） -->
@@ -541,21 +605,22 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { MessageThemeV2, RGBA, GameUiTheme } from '@talking/types'
-import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS } from '@talking/types'
+import type { MessageThemeV2, RGBA, GameUiTheme, BacklogTheme } from '@talking/types'
+import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS, DEFAULT_BACKLOG_THEME, resolveBacklogPreset } from '@talking/types'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import { migrateToV2, contrastRatio, contrastLevel, toRgba, rgbaToCss } from '@/utils/themeUtils'
 
-const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiTheme }>()
+const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiTheme; initialBacklog?: BacklogTheme }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
 
 // タブ
-type ModalTabKey = 'message' | 'ui'
+type ModalTabKey = 'message' | 'ui' | 'backlog'
 const activeModalTab = ref<ModalTabKey>('message')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'message', label: 'メッセージウィンドウ' },
   { key: 'ui', label: 'その他UI' },
+  { key: 'backlog', label: 'バックログ' },
 ]
 
 // デフォルトテーマ（v2）
@@ -588,6 +653,21 @@ const draft = ref<MessageThemeV2>(migrateToV2(props.initial ?? defaultThemeV2))
 const defaultUiTheme: GameUiTheme = {}
 const uiDraft = ref<GameUiTheme>({ ...defaultUiTheme, ...(props.initialUi ?? {}) })
 function resetUi() { uiDraft.value = { ...defaultUiTheme } }
+
+// --- バックログ設定 draft ---
+const backlogDraft = ref<BacklogTheme>({ ...(props.initialBacklog ?? DEFAULT_BACKLOG_THEME) })
+function resetBacklog() { backlogDraft.value = { ...(props.initialBacklog ?? DEFAULT_BACKLOG_THEME) } }
+
+const resolvedBacklog = computed(() => resolveBacklogPreset(backlogDraft.value.preset))
+const backlogPreviewStyle = computed(() => ({
+  background: backlogDraft.value.bgColor || resolvedBacklog.value.bgColor,
+  color: backlogDraft.value.textColor || DEFAULT_BACKLOG_THEME.textColor,
+  fontSize: `${backlogDraft.value.fontSize || resolvedBacklog.value.fontSize}px`,
+}))
+const backlogSpeakerStyle = computed(() => ({
+  color: backlogDraft.value.speakerColor || DEFAULT_BACKLOG_THEME.speakerColor,
+  fontWeight: 'bold',
+}))
 
 // UIカラープリセットパレット
 const uiColorPresets = [
@@ -1013,6 +1093,8 @@ watch([() => draft.value.typeSpeedPreset, () => draft.value.rows, () => draft.va
 function reset() {
   draft.value = migrateToV2(props.initial ?? defaultThemeV2)
   advancedTouched.value = false
+  resetUi()
+  resetBacklog()
 }
 
 // 保存
@@ -1045,12 +1127,16 @@ async function save() {
     console.log('[MessageThemeModal] シリアライズ完了', v)
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
-      body: { messageTheme: v, gameUiTheme: uiDraft.value }
+      body: { messageTheme: v, gameUiTheme: uiDraft.value, backlogTheme: backlogDraft.value }
     })
     console.log('[MessageThemeModal] API呼び出し成功', result)
     
     // 親へ通知（即時反映させる）
-    emit('saved', { messageTheme: result?.messageTheme ?? v, gameUiTheme: result?.gameUiTheme ?? uiDraft.value })
+    emit('saved', {
+      messageTheme: result?.messageTheme ?? v,
+      gameUiTheme: result?.gameUiTheme ?? uiDraft.value,
+      backlogTheme: result?.backlogTheme ?? backlogDraft.value,
+    })
     toast.success('全体設定を保存しました')
     emit('close')
   } catch (error: any) {

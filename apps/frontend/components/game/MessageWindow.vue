@@ -2,7 +2,7 @@
   <div 
     class="mw pointer-events-auto"
     :style="mwStyle"
-    @click="$emit('click', $event)"
+    @click="emit('click', $event)"
   >
     <div class="name-row">
       <div
@@ -13,6 +13,13 @@
         <span class="font-semibold">{{ speaker }}</span>
       </div>
       <div class="name-actions" @click.stop>
+        <button
+          class="window-btn"
+          title="バックログ"
+          @click.stop="emit('backlog')"
+        >
+          <Icon name="mdi:text-box-outline" />
+        </button>
         <slot name="name-actions" />
       </div>
     </div>
@@ -39,6 +46,12 @@ const props = defineProps<{
   animate?: boolean
   theme?: any
   accumulatedPrefix?: string  // 即座に表示する累積テキスト
+}>()
+
+const emit = defineEmits<{
+  click: [event?: MouseEvent]
+  backlog: []
+  complete: []
 }>()
 
 // デバッグログ - すべてのpropsを監視
@@ -126,14 +139,21 @@ const shown = ref('')
 let timer: any = null
 function typeTo(target: string) {
   clearInterval(timer)
-  if (!props.animate) { shown.value = target; return }
+  if (!props.animate) {
+    shown.value = target
+    emit('complete')
+    return
+  }
   shown.value = ''
   const ms = resolved.value.typeMs ?? 25
   let i = 0
   timer = setInterval(() => {
     i++
     shown.value = target.slice(0, i)
-    if (i >= target.length) clearInterval(timer)
+    if (i >= target.length) {
+      clearInterval(timer)
+      emit('complete')
+    }
   }, ms)
 }
 
@@ -185,6 +205,24 @@ onBeforeUnmount(() => clearInterval(timer))
   align-items: center;
   gap: calc(6px * var(--stage-scale, 1));
   pointer-events: auto;
+}
+
+.window-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(28px * var(--stage-scale, 1));
+  height: calc(28px * var(--stage-scale, 1));
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.window-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .text {

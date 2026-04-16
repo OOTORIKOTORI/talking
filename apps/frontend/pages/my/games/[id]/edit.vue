@@ -1996,8 +1996,9 @@ function onUp() {
         :game-id="game?.id"
         :initial="game?.messageTheme"
         :initial-ui="game?.gameUiTheme"
+        :initial-backlog="game?.backlogTheme"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) { game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme } }"
+        @saved="(v)=>{ if (game) { game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme } }"
       />
     </div>
   </div>

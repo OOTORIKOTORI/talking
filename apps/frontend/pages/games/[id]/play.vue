@@ -75,6 +75,8 @@
               :accumulatedPrefix="prefixText"
               :theme="theme"
               :animate="true"
+              @backlog="backlog.open()"
+              @complete="pushCurrentToBacklog()"
               @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
             >
               <template #name-actions>
@@ -176,6 +178,8 @@
             :accumulatedPrefix="prefixText"
             :theme="theme"
             :animate="true"
+            @backlog="backlog.open()"
+            @complete="pushCurrentToBacklog()"
             @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
           >
             <template #name-actions>
@@ -309,6 +313,13 @@
         </div>
       </div>
 
+      <BacklogModal
+        :is-open="backlog.isOpen"
+        :entries="backlog.entries"
+        :theme="game?.backlogTheme ?? DEFAULT_BACKLOG_THEME"
+        @close="backlog.close()"
+      />
+
       <!-- 音声同意オーバーレイ -->
       <div v-if="!soundOk && (bgmUrl || sfxUrl)" class="fixed inset-0 z-50 grid place-items-center bg-black/60">
         <div class="rounded-xl bg-white p-6 shadow-xl w-[min(560px,90vw)]">
@@ -361,11 +372,14 @@ const onEscKey = (e: KeyboardEvent) => {
 
 import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
+import BacklogModal from '@/components/game/BacklogModal.vue'
 import { computed, ref, watch, onMounted } from 'vue'
+import { DEFAULT_BACKLOG_THEME } from '@talking/types'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 import { useVisualEffects } from '@/composables/useVisualEffects'
+import { useBacklog } from '@/composables/useBacklog'
 import { useToast } from '@/composables/useToast'
 import { applyChoiceEffects, filterVisibleChoices, resolveChoiceTarget } from '@/utils/gameState'
 
@@ -376,6 +390,7 @@ const router = useRouter()
 const api = useGamesApi()
 const runtimeConfig = useRuntimeConfig()
 const toast = useToast()
+const backlog = useBacklog()
 
 const game = ref<any>(null)
 const map = new Map<string, any>()
@@ -650,6 +665,7 @@ async function saveToSelectedSlot() {
 async function loadFromSelectedSlot() {
   if (!game.value?.id || !selectedSlot.value) return
   savingOrLoading.value = true
+  backlog.reset()
   try {
     const rec: any = await api.getSave(
       game.value.id,
@@ -1138,6 +1154,7 @@ function applyCameraForNode(prevNode: any | null, node: any | null) {
 onMounted(async () => {
   // 音声同意を確認
   initAudioConsent()
+  backlog.reset()
   
   // Escキーイベントリスナーを追加
   window.addEventListener('keydown', onEscKey)
@@ -1203,6 +1220,7 @@ function start() {
 }
 
 function restart() {
+  backlog.reset()
   accumulatedText.value = ''
   gameState.value = {}
   showStartScreen.value = true
@@ -1215,6 +1233,7 @@ function restart() {
 }
 
 function selectChoice(choice: any) {
+  pushCurrentToBacklog()
   const nextState = applyChoiceEffects(gameState.value as any, choice?.effects)
   gameState.value = nextState
   showChoices.value = false
@@ -1278,6 +1297,7 @@ function go(targetNodeId: string | null) {
 
 function advanceWithinNodeOrNext() {
   showChoices.value = false // 選択肢表示をリセット
+  pushCurrentToBacklog()
   
   // 選択肢がある場合は選択肢を表示
   if (hasChoices.value) {
@@ -1299,6 +1319,28 @@ const speaker = computed(() => {
   if (!current.value) return ''
   return current.value.speakerDisplayName || ''
 })
+
+function pushCurrentToBacklog() {
+  if (!current.value?.id || !current.value?.text) return
+
+  const fullText = `${prefixText.value}${current.value.text}`
+  const entry = {
+    nodeId: current.value.id,
+    speakerName: current.value.speakerDisplayName ?? null,
+    text: fullText,
+  }
+  const last = backlog.entries.value[backlog.entries.value.length - 1]
+
+  if (
+    last?.nodeId === entry.nodeId &&
+    last?.speakerName === entry.speakerName &&
+    last?.text === entry.text
+  ) {
+    return
+  }
+
+  backlog.push(entry)
+}
 
 // 累積テキスト（即座に表示する部分）
 const prefixText = computed(() => {

@@ -171,6 +171,7 @@ model GameProject {
   //                       typewriter: {msPerChar} }
   messageTheme Json?
   gameUiTheme  Json?
+  backlogTheme Json?
 
   @@index([ownerId, isPublic])
   @@map("game_projects")

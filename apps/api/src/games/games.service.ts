@@ -124,6 +124,14 @@ export class GamesService {
         allowed.gameUiTheme = ui ?? null
       }
     }
+    if ('backlogTheme' in (data ?? {})) {
+      const backlog = data.backlogTheme
+      if (backlog && typeof backlog === 'object' && !Array.isArray(backlog)) {
+        allowed.backlogTheme = backlog
+      } else {
+        allowed.backlogTheme = backlog ?? null
+      }
+    }
     if (Object.keys(allowed).length === 0) return g;
     return this.prisma.gameProject.update({ where: { id }, data: allowed });
   }

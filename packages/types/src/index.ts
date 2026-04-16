@@ -242,6 +242,53 @@ export interface GameUiTheme {
   quickButtonText?: string;
 }
 
+/** バックログの1エントリ */
+export interface BacklogEntry {
+  /** ノードID（将来の場面ジャンプ用に保持） */
+  nodeId: string
+  /** 話者名。ナレーションなど話者なしの場合は null */
+  speakerName: string | null
+  /** タイプライター完了後の全文テキスト */
+  text: string
+}
+
+/** バックログモーダルのテーマ設定 */
+export interface BacklogTheme {
+  /** 1〜10段階プリセット（MessageThemeV2 と同じ段階感） */
+  preset: number
+  /** 背景色 RGBA文字列（例: rgba(0,0,0,0.88)） */
+  bgColor: string
+  /** テキスト色（例: #e8e8e8） */
+  textColor: string
+  /** 話者名の色（例: #ffd700） */
+  speakerColor: string
+  /** フォントサイズ (px) */
+  fontSize: number
+}
+
+/** BacklogTheme のデフォルト値 */
+export const DEFAULT_BACKLOG_THEME: BacklogTheme = {
+  preset: 5,
+  bgColor: 'rgba(0, 0, 0, 0.88)',
+  textColor: '#e8e8e8',
+  speakerColor: '#ffd700',
+  fontSize: 15,
+}
+
+/**
+ * プリセット番号 (1〜10) から BacklogTheme の bgColor と fontSize を返す。
+ * themeUtils.ts の resolveThemeV2 と同じ段階感で設計。
+ */
+export const resolveBacklogPreset = (preset: number): Pick<BacklogTheme, 'bgColor' | 'fontSize'> => {
+  const p = Math.max(1, Math.min(10, preset))
+  const opacity = 0.55 + p * 0.04
+  const fontSize = 11 + p
+  return {
+    bgColor: `rgba(0, 0, 0, ${opacity.toFixed(2)})`,
+    fontSize,
+  }
+}
+
 // === Visual Effects ===================
 export type VisualEffectType = 'shake' | 'flash';
 export type VisualEffectIntensity = 'small' | 'medium' | 'large';
