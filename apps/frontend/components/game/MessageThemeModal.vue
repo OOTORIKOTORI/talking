@@ -21,6 +21,39 @@
           <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none pb-3" @click="$emit('close')" title="閉じる">✕</button>
         </div>
 
+        <!-- 全体テーマ一括設定（折り畳み） -->
+        <div class="border-b bg-indigo-50/60">
+          <button
+            class="w-full flex items-center justify-between px-5 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition"
+            @click="unifiedOpen = !unifiedOpen"
+          >
+            <span class="flex items-center gap-2">
+              <span>✨</span>
+              全体テーマを一括設定（メッセージウィンドウ・セーブ・ロード・バックログを統一）
+            </span>
+            <span class="text-indigo-400 text-xs">{{ unifiedOpen ? '▲ 閉じる' : '▼ 開く' }}</span>
+          </button>
+
+          <div v-if="unifiedOpen" class="px-5 pb-4">
+            <p class="text-xs text-indigo-600 mb-3">
+              クリックするとすべてのタブのテーマが同じ雰囲気に統一されます。各タブで個別に微調整もできます。
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button
+                v-for="(preset, key) in unifiedPresets"
+                :key="key"
+                class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg bg-white hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+                :title="preset.description"
+                @click="applyAllPreset(key as any)"
+              >
+                <span class="text-2xl">{{ preset.icon }}</span>
+                <span class="text-xs font-medium">{{ preset.name }}</span>
+                <span class="text-[10px] text-gray-500 text-center">{{ preset.description }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- スクロール可能なコンテンツ領域 -->
         <div class="overflow-y-auto flex-1">
           <!-- ===== メッセージウィンドウ タブ ===== -->
@@ -339,7 +372,7 @@
           </div>
           </template>
 
-          <!-- ===== その他UI タブ ===== -->
+          <!-- ===== セーブ・ロード画面 タブ ===== -->
           <template v-if="activeModalTab === 'ui'">
           <div class="px-5 py-5 space-y-6">
 
@@ -505,7 +538,7 @@
 
             <!-- リセット -->
             <div class="flex justify-end">
-              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetUi">その他UIをリセット</button>
+              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetUi">セーブ・ロード画面をリセット</button>
             </div>
           </div>
           </template>
@@ -526,6 +559,30 @@
                     <p class="m-0 leading-7">背景色・文字色・話者色・文字サイズを確認できます。</p>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-indigo-600">🎨</span> テーマプリセット
+              </h4>
+              <p class="text-sm text-gray-600 mb-3">雰囲気に合ったテーマを一発適用</p>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button
+                  v-for="(preset, key) in backlogThemePresets"
+                  :key="key"
+                  class="flex flex-col items-center gap-1 p-3 border-2 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+                  :title="preset.description"
+                  @click="applyBacklogPreset(key as any)"
+                >
+                  <div class="w-full h-4 rounded flex overflow-hidden">
+                    <div class="flex-1" :style="{ background: preset.settings.bgColor }"></div>
+                    <div class="w-4" :style="{ background: preset.settings.speakerColor }"></div>
+                  </div>
+                  <span class="text-xl mt-1">{{ preset.icon }}</span>
+                  <span class="text-xs font-medium">{{ preset.name }}</span>
+                  <span class="text-[10px] text-gray-500 text-center">{{ preset.description }}</span>
+                </button>
               </div>
             </section>
 
@@ -619,7 +676,7 @@ type ModalTabKey = 'message' | 'ui' | 'backlog'
 const activeModalTab = ref<ModalTabKey>('message')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'message', label: 'メッセージウィンドウ' },
-  { key: 'ui', label: 'その他UI' },
+  { key: 'ui', label: 'セーブ・ロード画面' },
   { key: 'backlog', label: 'バックログ' },
 ]
 
@@ -771,8 +828,112 @@ const uiThemePresets = {
   },
 } as const
 
+// バックログテーマプリセット定義
+const backlogThemePresets = {
+  dark: {
+    name: 'ダーク',
+    icon: '🌙',
+    description: 'シックな暗色スタンダード',
+    settings: {
+      preset: 5,
+      bgColor: 'rgba(0, 0, 0, 0.88)',
+      textColor: '#e8e8e8',
+      speakerColor: '#ffd700',
+      fontSize: 15,
+    },
+  },
+  japanese: {
+    name: '和風',
+    icon: '🎌',
+    description: '和紙のような落ち着き',
+    settings: {
+      preset: 7,
+      bgColor: 'rgba(242, 236, 220, 0.95)',
+      textColor: '#2d1a00',
+      speakerColor: '#8b1a1a',
+      fontSize: 15,
+    },
+  },
+  fantasy: {
+    name: 'ファンタジー',
+    icon: '🏰',
+    description: '紫×金の幻想的デザイン',
+    settings: {
+      preset: 6,
+      bgColor: 'rgba(30, 10, 60, 0.92)',
+      textColor: '#f0e68c',
+      speakerColor: '#ffd700',
+      fontSize: 15,
+    },
+  },
+  romance: {
+    name: '恋愛ゲーム',
+    icon: '💕',
+    description: 'ときめきを演出',
+    settings: {
+      preset: 5,
+      bgColor: 'rgba(80, 0, 40, 0.85)',
+      textColor: '#ffe0f0',
+      speakerColor: '#ff69b4',
+      fontSize: 15,
+    },
+  },
+  retro: {
+    name: 'レトロゲーム',
+    icon: '🎮',
+    description: '懐かしのドット絵風',
+    settings: {
+      preset: 9,
+      bgColor: 'rgba(0, 0, 0, 0.97)',
+      textColor: '#00ff00',
+      speakerColor: '#00ff88',
+      fontSize: 14,
+    },
+  },
+  horror: {
+    name: 'ホラー',
+    icon: '👻',
+    description: '恐怖を演出',
+    settings: {
+      preset: 9,
+      bgColor: 'rgba(10, 0, 0, 0.95)',
+      textColor: '#cc9999',
+      speakerColor: '#cc0000',
+      fontSize: 15,
+    },
+  },
+  scifi: {
+    name: 'SF',
+    icon: '🚀',
+    description: '未来的でクール',
+    settings: {
+      preset: 8,
+      bgColor: 'rgba(0, 10, 25, 0.93)',
+      textColor: '#00e5ff',
+      speakerColor: '#7c4dff',
+      fontSize: 15,
+    },
+  },
+  comedy: {
+    name: 'コメディ',
+    icon: '😄',
+    description: '明るく楽しい雰囲気',
+    settings: {
+      preset: 4,
+      bgColor: 'rgba(255, 250, 200, 0.92)',
+      textColor: '#333333',
+      speakerColor: '#ff8c00',
+      fontSize: 16,
+    },
+  },
+} as const
+
 function applyUiPreset(key: keyof typeof uiThemePresets) {
   uiDraft.value = { ...uiThemePresets[key].settings }
+}
+
+function applyBacklogPreset(key: keyof typeof backlogThemePresets) {
+  backlogDraft.value = { ...backlogThemePresets[key].settings }
 }
 
 // オーバーレイ濃さ（1=薄 〜 10=濃 → alpha 0.1〜1.0 にマッピング）
@@ -957,6 +1118,86 @@ function applyPreset(presetKey: keyof typeof themePresets) {
   
   animationKey.value++
 }
+
+// 統合プリセット定義（3つのタブを同時に設定する）
+const unifiedPresets = {
+  simple: {
+    name: 'シンプル',
+    icon: '📝',
+    description: '読みやすいスタンダード',
+  },
+  japanese: {
+    name: '和風',
+    icon: '🎌',
+    description: '和の情緒を全体に統一',
+  },
+  fantasy: {
+    name: 'ファンタジー',
+    icon: '🏰',
+    description: '魔法と冒険の世界観で統一',
+  },
+  romance: {
+    name: '恋愛ゲーム',
+    icon: '💕',
+    description: 'ときめきを全体に統一',
+  },
+  retro: {
+    name: 'レトロゲーム',
+    icon: '🎮',
+    description: 'レトロ風で全体を統一',
+  },
+  horror: {
+    name: 'ホラー',
+    icon: '👻',
+    description: '恐怖の雰囲気で全体を統一',
+  },
+  scifi: {
+    name: 'SF',
+    icon: '🚀',
+    description: '未来的なデザインで統一',
+  },
+  comedy: {
+    name: 'コメディ',
+    icon: '😄',
+    description: '明るい雰囲気で全体を統一',
+  },
+} as const
+
+/**
+ * メッセージウィンドウ・セーブロード・バックログを同じ雰囲気で一括設定する
+ */
+function applyAllPreset(key: keyof typeof unifiedPresets) {
+  if (key in themePresets) {
+    applyPreset(key as keyof typeof themePresets)
+  }
+
+  const uiKey = key in uiThemePresets
+    ? key
+    : key === 'simple'
+      ? 'dark'
+      : key === 'romance'
+        ? 'pastel'
+        : key === 'comedy'
+          ? 'light'
+          : undefined
+
+  if (uiKey) {
+    applyUiPreset(uiKey as keyof typeof uiThemePresets)
+  }
+
+  const backlogKey = key in backlogThemePresets
+    ? key
+    : key === 'simple'
+      ? 'dark'
+      : undefined
+
+  if (backlogKey) {
+    applyBacklogPreset(backlogKey as keyof typeof backlogThemePresets)
+  }
+}
+
+// 一括設定セクションの開閉
+const unifiedOpen = ref(false)
 
 // 上級設定の開閉
 const advancedOpen = ref(false)
