@@ -14,6 +14,7 @@
       </div>
       <div class="name-actions" @click.stop>
         <button
+          v-if="showBacklogButton"
           class="window-btn"
           title="バックログ"
           @click.stop="emit('backlog')"
@@ -46,6 +47,7 @@ const props = defineProps<{
   animate?: boolean
   theme?: any
   accumulatedPrefix?: string  // 即座に表示する累積テキスト
+  showBacklogButton?: boolean
 }>()
 
 const emit = defineEmits<{

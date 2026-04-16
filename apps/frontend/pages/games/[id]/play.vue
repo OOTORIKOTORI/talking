@@ -75,6 +75,7 @@
               :accumulatedPrefix="prefixText"
               :theme="theme"
               :animate="true"
+              :show-backlog-button="true"
               @backlog="backlog.open()"
               @complete="pushCurrentToBacklog()"
               @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
@@ -178,6 +179,7 @@
             :accumulatedPrefix="prefixText"
             :theme="theme"
             :animate="true"
+            :show-backlog-button="true"
             @backlog="backlog.open()"
             @complete="pushCurrentToBacklog()"
             @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
@@ -314,8 +316,8 @@
       </div>
 
       <BacklogModal
-        :is-open="backlog.isOpen"
-        :entries="backlog.entries"
+        :is-open="backlog.isOpen.value"
+        :entries="backlog.entries.value"
         :theme="game?.backlogTheme ?? DEFAULT_BACKLOG_THEME"
         @close="backlog.close()"
       />
