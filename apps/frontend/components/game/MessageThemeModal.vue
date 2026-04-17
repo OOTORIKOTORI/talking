@@ -532,60 +532,43 @@
               <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
                 <span class="text-cyan-600">👁️</span> プレビュー
               </h4>
-              <div class="relative rounded-lg overflow-hidden bg-neutral-900" style="aspect-ratio: 16/5;">
-                <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-50" alt="preview bg" />
-                <div class="absolute inset-x-4 bottom-3 md:inset-x-8">
-                  <div class="flex items-center gap-2 mb-1">
-                    <div
-                      class="px-3 py-1 rounded text-sm font-semibold"
-                      :style="{
-                        background: 'rgba(0,0,0,0.55)',
-                        color: '#ffffff',
-                      }"
-                    >
-                      ガイドさん
-                    </div>
-                    <span
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold border"
-                      :style="{
-                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
-                        color: uiDraft.quickButtonText || '#ffffff',
-                        borderColor: uiDraft.quickButtonText || '#ffffff',
-                        borderWidth: '1px',
-                        opacity: '0.9',
-                      }"
-                    >
-                      LOG
-                    </span>
-                    <span
-                      class="inline-flex items-center px-2 py-1 rounded text-[11px] font-bold"
-                      :style="{
-                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
-                        color: uiDraft.quickButtonText || '#ffffff',
-                      }"
-                    >
-                      SAVE
-                    </span>
-                    <span
-                      class="inline-flex items-center px-2 py-1 rounded text-[11px] font-bold"
-                      :style="{
-                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
-                        color: uiDraft.quickButtonText || '#ffffff',
-                      }"
-                    >
-                      LOAD
-                    </span>
-                  </div>
-                  <div
-                    class="rounded px-3 py-2 text-sm text-white/80"
-                    style="background: rgba(20,24,36,0.72);"
+              <div class="relative aspect-[16/9] bg-neutral-900 rounded-lg overflow-hidden shadow-lg">
+                <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-60" alt="preview bg" />
+                <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
+                  <MessageWindow
+                    :key="animationKey"
+                    :speaker="speaker"
+                    :text="sample"
+                    :theme="previewTheme"
+                    :animate="false"
+                    :show-backlog-button="true"
+                    :backlog-button-label="uiDraft.backlogButtonLabel || 'LOG'"
                   >
-                    ここにメッセージが表示されます…
-                  </div>
+                    <template #name-actions>
+                      <span
+                        class="px-2 py-1 text-[11px] leading-none rounded"
+                        :style="{
+                          backgroundColor: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
+                          color: uiDraft.quickButtonText || '#ffffff',
+                        }"
+                      >
+                        {{ uiDraft.saveButtonLabel || 'SAVE' }}
+                      </span>
+                      <span
+                        class="px-2 py-1 text-[11px] leading-none rounded"
+                        :style="{
+                          backgroundColor: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
+                          color: uiDraft.quickButtonText || '#ffffff',
+                        }"
+                      >
+                        {{ uiDraft.loadButtonLabel || 'LOAD' }}
+                      </span>
+                    </template>
+                  </MessageWindow>
                 </div>
               </div>
               <p class="text-xs text-gray-500 mt-2">
-                話者名の横に並ぶ LOG・SAVE・LOAD ボタンの色を変更できます。
+                話者名の横に並ぶ LOG・SAVE・LOAD ボタンの色を変更できます。メッセージウィンドウとの調和も確認できます。
               </p>
             </section>
 
