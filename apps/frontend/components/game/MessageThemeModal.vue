@@ -517,9 +517,82 @@
               </div>
             </section>
 
-            <!-- SAVE/LOADクイックボタン -->
+            <!-- リセット -->
+            <div class="flex justify-end">
+              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetUi">セーブ・ロード画面をリセット</button>
+            </div>
+          </div>
+          </template>
+
+          <!-- ===== クイックボタン タブ ===== -->
+          <template v-if="activeModalTab === 'quickbtn'">
+          <div class="px-5 py-5 space-y-6">
+
             <section>
-              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-cyan-600">💾</span> SAVE / LOAD クイックボタン（話者名横）</h4>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-cyan-600">👁️</span> プレビュー
+              </h4>
+              <div class="relative rounded-lg overflow-hidden bg-neutral-900" style="aspect-ratio: 16/5;">
+                <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-50" alt="preview bg" />
+                <div class="absolute inset-x-4 bottom-3 md:inset-x-8">
+                  <div class="flex items-center gap-2 mb-1">
+                    <div
+                      class="px-3 py-1 rounded text-sm font-semibold"
+                      :style="{
+                        background: 'rgba(0,0,0,0.55)',
+                        color: '#ffffff',
+                      }"
+                    >
+                      ガイドさん
+                    </div>
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold border"
+                      :style="{
+                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
+                        color: uiDraft.quickButtonText || '#ffffff',
+                        borderColor: uiDraft.quickButtonText || '#ffffff',
+                        borderWidth: '1px',
+                        opacity: '0.9',
+                      }"
+                    >
+                      LOG
+                    </span>
+                    <span
+                      class="inline-flex items-center px-2 py-1 rounded text-[11px] font-bold"
+                      :style="{
+                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
+                        color: uiDraft.quickButtonText || '#ffffff',
+                      }"
+                    >
+                      SAVE
+                    </span>
+                    <span
+                      class="inline-flex items-center px-2 py-1 rounded text-[11px] font-bold"
+                      :style="{
+                        background: uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)',
+                        color: uiDraft.quickButtonText || '#ffffff',
+                      }"
+                    >
+                      LOAD
+                    </span>
+                  </div>
+                  <div
+                    class="rounded px-3 py-2 text-sm text-white/80"
+                    style="background: rgba(20,24,36,0.72);"
+                  >
+                    ここにメッセージが表示されます…
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                話者名の横に並ぶ LOG・SAVE・LOAD ボタンの色を変更できます。
+              </p>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-purple-600">🎨</span> ボタンの色
+              </h4>
               <div class="space-y-4">
                 <ColorField
                   :modelValue="uiDraft.quickButtonBg || 'rgba(255,255,255,0.15)'"
@@ -536,10 +609,15 @@
               </div>
             </section>
 
-            <!-- リセット -->
             <div class="flex justify-end">
-              <button class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300" @click="resetUi">セーブ・ロード画面をリセット</button>
+              <button
+                class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300"
+                @click="uiDraft.quickButtonBg = undefined; uiDraft.quickButtonText = undefined"
+              >
+                クイックボタンをリセット
+              </button>
             </div>
+
           </div>
           </template>
 
@@ -587,10 +665,12 @@
             </section>
 
             <section>
-              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-blue-600">📐</span> かんたん設定</h4>
-              <div class="grid gap-4 md:grid-cols-2 text-sm">
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-purple-600">🎨</span> デザイン設定
+              </h4>
+              <div class="grid gap-4 md:grid-cols-2 text-sm mb-4">
                 <label class="flex flex-col">
-                  <span class="mb-1 font-medium">プリセット (1〜10)</span>
+                  <span class="mb-1 font-medium">濃さプリセット (1=薄 〜 10=濃)</span>
                   <input v-model.number="backlogDraft.preset" type="range" min="1" max="10" class="mt-1" />
                   <span class="text-xs text-gray-600 text-center">{{ backlogDraft.preset }}</span>
                 </label>
@@ -599,10 +679,6 @@
                   <input v-model.number="backlogDraft.fontSize" type="number" min="10" max="24" class="border rounded px-3 py-2" />
                 </label>
               </div>
-            </section>
-
-            <section>
-              <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-purple-600">🎨</span> 色設定</h4>
               <div class="space-y-4">
                 <ColorField
                   :modelValue="backlogDraft.bgColor"
@@ -781,11 +857,12 @@ const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiThe
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
 
 // タブ
-type ModalTabKey = 'message' | 'ui' | 'backlog' | 'labels'
+type ModalTabKey = 'message' | 'ui' | 'quickbtn' | 'backlog' | 'labels'
 const activeModalTab = ref<ModalTabKey>('message')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'message', label: 'メッセージウィンドウ' },
   { key: 'ui', label: 'セーブ・ロード画面' },
+  { key: 'quickbtn', label: 'クイックボタン' },
   { key: 'backlog', label: 'バックログ' },
   { key: 'labels', label: '文言設定' },
 ]
