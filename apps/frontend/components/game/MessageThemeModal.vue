@@ -631,6 +631,115 @@
           </div>
           </template>
 
+          <!-- ===== 文言設定 タブ ===== -->
+          <template v-if="activeModalTab === 'labels'">
+          <div class="px-5 py-5 space-y-6">
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-orange-600">✨</span> 世界観プリセット
+              </h4>
+              <p class="text-sm text-gray-500 mb-3">
+                クリックするとすべての文言をまとめて変更できます。その後、個別に調整もできます。
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="preset in labelPresets"
+                  :key="preset.name"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-sm border-2 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-all"
+                  :title="preset.description"
+                  @click="applyLabelPreset(preset)"
+                >
+                  <span>{{ preset.icon }}</span>
+                  <span class="font-medium">{{ preset.name }}</span>
+                </button>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-violet-600">📜</span> バックログ
+              </h4>
+              <div class="grid gap-3 md:grid-cols-2 text-sm">
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">バックログボタン</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: LOG</span>
+                  <input
+                    v-model="uiDraft.backlogButtonLabel"
+                    class="border rounded px-3 py-2"
+                    placeholder="LOG"
+                    maxlength="10"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-blue-600">💾</span> セーブ・ロード
+              </h4>
+              <div class="grid gap-3 md:grid-cols-2 text-sm">
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">SAVEクイックボタン</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: SAVE</span>
+                  <input v-model="uiDraft.saveButtonLabel" class="border rounded px-3 py-2" placeholder="SAVE" maxlength="10" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">LOADクイックボタン</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: LOAD</span>
+                  <input v-model="uiDraft.loadButtonLabel" class="border rounded px-3 py-2" placeholder="LOAD" maxlength="10" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">セーブ・ロード画面タイトル</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: セーブ / ロード</span>
+                  <input v-model="uiDraft.saveModalTitle" class="border rounded px-3 py-2" placeholder="セーブ / ロード" maxlength="20" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">セーブ実行ボタン</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: この枠にセーブ</span>
+                  <input v-model="uiDraft.saveActionLabel" class="border rounded px-3 py-2" placeholder="この枠にセーブ" maxlength="20" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">ロード実行ボタン</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: この枠をロード</span>
+                  <input v-model="uiDraft.loadActionLabel" class="border rounded px-3 py-2" placeholder="この枠をロード" maxlength="20" />
+                </label>
+              </div>
+            </section>
+
+            <section>
+              <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
+                <span class="text-gray-600">🗂️</span> スロットタブ名
+              </h4>
+              <div class="grid gap-3 md:grid-cols-3 text-sm">
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">手動スロット</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: 手動</span>
+                  <input v-model="uiDraft.slotManualLabel" class="border rounded px-3 py-2" placeholder="手動" maxlength="10" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">オートセーブ</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: オート</span>
+                  <input v-model="uiDraft.slotAutoLabel" class="border rounded px-3 py-2" placeholder="オート" maxlength="10" />
+                </label>
+                <label class="flex flex-col">
+                  <span class="mb-1 font-medium">クイックスロット</span>
+                  <span class="text-xs text-gray-400 mb-1">デフォルト: クイック</span>
+                  <input v-model="uiDraft.slotQuickLabel" class="border rounded px-3 py-2" placeholder="クイック" maxlength="10" />
+                </label>
+              </div>
+            </section>
+
+            <div class="flex justify-end">
+              <button
+                class="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300"
+                @click="applyLabelPreset(labelPresets[0])"
+              >
+                文言をすべてリセット
+              </button>
+            </div>
+          </div>
+          </template>
+
         </div>
 
         <!-- フッター（固定） -->
@@ -672,12 +781,13 @@ const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiThe
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
 
 // タブ
-type ModalTabKey = 'message' | 'ui' | 'backlog'
+type ModalTabKey = 'message' | 'ui' | 'backlog' | 'labels'
 const activeModalTab = ref<ModalTabKey>('message')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'message', label: 'メッセージウィンドウ' },
   { key: 'ui', label: 'セーブ・ロード画面' },
   { key: 'backlog', label: 'バックログ' },
+  { key: 'labels', label: '文言設定' },
 ]
 
 // デフォルトテーマ（v2）
@@ -929,7 +1039,84 @@ const backlogThemePresets = {
 } as const
 
 function applyUiPreset(key: keyof typeof uiThemePresets) {
-  uiDraft.value = { ...uiThemePresets[key].settings }
+  uiDraft.value = { ...uiDraft.value, ...uiThemePresets[key].settings }
+}
+
+const labelPresets = [
+  {
+    name: 'デフォルト',
+    icon: '🔄',
+    description: 'すべてデフォルトに戻す',
+    labels: {
+      backlogButtonLabel: '', saveButtonLabel: '', loadButtonLabel: '',
+      saveModalTitle: '', saveActionLabel: '', loadActionLabel: '',
+      slotManualLabel: '', slotAutoLabel: '', slotQuickLabel: '',
+    },
+  },
+  {
+    name: '英語表記',
+    icon: '🇺🇸',
+    description: 'すべて英語に統一',
+    labels: {
+      backlogButtonLabel: 'LOG', saveButtonLabel: 'SAVE', loadButtonLabel: 'LOAD',
+      saveModalTitle: 'SAVE / LOAD', saveActionLabel: 'Save to slot', loadActionLabel: 'Load from slot',
+      slotManualLabel: 'Manual', slotAutoLabel: 'Auto', slotQuickLabel: 'Quick',
+    },
+  },
+  {
+    name: 'ファンタジー',
+    icon: '🏰',
+    description: '魔法・冒険風の文言',
+    labels: {
+      backlogButtonLabel: '記憶', saveButtonLabel: '封印', loadButtonLabel: '解放',
+      saveModalTitle: '記憶の書', saveActionLabel: 'この書に封印する', loadActionLabel: 'この記憶を解放する',
+      slotManualLabel: '手記', slotAutoLabel: '魔法記録', slotQuickLabel: '速記',
+    },
+  },
+  {
+    name: 'SF・近未来',
+    icon: '🚀',
+    description: '未来・テクノロジー風',
+    labels: {
+      backlogButtonLabel: 'LOG', saveButtonLabel: 'BACKUP', loadButtonLabel: 'RESTORE',
+      saveModalTitle: 'データ管理', saveActionLabel: 'バックアップを実行', loadActionLabel: 'データを復元する',
+      slotManualLabel: 'MANUAL', slotAutoLabel: 'AUTO', slotQuickLabel: 'QUICK',
+    },
+  },
+  {
+    name: '和風',
+    icon: '🎌',
+    description: '和の雰囲気に統一',
+    labels: {
+      backlogButtonLabel: '回想', saveButtonLabel: '記す', loadButtonLabel: '読む',
+      saveModalTitle: '記録の書', saveActionLabel: 'この巻に記す', loadActionLabel: 'この巻を読む',
+      slotManualLabel: '手記', slotAutoLabel: '自動', slotQuickLabel: '早記',
+    },
+  },
+  {
+    name: '恋愛ゲーム',
+    icon: '💕',
+    description: 'ときめき系の文言',
+    labels: {
+      backlogButtonLabel: '思い出す', saveButtonLabel: '残す', loadButtonLabel: '戻る',
+      saveModalTitle: '思い出を残す', saveActionLabel: 'この思い出を残す', loadActionLabel: 'あの日に戻る',
+      slotManualLabel: '手動', slotAutoLabel: 'おまかせ', slotQuickLabel: 'すぐ',
+    },
+  },
+  {
+    name: 'ホラー',
+    icon: '👻',
+    description: '不気味な文言',
+    labels: {
+      backlogButtonLabel: '残像', saveButtonLabel: '刻む', loadButtonLabel: '蘇る',
+      saveModalTitle: '記憶の断片', saveActionLabel: 'この記憶に刻む', loadActionLabel: 'あの記憶を蘇らせる',
+      slotManualLabel: '記録', slotAutoLabel: '自動', slotQuickLabel: '速記',
+    },
+  },
+] as const
+
+function applyLabelPreset(preset: typeof labelPresets[number]) {
+  Object.assign(uiDraft.value, preset.labels)
 }
 
 function applyBacklogPreset(key: keyof typeof backlogThemePresets) {

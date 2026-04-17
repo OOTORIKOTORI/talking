@@ -240,6 +240,26 @@ export interface GameUiTheme {
   quickButtonBg?: string;
   /** SAVE/LOADボタンのテキスト色 */
   quickButtonText?: string;
+
+  // --- ボタン・ラベルの文言カスタマイズ ---
+  /** バックログボタンのラベル（デフォルト: "LOG"）*/
+  backlogButtonLabel?: string;
+  /** SAVEクイックボタンのラベル（デフォルト: "SAVE"）*/
+  saveButtonLabel?: string;
+  /** LOADクイックボタンのラベル（デフォルト: "LOAD"）*/
+  loadButtonLabel?: string;
+  /** セーブ・ロードモーダルのタイトル（デフォルト: "セーブ / ロード"）*/
+  saveModalTitle?: string;
+  /** セーブ実行ボタンのラベル（デフォルト: "この枠にセーブ"）*/
+  saveActionLabel?: string;
+  /** ロード実行ボタンのラベル（デフォルト: "この枠をロード"）*/
+  loadActionLabel?: string;
+  /** 手動スロットのタブ名（デフォルト: "手動"）*/
+  slotManualLabel?: string;
+  /** オートセーブスロットのタブ名（デフォルト: "オート"）*/
+  slotAutoLabel?: string;
+  /** クイックスロットのタブ名（デフォルト: "クイック"）*/
+  slotQuickLabel?: string;
 }
 
 /** バックログの1エントリ */

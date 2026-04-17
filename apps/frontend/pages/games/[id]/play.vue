@@ -76,6 +76,7 @@
               :theme="theme"
               :animate="true"
               :show-backlog-button="true"
+              :backlog-button-label="labelBacklog"
               @backlog="backlog.open()"
               @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
             >
@@ -85,14 +86,14 @@
                   :style="uiQuickButtonStyle"
                   @click.stop="openSaveLoadModal('save')"
                 >
-                  SAVE
+                  {{ labelSave }}
                 </button>
                 <button
                   class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
                   :style="uiQuickButtonStyle"
                   @click.stop="openSaveLoadModal('load')"
                 >
-                  LOAD
+                  {{ labelLoad }}
                 </button>
               </template>
             </MessageWindow>
@@ -179,6 +180,7 @@
             :theme="theme"
             :animate="true"
             :show-backlog-button="true"
+            :backlog-button-label="labelBacklog"
             @backlog="backlog.open()"
             @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
           >
@@ -188,14 +190,14 @@
                 :style="uiQuickButtonStyle"
                 @click.stop="openSaveLoadModal('save')"
               >
-                SAVE
+                {{ labelSave }}
               </button>
               <button
                 class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
                 :style="uiQuickButtonStyle"
                 @click.stop="openSaveLoadModal('load')"
               >
-                LOAD
+                {{ labelLoad }}
               </button>
             </template>
           </MessageWindow>
@@ -222,7 +224,7 @@
         <div class="w-[min(980px,94vw)] max-h-[86vh] shadow-2xl overflow-hidden border" :style="uiModalBoxStyle">
           <div class="px-5 py-4 border-b flex items-center justify-between" :style="{ borderColor: uiModalBoxStyle.borderColor }">
             <div>
-              <h3 class="text-lg font-semibold">セーブ / ロード</h3>
+              <h3 class="text-lg font-semibold">{{ labelSaveModal }}</h3>
               <p class="text-xs opacity-70 mt-1">手動100・オート5・クイック1（合計106）</p>
             </div>
             <button class="px-3 py-1.5 text-sm rounded opacity-70 hover:opacity-100 transition-opacity border" :style="{ borderColor: uiModalBoxStyle.borderColor }" @click="closeSaveLoadModal">閉じる</button>
@@ -249,14 +251,14 @@
               :style="modalMode === 'save' ? { ...uiAccentStyle, borderColor: uiAccentStyle.backgroundColor, color: '#000' } : { borderColor: uiModalBoxStyle.borderColor, opacity: '0.65' }"
               @click="modalMode = 'save'"
             >
-              セーブ
+              {{ labelSave }}
             </button>
             <button
               class="px-3 py-1.5 text-sm rounded border transition-colors"
               :style="modalMode === 'load' ? { ...uiLoadAccentStyle, borderColor: uiLoadAccentStyle.backgroundColor, color: '#000' } : { borderColor: uiModalBoxStyle.borderColor, opacity: '0.65' }"
               @click="modalMode = 'load'"
             >
-              ロード
+              {{ labelLoad }}
             </button>
             <div class="text-xs opacity-50 ml-auto">{{ activeSlotTypeLabel }}: {{ activeLimit }} 枠</div>
           </div>
@@ -289,7 +291,7 @@
               :disabled="savingOrLoading || !selectedSlot"
               @click="modalMode === 'save' ? saveToSelectedSlot() : loadFromSelectedSlot()"
             >
-              {{ modalMode === 'save' ? 'この枠にセーブ' : 'この枠をロード' }}
+              {{ modalMode === 'save' ? labelSaveAction : labelLoadAction }}
             </button>
             <button
               class="px-4 py-2 rounded text-sm opacity-70 hover:opacity-100 border transition-colors"
@@ -484,6 +486,17 @@ const uiQuickButtonStyle = computed(() => ({
   color: gameUiTheme.value.quickButtonText || '#ffffff',
 }))
 
+// ボタン文言（GameUiTheme から取得、未設定時はデフォルト値）
+const labelBacklog = computed(() => gameUiTheme.value.backlogButtonLabel || 'LOG')
+const labelSave = computed(() => gameUiTheme.value.saveButtonLabel || 'SAVE')
+const labelLoad = computed(() => gameUiTheme.value.loadButtonLabel || 'LOAD')
+const labelSaveModal = computed(() => gameUiTheme.value.saveModalTitle || 'セーブ / ロード')
+const labelSaveAction = computed(() => gameUiTheme.value.saveActionLabel || 'この枠にセーブ')
+const labelLoadAction = computed(() => gameUiTheme.value.loadActionLabel || 'この枠をロード')
+const labelSlotManual = computed(() => gameUiTheme.value.slotManualLabel || '手動')
+const labelSlotAuto = computed(() => gameUiTheme.value.slotAutoLabel || 'オート')
+const labelSlotQuick = computed(() => gameUiTheme.value.slotQuickLabel || 'クイック')
+
 // ビジュアルエフェクト
 const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
@@ -492,11 +505,11 @@ const gameState = ref<Record<string, any>>({})
 type SaveSlotType = 'MANUAL' | 'AUTO' | 'QUICK'
 type ModalMode = 'save' | 'load'
 
-const slotTypeLabels: Record<SaveSlotType, string> = {
-  MANUAL: '手動',
-  AUTO: 'オート',
-  QUICK: 'クイック',
-}
+const slotTypeLabels = computed<Record<SaveSlotType, string>>(() => ({
+  MANUAL: labelSlotManual.value,
+  AUTO: labelSlotAuto.value,
+  QUICK: labelSlotQuick.value,
+}))
 
 const saveLoadOpen = ref(false)
 const modalMode = ref<ModalMode>('save')
@@ -506,11 +519,11 @@ const saveListData = ref<any[]>([])
 const saveLimits = ref({ manual: 100, auto: 5, quick: 1, total: 106 })
 const savingOrLoading = ref(false)
 
-const slotTabs = [
-  { key: 'MANUAL' as SaveSlotType, label: '手動' },
-  { key: 'AUTO' as SaveSlotType, label: 'オート' },
-  { key: 'QUICK' as SaveSlotType, label: 'クイック' },
-]
+const slotTabs = computed(() => [
+  { key: 'MANUAL' as SaveSlotType, label: labelSlotManual.value },
+  { key: 'AUTO' as SaveSlotType, label: labelSlotAuto.value },
+  { key: 'QUICK' as SaveSlotType, label: labelSlotQuick.value },
+])
 
 const activeLimit = computed(() => {
   if (activeSlotType.value === 'AUTO') return saveLimits.value.auto
@@ -518,7 +531,7 @@ const activeLimit = computed(() => {
   return saveLimits.value.manual
 })
 
-const activeSlotTypeLabel = computed(() => slotTypeLabels[activeSlotType.value])
+const activeSlotTypeLabel = computed(() => slotTypeLabels.value[activeSlotType.value])
 
 const recordsByKey = computed(() => {
   const m = new Map<string, any>()
@@ -573,7 +586,7 @@ function qStr(v: unknown) {
 }
 
 function slotLabel(slotType: SaveSlotType, slotIndex: number) {
-  return `${slotTypeLabels[slotType]} ${slotIndex}`
+  return `${slotTypeLabels.value[slotType]} ${slotIndex}`
 }
 
 watch(activeSlotType, (newType) => {

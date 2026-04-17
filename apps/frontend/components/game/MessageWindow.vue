@@ -20,7 +20,7 @@
           @click.stop="emit('backlog')"
         >
           <Icon name="mdi:text-box-outline" />
-          <span class="window-btn-label">LOG</span>
+          <span class="window-btn-label">{{ props.backlogButtonLabel || 'LOG' }}</span>
         </button>
         <slot name="name-actions" />
       </div>
@@ -49,6 +49,7 @@ const props = defineProps<{
   theme?: any
   accumulatedPrefix?: string  // 即座に表示する累積テキスト
   showBacklogButton?: boolean
+  backlogButtonLabel?: string
 }>()
 
 const emit = defineEmits<{
