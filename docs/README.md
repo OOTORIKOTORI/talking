@@ -58,17 +58,3 @@ cd apps/api && pnpm prisma migrate dev
 ```
 
 詳細は [開発環境セットアップ](./dev-setup.md) を参照。
-
-### [RUNBOOK](./RUNBOOK.md)
-詳細コマンド・よく使う操作・トラブルシュート集
-
----
-
-## クイックスタート
-
-```bash
-pnpm install
-pnpm dev:all
-cd apps/api && pnpm prisma migrate dev
-```n
-詳細は [開発環境セットアップ](./dev-setup.md) を参照。
