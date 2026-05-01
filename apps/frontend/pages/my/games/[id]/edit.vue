@@ -537,7 +537,7 @@ const nextNodeInputRef = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
   try {
-    game.value = await api.get(route.params.id as string)
+    game.value = await api.getEdit(route.params.id as string)
     scenes.value = (await api.listScenes(game.value.id)) as any[]
   } catch (error) {
     console.error('Failed to load game:', error)

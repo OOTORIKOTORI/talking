@@ -1,6 +1,10 @@
 export function useGamesApi() {
   const api = useApi()
   return {
+    listPublic: (q?: { limit?: number; offset?: number }) =>
+      api('/games', { query: q }),
+    getPublic: (id: string) => api(`/games/${id}`),
+    getEdit: (id: string) => api(`/games/${id}/edit`),
     my: () => api('/games/my'),
     create: (b: { title: string; summary?: string }) => api('/games', { method: 'POST', body: b }),
     get: (id: string) => api(`/games/${id}`),

@@ -38,6 +38,18 @@
           <p class="text-xs text-gray-400 mt-1">
             更新: {{ new Date(g.updatedAt).toLocaleDateString('ja-JP') }}
           </p>
+          <div class="mt-2">
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1 text-xs rounded-full border transition-colors"
+              :class="g.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'"
+              :disabled="isToggling(g.id)"
+              @click="togglePublic(g)"
+            >
+              <span v-if="isToggling(g.id)">切替中...</span>
+              <span v-else>{{ g.isPublic ? '公開中（クリックで非公開）' : '非公開（クリックで公開）' }}</span>
+            </button>
+          </div>
         </div>
         <div class="flex gap-2">
           <NuxtLink
@@ -69,15 +81,28 @@ definePageMeta({
 })
 
 const api = useGamesApi()
+const toast = useToast()
 const list = ref<any[]>([])
 const title = ref('')
 const loading = ref(true)
+const togglingIds = ref<Record<string, boolean>>({})
+
+const isToggling = (id: string) => !!togglingIds.value[id]
+
+const setToggling = (id: string, value: boolean) => {
+  togglingIds.value = { ...togglingIds.value, [id]: value }
+}
+
+const refreshList = async () => {
+  list.value = (await api.my()) as any[]
+}
 
 onMounted(async () => {
   try {
-    list.value = (await api.my()) as any[]
+    await refreshList()
   } catch (error) {
     console.error('Failed to load games:', error)
+    toast.error('ゲーム一覧の取得に失敗しました')
   } finally {
     loading.value = false
   }
@@ -88,11 +113,32 @@ async function onCreate() {
   
   try {
     await api.create({ title: title.value })
-    list.value = (await api.my()) as any[]
+    await refreshList()
     title.value = ''
+    toast.success('ゲームを作成しました')
   } catch (error) {
     console.error('Failed to create game:', error)
-    alert('ゲームの作成に失敗しました')
+    toast.error('ゲームの作成に失敗しました')
+  }
+}
+
+async function togglePublic(game: any) {
+  if (isToggling(game.id)) return
+
+  const prev = !!game.isPublic
+  const next = !prev
+  game.isPublic = next
+  setToggling(game.id, true)
+
+  try {
+    await api.update(game.id, { isPublic: next })
+    toast.success(next ? '公開に切り替えました' : '非公開に切り替えました')
+  } catch (error) {
+    game.isPublic = prev
+    console.error('Failed to toggle public:', error)
+    toast.error('公開設定の変更に失敗しました')
+  } finally {
+    setToggling(game.id, false)
   }
 }
 </script>

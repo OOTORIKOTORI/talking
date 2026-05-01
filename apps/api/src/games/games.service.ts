@@ -15,9 +15,59 @@ const SAVE_SLOT_LIMITS = {
 
 type SaveSlotType = keyof typeof SAVE_SLOT_LIMITS;
 
+type PublicGameSummary = {
+  id: string;
+  title: string;
+  summary: string | null;
+  description: string | null;
+  coverAssetId: string | null;
+  ownerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
+
+  private readonly playInclude = {
+    scenes: {
+      include: {
+        nodes: {
+          include: { choices: true },
+          orderBy: { order: 'asc' as const },
+        },
+      },
+      orderBy: { order: 'asc' as const },
+    },
+  };
+
+  private parsePagination(limitRaw: unknown, offsetRaw: unknown) {
+    const limit = Math.min(Math.max(Number(limitRaw) || 20, 1), 100);
+    const offset = Math.max(Number(offsetRaw) || 0, 0);
+    return { limit, offset };
+  }
+
+  private toPublicSummary(g: {
+    id: string;
+    title: string;
+    summary: string | null;
+    coverAssetId: string | null;
+    ownerId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): PublicGameSummary {
+    return {
+      id: g.id,
+      title: g.title,
+      summary: g.summary,
+      description: g.summary,
+      coverAssetId: g.coverAssetId,
+      ownerId: g.ownerId,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
+    };
+  }
 
   private async assertGameOwner(userId: string, gameId: string) {
     const g = await this.prisma.gameProject.findUnique({ where: { id: gameId } });
@@ -70,23 +120,54 @@ export class GamesService {
     });
   }
 
-  async get(userId: string | undefined, id: string) {
+  async listPublic(limitRaw?: unknown, offsetRaw?: unknown) {
+    const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
+    const where = { isPublic: true, deletedAt: null as null };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.gameProject.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          coverAssetId: true,
+          ownerId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.gameProject.count({ where }),
+    ]);
+
+    return {
+      items: items.map((g) => this.toPublicSummary(g)),
+      total,
+      limit,
+      offset,
+    };
+  }
+
+  async getForPlay(userId: string | undefined, id: string) {
     const g = await this.prisma.gameProject.findUnique({
       where: { id },
-      include: {
-        scenes: {
-          include: {
-            nodes: {
-              include: { choices: true },
-              orderBy: { order: 'asc' },
-            },
-          },
-          orderBy: { order: 'asc' },
-        },
-      },
+      include: this.playInclude,
     });
-    if (!g) throw new NotFoundException('game not found');
-    if (!g.isPublic && g.ownerId !== userId) throw new ForbiddenException();
+    if (!g || g.deletedAt) throw new NotFoundException('game not found');
+    if (!g.isPublic && g.ownerId !== userId) throw new NotFoundException('game not found');
+    return g;
+  }
+
+  async getForEdit(userId: string, id: string) {
+    const g = await this.prisma.gameProject.findUnique({
+      where: { id },
+      include: this.playInclude,
+    });
+    if (!g || g.deletedAt) throw new NotFoundException('game not found');
+    if (g.ownerId !== userId) throw new ForbiddenException();
     return g;
   }
 
