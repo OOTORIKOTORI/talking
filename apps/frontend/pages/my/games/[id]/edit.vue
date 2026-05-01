@@ -1110,7 +1110,8 @@ function onUp() {
           <h2 class="font-semibold mb-2 text-lg">シーン</h2>
           <!-- 選択中シーン名の編集 -->
           <div v-if="scene" class="mb-3 pb-3 border-b border-gray-200">
-            <label class="block text-xs text-gray-500 mb-1">シーン名</label>
+            <label class="block text-xs text-gray-500 mb-1">選択中シーンの名前</label>
+            <p class="text-[11px] text-gray-400 mb-1">左の一覧で選択中のシーン名を編集します</p>
             <input
               v-model="sceneNameDraft"
               class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
