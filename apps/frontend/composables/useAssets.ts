@@ -19,7 +19,7 @@ export const useAssetsApi = () => {
 
   // 公開ギャラリー
   const listPublic = async (query: any = {}) => {
-    const res: any = await $api('/assets', { query })
+    const res: any = await $api('/search/assets', { query })
     if (Array.isArray(res?.items)) res.items = res.items.map(normalizeAssetFavorite)
     return res
   }
