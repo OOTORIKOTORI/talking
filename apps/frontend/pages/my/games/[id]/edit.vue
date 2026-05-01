@@ -276,80 +276,57 @@ const selectedCharLabel = computed(() => {
   return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
 })
 
-// 次ノードの表示名を取得
-const nextNodeLabel = computed(() => {
-  if (!nodeDraft.nextNodeId) return '未設定'
-  
-  // 全ノードから検索
+const nodePickerScenes = computed(() => {
+  const currentSceneId = scene.value?.id ?? null
+  return scenes.value.map((sceneItem: any) => {
+    if (sceneItem.id !== currentSceneId) {
+      return sceneItem
+    }
+    return {
+      ...sceneItem,
+      nodes: nodes.value.map((nodeItem: any) => ({ ...nodeItem })),
+    }
+  })
+})
+
+function findNodeLabel(targetNodeId: string | null | undefined): string {
+  if (!targetNodeId) return '未設定'
+
   let foundNode: any = null
   let sceneIndex = 0
   let nodeIndex = 0
-  
-  for (let si = 0; si < scenes.value.length; si++) {
-    const scene = scenes.value[si]
-    for (let ni = 0; ni < (scene.nodes?.length || 0); ni++) {
-      const n = scene.nodes[ni]
-      if (n.id === nodeDraft.nextNodeId) {
-        foundNode = n
-        sceneIndex = si + 1
-        nodeIndex = ni + 1
+  let sceneName = ''
+
+  for (let si = 0; si < nodePickerScenes.value.length; si++) {
+    const sceneItem = nodePickerScenes.value[si]
+    for (let ni = 0; ni < (sceneItem.nodes?.length || 0); ni++) {
+      const candidate = sceneItem.nodes[ni]
+      if (candidate.id === targetNodeId) {
+        foundNode = candidate
+        sceneIndex = typeof sceneItem.order === 'number' ? sceneItem.order + 1 : si + 1
+        nodeIndex = typeof candidate.order === 'number' ? candidate.order + 1 : ni + 1
+        sceneName = sceneItem.name || ''
         break
       }
     }
     if (foundNode) break
   }
-  
-  if (!foundNode) {
-    // 現在のシーンのノード一覧から探す（scenes.valueに含まれていない場合）
-    const currentNode = nodes.value.find(n => n.id === nodeDraft.nextNodeId)
-    if (currentNode) {
-      const idx = nodes.value.findIndex(n => n.id === nodeDraft.nextNodeId)
-      const preview = (currentNode.text || '').slice(0, 20) + ((currentNode.text || '').length > 20 ? '…' : '')
-      return `#${idx + 1} ${preview || '(無題)'}`
-    }
-    return nodeDraft.nextNodeId
-  }
-  
+
+  if (!foundNode) return targetNodeId
+
   const preview = (foundNode.text || '').slice(0, 20) + ((foundNode.text || '').length > 20 ? '…' : '')
-  return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
+  const sceneLabel = sceneName ? `Scene ${sceneIndex}: ${sceneName}` : `Scene ${sceneIndex}`
+  return `${sceneLabel} / #${nodeIndex} ${preview || '(無題)'}`
+}
+
+// 次ノードの表示名を取得
+const nextNodeLabel = computed(() => {
+  return findNodeLabel(nodeDraft.nextNodeId)
 })
 
 // 選択肢の遷移先ノードラベルを取得
 function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
-  if (!targetNodeId) return '未設定'
-  
-  // 全ノードから検索
-  let foundNode: any = null
-  let sceneIndex = 0
-  let nodeIndex = 0
-  
-  for (let si = 0; si < scenes.value.length; si++) {
-    const scene = scenes.value[si]
-    for (let ni = 0; ni < (scene.nodes?.length || 0); ni++) {
-      const n = scene.nodes[ni]
-      if (n.id === targetNodeId) {
-        foundNode = n
-        sceneIndex = si + 1
-        nodeIndex = ni + 1
-        break
-      }
-    }
-    if (foundNode) break
-  }
-  
-  if (!foundNode) {
-    // 現在のシーンのノード一覧から探す
-    const currentNode = nodes.value.find(n => n.id === targetNodeId)
-    if (currentNode) {
-      const idx = nodes.value.findIndex(n => n.id === targetNodeId)
-      const preview = (currentNode.text || '').slice(0, 20) + ((currentNode.text || '').length > 20 ? '…' : '')
-      return `#${idx + 1} ${preview || '(無題)'}`
-    }
-    return targetNodeId
-  }
-  
-  const preview = (foundNode.text || '').slice(0, 20) + ((foundNode.text || '').length > 20 ? '…' : '')
-  return `Scene ${sceneIndex} / #${nodeIndex} ${preview || '(無題)'}`
+  return findNodeLabel(targetNodeId)
 }
 
 function normalizeChoiceDrafts() {
@@ -2102,7 +2079,14 @@ function onUp() {
           <AssetPicker v-model:open="openSfxPicker" type="audio" @select="(a)=> nodeDraft.sfxAssetId = a.id" />
           <CharacterPicker v-model:open="openCharPicker" @select="onCharPicked" />
           <CharacterImagePicker v-model:open="openCharImagePicker" :character-id="nodeDraft.speakerCharacterId || ''" @select="onImagePicked" />
-          <NodePicker v-if="openNodePicker" :game="game" :current-id="nodeDraft.nextNodeId" @close="closeNodePicker" @select="onNodeSelected" />
+          <NodePicker
+            v-if="openNodePicker"
+            :scenes="nodePickerScenes"
+            :current-scene-id="scene?.id"
+            :current-id="editingChoiceIndex !== null ? nodeDraft.choices?.[editingChoiceIndex]?.[editingChoiceTargetField] : nodeDraft.nextNodeId"
+            @close="closeNodePicker"
+            @select="onNodeSelected"
+          />
         </section>
       <!-- ...existing code... -->
       </div>

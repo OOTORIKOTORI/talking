@@ -177,7 +177,7 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - `startNodeId`: シーン開始ノードID（テストプレイ初期位置に使用）
 - `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, cameraFx Json?, continuesPreviousText Boolean?, createdAt, updatedAt }`
   - `continuesPreviousText`: 前ノードのセリフを消さずに継続表示するフラグ（省略時 false）。true の場合、このノードのテキストを前ノードのテキストに追加して表示する。エディタでは「前ノードのセリフを消さずに続ける」チェックボックスで設定。
-- `GameChoice { id, nodeId(FK), order, label, nextNodeId? }`
+- `GameChoice { id, nodeId(FK), label, targetNodeId, condition?, effects?, alternateTargetNodeId?, alternateCondition? }`
 
 #### Node.camera JSON
 ```ts

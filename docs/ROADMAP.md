@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-01（ノード削除・シーン削除MVP実装）
+> 最終更新: 2026-05-01（NodePicker stale state 修正・PROJECT_SPEC整合）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,50 @@
 | 日付 | 結果 | 備考 |
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-01 / NodePicker stale state 修正・PROJECT_SPEC整合）
+
+### 実装した内容
+- ドキュメント
+	- `docs/PROJECT_SPEC.md` のドメインモデル欄に残っていた古い `GameChoice { ..., order, nextNodeId? }` 表記を現行 schema に合わせて修正
+	- `GameChoice { id, nodeId(FK), label, targetNodeId, condition?, effects?, alternateTargetNodeId?, alternateCondition? }` に更新
+	- 既存の `GameChoice.targetNodeId` required / `''` 暫定運用 / nullable化検討の記述とは矛盾しない状態を維持
+- フロント（`apps/frontend/components/game/NodePicker.vue`）
+	- NodePicker の候補生成元を `game.scenes` 依存から `scenes` props 依存へ変更
+	- `currentSceneId` を受け取り、現在シーンの候補が分かる表示を追加
+	- 候補表示に `Scene番号: シーン名 / Node番号` と現在シーンラベルを追加
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- `nodePickerScenes` computed を追加し、現在シーンだけは常に最新の `nodes.value` をマージした `scenes` を NodePicker に渡すよう変更
+	- NodePicker 呼び出しを `:scenes="nodePickerScenes"` / `:current-scene-id="scene?.id"` ベースへ変更
+	- 次ノード表示ラベルと choice 遷移先表示ラベルも同じ最新データ源を参照するよう統一
+
+### この修正で狙っている状態
+- ノード追加直後に NodePicker を開くと、追加したノードが候補に表示される
+- 「保存して次のノードへ」で作成されたノードが NodePicker に表示される
+- ノード削除後、削除済みノードが NodePicker 候補に残らない
+- シーン切り替え後、現在シーンの候補が最新 `nodes.value` ベースで表示される
+- シーン削除後、削除済みシーン内ノードが NodePicker 候補に残らない
+
+### 残課題
+- NodePicker の本格的な「シーン → ノード」二段選択 UI は未実装
+	- 将来課題として継続。今回は stale state 解消と候補同期の安定化を優先
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 warn のみ（`@nuxt/icon` Nuxt 3 非互換、browserslist 古い、Node の deprecation warning）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 6 tests passed
+- VS Code errors check（`NodePicker.vue`, `edit.vue`, `PROJECT_SPEC.md`）: ✅ no errors
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認
+	- ノード追加直後に NodePicker を開いたときの候補反映
+	- 「保存して次のノードへ」後の候補反映
+	- ノード削除後・シーン切替後・シーン削除後の候補更新
+	- 通常 nextNode / choice 通常遷移 / choice 特殊遷移での実操作確認
+	- 理由: この実行環境ではブラウザ操作の手動 E2E までは実施しておらず、今回はコード修正と build/test 検証を優先したため
 
 ---
 
