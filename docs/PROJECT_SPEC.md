@@ -190,7 +190,8 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - `startNodeId`: シーン開始ノードID（テストプレイ初期位置に使用）
 - `GameNode  { id, sceneId(FK), order, text, speakerCharacterId?, speakerDisplayName?, bgAssetId?, musicAssetId?, sfxAssetId?, portraits Json?, camera Json?, cameraFx Json?, continuesPreviousText Boolean?, createdAt, updatedAt }`
   - `continuesPreviousText`: 前ノードのセリフを消さずに継続表示するフラグ（省略時 false）。true の場合、このノードのテキストを前ノードのテキストに追加して表示する。エディタでは「前ノードのセリフを消さずに続ける」チェックボックスで設定。
-- `GameChoice { id, nodeId(FK), label, targetNodeId, condition?, effects?, alternateTargetNodeId?, alternateCondition? }`
+- `GameChoice { id, nodeId(FK), label, targetNodeId?, condition?, effects?, alternateTargetNodeId?, alternateCondition? }`
+  - `targetNodeId` 未設定は `null`（空文字 `''` は未使用）
 
 #### Node.camera JSON
 ```ts
@@ -413,13 +414,22 @@ interface MessageTheme {
   - `GameChoice.targetNodeId`
   - `GameChoice.alternateTargetNodeId`
   - （シーン削除時）`GameProject.startSceneId`
-- 現在の schema では `GameChoice.targetNodeId` が required のため、参照解除値として `''` を使用する
-- 将来的には `GameChoice.targetNodeId` の nullable 化、または明示的な「未設定」表現への移行を検討する
+- `GameChoice.targetNodeId` / `GameChoice.alternateTargetNodeId` は参照解除時に `null` を設定する
+- 既存の `targetNodeId = ''` データは migration で `null` に移行する
+
+#### 選択肢と通常遷移先の優先順位（2026-05-02 更新）
+- `choice.targetNodeId !== null` の選択肢のみ「表示可能な選択肢」とする
+- 表示可能な選択肢が1件以上ある場合、プレイ時は選択肢を表示し、`nextNodeId` は使用しない
+- 表示可能な選択肢が0件の場合のみ、`nextNodeId` があれば通常進行する
+- `nextNodeId` もない場合は終了扱いにする
+- `targetNodeId = null` の選択肢は編集画面で警告表示し、プレイ画面では表示しない（MVP）
+- 編集画面で `nextNodeId` と表示可能な選択肢が同時設定の場合は注意文を表示する
 
 #### シーンラベル・シーン管理性改善（2026-05-02 実装済み）
 - `GameScene.name` をシーンラベルとして活用（DB変更・マイグレーションなし）
 - edit画面左ペインのシーン一覧に Scene番号・シーン名・ノード数を表示
 - 選択中シーンの名前を入力欄で編集可能（Enter or blur で `PATCH /games/scenes/:sceneId { name }` 保存）
+- 入力欄ラベルを「選択中シーン名」に簡略化（補足文は削除）
 - シーン名が空の場合は `Scene N` フォールバック表示（シーン一覧・NodePicker共通）
 - シーン名変更後: `scene.value` / `scenes.value` / `game.value.scenes` を即時同期→ NodePicker ・ `findNodeLabel`（遷移先ラベル）に自動反映
 - NodePicker のシーン準の表示は既実装済み（`Scene N: name` 形式、ノード数、現在シーンバッジ、検索・詳細プレビュー）

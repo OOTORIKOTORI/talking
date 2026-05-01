@@ -227,7 +227,7 @@ model GameChoice {
   id                    String   @id @default(cuid())
   nodeId                String
   label                 String
-  targetNodeId          String
+  targetNodeId          String?
   condition             Json?
   effects               Json?
   alternateTargetNodeId String?

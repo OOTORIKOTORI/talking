@@ -410,6 +410,23 @@ function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
   return findNodeLabel(targetNodeId)
 }
 
+function normalizeChoiceTargetId(targetNodeId: unknown): string | null {
+  if (typeof targetNodeId !== 'string') return null
+  const trimmed = targetNodeId.trim()
+  return trimmed ? trimmed : null
+}
+
+function hasConfiguredChoiceTarget(choice: any): boolean {
+  return !!normalizeChoiceTargetId(choice?.targetNodeId)
+}
+
+function clearChoiceTarget(
+  choice: any,
+  field: 'targetNodeId' | 'alternateTargetNodeId' = 'targetNodeId',
+) {
+  choice[field] = null
+}
+
 function normalizeChoiceDrafts() {
   if (!Array.isArray(nodeDraft.choices)) {
     nodeDraft.choices = []
@@ -418,10 +435,10 @@ function normalizeChoiceDrafts() {
 
   nodeDraft.choices = nodeDraft.choices.map((choice: any) => ({
     label: choice?.label ?? '',
-    targetNodeId: choice?.targetNodeId ?? '',
+    targetNodeId: normalizeChoiceTargetId(choice?.targetNodeId),
     effects: Array.isArray(choice?.effects) ? choice.effects : [],
     condition: choice?.condition && typeof choice.condition === 'object' ? choice.condition : null,
-    alternateTargetNodeId: choice?.alternateTargetNodeId ?? '',
+    alternateTargetNodeId: normalizeChoiceTargetId(choice?.alternateTargetNodeId),
     alternateCondition:
       choice?.alternateCondition && typeof choice.alternateCondition === 'object'
         ? choice.alternateCondition
@@ -434,15 +451,24 @@ function sanitizeChoicesForSave(choices: any[] | undefined) {
 
   return choices.map((choice: any) => ({
     label: choice?.label ?? '',
-    targetNodeId: choice?.targetNodeId ?? '',
+    targetNodeId: normalizeChoiceTargetId(choice?.targetNodeId),
     effects: Array.isArray(choice?.effects)
       ? choice.effects.filter((effect: any) => effect?.key?.trim())
       : [],
     condition: choice?.condition?.key?.trim() ? choice.condition : null,
-    alternateTargetNodeId: choice?.alternateTargetNodeId ?? '',
+    alternateTargetNodeId: normalizeChoiceTargetId(choice?.alternateTargetNodeId),
     alternateCondition: choice?.alternateCondition?.key?.trim() ? choice.alternateCondition : null,
   }))
 }
+
+const hasDisplayableChoices = computed(() => {
+  if (!Array.isArray(nodeDraft.choices)) return false
+  return nodeDraft.choices.some((choice: any) => hasConfiguredChoiceTarget(choice))
+})
+
+const showChoiceNextPriorityNotice = computed(() => {
+  return !!nodeDraft.nextNodeId && hasDisplayableChoices.value
+})
 
 function createEmptyChoiceCondition() {
   return { key: '', operator: 'gte', value: 1 }
@@ -974,10 +1000,10 @@ function addChoice() {
   }
   nodeDraft.choices.push({
     label: '',
-    targetNodeId: '',
+    targetNodeId: null,
     effects: [],
     condition: null,
-    alternateTargetNodeId: '',
+    alternateTargetNodeId: null,
     alternateCondition: null,
   })
 }
@@ -1110,8 +1136,7 @@ function onUp() {
           <h2 class="font-semibold mb-2 text-lg">シーン</h2>
           <!-- 選択中シーン名の編集 -->
           <div v-if="scene" class="mb-3 pb-3 border-b border-gray-200">
-            <label class="block text-xs text-gray-500 mb-1">選択中シーンの名前</label>
-            <p class="text-[11px] text-gray-400 mb-1">左の一覧で選択中のシーン名を編集します</p>
+            <label class="block text-xs text-gray-500 mb-1">選択中シーン名</label>
             <input
               v-model="sceneNameDraft"
               class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -1510,7 +1535,7 @@ function onUp() {
                       {{ nextNodeLabel }}
                     </div>
                     <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
-                    <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=''">クリア</button>
+                    <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=null">クリア</button>
                   </div>
                 </div>
               </div>
@@ -1577,6 +1602,12 @@ function onUp() {
 
               <div>
                 <div class="font-semibold mb-2">選択肢</div>
+                <p
+                  v-if="showChoiceNextPriorityNotice"
+                  class="mb-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
+                >
+                  このノードには選択肢と通常遷移先の両方が設定されています。プレイ時は選択肢が優先され、通常遷移先は表示可能な選択肢がない場合のみ使われます。
+                </p>
                 <div v-if="!nodeDraft.choices || nodeDraft.choices.length === 0" class="text-sm text-gray-500">
                   選択肢はありません
                 </div>
@@ -1607,6 +1638,8 @@ function onUp() {
                         {{ getChoiceTargetLabel(c.targetNodeId) }}
                       </div>
                       <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">通常遷移先</button>
+                      <button v-if="hasConfiguredChoiceTarget(c)" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="clearChoiceTarget(c)">クリア</button>
+                      <span v-if="!hasConfiguredChoiceTarget(c)" class="px-2 py-1 text-[11px] bg-amber-100 text-amber-800 border border-amber-300 rounded">遷移先未設定</span>
                     </div>
 
                     <div class="border-t pt-2">
@@ -1660,7 +1693,7 @@ function onUp() {
                         <div class="text-xs font-semibold text-gray-700">条件分岐先</div>
                         <div class="flex gap-1">
                           <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'alternateCondition')">設定</button>
-                          <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; c.alternateTargetNodeId = ''">クリア</button>
+                          <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; clearChoiceTarget(c, 'alternateTargetNodeId')">クリア</button>
                         </div>
                       </div>
                       <p v-if="!c.alternateCondition" class="text-xs text-gray-500">未設定なら通常遷移のみ</p>
@@ -1993,7 +2026,7 @@ function onUp() {
                         {{ nextNodeLabel }}
                       </div>
                       <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
-                      <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=''">クリア</button>
+                      <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=null">クリア</button>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">次ノードID欄にフォーカス中は Ctrl/⌘+K でも選択できます</p>
                   </div>
@@ -2061,6 +2094,12 @@ function onUp() {
 
                 <div>
                   <div class="font-semibold mb-2">選択肢</div>
+                  <p
+                    v-if="showChoiceNextPriorityNotice"
+                    class="mb-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
+                  >
+                    このノードには選択肢と通常遷移先の両方が設定されています。プレイ時は選択肢が優先され、通常遷移先は表示可能な選択肢がない場合のみ使われます。
+                  </p>
                   <div v-if="!nodeDraft.choices || nodeDraft.choices.length === 0" class="text-sm text-gray-500">
                     選択肢はありません
                   </div>
@@ -2090,7 +2129,8 @@ function onUp() {
                           {{ getChoiceTargetLabel(c.targetNodeId) }}
                         </div>
                         <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i)">通常遷移先</button>
-                        <button v-if="c.targetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.targetNodeId=''">クリア</button>
+                        <button v-if="hasConfiguredChoiceTarget(c)" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="clearChoiceTarget(c)">クリア</button>
+                        <span v-if="!hasConfiguredChoiceTarget(c)" class="px-2 py-1 text-[11px] bg-amber-100 text-amber-800 border border-amber-300 rounded">遷移先未設定</span>
                       </div>
 
                       <div class="border-t pt-2">
@@ -2144,7 +2184,7 @@ function onUp() {
                           <div class="text-xs font-semibold text-gray-700">条件分岐先</div>
                           <div class="flex gap-1">
                             <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="enableChoiceCondition(c, 'alternateCondition')">設定</button>
-                            <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; c.alternateTargetNodeId = ''">クリア</button>
+                            <button v-if="c.alternateCondition || c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateCondition = null; clearChoiceTarget(c, 'alternateTargetNodeId')">クリア</button>
                           </div>
                         </div>
                         <p v-if="!c.alternateCondition" class="text-xs text-gray-500">未設定なら通常遷移のみ</p>
@@ -2169,7 +2209,7 @@ function onUp() {
                               {{ getChoiceTargetLabel(c.alternateTargetNodeId) }}
                             </div>
                             <button class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="openChoiceNodePicker(i, 'alternateTargetNodeId')">特殊遷移先</button>
-                            <button v-if="c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="c.alternateTargetNodeId=''">クリア</button>
+                            <button v-if="c.alternateTargetNodeId" class="px-2 py-1 text-xs bg-gray-100 border rounded hover:bg-gray-200" @click="clearChoiceTarget(c, 'alternateTargetNodeId')">クリア</button>
                           </div>
                         </div>
                       </div>

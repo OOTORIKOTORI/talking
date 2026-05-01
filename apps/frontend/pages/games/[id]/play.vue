@@ -1565,7 +1565,7 @@ const isEndNode = computed(() => {
   if (!current.value) return false
   
   // 選択肢がある場合は終了ではない
-  if (current.value.choices && current.value.choices.length > 0) return false
+  if (hasChoices.value) return false
   
   // nextNodeIdがある場合は終了ではない
   if (current.value.nextNodeId) return false

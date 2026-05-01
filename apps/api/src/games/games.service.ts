@@ -30,6 +30,23 @@ type PublicGameSummary = {
 export class GamesService {
   constructor(private prisma: PrismaService) {}
 
+  private normalizeNodeRefId(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizeChoiceInput(choice: any) {
+    return {
+      label: choice?.label ?? '',
+      targetNodeId: this.normalizeNodeRefId(choice?.targetNodeId),
+      condition: choice?.condition ?? null,
+      effects: choice?.effects ?? null,
+      alternateTargetNodeId: this.normalizeNodeRefId(choice?.alternateTargetNodeId),
+      alternateCondition: choice?.alternateCondition ?? null,
+    };
+  }
+
   private readonly playInclude = {
     scenes: {
       include: {
@@ -331,15 +348,13 @@ export class GamesService {
         // Create new choices
         if (choices.length > 0) {
           await this.prisma.gameChoice.createMany({
-            data: choices.map((c: any) => ({
+            data: choices.map((c: any) => {
+              const normalized = this.normalizeChoiceInput(c);
+              return {
               nodeId: node.id,
-              label: c.label,
-              targetNodeId: c.targetNodeId,
-              condition: c.condition ?? null,
-              effects: c.effects ?? null,
-              alternateTargetNodeId: c.alternateTargetNodeId || null,
-              alternateCondition: c.alternateCondition ?? null,
-            })) as any,
+              ...normalized,
+            };
+            }) as any,
           });
         }
       }
@@ -359,14 +374,7 @@ export class GamesService {
     const { choices, ...nodeData } = node;
     const choiceCreate = Array.isArray(choices) && choices.length > 0
       ? {
-          create: choices.map((c: any) => ({
-            label: c.label,
-            targetNodeId: c.targetNodeId,
-            condition: c.condition ?? null,
-            effects: c.effects ?? null,
-            alternateTargetNodeId: c.alternateTargetNodeId || null,
-            alternateCondition: c.alternateCondition ?? null,
-          })) as any,
+          create: choices.map((c: any) => this.normalizeChoiceInput(c)) as any,
         }
       : undefined
     
@@ -397,8 +405,7 @@ export class GamesService {
 
       await tx.gameChoice.updateMany({
         where: { targetNodeId: nodeId },
-        // targetNodeId is required in schema, so use empty string as unlink marker.
-        data: { targetNodeId: '' },
+        data: { targetNodeId: null },
       });
 
       await tx.gameChoice.updateMany({
@@ -542,8 +549,7 @@ export class GamesService {
 
         await tx.gameChoice.updateMany({
           where: { targetNodeId: { in: nodeIds } },
-          // targetNodeId is required in schema, so use empty string as unlink marker.
-          data: { targetNodeId: '' },
+          data: { targetNodeId: null },
         });
 
         await tx.gameChoice.updateMany({

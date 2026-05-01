@@ -121,12 +121,17 @@ export function resolveChoiceTarget(choice: any, state: GameState): string | nul
   return normalTarget || null
 }
 
+function hasNormalTarget(choice: Record<string, any>): boolean {
+  return typeof choice?.targetNodeId === 'string' && choice.targetNodeId.trim().length > 0
+}
+
 export function filterVisibleChoices<T extends Record<string, any>>(
   choices: T[] | null | undefined,
   state: GameState,
 ): T[] {
   if (!Array.isArray(choices)) return []
   return choices.filter(choice =>
+    hasNormalTarget(choice) &&
     evaluateChoiceCondition(
       (choice as { condition?: GameChoiceCondition | null }).condition,
       state,

@@ -46,6 +46,18 @@ describe('Game Runtime', () => {
     expect(resolveChoiceTarget(choices[1], { affection: 5 })).toBe('secret')
   })
 
+  it('should hide choices without normal targetNodeId', () => {
+    const choices = [
+      { id: 'a', label: '未設定-null', targetNodeId: null },
+      { id: 'b', label: '未設定-empty', targetNodeId: '   ' },
+      { id: 'c', label: '有効', targetNodeId: 'node-c' },
+    ]
+
+    const visible = filterVisibleChoices(choices as any, {})
+    expect(visible).toHaveLength(1)
+    expect(visible[0]?.id).toBe('c')
+  })
+
   it('should append one backlog entry and ignore duplicates', () => {
     const next = appendBacklogEntry([], {
       id: 'node-1',

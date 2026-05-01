@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（シーンラベル・シーン管理性改善MVP実装）
+> 最終更新: 2026-05-02（GameChoice.targetNodeId null運用整理）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -21,7 +21,6 @@
 
 **直近の残課題（優先順）**
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
-- `GameChoice.targetNodeId` の nullable 化 / 未設定表現の整理
 - ゲームエディタ edit画面の情報設計v2（右ペインセクション化MVP）
 - キーコンフィグ・AUTO/Skip機能・プレイヤーごとのセーブデータ設計
 
@@ -33,6 +32,47 @@
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
 | 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / GameChoice.targetNodeId null運用整理）
+
+### 実装した内容
+- Prisma
+	- `GameChoice.targetNodeId` を nullable 化
+	- migration `20260502090000targetnodeidnullable` を追加
+	- 既存 `targetNodeId = ''` を `null` へ移行する SQL を追加
+- API（`apps/api/src/games/games.service.ts`）
+	- choice 作成/更新時に `targetNodeId` / `alternateTargetNodeId` を trim して空文字を `null` に正規化
+	- ノード削除・シーン削除時の参照解除を `targetNodeId: null` に変更
+	- `alternateTargetNodeId` の参照解除は従来どおり `null`
+- 編集画面（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- choice の通常遷移先未設定を `null` で扱うように変更
+	- 未設定 choice に「遷移先未設定」バッジを表示
+	- `nextNodeId` と表示可能 choice が両方ある場合に注意文を表示
+	- choice 遷移先/分岐遷移先のクリア操作を `null` 設定に変更
+	- シーン名編集欄ラベルを「選択中シーン名」に変更し、補足文を削除
+- プレイ画面（`apps/frontend/utils/gameState.ts`, `apps/frontend/pages/games/[id]/play.vue`）
+	- `targetNodeId` が未設定の choice を表示対象外に変更（MVP）
+	- 表示可能 choice がある場合は choice 優先、ない場合のみ `nextNodeId` 進行の仕様に整合
+	- 数字キー `1-9` は表示対象 choice のみを対象（既存実装を維持）
+
+### 仕様整理（ドキュメント反映）
+- 未設定表現は `null` に統一し、空文字 `''` 運用を廃止
+- ノード削除・シーン削除時の `targetNodeId` / `alternateTargetNodeId` 参照解除は `null`
+- プレイ時の遷移優先順位:
+	- 表示可能 choice が1件以上: choice を表示し `nextNodeId` は使わない
+	- 表示可能 choice が0件: `nextNodeId` があれば通常進行、なければ終了
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 WARN のみ（`@nuxt/icon` 非互換、browserslist 古い、baseline-browser-mapping 更新推奨、Node deprecation warning）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 7 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（NodePicker 実キー操作、プレイ画面の実操作E2E）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 
