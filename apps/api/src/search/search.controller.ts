@@ -130,32 +130,30 @@ export class SearchController {
       this.prisma.asset.count({ where }),
     ]);
 
-    return {
-      items,
-      limit,
-      offset,
-      total,
-    };
+    return { items, limit, offset, total };
   }
 
-  @Get('assets')
-  @UseGuards(OptionalSupabaseAuthGuard)
-  async searchAssets(@Query() dto: SearchAssetsDto, @Request() req: any) {
+  /**
+   * Meilisearch で検索し、失敗時は Prisma fallback。
+   * userId は opt-in の認証ユーザー ID（未認証は null）。
+   * dto.owner に 'me' または実際の userId を渡すことで owner フィルタを適用する。
+   * 公開範囲: Asset モデルに isPublic フィールドは存在せず、
+   *   deletedAt: null が唯一の公開フィルタ（既存 /assets API と同一仕様）。
+   */
+  private async searchWithMeiliAndFallback(dto: SearchAssetsDto, userId: string | null) {
     const { limit, offset } = this.parsePagination(dto);
     const q = dto.q || '';
     const sort = dto.sort || 'createdAt:desc';
-    const userId = req.user?.userId ?? null;
 
     try {
       const index = meiliClient.index('assets');
       const filterString = this.buildMeiliFilter(dto, userId);
-      const sortArray = [sort];
 
       const searchResult = await index.search(q, {
         limit,
         offset,
         filter: filterString,
-        sort: sortArray,
+        sort: [sort],
       });
 
       const ids = searchResult.hits.map((hit: any) => hit.id);
@@ -175,6 +173,7 @@ export class SearchController {
       const assetMap = new Map(assets.map((a) => [a.id, a]));
       const orderedAssets = ids.map((id) => assetMap.get(id)).filter(Boolean);
 
+      // Meilisearch にあるが Prisma に存在しない（削除済みなど）場合 fallback
       if (orderedAssets.length === 0 && ids.length > 0) {
         return this.searchAssetsWithPrisma(dto, userId);
       }
@@ -186,15 +185,29 @@ export class SearchController {
         total: searchResult.estimatedTotalHits || 0,
       };
     } catch (error) {
-      this.logger.warn(`Meilisearch unavailable. Fallback to Prisma for /search/assets. ${(error as Error)?.message || ''}`);
+      this.logger.warn(
+        `Meilisearch unavailable. Fallback to Prisma. ${(error as Error)?.message || ''}`,
+      );
       return this.searchAssetsWithPrisma(dto, userId);
     }
+  }
+
+  @Get('assets')
+  @UseGuards(OptionalSupabaseAuthGuard)
+  async searchAssets(@Query() dto: SearchAssetsDto, @Request() req: any) {
+    const userId: string | null = req.user?.userId ?? null;
+    return this.searchWithMeiliAndFallback(dto, userId);
   }
 
   @Get('assets/mine')
   @UseGuards(SupabaseAuthGuard)
   async searchMyAssets(@Query() dto: SearchAssetsDto, @Request() req: any) {
-    const userId = req.user?.userId;
-    return this.searchAssetsWithPrisma({ ...dto, owner: 'me' }, userId);
+    const userId: string | null = req.user?.userId ?? null;
+    if (!userId) {
+      const { limit, offset } = this.parsePagination(dto);
+      return { items: [], limit, offset, total: 0 };
+    }
+    // owner を実際の userId に固定し、Meilisearch + Prisma fallback で自分のアセットを検索
+    return this.searchWithMeiliAndFallback({ ...dto, owner: userId }, userId);
   }
 }
