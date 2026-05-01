@@ -152,6 +152,41 @@
 
 ---
 
+## 🔎 今回の確認メモ（2026-05-01 / NodePicker「シーン → ノード」二段階選択UI実装）
+
+### 実装した内容
+- フロント（`apps/frontend/components/game/NodePicker.vue`）
+  - 左右2カラムのモーダルUIに刷新
+    - 左ペイン: シーン一覧（Scene番号・名前・ノード数・現在シーンラベル）
+    - 右ペイン: 選択中シーンのノード一覧（Node番号・本文プレビュー・選択中ラベル）
+  - 初期選択シーン: `currentSceneId` → `currentId` を含むシーン → 先頭シーン の優先順
+  - 検索欄に文字を入力すると全シーン横断検索モードに切り替わり、シーン名・本文・node id をキーに横断検索
+  - 検索クリア時は選択中シーンのノード一覧に戻る
+  - 空状態: 「シーンがありません」「このシーンにはノードがありません」「一致するノードがありません」
+  - props は `scenes` / `currentSceneId` / `currentId` ベースを維持
+  - `game` prop 依存に戻さず、`nodePickerScenes` computed の構造を維持
+  - 前回修正の stale state 対策（現在シーンのノードは `nodes.value` を使用、他シーンは `game.value.scenes[].nodes`）を維持
+- `edit.vue` は変更なし（`nodePickerScenes` computed・NodePicker 呼び出しは現状維持）
+
+### 既存機能への影響
+- nextNodeId 選択・choice `targetNodeId` / `alternateTargetNodeId` 選択・`@select` emit・`@close` emit は変更なし
+- ノード追加直後の反映・ノード削除後の反映・シーン削除後の反映は `nodePickerScenes` computed に依存しており維持
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+- `pnpm -C apps/frontend test`: ✅ exit 0（2 files / 6 tests passed）
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（各項目）
+  - NodePickerを開くと現在シーンが初期選択される
+  - 左のシーンを選ぶと右のノード一覧が切り替わる
+  - 他シーンのノードを nextNodeId / choice 通常遷移 / choice 特殊遷移に指定できる
+  - ノード追加直後・削除後の一覧反映
+  - 検索の全シーン横断・結果からの選択・クリア後の復帰
+  - 理由: この実行環境ではブラウザ手動E2Eを実施しておらず、CLI の build/test を優先したため
+
+---
+
 ## 🔎 今回の確認メモ（2026-05-01 / NodePicker stale state 修正・他シーン候補維持の補正）
 
 ### 実装した内容
