@@ -76,14 +76,21 @@ docs: ハンドオフ手順を追加
 
 PR を作成する際は以下を確認してください:
 
-### コード品質
+### 現時点で実行可能な確認
 
-- [ ] `pnpm lint` が通る (各 app で実行)
-- [ ] `pnpm typecheck` が通る
-- [ ] `pnpm test` が通る
 - [ ] `pnpm build` が通る
-- [ ] `pnpm postbuild` (meta-check) が通る
-- [ ] 型エラーがない (TypeScript)
+- [ ] `pnpm -C apps/frontend test` が通る
+- [ ] `pnpm dev:all` でローカル起動できる
+
+### 将来整備する品質ゲート
+
+- [ ] root / app ごとの `lint` スクリプトを整備する
+- [ ] root / app ごとの `typecheck` スクリプトを整備する
+- [ ] API / Worker / E2E を含む `test` スクリプトを整備する
+- [ ] `postbuild` (meta-check) を実装する
+- [ ] `smoke:og` / `ci:guards` / `LHCI` などの自動検証を整備する
+
+> 現在の root `package.json` の `lint` / `typecheck` / `test` は placeholder です。品質ゲートとして扱わず、実体のあるコマンドだけを確認対象にしてください。
 
 ### 動作確認
 
@@ -115,10 +122,17 @@ PR を作成する際は以下を確認してください:
 
 ### CI チェック項目
 
+#### 現時点で実体のあるコマンド
+
+- **build**: `pnpm -w build` により API / Frontend / Worker のビルド確認
+- **frontend test**: `pnpm -C apps/frontend test` により Vitest 実行
+- **dev smoke**: `pnpm dev:all` によりローカル起動確認
+
+#### 将来の CI 品質ゲート候補
+
 - **lint**: ESLint による静的解析
 - **typecheck**: TypeScript 型チェック
-- **test**: ユニット・統合テスト
-- **build**: 全アプリケーションのビルド確認
+- **test**: API / Worker / E2E を含む自動テスト
 - **postbuild**: メタデータチェック（meta-check）
 - **smoke:og**: OG画像生成のスモークテスト
 - **ci:guards**: ガード・認可ロジックのテスト
@@ -126,8 +140,9 @@ PR を作成する際は以下を確認してください:
 
 ### 基本方針
 
-- **Lint & Type Check**: PR 時に自動実行
-- **Build**: `pnpm build` で全アプリケーションがビルドできることを確認
+- **現状**: `build` と `apps/frontend` のテスト、ローカル起動確認を手動運用する
+- **Build**: `pnpm -w build` で全アプリケーションがビルドできることを確認
+- **Lint / Type Check**: スクリプト整備後に PR 品質ゲートへ昇格する
 - **Deploy**: (将来) main へのマージ時に自動デプロイ
 
 ### `pnpm approve-builds` の扱い

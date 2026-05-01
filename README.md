@@ -24,6 +24,7 @@ cd apps/api && pnpm prisma migrate dev
 ## ドキュメント
 
 詳細は [`docs/`](./docs/README.md) を参照してください。
+進捗・既知課題・次にやることは [`docs/ROADMAP.md`](./docs/ROADMAP.md) を正として管理します。
 
 | ドキュメント | 内容 |
 |-------------|------|
@@ -33,7 +34,7 @@ cd apps/api && pnpm prisma migrate dev
 | [開発ワークフロー](./docs/workflow.md) | ブランチ規約・Conventional Commits |
 | [ファイルマップ](./docs/file-map.md) | ファイル構造と各ファイルの役割 |
 | [ロードマップ](./docs/ROADMAP.md) | 実装済み機能・既知の課題・今後の計画 |
-| [ハンドオフ手順](./docs/handoff.md) | 複数チャットへの引き継ぎ方法 |
+| [ハンドオフ手順](./docs/handoff.md) | 旧メモ・補助資料。進捗同期の主導線ではない |
 | [RUNBOOK](./docs/RUNBOOK.md) | 詳細コマンド・トラブルシュート集 |
 
 ## サービス URL（ローカル開発）
