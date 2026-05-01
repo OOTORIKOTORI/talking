@@ -47,7 +47,7 @@
           <button 
             v-if="current && !showStartScreen && !showEndScreen && !showChoices"
             class="absolute inset-0 z-10 pointer-events-auto" 
-            @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())" 
+            @click="onAdvanceInteraction()" 
             aria-label="next"
           ></button>
 
@@ -57,9 +57,11 @@
             <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
               <div class="space-y-3 w-[min(600px,80vw)]">
                 <button
-                  v-for="ch in choices"
+                  v-for="(ch, idx) in choices"
                   :key="ch.id"
-                  class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
+                  class="w-full px-6 py-4 rounded-lg text-center transition-colors text-white text-lg font-medium shadow-lg"
+                  :class="idx === highlightedChoiceIndex ? 'bg-sky-600/90 ring-2 ring-sky-300' : 'bg-gray-800/90 hover:bg-gray-700'"
+                  @mouseenter="highlightedChoiceIndex = idx"
                   @click="selectChoice(ch)"
                 >
                   {{ ch.label }}
@@ -69,6 +71,7 @@
 
             <!-- 通常のメッセージウィンドウ（常に表示） -->
             <MessageWindow
+              ref="messageWindowRef"
               :key="`msg-${current?.id}`"
               :speaker="speaker"
               :text="displayedText"
@@ -78,7 +81,8 @@
               :show-backlog-button="true"
               :backlog-button-label="labelBacklog"
               @backlog="backlog.open()"
-              @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
+              @complete="onMessageComplete"
+              @click="onAdvanceInteraction()"
             >
               <template #name-actions>
                 <button
@@ -151,7 +155,7 @@
         <button 
           v-if="current && !showStartScreen && !showEndScreen && !showChoices"
           class="absolute inset-0 z-[5] pointer-events-auto" 
-          @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())" 
+          @click="onAdvanceInteraction()" 
           aria-label="next"
         ></button>
 
@@ -161,9 +165,11 @@
           <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
             <div class="space-y-3 w-[min(600px,80vw)]">
               <button
-                v-for="ch in choices"
+                v-for="(ch, idx) in choices"
                 :key="ch.id"
-                class="w-full px-6 py-4 bg-gray-800/90 rounded-lg text-center hover:bg-gray-700 transition-colors text-white text-lg font-medium shadow-lg"
+                class="w-full px-6 py-4 rounded-lg text-center transition-colors text-white text-lg font-medium shadow-lg"
+                :class="idx === highlightedChoiceIndex ? 'bg-sky-600/90 ring-2 ring-sky-300' : 'bg-gray-800/90 hover:bg-gray-700'"
+                @mouseenter="highlightedChoiceIndex = idx"
                 @click="selectChoice(ch)"
               >
                 {{ ch.label }}
@@ -173,6 +179,7 @@
 
           <!-- 通常のメッセージウィンドウ（常に表示） -->
           <MessageWindow
+            ref="messageWindowRef"
             :key="`msg-${current?.id}`"
             :speaker="speaker"
             :text="displayedText"
@@ -182,7 +189,8 @@
             :show-backlog-button="true"
             :backlog-button-label="labelBacklog"
             @backlog="backlog.open()"
-            @click="hasChoices ? (showChoices = true, ensureBgm()) : (advanceWithinNodeOrNext(), ensureBgm())"
+            @complete="onMessageComplete"
+            @click="onAdvanceInteraction()"
           >
             <template #name-actions>
               <button
@@ -362,16 +370,6 @@ const fullscreen = ref(false)
 function openFs(){ fullscreen.value = true; document.documentElement.classList.add('overflow-hidden') }
 function closeFs(){ fullscreen.value = false; document.documentElement.classList.remove('overflow-hidden') }
 
-// Escキーでフルスクリーンを閉じる
-const onEscKey = (e: KeyboardEvent) => {
-  if (e.key !== 'Escape') return
-  if (saveLoadOpen.value) {
-    closeSaveLoadModal()
-    return
-  }
-  closeFs()
-}
-
 import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import BacklogModal from '@/components/game/BacklogModal.vue'
@@ -526,6 +524,15 @@ const labelSlotQuick = computed(() => gameUiTheme.value.slotQuickLabel || 'ク�
 // ビジュアルエフェクト
 const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
+const highlightedChoiceIndex = ref(0)
+const messageTypingComplete = ref(true)
+
+type MessageWindowExposed = {
+  skip: () => void
+  isComplete: () => boolean
+}
+
+const messageWindowRef = ref<MessageWindowExposed | null>(null)
 const gameState = ref<Record<string, any>>({})
 
 type SaveSlotType = 'MANUAL' | 'AUTO' | 'QUICK'
@@ -628,6 +635,136 @@ function openSaveLoadModal(mode: ModalMode) {
 
 function closeSaveLoadModal() {
   saveLoadOpen.value = false
+}
+
+function onMessageComplete() {
+  messageTypingComplete.value = true
+}
+
+function skipMessageTypingIfNeeded() {
+  const msg = messageWindowRef.value
+  const isComplete = msg?.isComplete?.() ?? messageTypingComplete.value
+  if (isComplete) return false
+  msg?.skip?.()
+  messageTypingComplete.value = true
+  return true
+}
+
+function openChoices() {
+  if (!hasChoices.value) return
+  showChoices.value = true
+  highlightedChoiceIndex.value = 0
+}
+
+function moveHighlightedChoice(delta: number) {
+  if (!showChoices.value) return
+  const len = choices.value.length
+  if (len <= 0) return
+  highlightedChoiceIndex.value = (highlightedChoiceIndex.value + delta + len) % len
+}
+
+function confirmHighlightedChoice() {
+  if (!showChoices.value) return
+  const target = choices.value[highlightedChoiceIndex.value]
+  if (!target) return
+  selectChoice(target)
+}
+
+function onAdvanceInteraction() {
+  ensureBgm()
+
+  if (showStartScreen.value) {
+    start()
+    return
+  }
+
+  if (saveLoadOpen.value || backlog.isOpen.value) return
+  if (!current.value || showEndScreen.value) return
+
+  if (showChoices.value) {
+    confirmHighlightedChoice()
+    return
+  }
+
+  if (skipMessageTypingIfNeeded()) {
+    return
+  }
+
+  if (hasChoices.value) {
+    openChoices()
+    return
+  }
+
+  advanceWithinNodeOrNext()
+}
+
+function shouldIgnorePlayShortcut(e: KeyboardEvent) {
+  if (e.isComposing || e.key === 'Process') return true
+  if (e.ctrlKey || e.metaKey || e.altKey) return true
+
+  const target = e.target as HTMLElement | null
+  if (!target) return false
+  if (target.closest('input, textarea, select, button, [contenteditable]')) return true
+  return false
+}
+
+function handleEscPriority() {
+  if (saveLoadOpen.value) {
+    closeSaveLoadModal()
+    return true
+  }
+  if (backlog.isOpen.value) {
+    backlog.close()
+    return true
+  }
+  if (fullscreen.value) {
+    closeFs()
+    return true
+  }
+  return false
+}
+
+const onGameKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    if (handleEscPriority()) {
+      e.preventDefault()
+    }
+    return
+  }
+
+  if (shouldIgnorePlayShortcut(e)) return
+
+  // モーダル表示中は Esc 以外でゲーム進行しない
+  if (saveLoadOpen.value || backlog.isOpen.value) return
+
+  if (e.key === 'ArrowUp') {
+    if (!showChoices.value) return
+    moveHighlightedChoice(-1)
+    e.preventDefault()
+    return
+  }
+
+  if (e.key === 'ArrowDown') {
+    if (!showChoices.value) return
+    moveHighlightedChoice(1)
+    e.preventDefault()
+    return
+  }
+
+  if (/^[1-9]$/.test(e.key)) {
+    if (!showChoices.value) return
+    const idx = Number(e.key) - 1
+    const target = choices.value[idx]
+    if (!target) return
+    selectChoice(target)
+    e.preventDefault()
+    return
+  }
+
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    onAdvanceInteraction()
+    e.preventDefault()
+  }
 }
 
 async function refreshSaves() {
@@ -1197,8 +1334,8 @@ onMounted(async () => {
   initAudioConsent()
   backlog.reset()
   
-  // Escキーイベントリスナーを追加
-  window.addEventListener('keydown', onEscKey)
+  // ゲームプレイ用キー入力を登録
+  window.addEventListener('keydown', onGameKeyDown)
   
   try {
     const [sessionRes, gameRes] = await Promise.all([
@@ -1236,7 +1373,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onEscKey)
+  window.removeEventListener('keydown', onGameKeyDown)
   stopCameraAnimation()
 })
 
@@ -1270,9 +1407,11 @@ function restart() {
   backlog.reset()
   accumulatedText.value = ''
   gameState.value = {}
+  messageTypingComplete.value = true
   showStartScreen.value = true
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
+  highlightedChoiceIndex.value = 0
   current.value = null
   currentColorFilter.value = null // カラーフィルターをリセット
   applyStart()
@@ -1284,6 +1423,7 @@ function selectChoice(choice: any) {
   const nextState = applyChoiceEffects(gameState.value as any, choice?.effects)
   gameState.value = nextState
   showChoices.value = false
+  highlightedChoiceIndex.value = 0
   showEndScreen.value = false
   go(resolveChoiceTarget(choice, nextState))
   ensureBgm()
@@ -1297,6 +1437,7 @@ function go(targetNodeId: string | null) {
 
   showEndScreen.value = false
   showChoices.value = false // 選択肢表示をリセット
+  highlightedChoiceIndex.value = 0
 
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
@@ -1332,11 +1473,12 @@ function go(targetNodeId: string | null) {
 
 function advanceWithinNodeOrNext() {
   showChoices.value = false // 選択肢表示をリセット
+  highlightedChoiceIndex.value = 0
   pushCurrentToBacklog()
   
   // 選択肢がある場合は選択肢を表示
   if (hasChoices.value) {
-    showChoices.value = true
+    openChoices()
     return
   }
   
@@ -1379,9 +1521,36 @@ const displayedText = computed(() => {
   return current.value?.text ?? ''
 })
 
+watch(
+  () => [current.value?.id, displayedText.value],
+  () => {
+    messageTypingComplete.value = !displayedText.value
+  },
+  { immediate: true }
+)
+
 const choices = computed(() => {
   if (!current.value) return []
   return filterVisibleChoices(current.value.choices || [], gameState.value as any)
+})
+
+watch(choices, (nextChoices) => {
+  if (!showChoices.value) return
+  if (nextChoices.length <= 0) {
+    highlightedChoiceIndex.value = 0
+    return
+  }
+  if (highlightedChoiceIndex.value >= nextChoices.length) {
+    highlightedChoiceIndex.value = nextChoices.length - 1
+  }
+  if (highlightedChoiceIndex.value < 0) {
+    highlightedChoiceIndex.value = 0
+  }
+})
+
+watch(showChoices, (isOpen) => {
+  if (!isOpen) return
+  highlightedChoiceIndex.value = 0
 })
 
 const hasChoices = computed(() => choices.value.length > 0)

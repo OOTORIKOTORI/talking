@@ -128,27 +128,53 @@ const textStyle = computed(() => {
 })
 
 const shown = ref('')
+const isTypingComplete = ref(false)
 
 let timer: any = null
+function finishTyping(target: string) {
+  clearInterval(timer)
+  shown.value = target
+  if (!isTypingComplete.value) {
+    isTypingComplete.value = true
+    emit('complete')
+  }
+}
+
 function typeTo(target: string) {
   clearInterval(timer)
   if (!props.animate) {
-    shown.value = target
-    emit('complete')
+    finishTyping(target)
     return
   }
   shown.value = ''
+  isTypingComplete.value = false
+  if (!target) {
+    finishTyping(target)
+    return
+  }
   const ms = resolved.value.typeMs ?? 25
   let i = 0
   timer = setInterval(() => {
     i++
     shown.value = target.slice(0, i)
     if (i >= target.length) {
-      clearInterval(timer)
-      emit('complete')
+      finishTyping(target)
     }
   }, ms)
 }
+
+function skip() {
+  finishTyping(props.text ?? '')
+}
+
+function isComplete() {
+  return isTypingComplete.value
+}
+
+defineExpose({
+  skip,
+  isComplete,
+})
 
 watch(() => props.text ?? '', (t) => typeTo(t), { immediate: true })
 onBeforeUnmount(() => clearInterval(timer))
