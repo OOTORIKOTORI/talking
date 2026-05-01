@@ -278,16 +278,47 @@ const selectedCharLabel = computed(() => {
 
 const nodePickerScenes = computed(() => {
   const currentSceneId = scene.value?.id ?? null
+  const gameScenesById = new Map((game.value?.scenes ?? []).map((s: any) => [s.id, s]))
+
   return scenes.value.map((sceneItem: any) => {
-    if (sceneItem.id !== currentSceneId) {
-      return sceneItem
-    }
+    const fromGame = gameScenesById.get(sceneItem.id) as any | undefined
+    const baseNodes = Array.isArray(fromGame?.nodes) ? fromGame.nodes : []
+
     return {
+      ...fromGame,
       ...sceneItem,
-      nodes: nodes.value.map((nodeItem: any) => ({ ...nodeItem })),
+      nodes:
+        sceneItem.id === currentSceneId
+          ? nodes.value.map((nodeItem: any) => ({ ...nodeItem }))
+          : baseNodes.map((nodeItem: any) => ({ ...nodeItem })),
     }
   })
 })
+
+watch(
+  () => scenes.value,
+  (latestScenes) => {
+    if (!game.value) return
+
+    const currentSceneId = scene.value?.id ?? null
+    const gameScenesById = new Map((game.value.scenes ?? []).map((s: any) => [s.id, s]))
+
+    game.value.scenes = latestScenes.map((sceneItem: any) => {
+      const fromGame = gameScenesById.get(sceneItem.id) as any | undefined
+      const baseNodes = Array.isArray(fromGame?.nodes) ? fromGame.nodes : []
+
+      return {
+        ...fromGame,
+        ...sceneItem,
+        nodes:
+          sceneItem.id === currentSceneId
+            ? nodes.value.map((nodeItem: any) => ({ ...nodeItem }))
+            : baseNodes.map((nodeItem: any) => ({ ...nodeItem })),
+      }
+    })
+  },
+  { deep: false }
+)
 
 function findNodeLabel(targetNodeId: string | null | undefined): string {
   if (!targetNodeId) return '未設定'

@@ -14,7 +14,7 @@
 
 ---
 
-## 🔎 今回の確認メモ（2026-05-01 / NodePicker stale state 修正・PROJECT_SPEC整合）
+## 🔎 今回の確認メモ（2026-05-01 / NodePicker stale state 修正・他シーン候補維持の補正）
 
 ### 実装した内容
 - ドキュメント
@@ -29,6 +29,9 @@
 	- `nodePickerScenes` computed を追加し、現在シーンだけは常に最新の `nodes.value` をマージした `scenes` を NodePicker に渡すよう変更
 	- NodePicker 呼び出しを `:scenes="nodePickerScenes"` / `:current-scene-id="scene?.id"` ベースへ変更
 	- 次ノード表示ラベルと choice 遷移先表示ラベルも同じ最新データ源を参照するよう統一
+	- 追加補正: `nodePickerScenes` は `scenes.value`（最新のシーン一覧）を基準にしつつ、他シーンの `nodes` は `game.value.scenes[].nodes` を補助データ源としてマージ
+	- 追加補正: 現在シーンの `nodes` は常に `nodes.value` で上書きし、ノード追加/保存/削除直後の即時反映を維持
+	- 追加補正: `scenes.value` 更新時に `game.value.scenes` を同じ方針で同期し、削除済みシーンを NodePicker 候補から除外しつつ他シーン候補を保持
 
 ### この修正で狙っている状態
 - ノード追加直後に NodePicker を開くと、追加したノードが候補に表示される
@@ -36,6 +39,7 @@
 - ノード削除後、削除済みノードが NodePicker 候補に残らない
 - シーン切り替え後、現在シーンの候補が最新 `nodes.value` ベースで表示される
 - シーン削除後、削除済みシーン内ノードが NodePicker 候補に残らない
+- 他シーンノードも NodePicker 候補として表示・選択できる（nextNode / choice 通常遷移 / choice 特殊遷移）
 
 ### 残課題
 - NodePicker の本格的な「シーン → ノード」二段選択 UI は未実装
