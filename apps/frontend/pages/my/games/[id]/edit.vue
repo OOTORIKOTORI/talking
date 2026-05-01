@@ -43,6 +43,7 @@ const musicTitle = ref<string>('')
 const sfxUrl = ref<string | null>(null)
 const pendingIndex = ref<number | null>(null)
 const saving = ref(false)
+const sceneNameDraft = ref('')
 
 // ビジュアルエフェクト
 const { effectState, playEffect, stopEffect } = useVisualEffects()
@@ -319,6 +320,55 @@ watch(
   },
   { deep: false }
 )
+
+// シーンごとのノード数 (nodePickerScenes から算出)
+const sceneNodeCount = computed(() => {
+  const map = new Map<string, number>()
+  for (const sc of nodePickerScenes.value) {
+    map.set(sc.id, sc.nodes?.length ?? 0)
+  }
+  return map
+})
+
+// 選択シーンが変わったら名前ドラフトをリセット
+watch(
+  () => scene.value?.id,
+  () => {
+    sceneNameDraft.value = scene.value?.name || ''
+  }
+)
+
+async function saveSceneName() {
+  if (!scene.value) return
+  const newName = sceneNameDraft.value.trim()
+  if (!newName) {
+    // 空欄なら現在名に戻す
+    sceneNameDraft.value = scene.value.name || ''
+    return
+  }
+  if (newName === scene.value.name) return
+  try {
+    await $api(`/games/scenes/${scene.value.id}`, {
+      method: 'PATCH',
+      body: { name: newName },
+    })
+    // ローカル状態を同期
+    scene.value = { ...scene.value, name: newName }
+    const idx = scenes.value.findIndex((s: any) => s.id === scene.value!.id)
+    if (idx >= 0) {
+      scenes.value[idx] = { ...scenes.value[idx], name: newName }
+    }
+    if (game.value?.scenes) {
+      const gIdx = game.value.scenes.findIndex((s: any) => s.id === scene.value!.id)
+      if (gIdx >= 0) {
+        game.value.scenes[gIdx] = { ...game.value.scenes[gIdx], name: newName }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to save scene name:', error)
+    sceneNameDraft.value = scene.value.name || ''
+  }
+}
 
 function findNodeLabel(targetNodeId: string | null | undefined): string {
   if (!targetNodeId) return '未設定'
@@ -1057,10 +1107,21 @@ function onUp() {
       >
         <!-- シーン一覧 (左) -->
         <aside v-show="!fullscreenProps" class="pane pane-scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
-          <h2 class="font-semibold mb-3 text-lg">シーン</h2>
+          <h2 class="font-semibold mb-2 text-lg">シーン</h2>
+          <!-- 選択中シーン名の編集 -->
+          <div v-if="scene" class="mb-3 pb-3 border-b border-gray-200">
+            <label class="block text-xs text-gray-500 mb-1">シーン名</label>
+            <input
+              v-model="sceneNameDraft"
+              class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              :placeholder="`Scene ${typeof scene.order === 'number' ? scene.order + 1 : ''}`"
+              @keydown.enter.prevent="saveSceneName"
+              @blur="saveSceneName"
+            />
+          </div>
           <ul class="space-y-2">
             <li
-              v-for="s in scenes"
+              v-for="(s, si) in scenes"
               :key="s.id"
               @click="selectScene(s)"
               :class="[
@@ -1070,7 +1131,9 @@ function onUp() {
                   : 'bg-gray-50 hover:bg-gray-100',
               ]"
             >
-              {{ s.name }}
+              <div class="text-[10px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">Scene {{ typeof s.order === 'number' ? s.order + 1 : si + 1 }}</div>
+              <div class="text-sm font-medium truncate">{{ s.name || `Scene ${typeof s.order === 'number' ? s.order + 1 : si + 1}` }}</div>
+              <div class="text-[11px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">{{ sceneNodeCount.get(s.id) ?? 0 }} nodes</div>
             </li>
           </ul>
           <button

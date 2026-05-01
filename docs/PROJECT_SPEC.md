@@ -416,11 +416,14 @@ interface MessageTheme {
 - 現在の schema では `GameChoice.targetNodeId` が required のため、参照解除値として `''` を使用する
 - 将来的には `GameChoice.targetNodeId` の nullable 化、または明示的な「未設定」表現への移行を検討する
 
-#### 将来課題: シーンラベルと管理性
-- 現状のシーン分割は編集体験上の差別化が弱いため、シーンを **章 / 場面 / 管理用ラベル** として扱える表示改善を今後の課題とする
-- 画面上では、シーン一覧・NodePicker・プレビュー導線でシーン名を分かりやすく表示できることを目標とする
-- 代表例: `第1章`, `プロローグ`, `森の入口`, `バトル前`, `エンディングA`
-- 既存モデルの `GameScene.name` を活用できる場合はそれを優先し、不足する場合は `label` または `title` 相当フィールド追加を将来課題として記録する
+#### シーンラベル・シーン管理性改善（2026-05-02 実装済み）
+- `GameScene.name` をシーンラベルとして活用（DB変更・マイグレーションなし）
+- edit画面左ペインのシーン一覧に Scene番号・シーン名・ノード数を表示
+- 選択中シーンの名前を入力欄で編集可能（Enter or blur で `PATCH /games/scenes/:sceneId { name }` 保存）
+- シーン名が空の場合は `Scene N` フォールバック表示（シーン一覧・NodePicker共通）
+- シーン名変更後: `scene.value` / `scenes.value` / `game.value.scenes` を即時同期→ NodePicker ・ `findNodeLabel`（遷移先ラベル）に自動反映
+- NodePicker のシーン準の表示は既実装済み（`Scene N: name` 形式、ノード数、現在シーンバッジ、検索・詳細プレビュー）
+- 将来課題（実装外）: シーン並び替え / シーン説明文 / シーンサムネイル / フローチャート表示
 
 #### NodePicker の現状と残課題
 
@@ -545,7 +548,6 @@ interface GameNode {
 - 選択肢（choices）の UI は最小
 - `GameChoice.targetNodeId` の `''` 運用は暫定であり、nullable 化または未設定表現の整理が必要
 - target未設定の選択肢をプレイ時にどう扱うかは将来課題
-- シーンの管理ラベル表示の改善は未着手（`GameScene.name` の活用・章/場面ラベルとして表示するUI整備）
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール位置保持は残課題
 - ノード参照切れ警告、到達不能ノード検出、フローチャート可視化は将来課題
 - キーコンフィグ・AUTO再生・Skip機能・プレイヤーごとのセーブデータ設計は将来課題
@@ -560,5 +562,4 @@ interface GameNode {
 - 2025-11-04: ゲーム制作（β）仕様を追加。シーン/ノード構造、portraits 配置、カメラ操作、署名 URL 経由の画像/音声取得を明記。
 - 2025-12-07: ゲーム制作機能を拡張。`continuesPreviousText`（セリフ継続表示）と `cameraFx`（カメラ演出）フィールドを追加。MessageThemeV2 にグラデーション（`gradientDirection`, `gradientColor`）とフォントスタイル（`fontWeight`, `fontStyle`）プロパティを追加。カメラ演出では4つのアニメーションモード（together/pan-then-zoom/zoom-then-pan/cut）を実装し、`requestAnimationFrame` で滑らかな動きを実現。エディタではキーボードショートカット（Ctrl/⌘+Enter, Ctrl/⌘+K, F, Esc）を拡充し、NodePicker による次ノード選択と「保存して次のノードへ」機能を強化。`visualFx`（ビジュアルエフェクト）を追加し、画面揺れ（shake）とフラッシュ（flash）の2種類×3段階強度のプリセットエフェクトを実装。エディタでのプレビュー機能とテストプレイでの自動再生に対応。
 - 2026-05-01: ノード削除MVP・シーン削除MVPを実装。削除前確認と参照件数表示、削除時の参照解除を反映。ゲーム削除導線と `GameChoice.targetNodeId` の未設定表現は将来課題として整理。
-- 2026-05-01: ゲーム削除導線を実装済みに更新（`/my/games` から確認付き soft delete、削除済みゲームの各画面遮断）。NodePicker「シーン → ノード」二段階選択UI・キーボード操作MVP・詳細プレビューを実装済みとして反映し、残課題（左ペインキーボード操作・フォーカス設計・スクロール保持）を整理。ゲームプレイ画面キーボード操作MVPの仕様（Enter/Space・↑/↓・数字キー・Esc）を追加。PROJECT_SPEC.md と ROADMAP.md を最新コード基準で整合。今回はドキュメント更新のみで build/test は不要。
-
+- 2026-05-01: ゲーム削除導線を実装済みに更新（`/my/games` から確認付き soft delete、削除済みゲームの各画面遮断）。NodePicker「シーン → ノード」二段階選択UI・キーボード操作MVP・詳細プレビューを実装済みとして反映し、残課題（左ペインキーボード操作・フォーカス設計・スクロール保持）を整理。ゲームプレイ画面キーボード操作MVPの仕様（Enter/Space・↑/↓・数字キー・Esc）を追加。PROJECT_SPEC.md と ROADMAP.md を最新コード基準で整合。今回はドキュメント更新のみで build/test は不要。- 2026-05-02: シーンラベル・シーン管理性改嚄MVPを実装。`GameScene.name` をシーンラベルとして活用（DB変更・マイグレーションなし）。edit画面左ペインのシーン一覧に Scene番号・シーン名・ノード数を表示。選択中シーンの名前を入力欄で編集可能に（Enter/blurで保存）。シーン名変更後のシーン一覧・NodePicker・遷移先ラベルへの即時反映を実装。未対応将来課題（並び替え・説明文・サムネイル・フローチャート）をROADMAPに記録。

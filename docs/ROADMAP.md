@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-01（PROJECT_SPEC.md ・ ROADMAP.md 整合更新）
+> 最終更新: 2026-05-02（シーンラベル・シーン管理性改善MVP実装）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -17,6 +17,7 @@
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - 公開ギャラリー検索（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
 - 未ログイン公開ギャラリーで `/favorites` を呼ばない修正、公開ゲームのセーブ/ローUX補正
+- シーンラベル・シーン管理性改善MVP（シーン名編集UI・一覧改善・NodePicker連携）
 
 **直近の残課題（優先順）**
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
@@ -31,6 +32,63 @@
 | 日付 | 結果 | 備考 |
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
+| 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / シーンラベル・シーン管理性改善MVP）
+
+### 実装した内容
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+  - `sceneNameDraft` ref を追加し、選択シーンが変わる（`scene.value?.id` 変化）たびにドラフトをリセット
+  - `saveSceneName` 非同期関数を追加（`$api PATCH /games/scenes/:sceneId { name }` で永続化）
+    - 空欄の場合は保存せずドラフトを現在名に戻す
+    - 保存後: `scene.value`・`scenes.value[i]`・`game.value.scenes[i]` を即時同期
+    - エラー時はドラフトを現在名に戻す
+  - `sceneNodeCount` computed を追加（`nodePickerScenes` から `Map<sceneId, nodeCount>` を生成）
+  - 左ペイン（シーン一覧）を改善
+    - 各シーン行に Scene番号・シーン名・ノード数を表示
+    - シーン名が空の場合は `Scene N` フォールバックを表示
+    - 選択中シーンは `bg-blue-500 text-white` で視覚的強調（既存どおり）
+  - 左ペイン上部に「シーン名」入力欄を追加（選択中シーンがある場合のみ表示）
+    - Enter キーまたは blur で `saveSceneName` を呼び出し
+    - `placeholder` に `Scene N` を表示
+
+### `GameScene.name` の活用方針
+- `GameScene.name` は Prisma schema に既存フィールド (`String` required)
+- DB変更・マイグレーションなし
+- API: `PATCH /games/scenes/:sceneId { name }` は既実装済み（`patchScene` in `games.service.ts`）
+- フロントのみ変更でシーンラベル機能を実現
+
+### 状態同期方針
+- `scene.value?.id` の watch でシーン切り替え時にドラフトをリセット
+- `scenes.value` watch（既存）が `game.value.scenes` を同期 → NodePicker へ連鎖
+- シーン名変更後: `scene.value`・`scenes.value`・`game.value.scenes` を3箇所同期
+- シーン追加後: `api.listScenes()` で `scenes.value` を再取得 → watch 連鎖で `game.value.scenes` も更新
+- シーン削除後: 同様に再取得 → 自動同期
+- NodePicker に渡す `nodePickerScenes` は `scenes.value` + `game.value.scenes` のマージ computed のため自動追従
+
+### NodePicker の状態（変更なし）
+- 左ペイン: `Scene N: name` 形式（名前空なら番号のみ）、ノード数、「現在のシーン」バッジ
+- 検索結果: `Scene N: name` 表示
+- 詳細プレビュー: `Scene N: name` 表示
+- シーン名での検索対応
+- 既存の二段階選択・キーボード操作・詳細プレビューは変更なし
+
+### 今回未対応（将来課題）
+- シーンのドラッグ&ドロップ並び替え
+- シーン説明文フィールド（`GameScene.description`）
+- シーンサムネイル
+- フローチャート表示
+- 3ペイン構造の大改修
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0（既知 WARN のみ）
+- `pnpm -C apps/frontend test`: ✅ exit 0（2 files / 6 tests passed）
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（シーン名編集・反映・NodePicker連携・キーボード操作の実操作）
+  - 理由: この実行環境ではブラウザ手動E2Eを実施しておらず、CLIのbuild/testを優先したため
 
 ---
 
@@ -623,6 +681,13 @@
 	- ノード削除MVP: 実装済み（削除前確認・参照件数表示・参照解除・削除後の選択維持）
 	- シーン削除MVP: 実装済み（最後の1シーン削除禁止・削除前確認・参照解除・削除後の選択維持）
 	- ゲーム削除導線: 実装済み（`/my/games` から削除確認付きで soft delete）
+- シーンラベル・シーン管理性改善MVP: 実装済み
+	- `GameScene.name` をシーンラベルとして活用（DB変更なし）
+	- 左ペインのシーン一覧にScene番号・シーン名・ノード数を表示
+	- 選択中シーンの名前を入力欄で編集可能（`PATCH /games/scenes/:sceneId` で永続化）
+	- シーン名が空の場合は `Scene N` フォールバック表示
+	- シーン名変更後、シーン一覧・NodePicker・`findNodeLabel`（遷移先ラベル）に即時反映
+	- `sceneNodeCount` computed でノード数をリアクティブに表示
 - NodePicker の「シーン → ノード」二段階選択UI
 	- 左ペインでシーンを選択
 	- 右ペインで選択中シーンのノードを選択
@@ -678,7 +743,6 @@
 - ゲームエディタ edit画面の情報設計・ボタン配置見直し（危険操作の誤認防止）
 - `GameChoice.targetNodeId` の nullable 化または未設定表現の整理が未着手
 - target未設定の選択肢をプレイ時にどう扱うかの仕様整理が未着手
-- シーンラベル・シーン管理性の改善が未着手
 
 ### 🟡 優先度中
 - 非owner削除拒否（403）の実API確認が未実施
@@ -728,10 +792,11 @@
 - 公開ゲーム一覧/詳細/プレイの回帰確認を行う
 
 #### シーンラベル・シーン管理性改善
-シーンを章・場面・管理ラベルとして扱いやすくし、編集画面で分かりやすく表示する。
-- 既存の `GameScene.name` を活用し、足りなければ `label` または `title` の追加を検討する
-- 例: 第1章 / プロローグ / 森の入口 / バトル前 / エンディングA
-- シーン一覧、NodePicker、遷移先表示で同じラベル体系を使う
+実装済み（2026-05-02）。残る将来課題は以下。
+- シーンのドラッグ＆ドロップ並び替え
+- シーン説明文フィールド（`GameScene.description`）
+- シーンサムネイル
+- フローチャート表示
 
 #### NodePicker 二段階UIの操作性改善
 「シーン → ノード」の二段階選択UIは実装済み。右ペイン（ノード一覧）の `↑` / `↓` / `Enter` / `Esc` キーボード操作も実装済み。今後は操作性をさらに改善する（P2/P3 候補）。
