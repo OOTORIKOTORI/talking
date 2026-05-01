@@ -210,6 +210,7 @@ import type { Asset } from '@talking/types';
 
 const route = useRoute();
 const router = useRouter();
+const supabase = useSupabaseClient() as any;
 const api = useAssetsApi();
 
 const assets = ref<Asset[]>([]);
@@ -250,11 +251,10 @@ const availablePrimaryTags = computed(() => {
   return [...imageTags, ...audioTags];
 });
 
-const applyFavorites = async (arr:any[])=>{
-  const fav = await api.listFavorites()
-  const set = new Set((fav||[]).map((x:any)=>x.id))
-  return arr.map((x:any)=>({ ...x, isFavorited: set.has(x.id) }))
-}
+const isLoggedIn = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return !!session;
+};
 // Primary tag label mapping
 const primaryTagLabels: Record<string, string> = {
   IMAGE_BG: '背景',
@@ -324,7 +324,10 @@ const performSearch = async () => {
     const result: any = await api.listPublic(params);
 
     const base = (result?.items ?? []).map(api.normalizeAssetFavorite);
-    const mapped = await api.applyFavorites(base);
+    const loggedIn = await isLoggedIn();
+    const mapped = loggedIn
+      ? await api.applyFavorites(base)
+      : base.map((x: any) => ({ ...x, isFavorited: false }));
     if (offset.value === 0) {
       assets.value = mapped;
     } else {

@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-01（公開プレイ画面セーブ/ロードUXを入口判定に補正）
+> 最終更新: 2026-05-01（公開ギャラリー未ログイン時の/favorites呼び出しを抑止）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,42 @@
 | 日付 | 結果 | 備考 |
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-01 / 公開ギャラリー未ログイン時の/favorites呼び出し抑止）
+
+### 仕様固定（公開アセットギャラリー）
+- 未ログインユーザー:
+	- `/assets` は閲覧可能
+	- 公開一覧取得として `/search/assets` は実行
+	- `/favorites` は呼ばない
+	- 一覧上の `isFavorited` は `false` 扱い
+	- お気に入りボタン押下時のみ既存のログイン誘導を利用
+- ログイン済みユーザー:
+	- `/search/assets` で公開一覧を取得
+	- `/favorites` でお気に入り状態を取得
+	- `isFavorited` 反映とお気に入りトグルは既存挙動を維持
+
+### 実装反映
+- `apps/frontend/pages/assets/index.vue` で `performSearch()` のお気に入り付与処理を分岐
+- `useSupabaseClient().auth.getSession()` によるログイン判定を追加
+- 未ログイン時は `api.applyFavorites(base)` を呼ばず、`base.map(...isFavorited: false)` を適用
+- ログイン済み時のみ従来どおり `api.applyFavorites(base)` を実行
+- `api-auth.client.ts` の 401 リダイレクト処理と `/favorites` API の認証要件は変更なし
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知警告のみ（`@nuxt/icon` Nuxt 3 非互換、browserslist 更新推奨）
+- `pnpm -C apps/frontend test`: ✅ exit 0（2 files / 6 tests passed）
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（未ログインで `/assets` 表示時に `/login` へ遷移しないこと）
+	- 理由: この実行環境ではブラウザを使った画面遷移の手動観測を実施していないため
+- ブラウザ開発者ツールでのネットワーク確認（未ログイン時に `/favorites` が発火しないこと）
+	- 理由: CLI 実行中心の検証で、ネットワークタブの実測は未実施のため
+- 手動の機能確認（未ログイン/ログイン済みで favorite 表示・トグル導線が従来どおりか）
+	- 理由: 今回はコード修正 + ビルド/テスト検証を優先し、手動E2Eを未実施のため
 
 ---
 
