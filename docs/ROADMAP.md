@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（GameChoice.targetNodeId null運用整理）
+> 最終更新: 2026-05-02（Prisma Client同期手順の明確化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -32,6 +32,33 @@
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
 | 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / Prisma Client同期手順の明確化 + 選択肢追加UI改善）
+
+### 実装した内容
+- API（`apps/api/package.json`）
+	- `build` を `pnpm prisma:generate && nest build` に変更
+	- Prisma schema 更新後の Client 未同期による実行時不整合（`must not be null` 系）を起こしにくくする最小対策
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- 「選択肢追加」ボタンをノード操作の手前単体配置から、`選択肢` セクション見出し右側へ移動
+	- 通常表示・全画面表示の両方で同じ配置に統一
+
+### Prisma同期の運用手順（再発防止）
+- Prisma schema を変更したら、以下を必ず同じ作業単位で実施する
+	- `pnpm prisma migrate dev`（開発DB反映）
+	- `pnpm prisma generate`（Client再生成）
+	- API プロセス再起動（古い Client を掴んだままの常駐プロセスを避ける）
+- migration 追加が不要な確認のみ行う場合は、`pnpm prisma migrate status` を使う
+
+### 実行した確認
+- `Set-Location apps/api; pnpm prisma migrate status`: ✅ Database schema is up to date
+- `Set-Location apps/api; pnpm prisma generate`: ✅ Generated Prisma Client (v6.18.0)
+
+### 補足
+- `pnpm prisma migrate dev` 実行時に、意図しない migration（`users` テーブル drop）が一時生成されたため削除済み
+- このため、状態確認用途では `migrate status` を優先する方針を明記
 
 ---
 

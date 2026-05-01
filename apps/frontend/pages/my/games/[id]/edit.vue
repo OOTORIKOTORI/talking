@@ -1580,15 +1580,6 @@ function onUp() {
                 </button>
               </div>
 
-              <div class="flex gap-2">
-                <button
-                  class="flex-1 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
-                  @click="addChoice"
-                >
-                  選択肢追加
-                </button>
-              </div>
-
               <div class="border-t pt-3">
                 <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
                 <button
@@ -1601,7 +1592,15 @@ function onUp() {
               </div>
 
               <div>
-                <div class="font-semibold mb-2">選択肢</div>
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <div class="font-semibold">選択肢</div>
+                  <button
+                    class="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+                    @click="addChoice"
+                  >
+                    選択肢追加
+                  </button>
+                </div>
                 <p
                   v-if="showChoiceNextPriorityNotice"
                   class="mb-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
@@ -2072,15 +2071,6 @@ function onUp() {
                   </button>
                 </div>
 
-                <div class="flex gap-2">
-                  <button
-                    class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
-                    @click="addChoice"
-                  >
-                    選択肢追加
-                  </button>
-                </div>
-
                 <div class="border-t pt-3">
                   <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
                   <button
@@ -2093,7 +2083,15 @@ function onUp() {
                 </div>
 
                 <div>
-                  <div class="font-semibold mb-2">選択肢</div>
+                  <div class="mb-2 flex items-center justify-between gap-2">
+                    <div class="font-semibold">選択肢</div>
+                    <button
+                      class="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+                      @click="addChoice"
+                    >
+                      選択肢追加
+                    </button>
+                  </div>
                   <p
                     v-if="showChoiceNextPriorityNotice"
                     class="mb-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
