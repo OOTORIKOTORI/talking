@@ -1085,7 +1085,7 @@ function onUp() {
             @click="deleteCurrentScene"
             title="最後の1シーンは削除できません"
           >
-            シーン削除
+            このシーンを削除
           </button>
           <p v-if="scenes.length <= 1" class="mt-2 text-xs text-gray-500">最後の1シーンは削除できません</p>
         </aside>
@@ -1498,11 +1498,16 @@ function onUp() {
                 >
                   選択肢追加
                 </button>
+              </div>
+
+              <div class="border-t pt-3">
+                <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
                 <button
-                  class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                   @click="deleteCurrentNode"
+                  aria-label="このノードを削除"
                 >
-                  削除
+                  このノードを削除
                 </button>
               </div>
 
@@ -1524,10 +1529,12 @@ function onUp() {
                         placeholder="表示テキスト"
                       />
                       <button
+                        type="button"
                         class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
                         @click="removeChoice(i)"
+                        :aria-label="`この選択肢を削除 (${i + 1})`"
                       >
-                        削除
+                        この選択肢を削除
                       </button>
                     </div>
 
@@ -1975,11 +1982,16 @@ function onUp() {
                   >
                     選択肢追加
                   </button>
+                </div>
+
+                <div class="border-t pt-3">
+                  <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
                   <button
-                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                     @click="deleteCurrentNode"
+                    aria-label="このノードを削除"
                   >
-                    削除
+                    このノードを削除
                   </button>
                 </div>
 
@@ -2001,10 +2013,12 @@ function onUp() {
                           placeholder="表示テキスト"
                         />
                         <button
+                          type="button"
                           class="px-2 py-1 bg-red-400 text-white rounded text-xs hover:bg-red-500"
                           @click="removeChoice(i)"
+                          :aria-label="`この選択肢を削除 (${i + 1})`"
                         >
-                          削除
+                          この選択肢を削除
                         </button>
                       </div>
                       <div class="flex gap-2 items-center">
