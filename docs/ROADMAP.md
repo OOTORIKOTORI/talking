@@ -14,6 +14,73 @@
 
 ---
 
+## 🔎 今回の確認メモ（2026-05-01 / ゲームエディタのノード削除・シーン削除MVP実装）
+
+### 実装した内容（MVP）
+- API（`apps/api/src/games`）
+	- ノード削除 `DELETE /games/nodes/:nodeId` を拡張
+		- ノード未存在: `404`
+		- owner 以外: `403`
+		- 削除前に参照解除を明示実行
+			- `GameScene.startNodeId == nodeId` → `null`
+			- `GameNode.nextNodeId == nodeId` → `null`
+			- `GameChoice.targetNodeId == nodeId` → `''`（※ schema 上 required のため null 不可）
+			- `GameChoice.alternateTargetNodeId == nodeId` → `null`
+	- シーン削除 `DELETE /games/scenes/:sceneId` を新規追加
+		- シーン未存在: `404`
+		- owner 以外: `403`
+		- 最後の1シーンは削除不可（`400`）
+		- 削除対象シーン内ノードを含めて削除（scene delete + cascade）
+		- 削除前に外部参照を明示解除
+			- `GameProject.startSceneId == sceneId` → `null`
+			- `GameScene.startNodeId in sceneNodeIds` → `null`
+			- `GameNode.nextNodeId in sceneNodeIds` → `null`
+			- `GameChoice.targetNodeId in sceneNodeIds` → `''`
+			- `GameChoice.alternateTargetNodeId in sceneNodeIds` → `null`
+	- 削除確認用 summary API を追加
+		- `GET /games/nodes/:nodeId/delete-summary`
+		- `GET /games/scenes/:sceneId/delete-summary`
+		- ノード/シーン削除前の参照件数を取得可能
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- ノード削除
+		- 削除前確認ダイアログに参照件数（start/next/choice）を表示
+		- 削除後に同一シーン内の別ノードを自動選択
+		- ノードが0件になった場合「ノードなし」を表示
+	- シーン削除
+		- シーン一覧に削除ボタンを追加
+		- 削除前確認ダイアログに削除ノード数・外部参照件数を表示
+		- 最後の1シーン時は削除ボタンを disabled 化し理由表示
+		- 削除後に別シーンを自動選択
+- フロント API ラッパ（`apps/frontend/composables/useGames.ts`）
+	- `delScene`
+	- `getNodeDeleteSummary`
+	- `getSceneDeleteSummary`
+
+### 既存機能への影響
+- シーン作成・ノード作成・ノード選択・nextNode選択・choice遷移先選択・start設定・テストプレイ・公開ゲーム導線は既存 API/画面構成を維持
+
+### 残課題
+- ゲーム削除導線（UI/確認/参照整合）は未実装（次タスク）
+- 手動E2E（owner/非owner/公開画面の実ブラウザ確認）は未実施
+- `GameChoice.targetNodeId` は schema が required のため、解除値として `''` を採用
+	- 将来、nullable 化 or 明示的な「未設定」表現へ移行検討
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 warn のみ（`@nuxt/icon` Nuxt 3 非互換, browserslist 古い）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 6 tests passed
+
+### 今回未実行の確認と理由
+- owner が実際にノード/シーン削除できることのブラウザ手動確認
+	- 理由: 本作業では CLI の build/test を優先し、ブラウザ手動E2Eは未実施
+- 非ownerの削除拒否（403）の実API叩き確認
+	- 理由: 複数ユーザーセッションを使った統合確認をこの実行環境で行っていないため
+- 公開ゲーム一覧/詳細/プレイの実ブラウザ回帰確認
+	- 理由: コード変更は編集画面・games API の削除系中心であり、今回は自動テストとビルド検証を優先
+
+---
+
 ## 🔎 今回の確認メモ（2026-05-01 / 公開ギャラリー未ログイン時の/favorites呼び出し抑止）
 
 ### 仕様固定（公開アセットギャラリー）

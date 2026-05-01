@@ -136,4 +136,22 @@ export class GamesController {
   delNode(@Req() req: any, @Param('nodeId') nid: string) {
     return this.games.deleteNode(req.user.userId, nid);
   }
+
+  @Get('nodes/:nodeId/delete-summary')
+  @UseGuards(SupabaseAuthGuard)
+  nodeDeleteSummary(@Req() req: any, @Param('nodeId') nid: string) {
+    return this.games.getNodeDeleteSummary(req.user.userId, nid);
+  }
+
+  @Delete('scenes/:sceneId')
+  @UseGuards(SupabaseAuthGuard)
+  delScene(@Req() req: any, @Param('sceneId') sceneId: string) {
+    return this.games.deleteScene(req.user.userId, sceneId);
+  }
+
+  @Get('scenes/:sceneId/delete-summary')
+  @UseGuards(SupabaseAuthGuard)
+  sceneDeleteSummary(@Req() req: any, @Param('sceneId') sceneId: string) {
+    return this.games.getSceneDeleteSummary(req.user.userId, sceneId);
+  }
 }

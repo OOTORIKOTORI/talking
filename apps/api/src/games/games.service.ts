@@ -75,6 +75,24 @@ export class GamesService {
     return g;
   }
 
+  private async getOwnedSceneOrThrow(userId: string, sceneId: string) {
+    const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
+    if (!s) throw new NotFoundException('scene not found');
+    const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
+    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    return { scene: s, game: g };
+  }
+
+  private async getOwnedNodeOrThrow(userId: string, nodeId: string) {
+    const n = await this.prisma.gameNode.findUnique({ where: { id: nodeId } });
+    if (!n) throw new NotFoundException('node not found');
+    const s = await this.prisma.gameScene.findUnique({ where: { id: n.sceneId } });
+    if (!s) throw new NotFoundException('scene not found');
+    const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
+    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    return { node: n, scene: s, game: g };
+  }
+
   private normalizeSlotType(slotType: unknown): SaveSlotType {
     const v = String(slotType ?? '')
       .trim()
@@ -375,15 +393,180 @@ export class GamesService {
   }
 
   async deleteNode(userId: string, nodeId: string) {
-    const n = await this.prisma.gameNode.findUnique({ where: { id: nodeId } });
-    if (!n) return;
-    const s = await this.prisma.gameScene.findUnique({ where: { id: n.sceneId } });
-    const g =
-      s &&
-      (await this.prisma.gameProject.findUnique({ where: { id: s.projectId } }));
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
-    await this.prisma.gameChoice.deleteMany({ where: { nodeId } });
-    await this.prisma.gameNode.delete({ where: { id: nodeId } });
+    await this.getOwnedNodeOrThrow(userId, nodeId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gameScene.updateMany({
+        where: { startNodeId: nodeId },
+        data: { startNodeId: null },
+      });
+
+      await tx.gameNode.updateMany({
+        where: { nextNodeId: nodeId },
+        data: { nextNodeId: null },
+      });
+
+      await tx.gameChoice.updateMany({
+        where: { targetNodeId: nodeId },
+        // targetNodeId is required in schema, so use empty string as unlink marker.
+        data: { targetNodeId: '' },
+      });
+
+      await tx.gameChoice.updateMany({
+        where: { alternateTargetNodeId: nodeId },
+        data: { alternateTargetNodeId: null },
+      });
+
+      await tx.gameNode.delete({ where: { id: nodeId } });
+    });
+
+    return { ok: true };
+  }
+
+  async getNodeDeleteSummary(userId: string, nodeId: string) {
+    await this.getOwnedNodeOrThrow(userId, nodeId);
+
+    const [startNodeRefCount, nextNodeRefCount, choiceTargetRefCount, choiceAlternateRefCount] =
+      await this.prisma.$transaction([
+        this.prisma.gameScene.count({ where: { startNodeId: nodeId } }),
+        this.prisma.gameNode.count({ where: { nextNodeId: nodeId } }),
+        this.prisma.gameChoice.count({ where: { targetNodeId: nodeId } }),
+        this.prisma.gameChoice.count({ where: { alternateTargetNodeId: nodeId } }),
+      ]);
+
+    return {
+      nodeId,
+      usedAsStartNode: startNodeRefCount > 0,
+      startNodeRefCount,
+      nextNodeRefCount,
+      choiceTargetRefCount,
+      choiceAlternateRefCount,
+      totalChoiceRefCount: choiceTargetRefCount + choiceAlternateRefCount,
+    };
+  }
+
+  async getSceneDeleteSummary(userId: string, sceneId: string) {
+    const { scene } = await this.getOwnedSceneOrThrow(userId, sceneId);
+    const sceneCount = await this.prisma.gameScene.count({ where: { projectId: scene.projectId } });
+
+    const sceneNodes = await this.prisma.gameNode.findMany({
+      where: { sceneId },
+      select: { id: true },
+    });
+    const nodeIds = sceneNodes.map((n) => n.id);
+    const nodeCount = nodeIds.length;
+
+    if (nodeIds.length === 0) {
+      return {
+        sceneId,
+        nodeCount: 0,
+        sceneCount,
+        canDelete: sceneCount > 1,
+        startSceneRefCount: 0,
+        startNodeRefCount: 0,
+        externalNextNodeRefCount: 0,
+        externalChoiceTargetRefCount: 0,
+        externalChoiceAlternateRefCount: 0,
+        externalRefCount: 0,
+      };
+    }
+
+    const [
+      startSceneRefCount,
+      startNodeRefCount,
+      externalNextNodeRefCount,
+      externalChoiceTargetRefCount,
+      externalChoiceAlternateRefCount,
+    ] = await this.prisma.$transaction([
+      this.prisma.gameProject.count({ where: { startSceneId: sceneId } }),
+      this.prisma.gameScene.count({ where: { startNodeId: { in: nodeIds } } }),
+      this.prisma.gameNode.count({
+        where: {
+          nextNodeId: { in: nodeIds },
+          sceneId: { not: sceneId },
+        },
+      }),
+      this.prisma.gameChoice.count({
+        where: {
+          targetNodeId: { in: nodeIds },
+          node: {
+            sceneId: { not: sceneId },
+          },
+        },
+      }),
+      this.prisma.gameChoice.count({
+        where: {
+          alternateTargetNodeId: { in: nodeIds },
+          node: {
+            sceneId: { not: sceneId },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      sceneId,
+      nodeCount,
+      sceneCount,
+      canDelete: sceneCount > 1,
+      startSceneRefCount,
+      startNodeRefCount,
+      externalNextNodeRefCount,
+      externalChoiceTargetRefCount,
+      externalChoiceAlternateRefCount,
+      externalRefCount:
+        externalNextNodeRefCount +
+        externalChoiceTargetRefCount +
+        externalChoiceAlternateRefCount,
+    };
+  }
+
+  async deleteScene(userId: string, sceneId: string) {
+    const { scene, game } = await this.getOwnedSceneOrThrow(userId, sceneId);
+    const sceneCount = await this.prisma.gameScene.count({ where: { projectId: game.id } });
+    if (sceneCount <= 1) {
+      throw new BadRequestException('at least one scene must remain');
+    }
+
+    const sceneNodes = await this.prisma.gameNode.findMany({
+      where: { sceneId },
+      select: { id: true },
+    });
+    const nodeIds = sceneNodes.map((n) => n.id);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gameProject.updateMany({
+        where: { id: game.id, startSceneId: sceneId },
+        data: { startSceneId: null },
+      });
+
+      if (nodeIds.length > 0) {
+        await tx.gameScene.updateMany({
+          where: { startNodeId: { in: nodeIds } },
+          data: { startNodeId: null },
+        });
+
+        await tx.gameNode.updateMany({
+          where: { nextNodeId: { in: nodeIds } },
+          data: { nextNodeId: null },
+        });
+
+        await tx.gameChoice.updateMany({
+          where: { targetNodeId: { in: nodeIds } },
+          // targetNodeId is required in schema, so use empty string as unlink marker.
+          data: { targetNodeId: '' },
+        });
+
+        await tx.gameChoice.updateMany({
+          where: { alternateTargetNodeId: { in: nodeIds } },
+          data: { alternateTargetNodeId: null },
+        });
+      }
+
+      await tx.gameScene.delete({ where: { id: sceneId } });
+    });
+
+    return { ok: true };
   }
 
   // Save Slots (manual:100, auto:5, quick:1)

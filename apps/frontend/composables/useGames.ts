@@ -15,6 +15,9 @@ export function useGamesApi() {
     listNodes: (sceneId: string) => api(`/games/scenes/${sceneId}/nodes`),
     upsertNode: (sceneId: string, b: any) => api(`/games/scenes/${sceneId}/nodes`, { method: 'POST', body: b }),
     delNode: (nodeId: string) => api(`/games/nodes/${nodeId}`, { method: 'DELETE' }),
+    getNodeDeleteSummary: (nodeId: string) => api(`/games/nodes/${nodeId}/delete-summary`),
+    delScene: (sceneId: string) => api(`/games/scenes/${sceneId}`, { method: 'DELETE' }),
+    getSceneDeleteSummary: (sceneId: string) => api(`/games/scenes/${sceneId}/delete-summary`),
     listSaves: (id: string) => api(`/games/${id}/saves`),
     getSave: (id: string, slotType: string, slotIndex: number) =>
       api(`/games/${id}/saves/${slotType}/${slotIndex}`),

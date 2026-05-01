@@ -575,6 +575,50 @@ async function selectScene(s: any) {
   node.value = null
 }
 
+function buildNodeDeleteConfirmMessage(summary: any | null) {
+  if (!summary) {
+    return [
+      'このノードを削除しますか？',
+      '',
+      '削除時に、開始ノードや遷移先として参照されている設定は自動で解除されます。',
+    ].join('\n')
+  }
+
+  return [
+    'このノードを削除しますか？',
+    '',
+    `開始ノード参照: ${summary.startNodeRefCount}件`,
+    `nextNode参照: ${summary.nextNodeRefCount}件`,
+    `choice遷移先参照: ${summary.choiceTargetRefCount}件`,
+    `choice分岐遷移先参照: ${summary.choiceAlternateRefCount}件`,
+    '',
+    'これらの参照は削除時に自動で解除されます。',
+  ].join('\n')
+}
+
+function buildSceneDeleteConfirmMessage(summary: any | null) {
+  if (!summary) {
+    return [
+      'このシーンを削除しますか？',
+      '',
+      'シーン内ノードも削除され、外部参照は自動で解除されます。',
+    ].join('\n')
+  }
+
+  return [
+    'このシーンを削除しますか？',
+    '',
+    `削除されるノード数: ${summary.nodeCount}件`,
+    `このシーンへの開始シーン参照: ${summary.startSceneRefCount}件`,
+    `シーン内ノードへの開始ノード参照: ${summary.startNodeRefCount}件`,
+    `シーン外ノードからのnextNode参照: ${summary.externalNextNodeRefCount}件`,
+    `シーン外choiceからの遷移先参照: ${summary.externalChoiceTargetRefCount}件`,
+    `シーン外choiceからの分岐遷移先参照: ${summary.externalChoiceAlternateRefCount}件`,
+    '',
+    'これらの参照は削除時に自動で解除されます。',
+  ].join('\n')
+}
+
 async function addScene() {
   try {
     await api.upsertScene(game.value.id, {
@@ -585,6 +629,50 @@ async function addScene() {
   } catch (error) {
     console.error('Failed to add scene:', error)
     alert('シーンの追加に失敗しました')
+  }
+}
+
+async function deleteCurrentScene() {
+  if (!scene.value) return
+
+  if (scenes.value.length <= 1) {
+    alert('最後の1シーンは削除できません')
+    return
+  }
+
+  const deletingSceneId = scene.value.id
+  const currentIndex = scenes.value.findIndex((s) => s.id === deletingSceneId)
+  let summary: any | null = null
+  try {
+    summary = await api.getSceneDeleteSummary(deletingSceneId)
+  } catch (error) {
+    console.warn('Failed to fetch scene delete summary:', error)
+  }
+
+  if (!confirm(buildSceneDeleteConfirmMessage(summary))) return
+
+  try {
+    await api.delScene(deletingSceneId)
+    scenes.value = (await api.listScenes(game.value.id)) as any[]
+
+    if (game.value?.startSceneId === deletingSceneId) {
+      game.value.startSceneId = null
+    }
+
+    if (scenes.value.length === 0) {
+      scene.value = null
+      nodes.value = []
+      node.value = null
+      return
+    }
+
+    const fallbackIndex = Math.min(currentIndex, scenes.value.length - 1)
+    const nextScene = scenes.value[fallbackIndex]
+    await selectScene(nextScene)
+  } catch (error: any) {
+    console.error('Failed to delete scene:', error)
+    const message = error?.data?.message || error?.message || 'シーンの削除に失敗しました'
+    alert(message)
   }
 }
 
@@ -781,13 +869,40 @@ async function saveAndCreateNext() {
 
 async function deleteCurrentNode() {
   if (!node.value) return
-  if (!confirm('このノードを削除しますか?')) return
-  
+
+  const deletingNodeId = node.value.id
+  const currentIndex = nodes.value.findIndex((n) => n.id === deletingNodeId)
+  let summary: any | null = null
   try {
-    await api.delNode(node.value.id)
+    summary = await api.getNodeDeleteSummary(deletingNodeId)
+  } catch (error) {
+    console.warn('Failed to fetch node delete summary:', error)
+  }
+
+  if (!confirm(buildNodeDeleteConfirmMessage(summary))) return
+
+  try {
+    await api.delNode(deletingNodeId)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
-    // scenes.valueも更新
     scenes.value = (await api.listScenes(game.value.id)) as any[]
+
+    const refreshedScene = scenes.value.find((s) => s.id === scene.value.id)
+    if (refreshedScene) {
+      scene.value = refreshedScene
+    }
+
+    if (nodes.value.length === 0) {
+      node.value = null
+      return
+    }
+
+    const fallbackIndex = Math.min(currentIndex, nodes.value.length - 1)
+    const nextNode = nodes.value[fallbackIndex]
+    if (nextNode) {
+      selectNode(nextNode)
+      return
+    }
+
     node.value = null
   } catch (error) {
     console.error('Failed to delete node:', error)
@@ -956,6 +1071,15 @@ function onUp() {
           >
             + シーン追加
           </button>
+          <button
+            class="mt-2 w-full px-3 py-2 border border-red-300 text-red-700 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!scene || scenes.length <= 1"
+            @click="deleteCurrentScene"
+            title="最後の1シーンは削除できません"
+          >
+            シーン削除
+          </button>
+          <p v-if="scenes.length <= 1" class="mt-2 text-xs text-gray-500">最後の1シーンは削除できません</p>
         </aside>
 
         <!-- ノード一覧 (中央) -->
@@ -985,6 +1109,7 @@ function onUp() {
                 </div>
               </li>
             </ul>
+            <div v-if="nodes.length === 0" class="mt-3 text-sm text-gray-500">ノードなし</div>
             <button
               class="mt-4 w-full px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
               @click="addNode"
