@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-01（NodePicker キーボード操作・詳細プレビュー実装と将来課題追記の反映）
+> 最終更新: 2026-05-01（NodePicker 退行復旧確認とキーボード操作安定化の反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,34 @@
 | 日付 | 結果 | 備考 |
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-01 / NodePicker 退行復旧確認・キーボード操作安定化）
+
+### 実装した内容
+- フロント（`apps/frontend/components/game/NodePicker.vue`）
+	- 二段階UI（左: シーン一覧 / 右: 選択中シーンノード一覧 / 検索時: 全シーン横断）を維持していることを再確認
+	- `scenes` / `currentSceneId` / `currentId` props ベース実装を維持（`game` prop 依存へ戻さない）
+	- キーボード操作の安定化として、モーダル本体に `tabindex="-1"` を追加し、検索欄フォーカス失敗時のフォールバックを追加
+	- `Ctrl` / `Meta` / `Alt` 併用時は NodePicker キー処理をスキップし、他ショートカットとの衝突を回避
+	- 既存の `↑` / `↓` / `Enter` / `Esc`、候補0件ガード、ハイライト表示、詳細プレビューを維持
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- NodePicker 呼び出しが `:scenes="nodePickerScenes"` と `:current-scene-id="scene?.id"` の props 連携であることを確認
+	- `:game="..."` 依存に戻っていないことを確認
+
+### 既存機能への影響
+- nextNodeId 選択、choice 通常遷移先/特殊遷移先選択、現在シーン最新ノード反映、他シーン候補維持、検索時の全シーン横断は維持
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 warn のみ（`@nuxt/icon` Nuxt 3 非互換、browserslist 古い、Node deprecation warning、nuxt sourcemap-import warning）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 6 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（NodePicker の実キー操作、詳細プレビューの視認性、choice 編集導線での実操作）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施しておらず、CLI の build/test を優先したため
 
 ---
 

@@ -1,6 +1,11 @@
 <template>
   <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" @click.self="emit('close')" @keydown="onKeydown">
-    <div class="bg-white rounded-xl w-[820px] max-w-[96vw] flex flex-col" style="max-height: 80vh;">
+    <div
+      ref="modalPanelRef"
+      class="bg-white rounded-xl w-[820px] max-w-[96vw] flex flex-col"
+      style="max-height: 80vh;"
+      tabindex="-1"
+    >
       <!-- ヘッダー -->
       <div class="flex items-center justify-between px-4 pt-4 pb-2 flex-shrink-0">
         <h3 class="font-semibold">次ノードを選択</h3>
@@ -146,6 +151,7 @@ const emit = defineEmits<{
 
 const q = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const modalPanelRef = ref<HTMLElement | null>(null)
 const currentId = computed(() => props.currentId ?? null)
 const isSearching = computed(() => q.value.trim().length > 0)
 const highlightedId = ref<string | null>(null)
@@ -269,6 +275,8 @@ function moveHighlight(delta: number) {
 }
 
 function onKeydown(e: KeyboardEvent) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+
   if (e.key === 'Escape') {
     e.preventDefault()
     emit('close')
@@ -340,6 +348,10 @@ watch(highlightedId, async (id) => {
 
 onMounted(async () => {
   await nextTick()
-  searchInputRef.value?.focus()
+  if (searchInputRef.value) {
+    searchInputRef.value.focus()
+    return
+  }
+  modalPanelRef.value?.focus()
 })
 </script>
