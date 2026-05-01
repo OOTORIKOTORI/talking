@@ -390,6 +390,7 @@ const { signedFromId } = useAssetMeta()
 const route = useRoute()
 const router = useRouter()
 const api = useGamesApi()
+const supabase = useSupabaseClient() as any
 const runtimeConfig = useRuntimeConfig()
 const toast = useToast()
 const backlog = useBacklog()
@@ -399,6 +400,31 @@ const map = new Map<string, any>()
 const current = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const currentUserId = ref<string | null>(null)
+
+const SAVE_LOAD_LOGIN_REQUIRED_MESSAGE = 'セーブ・ロードにはログインが必要です。'
+const SAVE_LOAD_OWNER_ONLY_MESSAGE = 'このゲームのセーブ・ロードは現在、作者本人のみ利用できます。'
+
+const isSaveLoadOwner = computed(() => {
+  const ownerId = String(game.value?.ownerId ?? '')
+  const userId = String(currentUserId.value ?? '')
+  return !!ownerId && !!userId && ownerId === userId
+})
+
+function getSaveLoadDeniedMessage() {
+  if (!currentUserId.value) return SAVE_LOAD_LOGIN_REQUIRED_MESSAGE
+  if (!isSaveLoadOwner.value) return SAVE_LOAD_OWNER_ONLY_MESSAGE
+  return null
+}
+
+function ensureSaveLoadAccess(opts?: { notify?: boolean }) {
+  const deniedMessage = getSaveLoadDeniedMessage()
+  if (!deniedMessage) return true
+  if (opts?.notify !== false) {
+    toast.warning(deniedMessage)
+  }
+  return false
+}
 
 // CameraFx 型定義
 type Camera = { zoom: number; cx: number; cy: number }
@@ -605,6 +631,10 @@ function closeSaveLoadModal() {
 
 async function refreshSaves() {
   if (!game.value?.id) return
+  if (!ensureSaveLoadAccess({ notify: false })) {
+    saveListData.value = []
+    return
+  }
   try {
     const res: any = await api.listSaves(game.value.id)
     saveListData.value = Array.isArray(res?.saves) ? res.saves : []
@@ -651,6 +681,7 @@ function buildSavePayload() {
 
 async function saveToSelectedSlot() {
   if (!game.value?.id || !selectedSlot.value) return
+  if (!ensureSaveLoadAccess()) return
   savingOrLoading.value = true
   try {
     const rec = selectedSlot.value.record
@@ -677,6 +708,7 @@ async function saveToSelectedSlot() {
 
 async function loadFromSelectedSlot() {
   if (!game.value?.id || !selectedSlot.value) return
+  if (!ensureSaveLoadAccess()) return
   savingOrLoading.value = true
   backlog.reset()
   try {
@@ -732,6 +764,7 @@ async function loadFromSelectedSlot() {
 
 async function deleteSelectedSlot() {
   if (!game.value?.id || !selectedSlot.value || !selectedSlot.value.record) return
+  if (!ensureSaveLoadAccess()) return
   savingOrLoading.value = true
   try {
     await api.deleteSave(game.value.id, selectedSlot.value.slotType, selectedSlot.value.slotIndex)
@@ -1167,7 +1200,13 @@ onMounted(async () => {
   window.addEventListener('keydown', onEscKey)
   
   try {
-    game.value = await api.get(route.params.id as string)
+    const [sessionRes, gameRes] = await Promise.all([
+      supabase.auth.getSession(),
+      api.get(route.params.id as string),
+    ])
+
+    currentUserId.value = sessionRes?.data?.session?.user?.id ?? null
+    game.value = gameRes
     
     // ノードマップを構築
     game.value.scenes.forEach((s: any) => {
