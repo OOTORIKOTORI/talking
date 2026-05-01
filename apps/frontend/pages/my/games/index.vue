@@ -51,19 +51,30 @@
             </button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <NuxtLink
-            :to="`/my/games/${g.id}/edit`"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+        <div class="flex flex-col items-end gap-2">
+          <div class="flex gap-2">
+            <NuxtLink
+              :to="`/my/games/${g.id}/edit`"
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+            >
+              編集
+            </NuxtLink>
+            <NuxtLink
+              :to="`/games/${g.id}/play`"
+              class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+            >
+              再生
+            </NuxtLink>
+          </div>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm rounded border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="isDeleting(g.id)"
+            @click="onDelete(g)"
           >
-            編集
-          </NuxtLink>
-          <NuxtLink
-            :to="`/games/${g.id}/play`"
-            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
-          >
-            再生
-          </NuxtLink>
+            <span v-if="isDeleting(g.id)">削除中...</span>
+            <span v-else>ゲームを削除</span>
+          </button>
         </div>
       </li>
     </ul>
@@ -86,11 +97,17 @@ const list = ref<any[]>([])
 const title = ref('')
 const loading = ref(true)
 const togglingIds = ref<Record<string, boolean>>({})
+const deletingIds = ref<Record<string, boolean>>({})
 
 const isToggling = (id: string) => !!togglingIds.value[id]
+const isDeleting = (id: string) => !!deletingIds.value[id]
 
 const setToggling = (id: string, value: boolean) => {
   togglingIds.value = { ...togglingIds.value, [id]: value }
+}
+
+const setDeleting = (id: string, value: boolean) => {
+  deletingIds.value = { ...deletingIds.value, [id]: value }
 }
 
 const refreshList = async () => {
@@ -139,6 +156,29 @@ async function togglePublic(game: any) {
     toast.error('公開設定の変更に失敗しました')
   } finally {
     setToggling(game.id, false)
+  }
+}
+
+async function onDelete(game: any) {
+  if (isDeleting(game.id)) return
+
+  const titleForConfirm = String(game?.title || '無題')
+  const confirmed = window.confirm(
+    `ゲーム「${titleForConfirm}」を削除します。公開一覧・編集画面から表示されなくなります。この操作は元に戻せない可能性があります。この操作を実行しますか？`
+  )
+  if (!confirmed) return
+
+  setDeleting(game.id, true)
+  try {
+    await api.del(game.id)
+    list.value = list.value.filter((item) => item.id !== game.id)
+    toast.success('ゲームを削除しました')
+  } catch (error: any) {
+    console.error('Failed to delete game:', error)
+    const message = error?.data?.message || error?.message || 'ゲームの削除に失敗しました'
+    toast.error(message)
+  } finally {
+    setDeleting(game.id, false)
   }
 }
 </script>

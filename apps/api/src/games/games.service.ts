@@ -69,9 +69,16 @@ export class GamesService {
     };
   }
 
-  private async assertGameOwner(userId: string, gameId: string) {
+  private async assertGameOwner(
+    userId: string,
+    gameId: string,
+    opts?: { includeDeleted?: boolean },
+  ) {
     const g = await this.prisma.gameProject.findUnique({ where: { id: gameId } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    if (!g || (!opts?.includeDeleted && g.deletedAt)) {
+      throw new NotFoundException('game not found');
+    }
+    if (g.ownerId !== userId) throw new ForbiddenException();
     return g;
   }
 
@@ -79,7 +86,8 @@ export class GamesService {
     const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
     if (!s) throw new NotFoundException('scene not found');
     const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    if (!g || g.deletedAt) throw new NotFoundException('game not found');
+    if (g.ownerId !== userId) throw new ForbiddenException();
     return { scene: s, game: g };
   }
 
@@ -89,7 +97,8 @@ export class GamesService {
     const s = await this.prisma.gameScene.findUnique({ where: { id: n.sceneId } });
     if (!s) throw new NotFoundException('scene not found');
     const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    if (!g || g.deletedAt) throw new NotFoundException('game not found');
+    if (g.ownerId !== userId) throw new ForbiddenException();
     return { node: n, scene: s, game: g };
   }
 
@@ -190,8 +199,7 @@ export class GamesService {
   }
 
   async update(userId: string, id: string, data: any) {
-    const g = await this.prisma.gameProject.findUnique({ where: { id } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    const g = await this.assertGameOwner(userId, id);
 
     const allowed: any = {};
     if (typeof data?.title === 'string') allowed.title = data.title;
@@ -236,8 +244,8 @@ export class GamesService {
   }
 
   async softDelete(userId: string, id: string) {
-    const g = await this.prisma.gameProject.findUnique({ where: { id } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    const g = await this.assertGameOwner(userId, id, { includeDeleted: true });
+    if (g.deletedAt) throw new NotFoundException('game not found');
     return this.prisma.gameProject.update({
       where: { id },
       data: { deletedAt: new Date() },
@@ -246,10 +254,7 @@ export class GamesService {
 
   // Scenes
   async upsertScene(userId: string, projectId: string, scene: any) {
-    const g = await this.prisma.gameProject.findUnique({
-      where: { id: projectId },
-    });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    await this.assertGameOwner(userId, projectId);
     if (scene.id) {
       return this.prisma.gameScene.update({
         where: { id: scene.id },
@@ -266,10 +271,7 @@ export class GamesService {
   }
 
   async listScenes(userId: string, projectId: string) {
-    const g = await this.prisma.gameProject.findUnique({
-      where: { id: projectId },
-    });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    await this.assertGameOwner(userId, projectId);
     return this.prisma.gameScene.findMany({
       where: { projectId },
       orderBy: { order: 'asc' },
@@ -277,10 +279,7 @@ export class GamesService {
   }
 
   async patchScene(userId: string, sceneId: string, data: any) {
-    const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
-    if (!s) throw new NotFoundException();
-    const g = await this.prisma.gameProject.findUnique({ where: { id: s.projectId } });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    const { scene: s } = await this.getOwnedSceneOrThrow(userId, sceneId);
 
     const allowed: any = {};
     if (typeof data.name === 'string') allowed.name = data.name;
@@ -298,12 +297,7 @@ export class GamesService {
 
   // Nodes
   async listNodes(userId: string, sceneId: string) {
-    const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
-    if (!s) throw new NotFoundException();
-    const g = await this.prisma.gameProject.findUnique({
-      where: { id: s.projectId },
-    });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    await this.getOwnedSceneOrThrow(userId, sceneId);
     return this.prisma.gameNode.findMany({
       where: { sceneId },
       orderBy: { order: 'asc' },
@@ -312,12 +306,7 @@ export class GamesService {
   }
 
   async upsertNode(userId: string, sceneId: string, node: any) {
-    const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
-    if (!s) throw new NotFoundException();
-    const g = await this.prisma.gameProject.findUnique({
-      where: { id: s.projectId },
-    });
-    if (!g || g.ownerId !== userId) throw new ForbiddenException();
+    await this.getOwnedSceneOrThrow(userId, sceneId);
 
     if (node.id) {
       // Update existing node
