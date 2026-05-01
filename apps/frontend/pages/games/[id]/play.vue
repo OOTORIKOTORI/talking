@@ -620,6 +620,7 @@ watch(activeSlotType, (newType) => {
 })
 
 function openSaveLoadModal(mode: ModalMode) {
+  if (!ensureSaveLoadAccess()) return
   modalMode.value = mode
   saveLoadOpen.value = true
   void refreshSaves()
