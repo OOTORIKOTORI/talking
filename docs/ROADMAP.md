@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（Prisma Client同期手順の明確化）
+> 最終更新: 2026-05-02（シナリオチェックMVP実装）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -14,6 +14,7 @@
 - ゲーム制作・公開・共有フローMVP（公開一覧・API・公開切替・UI導線）
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
+- シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - 公開ギャラリー検索（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
 - 未ログイン公開ギャラリーで `/favorites` を呼ばない修正、公開ゲームのセーブ/ローUX補正
@@ -32,6 +33,61 @@
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
 | 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / シナリオチェックMVP）
+
+### 実装した内容
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- 右ペイン上部に「シナリオチェック」パネルを追加（折りたたみ可）
+	- `error` / `warning` / `info` の3分類と件数サマリを表示
+	- 各指摘に関連シーン/ノード情報（Scene番号・Node番号・本文プレビュー）を表示
+	- 可能な項目に「対象へ移動」ボタンを追加し、該当シーン/ノードを選択できるようにした
+	- 結果0件時は「問題は見つかりませんでした」を表示
+
+### 検出項目
+- 開始設定不備
+	- `GameProject.startSceneId` 未設定 / 参照切れ
+	- 開始シーン `startNodeId` 未設定 / 参照切れ
+	- 開始シーンのノード0件
+- 存在しない参照
+	- `GameNode.nextNodeId`
+	- `GameChoice.targetNodeId`
+	- `GameChoice.alternateTargetNodeId`
+- 遷移先未設定の選択肢（`targetNodeId === null`）
+- 選択肢と `nextNodeId` の併用注意
+- 開始ノードから到達不能なノード
+- 空シーン
+- 到達可能ノード中の終端（表示可能選択肢0件 かつ `nextNodeId` なし）
+
+### 到達可能性の計算ルール（MVP）
+- 始点: `GameProject.startSceneId` のシーンにある `startNodeId`
+- 遷移:
+	- 表示可能選択肢（`targetNodeId != null`）が1件以上ある場合:
+		- `targetNodeId` を辿る
+		- `alternateTargetNodeId` も「到達しうる候補」として辿る
+		- `nextNodeId` は通常遷移として使わない
+	- 表示可能選択肢が0件の場合:
+		- `nextNodeId` があれば辿る
+		- なければ終端
+- 参照切れIDは到達計算では無視し、別途 error として報告
+- 変数条件の厳密評価（`condition` / `alternateCondition`）は未対応
+
+### 将来課題
+- 変数条件を考慮した厳密な到達判定
+- フローチャート可視化
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` の rename 時に `EPERM`（ファイルロック）
+	- 2回再実行しても同一エラー
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 7 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（シナリオチェック一覧の実画面確認、各ケースの実操作）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 

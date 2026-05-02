@@ -477,6 +477,354 @@ const showChoiceNextPriorityNotice = computed(() => {
   return !!nodeDraft.nextNodeId && hasDisplayableChoices.value
 })
 
+type ScenarioCheckSeverity = 'error' | 'warning' | 'info'
+
+type ScenarioCheckIssue = {
+  id: string
+  severity: ScenarioCheckSeverity
+  message: string
+  sceneId: string | null
+  sceneName: string
+  sceneOrder: number | null
+  nodeId: string | null
+  nodeOrder: number | null
+  nodePreview: string
+}
+
+const scenarioCheckOpen = ref(true)
+
+function normalizeNodeId(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function buildNodePreview(text: unknown): string {
+  const raw = typeof text === 'string' ? text : ''
+  const normalized = raw.replace(/\s+/g, ' ').trim()
+  if (!normalized) return '(本文なし)'
+  return normalized.slice(0, 28) + (normalized.length > 28 ? '…' : '')
+}
+
+const scenarioCheckScenes = computed(() => {
+  const activeSceneId = scene.value?.id ?? null
+  const activeNodeId = node.value?.id ?? null
+  return nodePickerScenes.value.map((sceneItem: any) => {
+    const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []
+    const nextNodes = sceneNodes.map((nodeItem: any) => {
+      if (
+        sceneItem.id === activeSceneId
+        && activeNodeId
+        && nodeItem?.id === activeNodeId
+      ) {
+        const draftCopy = JSON.parse(JSON.stringify(nodeDraft))
+        return {
+          ...nodeItem,
+          ...draftCopy,
+          id: nodeItem.id,
+          sceneId: sceneItem.id,
+        }
+      }
+      return {
+        ...nodeItem,
+        sceneId: sceneItem.id,
+      }
+    })
+    return {
+      ...sceneItem,
+      nodes: nextNodes,
+    }
+  })
+})
+
+const scenarioCheckResult = computed(() => {
+  const sceneList = scenarioCheckScenes.value
+  const sceneById = new Map<string, { scene: any; sceneOrder: number }>()
+  const nodeById = new Map<string, { scene: any; sceneOrder: number; node: any; nodeOrder: number }>()
+  const issues: ScenarioCheckIssue[] = []
+  let issueSeq = 0
+
+  function pushIssue(payload: {
+    severity: ScenarioCheckSeverity
+    message: string
+    sceneId?: string | null
+    nodeId?: string | null
+  }) {
+    const sceneId = payload.sceneId ?? null
+    const nodeId = payload.nodeId ?? null
+    const sceneMeta = sceneId ? sceneById.get(sceneId) : null
+    const nodeMeta = nodeId ? nodeById.get(nodeId) : null
+    const baseScene = nodeMeta?.scene ?? sceneMeta?.scene ?? null
+    const baseSceneOrder = nodeMeta?.sceneOrder ?? sceneMeta?.sceneOrder ?? null
+    const baseNodeOrder = nodeMeta?.nodeOrder ?? null
+
+    issues.push({
+      id: `scenario-check-${++issueSeq}`,
+      severity: payload.severity,
+      message: payload.message,
+      sceneId: baseScene?.id ?? sceneId,
+      sceneName: baseScene?.name || '',
+      sceneOrder: baseSceneOrder,
+      nodeId,
+      nodeOrder: baseNodeOrder,
+      nodePreview: nodeMeta ? buildNodePreview(nodeMeta.node?.text) : '',
+    })
+  }
+
+  for (let si = 0; si < sceneList.length; si++) {
+    const sceneItem = sceneList[si]
+    sceneById.set(sceneItem.id, { scene: sceneItem, sceneOrder: si + 1 })
+    const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []
+    for (let ni = 0; ni < sceneNodes.length; ni++) {
+      const nodeItem = sceneNodes[ni]
+      nodeById.set(nodeItem.id, {
+        scene: sceneItem,
+        sceneOrder: si + 1,
+        node: nodeItem,
+        nodeOrder: ni + 1,
+      })
+    }
+  }
+
+  for (const sceneItem of sceneList) {
+    if ((sceneItem?.nodes?.length ?? 0) === 0) {
+      pushIssue({
+        severity: 'warning',
+        sceneId: sceneItem.id,
+        message: 'このシーンにはノードがありません。作成直後でなければ内容を追加してください。',
+      })
+    }
+  }
+
+  const startSceneId = normalizeNodeId(game.value?.startSceneId)
+  let validStartNodeId: string | null = null
+
+  if (!startSceneId) {
+    pushIssue({
+      severity: 'error',
+      message: '開始シーンが未設定です。ゲーム全体の開始シーンを設定してください。',
+    })
+  } else {
+    const startSceneMeta = sceneById.get(startSceneId)
+    if (!startSceneMeta) {
+      pushIssue({
+        severity: 'error',
+        message: '開始シーンが存在しないシーンIDを参照しています。開始シーンを再設定してください。',
+      })
+    } else {
+      const startScene = startSceneMeta.scene
+      const startSceneNodes = Array.isArray(startScene?.nodes) ? startScene.nodes : []
+      if (startSceneNodes.length === 0) {
+        pushIssue({
+          severity: 'error',
+          sceneId: startScene.id,
+          message: '開始シーンにノードがありません。開始シーンとしてプレイできません。',
+        })
+      }
+
+      const startNodeId = normalizeNodeId(startScene?.startNodeId)
+      if (!startNodeId) {
+        pushIssue({
+          severity: 'error',
+          sceneId: startScene.id,
+          message: '開始シーンの開始ノードが未設定です。開始ノードを指定してください。',
+        })
+      } else {
+        const startNodeMeta = nodeById.get(startNodeId)
+        if (!startNodeMeta || startNodeMeta.scene.id !== startScene.id) {
+          pushIssue({
+            severity: 'error',
+            sceneId: startScene.id,
+            message: '開始シーンの開始ノードが存在しないノードIDを参照しています。開始ノードを再設定してください。',
+          })
+        } else {
+          validStartNodeId = startNodeId
+        }
+      }
+    }
+  }
+
+  for (const [, nodeMeta] of nodeById) {
+    const nodeItem = nodeMeta.node
+    const choices = Array.isArray(nodeItem?.choices) ? nodeItem.choices : []
+    const displayableChoices = choices.filter((choice: any) => !!normalizeNodeId(choice?.targetNodeId))
+
+    const nextNodeId = normalizeNodeId(nodeItem?.nextNodeId)
+    if (nextNodeId && !nodeById.has(nextNodeId)) {
+      pushIssue({
+        severity: 'error',
+        sceneId: nodeMeta.scene.id,
+        nodeId: nodeItem.id,
+        message: '通常遷移先(nextNodeId)が存在しないノードIDを参照しています。',
+      })
+    }
+
+    if (displayableChoices.length > 0 && nextNodeId) {
+      pushIssue({
+        severity: 'info',
+        sceneId: nodeMeta.scene.id,
+        nodeId: nodeItem.id,
+        message: 'このノードには選択肢と通常遷移先の両方があります。プレイ時は選択肢が優先され、表示可能な選択肢がない場合のみ通常遷移先が使われます。',
+      })
+    }
+
+    choices.forEach((choice: any, choiceIndex: number) => {
+      const choiceName = (typeof choice?.label === 'string' && choice.label.trim())
+        ? choice.label.trim()
+        : `#${choiceIndex + 1}`
+
+      const targetNodeId = normalizeNodeId(choice?.targetNodeId)
+      if (!targetNodeId) {
+        pushIssue({
+          severity: 'warning',
+          sceneId: nodeMeta.scene.id,
+          nodeId: nodeItem.id,
+          message: `選択肢「${choiceName}」の通常遷移先が未設定です。プレイ時には表示されません。`,
+        })
+      } else if (!nodeById.has(targetNodeId)) {
+        pushIssue({
+          severity: 'error',
+          sceneId: nodeMeta.scene.id,
+          nodeId: nodeItem.id,
+          message: `選択肢「${choiceName}」の通常遷移先が存在しないノードIDを参照しています。`,
+        })
+      }
+
+      const alternateTargetNodeId = normalizeNodeId(choice?.alternateTargetNodeId)
+      if (alternateTargetNodeId && !nodeById.has(alternateTargetNodeId)) {
+        pushIssue({
+          severity: 'error',
+          sceneId: nodeMeta.scene.id,
+          nodeId: nodeItem.id,
+          message: `選択肢「${choiceName}」の条件分岐先が存在しないノードIDを参照しています。`,
+        })
+      }
+    })
+  }
+
+  const reachableNodeIds = new Set<string>()
+  if (validStartNodeId && nodeById.has(validStartNodeId)) {
+    const stack = [validStartNodeId]
+    while (stack.length > 0) {
+      const nodeId = stack.pop() as string
+      if (reachableNodeIds.has(nodeId)) continue
+      reachableNodeIds.add(nodeId)
+
+      const nodeMeta = nodeById.get(nodeId)
+      if (!nodeMeta) continue
+
+      const currentNode = nodeMeta.node
+      const choices = Array.isArray(currentNode?.choices) ? currentNode.choices : []
+      const displayableChoices = choices.filter((choice: any) => !!normalizeNodeId(choice?.targetNodeId))
+
+      if (displayableChoices.length > 0) {
+        for (const choice of displayableChoices) {
+          const targetNodeId = normalizeNodeId(choice?.targetNodeId)
+          if (targetNodeId && nodeById.has(targetNodeId)) {
+            stack.push(targetNodeId)
+          }
+
+          const alternateTargetNodeId = normalizeNodeId(choice?.alternateTargetNodeId)
+          if (alternateTargetNodeId && nodeById.has(alternateTargetNodeId)) {
+            stack.push(alternateTargetNodeId)
+          }
+        }
+      } else {
+        const nextNodeId = normalizeNodeId(currentNode?.nextNodeId)
+        if (nextNodeId && nodeById.has(nextNodeId)) {
+          stack.push(nextNodeId)
+        }
+      }
+    }
+  }
+
+  if (reachableNodeIds.size > 0) {
+    for (const [nodeId, nodeMeta] of nodeById) {
+      if (!reachableNodeIds.has(nodeId)) {
+        pushIssue({
+          severity: 'warning',
+          sceneId: nodeMeta.scene.id,
+          nodeId,
+          message: 'このノードは開始ノードから到達できません。意図した未使用でなければ遷移を見直してください。',
+        })
+      }
+    }
+
+    for (const nodeId of reachableNodeIds) {
+      const nodeMeta = nodeById.get(nodeId)
+      if (!nodeMeta) continue
+      const nodeItem = nodeMeta.node
+      const choices = Array.isArray(nodeItem?.choices) ? nodeItem.choices : []
+      const displayableChoices = choices.filter((choice: any) => !!normalizeNodeId(choice?.targetNodeId))
+      const nextNodeId = normalizeNodeId(nodeItem?.nextNodeId)
+
+      if (displayableChoices.length === 0 && !nextNodeId) {
+        pushIssue({
+          severity: 'info',
+          sceneId: nodeMeta.scene.id,
+          nodeId,
+          message: 'このノードは終端です。エンディング用途なら問題ありません。',
+        })
+      }
+    }
+  }
+
+  const counts = {
+    error: issues.filter((issue) => issue.severity === 'error').length,
+    warning: issues.filter((issue) => issue.severity === 'warning').length,
+    info: issues.filter((issue) => issue.severity === 'info').length,
+  }
+
+  return {
+    issues,
+    counts,
+  }
+})
+
+const scenarioCheckIssues = computed(() => scenarioCheckResult.value.issues)
+const scenarioCheckCounts = computed(() => scenarioCheckResult.value.counts)
+
+function scenarioSeverityLabel(severity: ScenarioCheckSeverity) {
+  if (severity === 'error') return 'エラー'
+  if (severity === 'warning') return '警告'
+  return '情報'
+}
+
+function scenarioSeverityClass(severity: ScenarioCheckSeverity) {
+  if (severity === 'error') {
+    return 'border-red-200 bg-red-50 text-red-700'
+  }
+  if (severity === 'warning') {
+    return 'border-amber-200 bg-amber-50 text-amber-700'
+  }
+  return 'border-blue-200 bg-blue-50 text-blue-700'
+}
+
+function scenarioIssueLocation(issue: ScenarioCheckIssue) {
+  const sceneLabel = issue.sceneOrder
+    ? `Scene ${issue.sceneOrder}${issue.sceneName ? `: ${issue.sceneName}` : ''}`
+    : issue.sceneName || 'シーン未特定'
+  if (issue.nodeOrder) {
+    return `${sceneLabel} / Node ${issue.nodeOrder}`
+  }
+  return sceneLabel
+}
+
+async function focusScenarioIssue(issue: ScenarioCheckIssue) {
+  if (!issue.sceneId) return
+  const targetScene = scenes.value.find((sceneItem: any) => sceneItem.id === issue.sceneId)
+  if (!targetScene) return
+
+  if (scene.value?.id !== targetScene.id) {
+    await selectScene(targetScene)
+  }
+
+  if (!issue.nodeId) return
+  const targetNode = nodes.value.find((nodeItem: any) => nodeItem.id === issue.nodeId)
+  if (!targetNode) return
+  selectNode(targetNode)
+}
+
 function createEmptyChoiceCondition() {
   return { key: '', operator: 'gte', value: 1 }
 }
@@ -1247,6 +1595,54 @@ function onUp() {
               </button>
               <button class="ml-2 px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
               <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
+            </div>
+          </div>
+
+          <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
+              <div class="font-semibold text-sm">シナリオチェック</div>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
+                @click="scenarioCheckOpen = !scenarioCheckOpen"
+              >
+                {{ scenarioCheckOpen ? '折りたたむ' : '展開' }}
+              </button>
+            </div>
+            <div class="px-3 py-2">
+              <div class="flex flex-wrap gap-2 text-xs">
+                <span class="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-700">エラー {{ scenarioCheckCounts.error }}件</span>
+                <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
+                <span class="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">情報 {{ scenarioCheckCounts.info }}件</span>
+              </div>
+            </div>
+            <div v-if="scenarioCheckOpen" class="border-t border-gray-200 px-3 py-2">
+              <div v-if="scenarioCheckIssues.length === 0" class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                問題は見つかりませんでした。
+              </div>
+              <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <article
+                  v-for="issue in scenarioCheckIssues"
+                  :key="issue.id"
+                  class="rounded border px-2 py-2 text-xs"
+                  :class="scenarioSeverityClass(issue.severity)"
+                >
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <span class="font-semibold">{{ scenarioSeverityLabel(issue.severity) }}</span>
+                    <button
+                      v-if="issue.sceneId"
+                      type="button"
+                      class="rounded border border-gray-300 bg-white px-2 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100"
+                      @click="focusScenarioIssue(issue)"
+                    >
+                      対象へ移動
+                    </button>
+                  </div>
+                  <p class="leading-relaxed">{{ issue.message }}</p>
+                  <p class="mt-1 text-[11px] text-gray-600">{{ scenarioIssueLocation(issue) }}</p>
+                  <p v-if="issue.nodePreview" class="mt-1 text-[11px] text-gray-500">{{ issue.nodePreview }}</p>
+                </article>
+              </div>
             </div>
           </div>
 

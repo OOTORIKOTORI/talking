@@ -425,6 +425,51 @@ interface MessageTheme {
 - `targetNodeId = null` の選択肢は編集画面で警告表示し、プレイ画面では表示しない（MVP）
 - 編集画面で `nextNodeId` と表示可能な選択肢が同時設定の場合は注意文を表示する
 
+#### シナリオチェックMVP（2026-05-02 実装）
+<!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->
+- 編集画面右ペイン上部に「シナリオチェック」パネルを追加（折りたたみ可）
+- 結果を `error` / `warning` / `info` の3分類で一覧表示
+- 件数サマリ（エラーn件・警告n件・情報n件）を表示
+- 各項目に関連シーン/ノード情報を表示し、可能な項目は「対象へ移動」で該当シーン/ノードへジャンプ可能
+- 0件時は「問題は見つかりませんでした」を表示
+
+検出項目:
+- 開始設定不備
+  - `GameProject.startSceneId` 未設定/参照切れ
+  - 開始シーンの `startNodeId` 未設定/参照切れ
+  - 開始シーンが空（ノード0件）
+- 存在しない参照
+  - `GameNode.nextNodeId`
+  - `GameChoice.targetNodeId`
+  - `GameChoice.alternateTargetNodeId`
+- 未設定選択肢
+  - `GameChoice.targetNodeId === null`（warning）
+- 選択肢と `nextNodeId` の併用注意
+  - 表示可能な選択肢が1件以上あり、かつ `nextNodeId` も設定されているノード（info）
+- 到達不能ノード
+  - 開始ノードから到達できないノード（warning）
+- 空シーン
+  - ノード0件のシーン（warning）
+- 終端ノード
+  - 到達可能ノードのうち、表示可能な選択肢0件かつ `nextNodeId` なし（info）
+
+到達可能性の計算ルール:
+- 始点は `GameProject.startSceneId` のシーンにある `startNodeId`
+- ノード遷移
+  - 表示可能な選択肢が1件以上ある場合:
+    - `choice.targetNodeId` を候補に含める
+    - `choice.alternateTargetNodeId` も「到達しうる候補」として含める
+    - このとき `nextNodeId` は通常遷移として使わない
+  - 表示可能な選択肢が0件の場合:
+    - `nextNodeId` があれば遷移
+    - なければ終端
+- 存在しない参照は到達計算では無視し、別途エラーとして報告
+- 変数条件（`condition` / `alternateCondition`）の厳密評価はMVPでは行わない
+
+将来課題:
+- 変数条件の厳密評価を含む到達可能性判定
+- フローチャート可視化
+
 #### シーンラベル・シーン管理性改善（2026-05-02 実装済み）
 - `GameScene.name` をシーンラベルとして活用（DB変更・マイグレーションなし）
 - edit画面左ペインのシーン一覧に Scene番号・シーン名・ノード数を表示
