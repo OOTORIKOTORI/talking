@@ -61,6 +61,15 @@
 - `startNodeId` が未設定なら、シーン内の1番目のノードを自動で開始ノードに設定する
 - 空シーンは開始シーンに設定しない
 
+### 将来の設計課題（開始地点モデル）
+- 現状では、ゲーム開始時に本質的に必要なのは開始ノードIDである
+- 開始ノードの所属シーンは node から逆引きできる
+- 通常のシナリオ遷移は `GameNode.nextNodeId` / `GameChoice.targetNodeId` / `GameChoice.alternateTargetNodeId` による nodeId 直指定であり、現時点では「シーンへ移動する」機能は存在しない
+- この前提では、将来的に `GameProject.startNodeId` へ単純化する案がある
+- 一方で、シーン単位ジャンプ、章選択、シーン単位テストプレイ、フローチャート表示を作るなら `GameScene.startNodeId` は意味を持つ
+- 現時点では既存実装を維持しつつ、将来の設計課題として残す
+- 今後シーン単位ジャンプを実装しない方針なら、`GameProject.startNodeId` への移行を検討する
+
 ### 実行した確認
 - `pnpm -w build`: ❌ exit 1（2回実行して同じ失敗）
 	- `apps/api prisma:generate` で `query_engine-windows.dll.node` の rename 時に `EPERM`（ファイルロック）

@@ -198,6 +198,16 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 - `GameChoice { id, nodeId(FK), label, targetNodeId?, condition?, effects?, alternateTargetNodeId?, alternateCondition? }`
   - `targetNodeId` 未設定は `null`（空文字 `''` は未使用）
 
+#### 開始地点モデルの再検討課題
+
+- 現状のゲーム開始地点は `GameProject.startSceneId` と `GameScene.startNodeId` の組み合わせで表現している
+- ただし通常のシナリオ遷移は `GameNode.nextNodeId` / `GameChoice.targetNodeId` / `GameChoice.alternateTargetNodeId` による nodeId 直指定であり、現時点では「シーンへ移動する」機能は存在しない
+- そのため、ゲーム開始時に本質的に必要なのは開始ノードIDだけであり、開始ノードの所属シーンは node から逆引きできる
+- 将来的には `GameProject.startNodeId` に単純化する余地がある
+- 一方で、シーン単位ジャンプ、章選択、シーン単位テストプレイ、フローチャート表示を実装するなら `GameScene.startNodeId` は意味を持つ
+- 現時点では既存実装を維持し、この点は将来の設計課題として扱う
+- 今後シーン単位ジャンプを実装しない方針が固まるなら、`GameProject.startNodeId` への移行を再検討する
+
 #### Node.camera JSON
 ```ts
 type Camera = { zoom: number /*100–300*/; cx: number /*0–100*/; cy: number /*0–100*/ }
