@@ -164,8 +164,8 @@ function toPreviewText(v: unknown, max: number) {
 }
 
 function toNodeOption(s: any, si: number, n: any, ni: number): NodeOption {
-  const sceneOrder = typeof s?.order === 'number' ? s.order + 1 : si + 1
-  const nodeOrder = typeof n?.order === 'number' ? n.order + 1 : ni + 1
+  const sceneOrder = si + 1
+  const nodeOrder = ni + 1
   const text = typeof n?.text === 'string' ? n.text : ''
   return {
     id: n.id,
@@ -187,7 +187,7 @@ const sceneList = computed(() => {
   return (props.scenes ?? []).map((s: any, si: number) => ({
     id: s.id,
     name: s.name || '',
-    order: typeof s.order === 'number' ? s.order + 1 : si + 1,
+    order: si + 1,
     nodeCount: s.nodes?.length ?? 0,
   }))
 })

@@ -330,6 +330,13 @@ const sceneNodeCount = computed(() => {
   return map
 })
 
+const currentSceneDisplayNumber = computed(() => {
+  const currentSceneId = scene.value?.id
+  if (!currentSceneId) return ''
+  const index = scenes.value.findIndex((s: any) => s.id === currentSceneId)
+  return index >= 0 ? index + 1 : ''
+})
+
 // 選択シーンが変わったら名前ドラフトをリセット
 watch(
   () => scene.value?.id,
@@ -384,8 +391,8 @@ function findNodeLabel(targetNodeId: string | null | undefined): string {
       const candidate = sceneItem.nodes[ni]
       if (candidate.id === targetNodeId) {
         foundNode = candidate
-        sceneIndex = typeof sceneItem.order === 'number' ? sceneItem.order + 1 : si + 1
-        nodeIndex = typeof candidate.order === 'number' ? candidate.order + 1 : ni + 1
+        sceneIndex = si + 1
+        nodeIndex = ni + 1
         sceneName = sceneItem.name || ''
         break
       }
@@ -1140,7 +1147,7 @@ function onUp() {
             <input
               v-model="sceneNameDraft"
               class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              :placeholder="`Scene ${typeof scene.order === 'number' ? scene.order + 1 : ''}`"
+              :placeholder="`Scene ${currentSceneDisplayNumber}`"
               @keydown.enter.prevent="saveSceneName"
               @blur="saveSceneName"
             />
@@ -1157,8 +1164,8 @@ function onUp() {
                   : 'bg-gray-50 hover:bg-gray-100',
               ]"
             >
-              <div class="text-[10px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">Scene {{ typeof s.order === 'number' ? s.order + 1 : si + 1 }}</div>
-              <div class="text-sm font-medium truncate">{{ s.name || `Scene ${typeof s.order === 'number' ? s.order + 1 : si + 1}` }}</div>
+              <div class="text-[10px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">Scene {{ si + 1 }}</div>
+              <div class="text-sm font-medium truncate">{{ s.name || `Scene ${si + 1}` }}</div>
               <div class="text-[11px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">{{ sceneNodeCount.get(s.id) ?? 0 }} nodes</div>
             </li>
           </ul>
@@ -1188,13 +1195,13 @@ function onUp() {
           <div v-else>
             <ul class="space-y-2">
               <li
-                v-for="n in nodes"
+                v-for="(n, ni) in nodes"
                 :key="n.id"
                 class="p-3 border border-gray-200 rounded cursor-pointer hover:shadow-md transition-shadow"
                 :class="{ 'border-blue-500 bg-blue-50': n.id === node?.id }"
               >
                 <div class="flex items-center" @click="selectNode(n)">
-                  <div class="text-xs text-gray-500 mr-2">#{{ n.order }}</div>
+                  <div class="text-xs text-gray-500 mr-2">#{{ ni + 1 }}</div>
                   <div class="font-medium truncate text-sm flex-1">
                     {{ n.text || '(無題の台詞)' }}
                   </div>
