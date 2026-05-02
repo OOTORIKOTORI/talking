@@ -80,11 +80,25 @@
               :animate="true"
               :show-backlog-button="true"
               :backlog-button-label="labelBacklog"
-              @backlog="backlog.open()"
+              @backlog="openBacklog()"
               @complete="onMessageComplete"
               @click="onAdvanceInteraction()"
             >
               <template #name-actions>
+                <button
+                  class="px-2 py-1 text-[11px] leading-none rounded transition-colors border"
+                  :style="quickToggleButtonStyle(autoMode)"
+                  @click.stop="toggleAutoMode()"
+                >
+                  AUTO
+                </button>
+                <button
+                  class="px-2 py-1 text-[11px] leading-none rounded transition-colors border"
+                  :style="quickToggleButtonStyle(skipMode)"
+                  @click.stop="toggleSkipMode()"
+                >
+                  SKIP
+                </button>
                 <button
                   class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
                   :style="uiQuickButtonStyle"
@@ -188,11 +202,25 @@
             :animate="true"
             :show-backlog-button="true"
             :backlog-button-label="labelBacklog"
-            @backlog="backlog.open()"
+            @backlog="openBacklog()"
             @complete="onMessageComplete"
             @click="onAdvanceInteraction()"
           >
             <template #name-actions>
+              <button
+                class="px-2 py-1 text-[11px] leading-none rounded transition-colors border"
+                :style="quickToggleButtonStyle(autoMode)"
+                @click.stop="toggleAutoMode()"
+              >
+                AUTO
+              </button>
+              <button
+                class="px-2 py-1 text-[11px] leading-none rounded transition-colors border"
+                :style="quickToggleButtonStyle(skipMode)"
+                @click.stop="toggleSkipMode()"
+              >
+                SKIP
+              </button>
               <button
                 class="px-2 py-1 text-[11px] leading-none rounded transition-colors"
                 :style="uiQuickButtonStyle"
@@ -510,6 +538,21 @@ const uiQuickButtonStyle = computed(() => ({
   color: gameUiTheme.value.quickButtonText || '#ffffff',
 }))
 
+function quickToggleButtonStyle(active: boolean) {
+  if (active) {
+    return {
+      backgroundColor: '#facc15',
+      borderColor: '#facc15',
+      color: '#111827',
+    }
+  }
+
+  return {
+    ...uiQuickButtonStyle.value,
+    borderColor: 'rgba(255,255,255,0.18)',
+  }
+}
+
 // ボタン文言（GameUiTheme から取得、未設定時はデフォルト値）
 const labelBacklog = computed(() => gameUiTheme.value.backlogButtonLabel || 'LOG')
 const labelSave = computed(() => gameUiTheme.value.saveButtonLabel || 'SAVE')
@@ -526,6 +569,15 @@ const { effectState, playEffect } = useVisualEffects()
 const showChoices = ref(false) // 選択肢の表示制御
 const highlightedChoiceIndex = ref(0)
 const messageTypingComplete = ref(true)
+const autoMode = ref(false)
+const skipMode = ref(false)
+
+const AUTO_ADVANCE_DELAY_MS = 1500
+const SKIP_ADVANCE_DELAY_MS = 80
+const SKIP_LOOP_GUARD_LIMIT = 100
+
+let progressTimer: ReturnType<typeof setTimeout> | null = null
+let skipAdvanceCount = 0
 
 type MessageWindowExposed = {
   skip: () => void
@@ -611,6 +663,7 @@ const selectedSlot = computed(() => {
 
 // 音声同意状態
 const soundOk = audioConsent
+const hasAudioConsentOverlay = computed(() => !soundOk.value && !!(bgmUrl.value || sfxUrl.value))
 
 // クエリパラメータを文字列に正規化(配列対応)
 function qStr(v: unknown) {
@@ -628,6 +681,7 @@ watch(activeSlotType, (newType) => {
 
 function openSaveLoadModal(mode: ModalMode) {
   if (!ensureSaveLoadAccess()) return
+  stopAutoSkipModes()
   modalMode.value = mode
   saveLoadOpen.value = true
   void refreshSaves()
@@ -635,6 +689,11 @@ function openSaveLoadModal(mode: ModalMode) {
 
 function closeSaveLoadModal() {
   saveLoadOpen.value = false
+}
+
+function openBacklog() {
+  stopAutoSkipModes()
+  backlog.open()
 }
 
 function onMessageComplete() {
@@ -650,8 +709,119 @@ function skipMessageTypingIfNeeded() {
   return true
 }
 
+function clearProgressTimer() {
+  if (!progressTimer) return
+  clearTimeout(progressTimer)
+  progressTimer = null
+}
+
+function resetSkipLoopGuard() {
+  skipAdvanceCount = 0
+}
+
+function stopAutoMode() {
+  if (!autoMode.value) return false
+  autoMode.value = false
+  return true
+}
+
+function stopSkipMode() {
+  if (!skipMode.value) return false
+  skipMode.value = false
+  return true
+}
+
+function stopAutoSkipModes(opts?: { notifyMessage?: string; resetSkipCount?: boolean }) {
+  const stopped = stopAutoMode() || stopSkipMode()
+  clearProgressTimer()
+  if (opts?.resetSkipCount !== false) {
+    resetSkipLoopGuard()
+  }
+  if (opts?.notifyMessage) {
+    toast.warning(opts.notifyMessage)
+  }
+  return stopped
+}
+
+function currentAutomationMode() {
+  if (skipMode.value) return 'skip' as const
+  if (autoMode.value) return 'auto' as const
+  return null
+}
+
+function toggleAutoMode() {
+  if (autoMode.value) {
+    stopAutoSkipModes()
+    return
+  }
+
+  skipMode.value = false
+  autoMode.value = true
+  clearProgressTimer()
+  resetSkipLoopGuard()
+}
+
+function toggleSkipMode() {
+  if (skipMode.value) {
+    stopAutoSkipModes()
+    return
+  }
+
+  autoMode.value = false
+  skipMode.value = true
+  clearProgressTimer()
+  resetSkipLoopGuard()
+}
+
+function shouldStopAutomation() {
+  if (!current.value) return true
+  if (showStartScreen.value) return true
+  if (saveLoadOpen.value || backlog.isOpen.value) return true
+  if (hasAudioConsentOverlay.value) return true
+  if (showChoices.value) return true
+  if (showEndScreen.value) return true
+  if (isEndNode.value) return true
+  return false
+}
+
+function scheduleAutomation() {
+  clearProgressTimer()
+
+  const mode = currentAutomationMode()
+  if (!mode) return
+
+  if (shouldStopAutomation()) {
+    stopAutoSkipModes()
+    return
+  }
+
+  if (mode === 'skip' && !messageTypingComplete.value) {
+    skipMessageTypingIfNeeded()
+  }
+
+  if (!messageTypingComplete.value) {
+    return
+  }
+
+  const delay = mode === 'skip' ? SKIP_ADVANCE_DELAY_MS : AUTO_ADVANCE_DELAY_MS
+  progressTimer = setTimeout(() => {
+    progressTimer = null
+
+    if (mode === 'skip') {
+      if (skipAdvanceCount >= SKIP_LOOP_GUARD_LIMIT) {
+        stopAutoSkipModes({ notifyMessage: 'Skipを停止しました。シナリオがループしている可能性があります。' })
+        return
+      }
+      skipAdvanceCount += 1
+    }
+
+    onAdvanceInteraction(mode)
+  }, delay)
+}
+
 function openChoices() {
   if (!hasChoices.value) return
+  stopAutoSkipModes()
   showChoices.value = true
   highlightedChoiceIndex.value = 0
 }
@@ -670,7 +840,11 @@ function confirmHighlightedChoice() {
   selectChoice(target)
 }
 
-function onAdvanceInteraction() {
+function onAdvanceInteraction(source: 'manual' | 'auto' | 'skip' = 'manual') {
+  if (source === 'manual') {
+    stopAutoSkipModes()
+  }
+
   ensureBgm()
 
   if (showStartScreen.value) {
@@ -848,6 +1022,7 @@ async function loadFromSelectedSlot() {
   if (!game.value?.id || !selectedSlot.value) return
   if (!ensureSaveLoadAccess()) return
   savingOrLoading.value = true
+  stopAutoSkipModes()
   backlog.reset()
   try {
     const rec: any = await api.getSave(
@@ -1391,6 +1566,7 @@ watch(
 
 function start() {
   // スタート画面を非表示にして開始
+  stopAutoSkipModes()
   accumulatedText.value = ''
   gameState.value = {}
   showStartScreen.value = false
@@ -1404,6 +1580,7 @@ function start() {
 }
 
 function restart() {
+  stopAutoSkipModes()
   backlog.reset()
   accumulatedText.value = ''
   gameState.value = {}
@@ -1419,6 +1596,7 @@ function restart() {
 }
 
 function selectChoice(choice: any) {
+  stopAutoSkipModes()
   pushCurrentToBacklog()
   const nextState = applyChoiceEffects(gameState.value as any, choice?.effects)
   gameState.value = nextState
@@ -1430,6 +1608,7 @@ function selectChoice(choice: any) {
 }
 
 function go(targetNodeId: string | null) {
+  clearProgressTimer()
   if (!targetNodeId) {
     current.value = null
     return
@@ -1524,6 +1703,7 @@ const displayedText = computed(() => {
 watch(
   () => [current.value?.id, displayedText.value],
   () => {
+    clearProgressTimer()
     messageTypingComplete.value = !displayedText.value
   },
   { immediate: true }
@@ -1583,6 +1763,25 @@ const isEndNode = computed(() => {
   
   return true // すべての遷移先が無い = 終了
 })
+
+watch(
+  () => [
+    autoMode.value,
+    skipMode.value,
+    current.value?.id,
+    messageTypingComplete.value,
+    showChoices.value,
+    showEndScreen.value,
+    saveLoadOpen.value,
+    backlog.isOpen.value,
+    hasAudioConsentOverlay.value,
+    isEndNode.value,
+  ],
+  () => {
+    scheduleAutomation()
+  },
+  { immediate: true }
+)
 
 // プレイヤにカメラを反映（エディタと共通のカメラ座標系）
 const camera = computed(() => (current.value?.camera ?? { zoom: 100, cx: 50, cy: 50 }))
