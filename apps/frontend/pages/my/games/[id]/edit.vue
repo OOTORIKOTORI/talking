@@ -1121,7 +1121,9 @@ async function setSceneStartNode(id: string) {
     method: 'PATCH',
     body: { startNodeId: id },
   })
+  await api.update(game.value.id, { startSceneId: scene.value.id })
   scene.value.startNodeId = id
+  game.value.startSceneId = scene.value.id
 }
 
 function selectNode(n: any) {
@@ -1515,6 +1517,7 @@ function onUp() {
               <div class="text-[10px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">Scene {{ si + 1 }}</div>
               <div class="text-sm font-medium truncate">{{ s.name || `Scene ${si + 1}` }}</div>
               <div class="text-[11px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">{{ sceneNodeCount.get(s.id) ?? 0 }} nodes</div>
+              <div v-if="s.id === game?.startSceneId" class="text-[10px] mt-0.5" :class="s.id === scene?.id ? 'text-yellow-200' : 'text-yellow-600'">★ 開始シーン</div>
             </li>
           </ul>
           <button
@@ -1553,7 +1556,7 @@ function onUp() {
                   <div class="font-medium truncate text-sm flex-1">
                     {{ n.text || '(無題の台詞)' }}
                   </div>
-                  <button class="ml-2 text-xs px-2 py-1 border rounded" @click.stop="setSceneStartNode(n.id)">▶開始ノードに設定</button>
+                  <button class="ml-2 text-xs px-2 py-1 border rounded" @click.stop="setSceneStartNode(n.id)">▶このノードから開始</button>
                   <span v-if="scene?.startNodeId===n.id" class="ml-1 text-[10px] text-green-600">開始</span>
                 </div>
                 <div v-if="n.choices?.length" class="text-xs text-purple-600 mt-1">

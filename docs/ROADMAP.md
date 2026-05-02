@@ -36,6 +36,28 @@
 
 ---
 
+## 🔎 今回の確認メモ（2026-05-02 / 開始ノード設定時に startSceneId を同期）
+
+### 実装した内容
+- `apps/frontend/pages/my/games/[id]/edit.vue`
+	- `setSceneStartNode(id)` で `GameScene.startNodeId` 更新に加えて `GameProject.startSceneId` も現在シーン ID に更新するよう修正
+		- `api.update(game.value.id, { startSceneId: scene.value.id })` を追加
+		- ローカル state も `game.value.startSceneId = scene.value.id` に同期
+	- ボタン文言を「▶開始ノードに設定」→「▶このノードから開始」に変更
+	- シーン一覧に「★ 開始シーン」ラベルを追加（`game.startSceneId === s.id` のときのみ表示）
+- API 側は `UpdateGameDto.startSceneId` / `GamesService.update()` が既に対応済みで追加実装不要
+
+### 仕様整理
+- `GameProject.startSceneId`: ゲーム全体の最初に入るシーン
+- `GameScene.startNodeId`: そのシーン内で最初に再生するノード
+- 「このノードから開始」を押すと、2 フィールドが同時に設定されてシナリオチェックエラーが解消される
+
+### 実行した確認
+- `pnpm -C apps/frontend build`: ✅ exit 0
+- `pnpm -C apps/frontend test`: ✅ 2 files / 7 tests passed
+
+---
+
 ## 🔎 今回の確認メモ（2026-05-02 / シナリオチェックMVP）
 
 ### 実装した内容
