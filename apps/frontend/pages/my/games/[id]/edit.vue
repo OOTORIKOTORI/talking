@@ -56,6 +56,14 @@ const copyOpts = reactive({
   camera: true
 })
 
+const sectionOpen = reactive({
+  basic: true,
+  materials: true,
+  effects: false,
+  transitions: true,
+  dangerous: false
+})
+
 const cameraFxEnabled = computed({
   get() {
     const fx = (nodeDraft as any).cameraFx as any | undefined
@@ -1868,7 +1876,7 @@ function onUp() {
             </div>
             <div class="fs-form">
               <div class="space-y-4">
-                <div>
+                <div v-if="sectionOpen.basic">
                   <label class="block mb-1 text-sm font-medium">台詞</label>
                   <textarea
                     v-model="nodeDraft.text"
@@ -1879,7 +1887,7 @@ function onUp() {
                 </div>
 
                 <!-- 前ノードのセリフを継続 -->
-                <div>
+                <div v-if="sectionOpen.basic">
                   <label class="flex items-center gap-2 text-sm">
                     <input type="checkbox" v-model="nodeDraft.continuesPreviousText" class="rounded" />
                     <span class="font-medium">前ノードのセリフを消さずに続ける</span>
@@ -2351,6 +2359,13 @@ function onUp() {
 
             <div v-if="node">
               <div class="space-y-4">
+                <!-- 基本情報セクション -->
+                <div class="editor-section-header" @click="sectionOpen.basic = !sectionOpen.basic">
+                  <span class="editor-section-title">
+                    <span class="editor-section-toggle">{{ sectionOpen.basic ? '▼' : '▶' }}</span>
+                    基本情報
+                  </span>
+                </div>
                 <div>
                   <label class="block mb-1 text-sm font-medium">台詞</label>
                   <textarea
@@ -2373,7 +2388,14 @@ function onUp() {
                 </div>
 
                 <div class="space-y-3">
-                  <div>
+                  <!-- 表示・素材セクション -->
+                  <div class="editor-section-header" @click="sectionOpen.materials = !sectionOpen.materials">
+                    <span class="editor-section-title">
+                      <span class="editor-section-toggle">{{ sectionOpen.materials ? '▼' : '▶' }}</span>
+                      表示・素材
+                    </span>
+                  </div>
+                  <div v-if="sectionOpen.basic">
                     <label class="block text-sm font-medium mb-1">話者キャラ</label>
                     <div class="flex items-center gap-2">
                       <span class="text-sm text-gray-700 truncate flex-1">{{ selectedCharLabel || '未選択' }}</span>
@@ -2381,7 +2403,7 @@ function onUp() {
                       <button v-if="nodeDraft.speakerCharacterId" type="button" class="px-2 py-1 border rounded text-sm" @click="clearChar">クリア</button>
                     </div>
                   </div>
-                  <div>
+                  <div v-if="sectionOpen.basic">
                     <label class="block text-sm font-medium mb-1">話者表記（任意）</label>
                     <input
                       v-model="nodeDraft.speakerDisplayName"
@@ -2389,7 +2411,7 @@ function onUp() {
                       placeholder="例: ??? / 田中 / あだ名"
                     />
                   </div>
-                  <div>
+                  <div v-if="sectionOpen.materials">
                     <label class="block text-sm font-medium mb-1">背景</label>
                     <div class="flex items-center gap-2">
                       <img v-if="bgUrl" :src="bgUrl" class="w-16 h-10 object-cover rounded border" />
@@ -2398,7 +2420,7 @@ function onUp() {
                       <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
                     </div>
                   </div>
-                  <div>
+                  <div v-if="sectionOpen.materials">
                     <label class="block text-sm font-medium mb-1">BGM</label>
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-gray-700 truncate flex-1">{{ musicTitle || '未選択' }}</span>
@@ -2407,7 +2429,7 @@ function onUp() {
                     </div>
                     <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
                   </div>
-                  <div>
+                  <div v-if="sectionOpen.materials">
                     <label class="block text-sm font-medium mb-1">効果音(SE)</label>
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
@@ -2417,8 +2439,15 @@ function onUp() {
                     <audio v-if="sfxUrl" :src="sfxUrl" controls preload="none" class="mt-1 w-full"></audio>
                   </div>
 
+                  <!-- 演出セクション -->
+                  <div class="editor-section-header" @click="sectionOpen.effects = !sectionOpen.effects">
+                    <span class="editor-section-title">
+                      <span class="editor-section-toggle">{{ sectionOpen.effects ? '▼' : '▶' }}</span>
+                      演出
+                    </span>
+                  </div>
                   <!-- カメラ -->
-                  <div>
+                  <div v-if="sectionOpen.effects">
                     <div class="font-semibold mb-1">カメラ</div>
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-sm w-14">倍率</span>
@@ -2444,7 +2473,7 @@ function onUp() {
                   </div>
 
                   <!-- カメラ演出 (MVP) -->
-                  <div class="mt-3 border-t pt-3">
+                  <div v-if="sectionOpen.effects" class="mt-3 border-t pt-3">
                     <div class="flex items-center justify-between mb-2">
                       <div class="font-semibold">カメラ演出</div>
                       <label class="flex items-center gap-1 text-xs">
@@ -2490,7 +2519,7 @@ function onUp() {
                   </div>
 
                   <!-- ビジュアルエフェクト -->
-                  <div class="mt-3 border-t pt-3">
+                  <div v-if="sectionOpen.effects" class="mt-3 border-t pt-3">
                     <div class="font-semibold mb-2">ビジュアルエフェクト</div>
                     <div class="space-y-2">
                       <div>
@@ -2547,7 +2576,7 @@ function onUp() {
                   </div>
 
                   <!-- カラーフィルター -->
-                  <div class="mt-3 border-t pt-3">
+                  <div v-if="sectionOpen.effects" class="mt-3 border-t pt-3">
                     <div class="font-semibold mb-2">カラーフィルター（画面全体）</div>
                     <div class="space-y-2">
                       <div>
@@ -2594,7 +2623,7 @@ function onUp() {
                   </div>
 
                   <!-- 立ち絵（複数配置） -->
-                  <div class="mt-3">
+                  <div v-if="sectionOpen.materials" class="mt-3">
                     <div class="flex items-center justify-between">
                       <label class="block text-sm font-semibold">キャラクター配置</label>
                       <button type="button" class="px-2 py-1 border rounded text-sm" @click="addPortrait">追加</button>
@@ -2616,7 +2645,14 @@ function onUp() {
                     </div>
                   </div>
 
-                  <div>
+                  <!-- 遷移・分岐セクション -->
+                  <div class="editor-section-header" @click="sectionOpen.transitions = !sectionOpen.transitions">
+                    <span class="editor-section-title">
+                      <span class="editor-section-toggle">{{ sectionOpen.transitions ? '▼' : '▶' }}</span>
+                      遷移・分岐
+                    </span>
+                  </div>
+                  <div v-if="sectionOpen.transitions">
                     <label class="block text-sm font-medium mb-1">次ノードID</label>
                     <div class="flex items-center gap-2">
                       <div 
@@ -2637,7 +2673,7 @@ function onUp() {
                 </div>
 
                 <!-- コピー対象トグル -->
-                <div class="border-t pt-3 mt-3">
+                <div v-if="sectionOpen.transitions" class="border-t pt-3 mt-3">
                   <div class="text-sm font-medium mb-2">次ノード作成時のコピー対象</div>
                   <div class="grid grid-cols-2 gap-2">
                     <label class="flex items-center gap-2 text-sm">
@@ -2676,7 +2712,14 @@ function onUp() {
                   </button>
                 </div>
 
-                <div class="border-t pt-3">
+                <!-- 危険操作セクション -->
+                <div class="editor-section-header" @click="sectionOpen.dangerous = !sectionOpen.dangerous">
+                  <span class="editor-section-title">
+                    <span class="editor-section-toggle">{{ sectionOpen.dangerous ? '▼' : '▶' }}</span>
+                    危険操作
+                  </span>
+                </div>
+                <div v-if="sectionOpen.dangerous" class="border-t pt-3">
                   <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
                   <button
                     class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
@@ -2687,7 +2730,7 @@ function onUp() {
                   </button>
                 </div>
 
-                <div>
+                <div v-if="sectionOpen.transitions">
                   <div class="mb-2 flex items-center justify-between gap-2">
                     <div class="font-semibold">選択肢</div>
                     <button
@@ -2921,8 +2964,35 @@ function onUp() {
 /* 右カラムのフォームをスクロール可能に */
 .fs-form{ 
   width: 100%; 
-  overflow-y: auto; /* 右側だけスクロール */
-  height: calc(100vh - 80px); /* ヘッダー分を差し引いた高さ */
-  padding-right: 8px; /* スクロールバー分の余白 */
+  overflow-y: auto;
+  height: calc(100vh - 80px);
+  padding-right: 8px;
+}
+.editor-section-header {
+  display: flex;
+  cursor: pointer;
+  margin: 1rem 0 0.75rem 0;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+  user-select: none;
+}
+.editor-section-header:hover {
+  opacity: 0.8;
+}
+.editor-section-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: #1f2937;
+}
+.editor-section-toggle {
+  display: inline-block;
+  width: 1.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  transition: color 0.2s;
+  color: #6b7280;
 }
 </style>
