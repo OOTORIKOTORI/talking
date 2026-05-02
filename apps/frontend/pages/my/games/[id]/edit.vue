@@ -56,13 +56,61 @@ const copyOpts = reactive({
   camera: true
 })
 
-const sectionOpen = reactive({
+const RIGHT_PANE_SECTIONS_STORAGE_KEY = 'talking.editor.rightPaneSections.v1'
+
+const defaultSectionOpen = {
   basic: true,
   materials: true,
   effects: false,
   transitions: true,
+  scenarioCheck: true,
   dangerous: false
-})
+} as const
+
+type SectionOpenKey = keyof typeof defaultSectionOpen
+type SectionOpenState = Record<SectionOpenKey, boolean>
+
+const sectionOpen = reactive<SectionOpenState>({ ...defaultSectionOpen })
+
+function parseSectionOpen(value: unknown): Partial<SectionOpenState> {
+  if (!value || typeof value !== 'object') return {}
+
+  const parsed = value as Record<string, unknown>
+  const nextState: Partial<SectionOpenState> = {}
+  for (const key of Object.keys(defaultSectionOpen) as SectionOpenKey[]) {
+    if (typeof parsed[key] === 'boolean') {
+      nextState[key] = parsed[key] as boolean
+    }
+  }
+  return nextState
+}
+
+function restoreSectionOpen() {
+  if (!process.client) return
+
+  const saved = localStorage.getItem(RIGHT_PANE_SECTIONS_STORAGE_KEY)
+  if (!saved) {
+    Object.assign(sectionOpen, defaultSectionOpen)
+    return
+  }
+
+  try {
+    const parsed = JSON.parse(saved)
+    Object.assign(sectionOpen, defaultSectionOpen, parseSectionOpen(parsed))
+  } catch (error) {
+    console.warn('Failed to parse sectionOpen from localStorage', error)
+    Object.assign(sectionOpen, defaultSectionOpen)
+  }
+}
+
+function persistSectionOpen() {
+  if (!process.client) return
+  localStorage.setItem(RIGHT_PANE_SECTIONS_STORAGE_KEY, JSON.stringify(sectionOpen))
+}
+
+function resetSectionOpen() {
+  Object.assign(sectionOpen, defaultSectionOpen)
+}
 
 const cameraFxEnabled = computed({
   get() {
@@ -502,7 +550,6 @@ type ScenarioCheckIssue = {
   nodePreview: string
 }
 
-const scenarioCheckOpen = ref(true)
 const scenarioCheckFilter = ref<ScenarioCheckFilter>('all')
 const scenarioCheckInfoOpen = ref(false)
 const scenarioSeverityOrder: ScenarioCheckSeverity[] = ['error', 'warning', 'info']
@@ -1066,6 +1113,8 @@ onMounted(async () => {
       console.warn('Failed to parse copyOpts from localStorage', e)
     }
   }
+
+  restoreSectionOpen()
   
   // グローバルキーボードイベントリスナー
   window.addEventListener('keydown', onGlobalKeydown)
@@ -1074,6 +1123,10 @@ onMounted(async () => {
 // コピー対象トグルの変更を監視して保存
 watch(copyOpts, (newVal) => {
   localStorage.setItem('talking_copy_opts_v1', JSON.stringify(newVal))
+}, { deep: true })
+
+watch(sectionOpen, () => {
+  persistSectionOpen()
 }, { deep: true })
 
 async function selectScene(s: any) {
@@ -1770,6 +1823,7 @@ function onUp() {
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
               </button>
+              <button class="px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="resetSectionOpen">セクション開閉をリセット</button>
               <button class="ml-2 px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
               <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
             </div>
@@ -1781,9 +1835,9 @@ function onUp() {
               <button
                 type="button"
                 class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
-                @click="scenarioCheckOpen = !scenarioCheckOpen"
+                @click="sectionOpen.scenarioCheck = !sectionOpen.scenarioCheck"
               >
-                {{ scenarioCheckOpen ? '折りたたむ' : '展開' }}
+                {{ sectionOpen.scenarioCheck ? '折りたたむ' : '展開' }}
               </button>
             </div>
             <div class="px-3 py-2">
@@ -1793,7 +1847,7 @@ function onUp() {
                 <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
               </div>
             </div>
-            <div v-if="scenarioCheckOpen" class="border-t border-gray-200 px-3 py-2">
+            <div v-if="sectionOpen.scenarioCheck" class="border-t border-gray-200 px-3 py-2">
               <div class="mb-2 flex flex-wrap gap-2">
                 <button
                   v-for="item in scenarioCheckFilterItems"
