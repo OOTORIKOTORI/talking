@@ -15,7 +15,7 @@
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
 - シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
-- ゲーム公開前チェックMVP（公開時にシナリオチェックを評価し、error時は公開ブロック・warning時は確認）
+- ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - ゲームプレイ画面 BGMフェードMVP（停止フェードアウト・切替時直列フェード・同一BGM継続）
@@ -88,6 +88,12 @@
 - 音声ミキサー
 - 複数BGMレイヤー
 - ユーザー設定保存
+- SKIP中BGM切り替え方針
+	- SKIP中は高速進行のため、途中ノードのBGM変更（例: A→B→無音→A）が体感されないことがある
+	- 現状MVPは通常進行と同じBGM制御を使用し、重複再生や音量崩壊がなければ許容
+	- 将来案1: SKIP中はBGM切り替えを抑制し、SKIP停止時に現在ノードのBGMへ同期
+	- 将来案2: SKIP中もフェードなし即同期を行う（ただし頻繁切替で耳障りになる可能性あり）
+	- 既読管理・SKIP速度設定と合わせて再検討
 
 ### 実行した確認
 - `pnpm -w build`: ✅ exit 0
@@ -119,16 +125,41 @@
 		- `warning` のみ: 確認ダイアログ承認時のみ公開
 		- `info` のみ / 問題なし: 従来どおり公開可能
 	- 非公開化（公開→非公開）は従来どおり常に許可
+	- API側で公開拒否された場合、返却された `message` / `errors` を表示（UI状態は公開前のまま維持）
+- `apps/api/src/games/games.service.ts`
+	- `PATCH /games/:id` の `isPublic: true` 更新時に最低限の公開ガードを追加（MVP）
+	- `error` が1件以上ある場合は 400 で拒否し、`message` と `errors` を返却
+	- API側で拒否する最低限の `error`
+		- `GameProject.startSceneId` 未設定
+		- `GameProject.startSceneId` が存在しないシーンID参照
+		- 開始シーンの `startNodeId` 未設定
+		- 開始シーンの `startNodeId` が存在しないノードID参照
+		- 開始シーンがノード0件
+		- `GameNode.nextNodeId` が存在しないノードID参照
+		- `GameChoice.targetNodeId` が存在しないノードID参照（`null` は許可）
+		- `GameChoice.alternateTargetNodeId` が存在しないノードID参照（`null` は許可）
+	- `warning` / `info` は API 側で公開拒否しない
+	- `isPublic: false` の非公開化は常に許可
+	- `isPublic` 未指定更新は従来どおり許可
 
 ### API側の扱い
-- 今回は API 側の公開時チェックは未実装（フロント側MVPで対応）
-- 将来課題: `PATCH /games/:id` で `isPublic=true` に遷移する際に、サーバー側でも最低限の `error` チェックを実施する
+- フロント側公開前チェックはユーザー向け（事前案内・warning確認・編集画面への修正導線）
+- API側公開前チェックは公開状態整合を守る最終防衛線
+- 今回はMVPとして最低限 `error` のみをAPIで拒否し、完全なサーバーサイド審査は将来課題とする
+
+### 将来課題（公開審査）
+- 完全なサーバーサイド公開審査
+- アセット権限 / 削除済み素材参照チェック
+- 条件分岐の完全評価
+- warning/info の API レスポンス活用
+- 公開申請 / 管理者レビュー
 
 ### 実行した確認
-- `pnpm -w build`: ✅ exit 0
-	- 既知 WARN のみ（`@nuxt/icon` の Nuxt 4要件、browserslist 更新推奨、Nuxt 依存 deprecation warning）
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（ファイルロック）
 - `pnpm -C apps/frontend test`: ✅ exit 0
 	- 3 files / 10 tests passed
+- API test コマンド: `apps/api/package.json` に test script がないため未実行
 
 ### 今回未実行の確認と理由
 - ブラウザ手動確認（error/warning/info 各状態での公開導線の実操作、編集画面への遷移確認）

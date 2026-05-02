@@ -191,10 +191,29 @@ async function togglePublic(game: any) {
     await api.update(game.id, { isPublic: next })
     game.isPublic = next
     toast.success(next ? '公開に切り替えました' : '非公開に切り替えました')
-  } catch (error) {
+  } catch (error: any) {
     game.isPublic = prev
     console.error('Failed to toggle public:', error)
-    toast.error('公開設定の変更に失敗しました')
+
+    const rawMessage = error?.data?.message
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join(' / ')
+      : (typeof rawMessage === 'string' ? rawMessage : (error?.message || '公開設定の変更に失敗しました'))
+    const errors = Array.isArray(error?.data?.errors)
+      ? error.data.errors.filter((item: unknown) => typeof item === 'string' && item.trim().length > 0)
+      : []
+
+    toast.error(message)
+
+    if (next && errors.length > 0) {
+      const details = errors
+        .slice(0, 5)
+        .map((item: string, index: number) => `${index + 1}. ${item}`)
+        .join('\n')
+      const restCount = Math.max(errors.length - 5, 0)
+      const suffix = restCount > 0 ? `\nほか ${restCount} 件` : ''
+      window.alert(`${message}\n\n${details}${suffix}`)
+    }
   } finally {
     setToggling(game.id, false)
   }

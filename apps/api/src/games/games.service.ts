@@ -47,6 +47,87 @@ export class GamesService {
     };
   }
 
+  private async assertPublishableScenario(gameId: string, startSceneIdInput: unknown) {
+    const game = await this.prisma.gameProject.findUnique({
+      where: { id: gameId },
+      include: this.playInclude,
+    });
+    if (!game || game.deletedAt) {
+      throw new NotFoundException('game not found');
+    }
+
+    const errors: string[] = [];
+    const sceneList = Array.isArray(game.scenes) ? game.scenes : [];
+    const sceneById = new Map<string, any>();
+    const nodeById = new Map<string, { node: any; sceneId: string }>();
+
+    for (const scene of sceneList) {
+      sceneById.set(scene.id, scene);
+      const nodes = Array.isArray(scene?.nodes) ? scene.nodes : [];
+      for (const node of nodes) {
+        nodeById.set(node.id, { node, sceneId: scene.id });
+      }
+    }
+
+    const startSceneId = this.normalizeNodeRefId(startSceneIdInput);
+    if (!startSceneId) {
+      errors.push('開始シーンが未設定です。ゲーム全体の開始シーンを設定してください。');
+    } else {
+      const startScene = sceneById.get(startSceneId);
+      if (!startScene) {
+        errors.push(
+          '開始シーンが存在しないシーンIDを参照しています。開始シーンを再設定してください。',
+        );
+      } else {
+        const startSceneNodes = Array.isArray(startScene?.nodes) ? startScene.nodes : [];
+        if (startSceneNodes.length === 0) {
+          errors.push('開始シーンにノードがありません。開始シーンとしてプレイできません。');
+        }
+
+        const startNodeId = this.normalizeNodeRefId(startScene?.startNodeId);
+        if (!startNodeId) {
+          errors.push('開始シーンの開始ノードが未設定です。開始ノードを指定してください。');
+        } else {
+          const startNodeMeta = nodeById.get(startNodeId);
+          if (!startNodeMeta || startNodeMeta.sceneId !== startScene.id) {
+            errors.push(
+              '開始シーンの開始ノードが存在しないノードIDを参照しています。開始ノードを再設定してください。',
+            );
+          }
+        }
+      }
+    }
+
+    for (const { node } of nodeById.values()) {
+      const nextNodeId = this.normalizeNodeRefId(node?.nextNodeId);
+      if (nextNodeId && !nodeById.has(nextNodeId)) {
+        errors.push('通常遷移先(nextNodeId)が存在しないノードIDを参照しています。');
+      }
+
+      const choices = Array.isArray(node?.choices) ? node.choices : [];
+      for (const choice of choices) {
+        const targetNodeId = this.normalizeNodeRefId(choice?.targetNodeId);
+        if (targetNodeId && !nodeById.has(targetNodeId)) {
+          errors.push('選択肢の通常遷移先(targetNodeId)が存在しないノードIDを参照しています。');
+        }
+
+        const alternateTargetNodeId = this.normalizeNodeRefId(choice?.alternateTargetNodeId);
+        if (alternateTargetNodeId && !nodeById.has(alternateTargetNodeId)) {
+          errors.push(
+            '選択肢の条件分岐先(alternateTargetNodeId)が存在しないノードIDを参照しています。',
+          );
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: '公開できません。シナリオチェックでエラーが見つかりました。',
+        errors,
+      });
+    }
+  }
+
   private readonly playInclude = {
     scenes: {
       include: {
@@ -217,6 +298,11 @@ export class GamesService {
 
   async update(userId: string, id: string, data: any) {
     const g = await this.assertGameOwner(userId, id);
+
+    if (data?.isPublic === true) {
+      const nextStartSceneId = 'startSceneId' in (data ?? {}) ? data.startSceneId : g.startSceneId;
+      await this.assertPublishableScenario(id, nextStartSceneId);
+    }
 
     const allowed: any = {};
     if (typeof data?.title === 'string') allowed.title = data.title;

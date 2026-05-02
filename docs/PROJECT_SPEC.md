@@ -544,7 +544,7 @@ interface MessageTheme {
 - 既存の「対象へ移動」動線は維持し、フィルタ後の一覧からも従来どおりジャンプ可能
 
 #### 公開前チェックMVP（2026-05-03 実装）
-<!-- impl: apps/frontend/pages/my/games/index.vue, apps/frontend/utils/scenarioCheck.ts, apps/frontend/pages/my/games/[id]/edit.vue -->
+<!-- impl: apps/frontend/pages/my/games/index.vue, apps/frontend/utils/scenarioCheck.ts, apps/frontend/pages/my/games/[id]/edit.vue, apps/api/src/games/games.service.ts -->
 - `/my/games` からの公開切替（非公開→公開）時に、公開前チェックを実行する
 - チェック判定は edit画面のシナリオチェックと同一ロジックを共通化した `runScenarioCheck` を利用する
 - 判定ルール
@@ -557,12 +557,22 @@ interface MessageTheme {
   - 「シナリオチェックを確認」導線として edit画面へ遷移可能
   - 遷移時に `focusScenarioCheck=1&scenarioCheckFilter=error` を付与し、シナリオチェックパネル展開とエラーフィルタ初期表示を行う
 - `/my/games` での非公開化（公開→非公開）は従来どおり常に許可
-- API側の公開時チェックは今回未実装（フロント側MVP対応）。将来はサーバー側でも `isPublic=true` 遷移時の `error` チェック実施を検討する
+- API側の公開時チェック（最終防衛線）を追加
+  - `PATCH /games/:id` で `isPublic: true` がリクエストに含まれる場合のみ、サーバー側で最低限の `error` チェックを実施
+  - `error` が1件以上なら 400 で公開拒否（`message` と `errors` を返す）
+  - `warning` / `info` 相当の項目は API では公開拒否しない
+  - `isPublic: false` の非公開化は常に許可
+  - `isPublic` 未指定の更新は従来どおり許可
+- 役割分担
+  - フロント側公開前チェック: ユーザー向けの事前案内（warning確認、修正導線）
+  - API側公開前チェック: 公開状態整合を守る最終防衛線
 
 #### 公開前チェックMVPの確認結果（2026-05-03）
 - 実行コマンド
-  - `pnpm -w build`: 成功（exit 0）
+  - `pnpm -w build`: 失敗（exit 1）
+    - `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（ファイルロック）
   - `pnpm -C apps/frontend test`: 成功（3 files / 10 tests passed）
+  - API test コマンド: `apps/api/package.json` に test script がないため未実行
 - 未実行確認
   - ブラウザ手動E2E（error/warning/info の各状態での公開導線の実操作）は未実施
   - 理由: この実行環境ではブラウザ手動検証を実行していないため
