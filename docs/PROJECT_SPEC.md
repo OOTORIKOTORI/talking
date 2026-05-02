@@ -474,6 +474,8 @@ interface MessageTheme {
   - 復元時は保存済み `sceneId` / `nodeId` を検証し、存在する対象のみ適用する
   - 保存済み `nodeId` が別シーン所属の場合、該当ノードが見つかったシーンを優先して復元する
   - 保存済み scene/node が削除済みなどで不正な場合は既存初期状態へフォールバックし、古い保存値は削除または現在状態で上書きする
+  - 保存値がない場合・復元に失敗した場合は、`GameProject.startSceneId` のシーン（未設定なら先頭シーン）→ そのシーンの `startNodeId`（未設定なら先頭ノード）の順で初期選択する
+  - JSON パース失敗時・sceneId/nodeId が不正・保存済み sceneId が存在しない場合は localStorage の古い値を削除してから初期選択へフォールバックする
   - 右ペイン開閉状態（`talking.editor.rightPaneSections.v1`）とは別キーで管理し、互いに干渉しない
 - 各入力ブロックの表示制御は `v-if` で行い、既存の編集・保存・削除・選択肢編集機能は維持する
 - セクション見出しと折りたたみ範囲の不一致を修正し、「見出しの直下にある項目」がその見出しの開閉状態に従うよう整理した
@@ -734,3 +736,4 @@ interface GameNode {
 - 2026-05-02: シーンラベル・シーン管理性改善MVPを実装。`GameScene.name` をシーンラベルとして活用（DB変更・マイグレーションなし）。edit画面左ペインのシーン一覧に Scene番号・シーン名・ノード数を表示。選択中シーンの名前を入力欄で編集可能に（Enter/blurで保存）。シーン名変更後のシーン一覧・NodePicker・遷移先ラベルへの即時反映を実装。未対応将来課題（並び替え・説明文・サムネイル・フローチャート）をROADMAPに記録。
 - 2026-05-02: 右ペインセクション開閉状態の LocalStorage 永続化を実装。キーは `talking.editor.rightPaneSections.v1` を採用し、通常表示/全画面表示で同一状態を共有。保存値破損時の既定値フォールバックと、新規キー追加時の既定値補完を追加。シナリオエクスポート/インポート（JSON → 将来的にAI向けMarkdown/DSL）を将来課題として明記。
 - 2026-05-02: ゲーム編集画面で最後に選択したシーン/ノードの作業位置復元MVPを実装。`talking.editor.lastSelection.v1:${gameId}` に `sceneId` / `nodeId` / `updatedAt` を保存し、再訪時に復元。保存値破損・削除済み参照時は安全にフォールバックし、右ペイン開閉状態キー（`talking.editor.rightPaneSections.v1`）とは分離管理。
+- 2026-05-02: 作業位置復元MVPのフォールバック強化。保存値なし・パース失敗・削除済み参照のいずれの場合も、`GameProject.startSceneId` → 先頭シーン → `startNodeId` → 先頭ノードの順で初期選択されるよう `selectInitialSceneAndNode()` を追加。`restoreLastSelection()` が `Promise<boolean>` を返し、`false` の場合に初期選択へフォールバック。`getSavedLastSelection` でパース失敗・空値時に localStorage の古い値を削除。

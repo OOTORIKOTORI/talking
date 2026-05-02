@@ -149,9 +149,15 @@ function getSavedLastSelection(gameId: string): LastSelectionState | null {
   if (!raw) return null
 
   try {
-    return parseLastSelection(JSON.parse(raw))
+    const parsed = parseLastSelection(JSON.parse(raw))
+    if (!parsed) {
+      clearLastSelection(gameId)
+      return null
+    }
+    return parsed
   } catch (error) {
     console.warn('Failed to parse lastSelection from localStorage', error)
+    clearLastSelection(gameId)
     return null
   }
 }
@@ -187,13 +193,13 @@ function persistCurrentSelection() {
   persistLastSelection(scene.value?.id ?? null, node.value?.id ?? null)
 }
 
-async function restoreLastSelection() {
+async function restoreLastSelection(): Promise<boolean> {
   const gameId = normalizeNodeId(game.value?.id)
-  if (!gameId) return
-  if (!Array.isArray(scenes.value) || scenes.value.length === 0) return
+  if (!gameId) return false
+  if (!Array.isArray(scenes.value) || scenes.value.length === 0) return false
 
   const saved = getSavedLastSelection(gameId)
-  if (!saved) return
+  if (!saved) return false
 
   const sceneById = new Map(scenes.value.map((sceneItem: any) => [sceneItem.id, sceneItem]))
   let resolvedScene: any | null = null
@@ -231,7 +237,7 @@ async function restoreLastSelection() {
 
   if (!resolvedScene) {
     clearLastSelection(gameId)
-    return
+    return false
   }
 
   await selectScene(resolvedScene, {
@@ -243,6 +249,31 @@ async function restoreLastSelection() {
     const targetNode = nodes.value.find((nodeItem: any) => nodeItem.id === resolvedNodeId)
     if (targetNode) {
       selectNode(targetNode, { skipPersist: true })
+    }
+  }
+
+  persistCurrentSelection()
+  return true
+}
+
+async function selectInitialSceneAndNode() {
+  if (!Array.isArray(scenes.value) || scenes.value.length === 0) return
+
+  const startScene = (game.value?.startSceneId
+    ? scenes.value.find((s: any) => s.id === game.value.startSceneId)
+    : null) ?? scenes.value[0]
+
+  if (!startScene) return
+
+  await selectScene(startScene, { skipPersist: true })
+
+  if (nodes.value.length > 0) {
+    const startNode = (startScene.startNodeId
+      ? nodes.value.find((n: any) => n.id === startScene.startNodeId)
+      : null) ?? nodes.value[0]
+
+    if (startNode) {
+      selectNode(startNode, { skipPersist: true })
     }
   }
 
@@ -1234,7 +1265,10 @@ onMounted(async () => {
   try {
     game.value = await api.getEdit(route.params.id as string)
     scenes.value = (await api.listScenes(game.value.id)) as any[]
-    await restoreLastSelection()
+    const restored = await restoreLastSelection()
+    if (!restored) {
+      await selectInitialSceneAndNode()
+    }
   } catch (error) {
     console.error('Failed to load game:', error)
     alert('ゲームの読み込みに失敗しました')

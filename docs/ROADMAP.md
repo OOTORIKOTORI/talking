@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（ゲーム別の作業位置復元MVPを追加）
+> 最終更新: 2026-05-02（作業位置復元MVPのフォールバック強化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -56,6 +56,7 @@
 | 2026-05-02 | ✅ exit 0 | 右ペインセクション化MVP後。既知 WARN のみ（同上） |
 | 2026-05-02 | ❌ exit 1 | 右ペイン開閉状態 localStorage 保存後。`apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（ファイルロック） |
 | 2026-05-02 | ✅ exit 0 | ゲーム別の作業位置復元MVP後。既知 WARN のみ（`@nuxt/icon` Nuxt 4要件、browserslist更新推奨、Nuxt依存deprecation） |
+| 2026-05-02 | ✅ exit 0 (frontend only) | 作業位置復元MVPfrontend フォールバック強化後。pnpm -C apps/api build は EPERM (DLLロック) で失敗だがフロントエンドビルド・全テストは exit 0 |
 
 ---
 
@@ -87,6 +88,43 @@
 
 ### 今回未実行の確認と理由
 - ブラウザ手動確認（リロード復元、削除後フォールバック、NodePicker/シナリオチェック連携の実操作）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / 作業位置復元MVPのフォールバック強化）
+
+### 問題
+- 保存済み作業位置がない場合（初回訪問・新ブラウザ・localStorage削除）にシーン/ノードが自動選択されなかった
+- `restoreLastSelection()` は `void` を返しており、呼び出し側がフォールバックを実行できなかった
+
+### 実装した内容
+- `apps/frontend/pages/my/games/[id]/edit.vue`
+	- `restoreLastSelection()` の戻り値を `Promise<boolean>` に変更
+		- 保存値なし、パース失敗、sceneId/nodeId が不正、解決不能はすべて `false` を返す
+		- 正常に復元できた場合のみ `true` を返す
+	- `getSavedLastSelection()` でパース失敗時・空値時に localStorage の古い値を削除してから `null` を返すよう変更
+	- `selectInitialSceneAndNode()` 関数を追加
+		- `GameProject.startSceneId` に一致するシーンがあればそのシーンを選択、なければ先頭シーン
+		- 選択シーンの `startNodeId` に一致するノードがあればそのノードを選択、なければ先頭ノード
+		- ノードが0件ならシーンのみ選択してノードは null
+		- 選択後は `persistCurrentSelection()` で保存
+	- `onMounted` のロード処理を整理
+		- `const restored = await restoreLastSelection()` で結果を受け取る
+		- `if (!restored) await selectInitialSceneAndNode()` でフォールバック実行
+- `docs/PROJECT_SPEC.md`
+	- 保存値なし/パース失敗/削除済み参照時のフォールバック仕様（`startSceneId` → 先頭シーン → `startNodeId` → 先頭ノード）を追記
+- `docs/ROADMAP.md`
+	- 最終更新日・ビルド状態テーブル・確認メモを追記
+
+### 実行した確認
+- `pnpm -C apps/frontend build`: ✅ exit 0
+	- 既知 WARN のみ（`@nuxt/icon` Nuxt 4要件、browserslist更新推奨、Nuxt依存deprecation）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 7 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（localStorage なし時の初期選択、壊れ値時の選択、`startSceneId` 設定済み時の優先使用）
 	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
