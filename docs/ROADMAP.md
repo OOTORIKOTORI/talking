@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（シナリオチェックMVP実装）
+> 最終更新: 2026-05-02（開始地点設定: シーン側導線追加）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -15,6 +15,7 @@
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
 - シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
+- 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - 公開ギャラリー検索（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
 - 未ログイン公開ギャラリーで `/favorites` を呼ばない修正、公開ゲームのセーブ/ローUX補正
@@ -33,6 +34,42 @@
 |------|------|------|
 | 2026-05-01 | ✅ exit 0 | WARN: `@nuxt/icon` Nuxt 3.19.3 非互換（>=4.0.0 必要）、browserslist 7ヶ月古い（軽微） |
 | 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / 開始地点設定のシーン側導線追加）
+
+### 実装した内容
+- `apps/frontend/pages/my/games/[id]/edit.vue`
+	- シーン一覧の各行に「このシーンから開始」ボタンを追加
+	- 開始シーンの行に「開始シーン」ラベルを表示
+	- シーン側開始設定の挙動を追加
+		- ノードあり: `GameProject.startSceneId` を対象シーンに更新
+		- 対象シーンの `startNodeId` が設定済みなら維持
+		- `startNodeId` が未設定なら先頭ノードを自動設定
+		- ノード0件なら設定せず、トーストで案内
+	- 既存のノード側「▶このノードから開始」は維持
+		- `GameScene.startNodeId` を更新
+		- 所属シーンを `GameProject.startSceneId` に同期
+	- `game.value.startSceneId` / `scene.value.startNodeId` / `scenes.value` / `game.value.scenes` の同期ヘルパーを追加し、シーン一覧ラベル・ノード一覧ラベル・シナリオチェックの更新遅延を防止
+	- テストプレイ起動時は `GameProject.startSceneId` を優先して開始地点クエリを組み立てるよう補正
+
+### 仕様整理（開始地点）
+- 開始地点は `GameProject.startSceneId` と `GameScene.startNodeId` の組み合わせで決まる
+- ノード側から開始設定すると、所属シーンも開始シーンに同期される
+- シーン側から開始設定すると、そのシーンの既存 `startNodeId` を優先して使用する
+- `startNodeId` が未設定なら、シーン内の1番目のノードを自動で開始ノードに設定する
+- 空シーンは開始シーンに設定しない
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1（2回実行して同じ失敗）
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` の rename 時に `EPERM`（ファイルロック）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 7 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（シーン側開始設定 UI 操作、公開ゲーム/テストプレイ開始地点の実画面確認）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 

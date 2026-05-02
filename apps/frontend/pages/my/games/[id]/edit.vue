@@ -89,14 +89,16 @@ function previewVisualEffect() {
 // テストプレイを新しいタブで開く
 function openTestPlay() {
   if (!scene.value || !game.value) return
-  
+
+  const projectStartSceneId = normalizeNodeId(game.value.startSceneId)
+  const startScene = nodePickerScenes.value.find((sceneItem: any) => sceneItem.id === projectStartSceneId) ?? scene.value
   // 開始ノードを決定（優先順: scene.startNodeId → 先頭ノード）
-  const startId = scene.value.startNodeId || scene.value.nodes?.[0]?.id || nodes.value?.[0]?.id
-  
+  const startId = startScene?.startNodeId || startScene?.nodes?.[0]?.id || (startScene?.id === scene.value.id ? nodes.value?.[0]?.id : null)
+
   // URLを構築
-  const url = `/games/${game.value.id}/play?sceneId=${scene.value.id}` +
+  const url = `/games/${game.value.id}/play?sceneId=${startScene.id}` +
     (startId ? `&nodeId=${startId}` : '')
-  
+
   window.open(url, '_blank')
 }
 
@@ -1122,8 +1124,99 @@ async function setSceneStartNode(id: string) {
     body: { startNodeId: id },
   })
   await api.update(game.value.id, { startSceneId: scene.value.id })
-  scene.value.startNodeId = id
-  game.value.startSceneId = scene.value.id
+  syncSceneStartNodeId(scene.value.id, id)
+  syncProjectStartSceneId(scene.value.id)
+}
+
+function syncProjectStartSceneId(startSceneId: string | null) {
+  if (!game.value) return
+  game.value.startSceneId = startSceneId
+}
+
+function syncSceneStartNodeId(sceneId: string, startNodeId: string | null) {
+  if (scene.value?.id === sceneId) {
+    scene.value = {
+      ...scene.value,
+      startNodeId,
+    }
+  }
+
+  const sceneIndex = scenes.value.findIndex((sceneItem: any) => sceneItem.id === sceneId)
+  if (sceneIndex >= 0) {
+    scenes.value[sceneIndex] = {
+      ...scenes.value[sceneIndex],
+      startNodeId,
+    }
+  }
+
+  if (!Array.isArray(game.value?.scenes)) return
+  const gameSceneIndex = game.value.scenes.findIndex((sceneItem: any) => sceneItem.id === sceneId)
+  if (gameSceneIndex >= 0) {
+    game.value.scenes[gameSceneIndex] = {
+      ...game.value.scenes[gameSceneIndex],
+      startNodeId,
+    }
+  }
+}
+
+function syncSceneNodes(sceneId: string, sceneNodes: any[]) {
+  if (!Array.isArray(game.value?.scenes)) return
+  const gameSceneIndex = game.value.scenes.findIndex((sceneItem: any) => sceneItem.id === sceneId)
+  if (gameSceneIndex >= 0) {
+    game.value.scenes[gameSceneIndex] = {
+      ...game.value.scenes[gameSceneIndex],
+      nodes: sceneNodes.map((nodeItem: any) => ({ ...nodeItem })),
+    }
+  }
+}
+
+async function setStartSceneFromScene(targetScene: any) {
+  if (!game.value || !targetScene?.id) return
+
+  const toast = useToast()
+  const targetSceneId = targetScene.id as string
+  const currentScene = nodePickerScenes.value.find((sceneItem: any) => sceneItem.id === targetSceneId)
+
+  let targetNodes = Array.isArray(currentScene?.nodes) ? currentScene.nodes : []
+  if (targetNodes.length === 0) {
+    try {
+      targetNodes = (await api.listNodes(targetSceneId)) as any[]
+      syncSceneNodes(targetSceneId, targetNodes)
+    } catch (error) {
+      console.error('Failed to load scene nodes for start scene selection:', error)
+      toast.error('シーンのノード取得に失敗しました')
+      return
+    }
+  }
+
+  if (targetNodes.length === 0) {
+    toast.error('このシーンにはノードがありません。開始シーンにするには先にノードを追加してください。')
+    return
+  }
+
+  const existingStartNodeId = normalizeNodeId(targetScene.startNodeId)
+  const resolvedStartNodeId = existingStartNodeId ?? normalizeNodeId(targetNodes[0]?.id)
+  if (!resolvedStartNodeId) {
+    toast.error('このシーンにはノードがありません。開始シーンにするには先にノードを追加してください。')
+    return
+  }
+
+  try {
+    if (!existingStartNodeId) {
+      await $api(`/games/scenes/${targetSceneId}`, {
+        method: 'PATCH',
+        body: { startNodeId: resolvedStartNodeId },
+      })
+      syncSceneStartNodeId(targetSceneId, resolvedStartNodeId)
+    }
+
+    await api.update(game.value.id, { startSceneId: targetSceneId })
+    syncProjectStartSceneId(targetSceneId)
+    toast.success('開始シーンを設定しました')
+  } catch (error) {
+    console.error('Failed to set start scene:', error)
+    toast.error('開始シーンの設定に失敗しました')
+  }
 }
 
 function selectNode(n: any) {
@@ -1517,7 +1610,18 @@ function onUp() {
               <div class="text-[10px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">Scene {{ si + 1 }}</div>
               <div class="text-sm font-medium truncate">{{ s.name || `Scene ${si + 1}` }}</div>
               <div class="text-[11px]" :class="s.id === scene?.id ? 'text-blue-100' : 'text-gray-400'">{{ sceneNodeCount.get(s.id) ?? 0 }} nodes</div>
-              <div v-if="s.id === game?.startSceneId" class="text-[10px] mt-0.5" :class="s.id === scene?.id ? 'text-yellow-200' : 'text-yellow-600'">★ 開始シーン</div>
+              <div class="mt-1 flex items-center gap-1">
+                <button
+                  type="button"
+                  class="text-[10px] px-1.5 py-0.5 border rounded"
+                  :class="s.id === scene?.id ? 'border-blue-200 text-blue-50 hover:bg-blue-400' : 'border-gray-300 text-gray-600 hover:bg-gray-100'"
+                  :disabled="s.id === game?.startSceneId"
+                  @click.stop="setStartSceneFromScene(s)"
+                >
+                  このシーンから開始
+                </button>
+                <span v-if="s.id === game?.startSceneId" class="text-[10px]" :class="s.id === scene?.id ? 'text-yellow-200' : 'text-yellow-600'">開始シーン</span>
+              </div>
             </li>
           </ul>
           <button
