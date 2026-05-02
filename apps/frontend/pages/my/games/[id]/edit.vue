@@ -480,6 +480,7 @@ const showChoiceNextPriorityNotice = computed(() => {
 })
 
 type ScenarioCheckSeverity = 'error' | 'warning' | 'info'
+type ScenarioCheckFilter = 'all' | ScenarioCheckSeverity
 
 type ScenarioCheckIssue = {
   id: string
@@ -494,6 +495,9 @@ type ScenarioCheckIssue = {
 }
 
 const scenarioCheckOpen = ref(true)
+const scenarioCheckFilter = ref<ScenarioCheckFilter>('all')
+const scenarioCheckInfoOpen = ref(false)
+const scenarioSeverityOrder: ScenarioCheckSeverity[] = ['error', 'warning', 'info']
 
 function normalizeNodeId(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -783,8 +787,66 @@ const scenarioCheckResult = computed(() => {
   }
 })
 
-const scenarioCheckIssues = computed(() => scenarioCheckResult.value.issues)
+const scenarioCheckIssues = computed(() => {
+  const issues = scenarioCheckResult.value.issues
+  return scenarioSeverityOrder.flatMap((severity) => issues.filter((issue) => issue.severity === severity))
+})
 const scenarioCheckCounts = computed(() => scenarioCheckResult.value.counts)
+const scenarioCheckTotalCount = computed(() => scenarioCheckIssues.value.length)
+
+const scenarioCheckFilterItems = computed(() => {
+  return [
+    { key: 'all' as const, label: 'すべて', count: scenarioCheckTotalCount.value },
+    { key: 'error' as const, label: 'エラー', count: scenarioCheckCounts.value.error },
+    { key: 'warning' as const, label: '警告', count: scenarioCheckCounts.value.warning },
+    { key: 'info' as const, label: '情報', count: scenarioCheckCounts.value.info },
+  ]
+})
+
+const scenarioCheckFilteredIssues = computed(() => {
+  if (scenarioCheckFilter.value === 'all') return scenarioCheckIssues.value
+  return scenarioCheckIssues.value.filter((issue) => issue.severity === scenarioCheckFilter.value)
+})
+
+const scenarioCheckFilteredInfoIssues = computed(() => {
+  return scenarioCheckFilteredIssues.value.filter((issue) => issue.severity === 'info')
+})
+
+const scenarioCheckVisibleIssues = computed(() => {
+  if (scenarioCheckFilter.value !== 'all') return scenarioCheckFilteredIssues.value
+  if (scenarioCheckInfoOpen.value) return scenarioCheckFilteredIssues.value
+  return scenarioCheckFilteredIssues.value.filter((issue) => issue.severity !== 'info')
+})
+
+watch(scenarioCheckFilter, (nextFilter) => {
+  if (nextFilter === 'info') {
+    scenarioCheckInfoOpen.value = true
+  }
+})
+
+function selectScenarioCheckFilter(filter: ScenarioCheckFilter) {
+  scenarioCheckFilter.value = filter
+}
+
+function scenarioFilterButtonClass(filter: ScenarioCheckFilter) {
+  const active = scenarioCheckFilter.value === filter
+  if (filter === 'error') {
+    if (active) return 'border-red-300 bg-red-100 text-red-800'
+    if (scenarioCheckCounts.value.error > 0) return 'border-red-200 bg-red-50 text-red-700'
+    return 'border-gray-200 bg-white text-gray-700'
+  }
+  if (filter === 'warning') {
+    if (active) return 'border-amber-300 bg-amber-100 text-amber-800'
+    if (scenarioCheckCounts.value.warning > 0) return 'border-amber-200 bg-amber-50 text-amber-700'
+    return 'border-gray-200 bg-white text-gray-700'
+  }
+  if (filter === 'info') {
+    if (active) return 'border-slate-300 bg-slate-100 text-slate-700'
+    return 'border-gray-200 bg-white text-gray-500'
+  }
+  if (active) return 'border-gray-300 bg-gray-100 text-gray-800'
+  return 'border-gray-200 bg-white text-gray-700'
+}
 
 function scenarioSeverityLabel(severity: ScenarioCheckSeverity) {
   if (severity === 'error') return 'エラー'
@@ -799,7 +861,7 @@ function scenarioSeverityClass(severity: ScenarioCheckSeverity) {
   if (severity === 'warning') {
     return 'border-amber-200 bg-amber-50 text-amber-700'
   }
-  return 'border-blue-200 bg-blue-50 text-blue-700'
+  return 'border-slate-200 bg-slate-50 text-slate-600'
 }
 
 function scenarioIssueLocation(issue: ScenarioCheckIssue) {
@@ -1718,37 +1780,70 @@ function onUp() {
             </div>
             <div class="px-3 py-2">
               <div class="flex flex-wrap gap-2 text-xs">
-                <span class="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-700">エラー {{ scenarioCheckCounts.error }}件</span>
+                <span class="rounded border border-red-200 bg-red-50 px-2 py-1 font-semibold text-red-700">エラー {{ scenarioCheckCounts.error }}件</span>
                 <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
-                <span class="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">情報 {{ scenarioCheckCounts.info }}件</span>
+                <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
               </div>
             </div>
             <div v-if="scenarioCheckOpen" class="border-t border-gray-200 px-3 py-2">
-              <div v-if="scenarioCheckIssues.length === 0" class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <div class="mb-2 flex flex-wrap gap-2">
+                <button
+                  v-for="item in scenarioCheckFilterItems"
+                  :key="item.key"
+                  type="button"
+                  class="rounded border px-2 py-1 text-xs transition-colors"
+                  :class="scenarioFilterButtonClass(item.key)"
+                  @click="selectScenarioCheckFilter(item.key)"
+                >
+                  {{ item.label }} {{ item.count }}
+                </button>
+              </div>
+              <div v-if="scenarioCheckTotalCount === 0" class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                 問題は見つかりませんでした。
               </div>
-              <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                <article
-                  v-for="issue in scenarioCheckIssues"
-                  :key="issue.id"
-                  class="rounded border px-2 py-2 text-xs"
-                  :class="scenarioSeverityClass(issue.severity)"
+              <div v-else-if="scenarioCheckFilteredIssues.length === 0" class="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                この条件のチェック項目はありません。
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-if="scenarioCheckFilter === 'all' && scenarioCheckFilteredInfoIssues.length > 0"
+                  class="flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
                 >
-                  <div class="mb-1 flex items-center justify-between gap-2">
-                    <span class="font-semibold">{{ scenarioSeverityLabel(issue.severity) }}</span>
-                    <button
-                      v-if="issue.sceneId"
-                      type="button"
-                      class="rounded border border-gray-300 bg-white px-2 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100"
-                      @click="focusScenarioIssue(issue)"
-                    >
-                      対象へ移動
-                    </button>
-                  </div>
-                  <p class="leading-relaxed">{{ issue.message }}</p>
-                  <p class="mt-1 text-[11px] text-gray-600">{{ scenarioIssueLocation(issue) }}</p>
-                  <p v-if="issue.nodePreview" class="mt-1 text-[11px] text-gray-500">{{ issue.nodePreview }}</p>
-                </article>
+                  <span>情報 {{ scenarioCheckFilteredInfoIssues.length }}件</span>
+                  <button
+                    type="button"
+                    class="rounded border border-slate-300 bg-white px-2 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100"
+                    @click="scenarioCheckInfoOpen = !scenarioCheckInfoOpen"
+                  >
+                    {{ scenarioCheckInfoOpen ? '情報を折りたたむ' : '情報を表示' }}
+                  </button>
+                </div>
+                <div v-if="scenarioCheckVisibleIssues.length === 0" class="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  情報項目は折りたたまれています。必要なら「情報を表示」を押してください。
+                </div>
+                <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  <article
+                    v-for="issue in scenarioCheckVisibleIssues"
+                    :key="issue.id"
+                    class="rounded border px-2 py-2 text-xs"
+                    :class="scenarioSeverityClass(issue.severity)"
+                  >
+                    <div class="mb-1 flex items-center justify-between gap-2">
+                      <span class="font-semibold">{{ scenarioSeverityLabel(issue.severity) }}</span>
+                      <button
+                        v-if="issue.sceneId"
+                        type="button"
+                        class="rounded border border-gray-300 bg-white px-2 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100"
+                        @click="focusScenarioIssue(issue)"
+                      >
+                        対象へ移動
+                      </button>
+                    </div>
+                    <p class="leading-relaxed">{{ issue.message }}</p>
+                    <p class="mt-1 text-[11px] text-gray-600">{{ scenarioIssueLocation(issue) }}</p>
+                    <p v-if="issue.nodePreview" class="mt-1 text-[11px] text-gray-500">{{ issue.nodePreview }}</p>
+                  </article>
+                </div>
               </div>
             </div>
           </div>
