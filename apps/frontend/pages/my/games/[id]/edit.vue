@@ -10,6 +10,7 @@ import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
+import { resolveFallbackNodeId } from '@/utils/editorSelection'
 import type { VisualEffect } from '@talking/types'
 const baseURL = useRuntimeConfig().public.apiBase
 const { $api } = useNuxtApp()
@@ -205,6 +206,7 @@ async function restoreLastSelection(): Promise<boolean> {
   let resolvedScene: any | null = null
   let resolvedNodeId: string | null = null
   let resolvedSceneNodes: any[] | null = null
+  let shouldFallbackToSceneNode = false
 
   if (saved.nodeId) {
     const allSceneIds = scenes.value.map((sceneItem: any) => sceneItem.id)
@@ -233,6 +235,7 @@ async function restoreLastSelection(): Promise<boolean> {
 
   if (!resolvedScene && saved.sceneId) {
     resolvedScene = sceneById.get(saved.sceneId) ?? null
+    shouldFallbackToSceneNode = Boolean(resolvedScene && saved.nodeId)
   }
 
   if (!resolvedScene) {
@@ -244,6 +247,10 @@ async function restoreLastSelection(): Promise<boolean> {
     skipPersist: true,
     preloadedNodes: resolvedSceneNodes ?? undefined,
   })
+
+  if (shouldFallbackToSceneNode && nodes.value.length > 0) {
+    resolvedNodeId = resolveFallbackNodeId(resolvedScene, nodes.value)
+  }
 
   if (resolvedNodeId) {
     const targetNode = nodes.value.find((nodeItem: any) => nodeItem.id === resolvedNodeId)
@@ -268,9 +275,10 @@ async function selectInitialSceneAndNode() {
   await selectScene(startScene, { skipPersist: true })
 
   if (nodes.value.length > 0) {
-    const startNode = (startScene.startNodeId
-      ? nodes.value.find((n: any) => n.id === startScene.startNodeId)
-      : null) ?? nodes.value[0]
+    const startNodeId = resolveFallbackNodeId(startScene, nodes.value)
+    const startNode = startNodeId
+      ? nodes.value.find((n: any) => n.id === startNodeId)
+      : null
 
     if (startNode) {
       selectNode(startNode, { skipPersist: true })
