@@ -131,7 +131,7 @@
       </div>
 
       <!-- BGM/SFXはモード切替時にも継続させるため常時マウント -->
-      <audio ref="bgmRef" :src="bgmUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
+      <audio ref="bgmRef" :src="bgmElementUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
       <audio ref="sfxRef" :src="sfxUrl || undefined" class="hidden" />
   
   <!-- Fullscreen Overlay -->
@@ -1255,7 +1255,157 @@ function scaleToHeight(s: number | undefined) {
 
 // BGM wiring (click to start)
 const bgmUrl = ref<string | null>(null)
+const bgmElementUrl = ref<string | null>(null)
 const bgmRef = ref<HTMLAudioElement | null>(null)
+
+const BGM_FADE_OUT_MS = 900
+const BGM_FADE_IN_MS = 900
+const BGM_TARGET_VOLUME = 1
+
+let bgmResolveToken = 0
+let bgmTransitionToken = 0
+let bgmFadeRaf: number | null = null
+let bgmTransitionChain: Promise<void> = Promise.resolve()
+const currentBgmUrl = ref<string | null>(null)
+const pendingBgmFadeIn = ref(false)
+
+function cancelBgmFadeFrame() {
+  if (bgmFadeRaf != null) {
+    cancelAnimationFrame(bgmFadeRaf)
+    bgmFadeRaf = null
+  }
+}
+
+function beginNewBgmTransition(): number {
+  bgmTransitionToken += 1
+  cancelBgmFadeFrame()
+  return bgmTransitionToken
+}
+
+function isActiveBgmTransition(token: number) {
+  return token === bgmTransitionToken
+}
+
+function setBgmElementVolume(el: HTMLAudioElement, value: number) {
+  el.volume = Math.min(1, Math.max(0, value))
+}
+
+function hardStopBgmElement(el: HTMLAudioElement) {
+  try {
+    el.pause()
+    el.currentTime = 0
+    el.removeAttribute('src')
+    el.load()
+  } catch {
+    // no-op
+  }
+}
+
+function fadeBgmVolumeTo(el: HTMLAudioElement, toVolume: number, durationMs: number, token: number) {
+  cancelBgmFadeFrame()
+
+  const fromVolume = Math.min(1, Math.max(0, el.volume))
+  const targetVolume = Math.min(1, Math.max(0, toVolume))
+  if (durationMs <= 0 || Math.abs(fromVolume - targetVolume) < 0.001) {
+    setBgmElementVolume(el, targetVolume)
+    return Promise.resolve(isActiveBgmTransition(token))
+  }
+
+  return new Promise<boolean>((resolve) => {
+    const start = performance.now()
+
+    const step = (now: number) => {
+      if (!isActiveBgmTransition(token)) {
+        cancelBgmFadeFrame()
+        resolve(false)
+        return
+      }
+
+      const t = Math.min(1, (now - start) / durationMs)
+      const nextVolume = fromVolume + (targetVolume - fromVolume) * t
+      setBgmElementVolume(el, nextVolume)
+
+      if (t >= 1) {
+        bgmFadeRaf = null
+        resolve(true)
+        return
+      }
+
+      bgmFadeRaf = requestAnimationFrame(step)
+    }
+
+    bgmFadeRaf = requestAnimationFrame(step)
+  })
+}
+
+async function fadeInActiveBgm(token = beginNewBgmTransition()) {
+  const el = bgmRef.value
+  if (!el || !soundOk.value || !currentBgmUrl.value || !isActiveBgmTransition(token)) return
+
+  try {
+    await el.play()
+  } catch {
+    return
+  }
+
+  if (!isActiveBgmTransition(token)) return
+  const completed = await fadeBgmVolumeTo(el, BGM_TARGET_VOLUME, BGM_FADE_IN_MS, token)
+  if (completed) {
+    pendingBgmFadeIn.value = false
+    setBgmElementVolume(el, BGM_TARGET_VOLUME)
+  }
+}
+
+async function runBgmTransition(nextUrl: string | null, token: number) {
+  const el = bgmRef.value
+
+  if (nextUrl === currentBgmUrl.value) {
+    if (nextUrl && soundOk.value && pendingBgmFadeIn.value) {
+      await fadeInActiveBgm(token)
+    }
+    return
+  }
+
+  if (el && currentBgmUrl.value) {
+    await fadeBgmVolumeTo(el, 0, BGM_FADE_OUT_MS, token)
+    if (!isActiveBgmTransition(token)) return
+    hardStopBgmElement(el)
+  }
+
+  currentBgmUrl.value = null
+  bgmElementUrl.value = null
+  pendingBgmFadeIn.value = false
+
+  if (!nextUrl || !isActiveBgmTransition(token)) {
+    return
+  }
+
+  bgmElementUrl.value = nextUrl
+  currentBgmUrl.value = nextUrl
+  pendingBgmFadeIn.value = true
+  await nextTick()
+
+  const nextEl = bgmRef.value
+  if (!nextEl || !isActiveBgmTransition(token)) return
+
+  setBgmElementVolume(nextEl, 0)
+
+  if (!soundOk.value) {
+    return
+  }
+
+  await fadeInActiveBgm(token)
+}
+
+function requestBgmTransition(nextUrl: string | null) {
+  const token = beginNewBgmTransition()
+  bgmTransitionChain = bgmTransitionChain
+    .catch(() => {})
+    .then(async () => {
+      if (!isActiveBgmTransition(token)) return
+      await runBgmTransition(nextUrl, token)
+    })
+}
 
 // SFX (効果音) wiring: ノードごとに1回だけ鳴らすワンショット
 const sfxUrl = ref<string | null>(null)
@@ -1264,11 +1414,17 @@ const sfxRef = ref<HTMLAudioElement | null>(null)
 // 音声を有効にする
 async function allowSound() {
   const media: HTMLMediaElement[] = []
+  if (bgmRef.value && pendingBgmFadeIn.value && currentBgmUrl.value) {
+    setBgmElementVolume(bgmRef.value, 0)
+  }
   if (bgmRef.value) media.push(bgmRef.value)
   if (sfxRef.value) media.push(sfxRef.value)
 
   if (media.length > 0) {
     await grantAudioConsent(media)
+    if (pendingBgmFadeIn.value && currentBgmUrl.value && soundOk.value) {
+      void fadeInActiveBgm()
+    }
   }
 }
 
@@ -1279,15 +1435,36 @@ function denySound() {
 
 // BGMを再生(soundOkの場合のみ)
 function ensureBgm() {
-  if (soundOk.value && bgmRef.value) {
-    bgmRef.value.play().catch(() => {})
+  if (!soundOk.value || !bgmRef.value || !currentBgmUrl.value) return
+  if (pendingBgmFadeIn.value) {
+    void fadeInActiveBgm()
+    return
   }
+  bgmRef.value.play().catch(() => {})
 }
 
 // currentのmusicAssetIdが変化したらBGM URLを更新
 watch(
   () => current.value?.musicAssetId,
-  async (id) => { bgmUrl.value = id ? await signedFromId(id, false) : null },
+  async (id) => {
+    const token = ++bgmResolveToken
+    if (!id) {
+      bgmUrl.value = null
+      return
+    }
+
+    const resolved = await signedFromId(id, false)
+    if (token !== bgmResolveToken) return
+    bgmUrl.value = resolved
+  },
+  { immediate: true }
+)
+
+watch(
+  bgmUrl,
+  (nextUrl) => {
+    requestBgmTransition(nextUrl)
+  },
   { immediate: true }
 )
 
@@ -1550,6 +1727,12 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onGameKeyDown)
   stopCameraAnimation()
+  beginNewBgmTransition()
+  bgmResolveToken += 1
+  const el = bgmRef.value
+  if (el) {
+    hardStopBgmElement(el)
+  }
 })
 
 // クエリパラメータが変わったときも再解決(ゲームロード完了後のみ)
