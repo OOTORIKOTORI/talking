@@ -87,6 +87,8 @@
 </template>
 
 <script setup lang="ts">
+import { runScenarioCheck } from '@/utils/scenarioCheck'
+
 definePageMeta({
   middleware: 'require-auth'
 })
@@ -144,11 +146,50 @@ async function togglePublic(game: any) {
 
   const prev = !!game.isPublic
   const next = !prev
-  game.isPublic = next
   setToggling(game.id, true)
 
   try {
+    if (next) {
+      const editable = await api.getEdit(game.id)
+      const check = runScenarioCheck({
+        scenes: editable?.scenes ?? [],
+        startSceneId: editable?.startSceneId,
+      })
+
+      const errorIssues = check.issues.filter((issue) => issue.severity === 'error')
+      const warningCount = check.counts.warning
+
+      if (errorIssues.length > 0) {
+        const details = errorIssues
+          .slice(0, 3)
+          .map((issue, index) => `${index + 1}. ${issue.message}`)
+          .join('\n')
+        const restCount = Math.max(errorIssues.length - 3, 0)
+        const suffix = restCount > 0 ? `\nほか ${restCount} 件` : ''
+
+        toast.error(`エラー${errorIssues.length}件のため公開できません`)
+        const shouldMoveToEdit = window.confirm(
+          `公開できません。シナリオチェックでエラーが見つかりました。エラーを修正してから公開してください。\n\n${details}${suffix}\n\nシナリオチェックを確認するため編集画面へ移動しますか？`
+        )
+        if (shouldMoveToEdit) {
+          await navigateTo(`/my/games/${game.id}/edit?focusScenarioCheck=1&scenarioCheckFilter=error`)
+        }
+        return
+      }
+
+      if (warningCount > 0) {
+        const proceed = window.confirm(
+          `警告がありますが公開しますか？未設定の選択肢や到達不能ノードが残っている可能性があります。\n\n警告 ${warningCount} 件`
+        )
+        if (!proceed) {
+          toast.info('公開をキャンセルしました')
+          return
+        }
+      }
+    }
+
     await api.update(game.id, { isPublic: next })
+    game.isPublic = next
     toast.success(next ? '公開に切り替えました' : '非公開に切り替えました')
   } catch (error) {
     game.isPublic = prev

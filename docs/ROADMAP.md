@@ -1,12 +1,12 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（作業位置復元MVPのフォールバック強化）
+> 最終更新: 2026-05-03（ゲーム公開前チェックMVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-02）
+## 📍 現在地サマリ（2026-05-03）
 
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。
 
@@ -15,6 +15,7 @@
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
 - シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
+- ゲーム公開前チェックMVP（公開時にシナリオチェックを評価し、error時は公開ブロック・warning時は確認）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - 公開ギャラリー検索（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
@@ -57,6 +58,42 @@
 | 2026-05-02 | ❌ exit 1 | 右ペイン開閉状態 localStorage 保存後。`apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（ファイルロック） |
 | 2026-05-02 | ✅ exit 0 | ゲーム別の作業位置復元MVP後。既知 WARN のみ（`@nuxt/icon` Nuxt 4要件、browserslist更新推奨、Nuxt依存deprecation） |
 | 2026-05-02 | ✅ exit 0 (frontend only) | 作業位置復元MVPfrontend フォールバック強化後。pnpm -C apps/api build は EPERM (DLLロック) で失敗だがフロントエンドビルド・全テストは exit 0 |
+| 2026-05-03 | ✅ exit 0 | 公開前チェックMVP後。`pnpm -w build` は成功（既知 WARN のみ） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-03 / ゲーム公開前チェックMVP）
+
+### 実装した内容
+- `apps/frontend/utils/scenarioCheck.ts`
+	- edit画面にあったシナリオチェック判定（error / warning / info）を共通化
+	- 開始地点不備・存在しない参照・未設定選択肢・到達不能ノード・終端ノードなど、既存判定をそのまま再利用できる形に整理
+- `apps/frontend/pages/my/games/[id]/edit.vue`
+	- シナリオチェック判定を共通ユーティリティ呼び出しに置換（判定の重複削減）
+	- 一覧画面からの誘導用に、クエリでシナリオチェック表示状態を受け取る導線を追加
+		- `focusScenarioCheck=1` でパネル展開
+		- `scenarioCheckFilter=error|warning|info|all` で初期フィルタ設定
+- `apps/frontend/pages/my/games/index.vue`
+	- 公開トグル時（非公開→公開のみ）に `api.getEdit()` + 共通シナリオチェックを実行
+	- 判定ルール
+		- `error` 1件以上: 公開ブロック、公開状態は変更しない、件数と内容（先頭3件）を表示、編集画面シナリオチェックへ誘導
+		- `warning` のみ: 確認ダイアログ承認時のみ公開
+		- `info` のみ / 問題なし: 従来どおり公開可能
+	- 非公開化（公開→非公開）は従来どおり常に許可
+
+### API側の扱い
+- 今回は API 側の公開時チェックは未実装（フロント側MVPで対応）
+- 将来課題: `PATCH /games/:id` で `isPublic=true` に遷移する際に、サーバー側でも最低限の `error` チェックを実施する
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 WARN のみ（`@nuxt/icon` の Nuxt 4要件、browserslist 更新推奨、Nuxt 依存 deprecation warning）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 3 files / 10 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（error/warning/info 各状態での公開導線の実操作、編集画面への遷移確認）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 

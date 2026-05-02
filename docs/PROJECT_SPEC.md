@@ -536,6 +536,30 @@ interface MessageTheme {
 - 件数サマリはエラーを最も目立つ見た目にし、警告を次点、情報を控えめに表示
 - 既存の「対象へ移動」動線は維持し、フィルタ後の一覧からも従来どおりジャンプ可能
 
+#### 公開前チェックMVP（2026-05-03 実装）
+<!-- impl: apps/frontend/pages/my/games/index.vue, apps/frontend/utils/scenarioCheck.ts, apps/frontend/pages/my/games/[id]/edit.vue -->
+- `/my/games` からの公開切替（非公開→公開）時に、公開前チェックを実行する
+- チェック判定は edit画面のシナリオチェックと同一ロジックを共通化した `runScenarioCheck` を利用する
+- 判定ルール
+  - `error` が1件以上: 公開不可（公開状態は変更しない）
+  - `warning` のみ: 確認ダイアログ承認後に公開可
+  - `info` のみ / 問題なし: 公開可
+- `error` 時のUI
+  - エラー件数を表示
+  - エラー内容（先頭3件）を表示
+  - 「シナリオチェックを確認」導線として edit画面へ遷移可能
+  - 遷移時に `focusScenarioCheck=1&scenarioCheckFilter=error` を付与し、シナリオチェックパネル展開とエラーフィルタ初期表示を行う
+- `/my/games` での非公開化（公開→非公開）は従来どおり常に許可
+- API側の公開時チェックは今回未実装（フロント側MVP対応）。将来はサーバー側でも `isPublic=true` 遷移時の `error` チェック実施を検討する
+
+#### 公開前チェックMVPの確認結果（2026-05-03）
+- 実行コマンド
+  - `pnpm -w build`: 成功（exit 0）
+  - `pnpm -C apps/frontend test`: 成功（3 files / 10 tests passed）
+- 未実行確認
+  - ブラウザ手動E2E（error/warning/info の各状態での公開導線の実操作）は未実施
+  - 理由: この実行環境ではブラウザ手動検証を実行していないため
+
 検出項目:
 - 開始設定不備
   - `GameProject.startSceneId` 未設定/参照切れ
@@ -737,3 +761,4 @@ interface GameNode {
 - 2026-05-02: 右ペインセクション開閉状態の LocalStorage 永続化を実装。キーは `talking.editor.rightPaneSections.v1` を採用し、通常表示/全画面表示で同一状態を共有。保存値破損時の既定値フォールバックと、新規キー追加時の既定値補完を追加。シナリオエクスポート/インポート（JSON → 将来的にAI向けMarkdown/DSL）を将来課題として明記。
 - 2026-05-02: ゲーム編集画面で最後に選択したシーン/ノードの作業位置復元MVPを実装。`talking.editor.lastSelection.v1:${gameId}` に `sceneId` / `nodeId` / `updatedAt` を保存し、再訪時に復元。保存値破損・削除済み参照時は安全にフォールバックし、右ペイン開閉状態キー（`talking.editor.rightPaneSections.v1`）とは分離管理。
 - 2026-05-02: 作業位置復元MVPのフォールバック強化。保存値なし・パース失敗・削除済み参照のいずれの場合も、`GameProject.startSceneId` → 先頭シーン → `startNodeId` → 先頭ノードの順で初期選択されるよう `selectInitialSceneAndNode()` を追加。`restoreLastSelection()` が `Promise<boolean>` を返し、`false` の場合に初期選択へフォールバック。`getSavedLastSelection` でパース失敗・空値時に localStorage の古い値を削除。
+- 2026-05-03: ゲーム公開前チェックMVPを実装。`runScenarioCheck` を共通化し、`/my/games` の公開操作で `error` を公開不可、`warning` は確認後公開可、`info` のみ/問題なしは公開可に統一。`error` 時は edit画面のシナリオチェックへ誘導（クエリでエラーフィルタ初期表示）。API側公開審査は将来課題として維持。
