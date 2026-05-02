@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-02（右ペイン開閉状態のlocalStorage保存 + 将来課題追記）
+> 最終更新: 2026-05-02（ゲーム別の作業位置復元MVPを追加）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -29,6 +29,11 @@
 	- キー: `talking.editor.rightPaneSections.v1`（現状は全ゲーム共通）
 	- 通常表示/全画面表示で同じ開閉状態を共有
 	- 保存値破損時は既定値にフォールバック、未定義キーは既定値で補完
+- edit画面の最後の選択位置（シーン/ノード）の localStorage 保存・復元MVP
+	- キー: `talking.editor.lastSelection.v1:${gameId}`（ゲームごとに分離）
+	- シーン選択/ノード選択時に `sceneId` / `nodeId` を更新し、再訪時に復元
+	- 保存済み scene/node が削除済み・不正な場合は安全にフォールバック
+	- 右ペイン開閉状態保存（`talking.editor.rightPaneSections.v1`）とは別キーで共存
 
 **直近の残課題（優先順）**
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
@@ -38,6 +43,7 @@
 - スマホ/タブレット向け編集体験の再設計
 - 3ペイン構造そのものの再設計
 - キーコンフィグ・AUTO/Skip高度化・プレイヤーごとのセーブデータ設計
+- 作業位置保存のリセット導線（例: 「最後の選択位置をリセット」）
 
 ---
 
@@ -49,6 +55,39 @@
 | 2026-05-02 | ✅ exit 0 | シーンラベル・シーン管理性改善MVP後。既知 WARN のみ（同上） |
 | 2026-05-02 | ✅ exit 0 | 右ペインセクション化MVP後。既知 WARN のみ（同上） |
 | 2026-05-02 | ❌ exit 1 | 右ペイン開閉状態 localStorage 保存後。`apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（ファイルロック） |
+| 2026-05-02 | ✅ exit 0 | ゲーム別の作業位置復元MVP後。既知 WARN のみ（`@nuxt/icon` Nuxt 4要件、browserslist更新推奨、Nuxt依存deprecation） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-02 / edit画面の最後の選択位置復元MVP）
+
+### 実装した内容
+- `apps/frontend/pages/my/games/[id]/edit.vue`
+	- 最後に選択したシーン/ノードを LocalStorage に保存する処理を追加
+		- 保存キー: `talking.editor.lastSelection.v1:${gameId}`
+		- 保存値: `sceneId` / `nodeId` / `updatedAt`
+	- edit画面初期表示時に保存済み選択位置を復元する処理を追加
+		- `sceneId` が有効なら該当シーンを復元
+		- `nodeId` が有効なら該当ノードを復元
+		- `nodeId` が保存シーン外でも、実在ノードが見つかれば所属シーンを優先して復元
+		- 保存値破損時・削除済み参照時は安全にフォールバックし、必要に応じて保存値を整理
+	- シーン削除/ノード削除後のフォールバック選択時にも保存状態が壊れないよう更新
+	- 既存の右ペイン開閉状態保存（`talking.editor.rightPaneSections.v1`）には手を入れず共存
+- `docs/PROJECT_SPEC.md`
+	- 作業位置保存/復元仕様、保存キー、フォールバック方針、別キー管理を追記
+- `docs/ROADMAP.md`
+	- 実装済みに反映、検証結果を追記
+	- 作業位置保存のリセット導線は将来課題として記録（今回は未実装）
+
+### 実行した確認
+- `pnpm -w build`: ✅ exit 0
+	- 既知 WARN のみ（`@nuxt/icon` Nuxt 4要件、browserslist更新推奨、Nuxt依存deprecation）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 2 files / 7 tests passed
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（リロード復元、削除後フォールバック、NodePicker/シナリオチェック連携の実操作）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 

@@ -57,6 +57,13 @@ const copyOpts = reactive({
 })
 
 const RIGHT_PANE_SECTIONS_STORAGE_KEY = 'talking.editor.rightPaneSections.v1'
+const LAST_SELECTION_STORAGE_KEY_PREFIX = 'talking.editor.lastSelection.v1:'
+
+type LastSelectionState = {
+  sceneId: string | null
+  nodeId: string | null
+  updatedAt: number
+}
 
 const defaultSectionOpen = {
   basic: true,
@@ -110,6 +117,136 @@ function persistSectionOpen() {
 
 function resetSectionOpen() {
   Object.assign(sectionOpen, defaultSectionOpen)
+}
+
+function buildLastSelectionStorageKey(gameId: string) {
+  return `${LAST_SELECTION_STORAGE_KEY_PREFIX}${gameId}`
+}
+
+function parseLastSelection(value: unknown): LastSelectionState | null {
+  if (!value || typeof value !== 'object') return null
+
+  const parsed = value as Record<string, unknown>
+  const sceneId = normalizeNodeId(parsed.sceneId)
+  const nodeId = normalizeNodeId(parsed.nodeId)
+  const updatedAt = typeof parsed.updatedAt === 'number' && Number.isFinite(parsed.updatedAt)
+    ? parsed.updatedAt
+    : Date.now()
+
+  if (!sceneId && !nodeId) return null
+
+  return {
+    sceneId,
+    nodeId,
+    updatedAt,
+  }
+}
+
+function getSavedLastSelection(gameId: string): LastSelectionState | null {
+  if (!process.client) return null
+
+  const raw = localStorage.getItem(buildLastSelectionStorageKey(gameId))
+  if (!raw) return null
+
+  try {
+    return parseLastSelection(JSON.parse(raw))
+  } catch (error) {
+    console.warn('Failed to parse lastSelection from localStorage', error)
+    return null
+  }
+}
+
+function clearLastSelection(gameId: string) {
+  if (!process.client) return
+  localStorage.removeItem(buildLastSelectionStorageKey(gameId))
+}
+
+function persistLastSelection(sceneId: string | null, nodeId: string | null) {
+  if (!process.client) return
+
+  const gameId = normalizeNodeId(game.value?.id)
+  if (!gameId) return
+
+  const normalizedSceneId = normalizeNodeId(sceneId)
+  const normalizedNodeId = normalizeNodeId(nodeId)
+  if (!normalizedSceneId && !normalizedNodeId) {
+    clearLastSelection(gameId)
+    return
+  }
+
+  const payload: LastSelectionState = {
+    sceneId: normalizedSceneId,
+    nodeId: normalizedNodeId,
+    updatedAt: Date.now(),
+  }
+
+  localStorage.setItem(buildLastSelectionStorageKey(gameId), JSON.stringify(payload))
+}
+
+function persistCurrentSelection() {
+  persistLastSelection(scene.value?.id ?? null, node.value?.id ?? null)
+}
+
+async function restoreLastSelection() {
+  const gameId = normalizeNodeId(game.value?.id)
+  if (!gameId) return
+  if (!Array.isArray(scenes.value) || scenes.value.length === 0) return
+
+  const saved = getSavedLastSelection(gameId)
+  if (!saved) return
+
+  const sceneById = new Map(scenes.value.map((sceneItem: any) => [sceneItem.id, sceneItem]))
+  let resolvedScene: any | null = null
+  let resolvedNodeId: string | null = null
+  let resolvedSceneNodes: any[] | null = null
+
+  if (saved.nodeId) {
+    const allSceneIds = scenes.value.map((sceneItem: any) => sceneItem.id)
+    const searchOrder = saved.sceneId
+      ? [saved.sceneId, ...allSceneIds.filter((sceneId: string) => sceneId !== saved.sceneId)]
+      : allSceneIds
+
+    for (const sceneId of searchOrder) {
+      const sceneItem = sceneById.get(sceneId)
+      if (!sceneItem) continue
+
+      try {
+        const sceneNodes = (await api.listNodes(sceneItem.id)) as any[]
+        const found = sceneNodes.find((nodeItem: any) => nodeItem.id === saved.nodeId)
+        if (found) {
+          resolvedScene = sceneItem
+          resolvedNodeId = found.id
+          resolvedSceneNodes = sceneNodes
+          break
+        }
+      } catch (error) {
+        console.warn('Failed to search node for lastSelection restore:', error)
+      }
+    }
+  }
+
+  if (!resolvedScene && saved.sceneId) {
+    resolvedScene = sceneById.get(saved.sceneId) ?? null
+  }
+
+  if (!resolvedScene) {
+    clearLastSelection(gameId)
+    return
+  }
+
+  await selectScene(resolvedScene, {
+    skipPersist: true,
+    preloadedNodes: resolvedSceneNodes ?? undefined,
+  })
+
+  if (resolvedNodeId) {
+    const targetNode = nodes.value.find((nodeItem: any) => nodeItem.id === resolvedNodeId)
+    if (targetNode) {
+      selectNode(targetNode, { skipPersist: true })
+    }
+  }
+
+  persistCurrentSelection()
 }
 
 const cameraFxEnabled = computed({
@@ -1097,6 +1234,7 @@ onMounted(async () => {
   try {
     game.value = await api.getEdit(route.params.id as string)
     scenes.value = (await api.listScenes(game.value.id)) as any[]
+    await restoreLastSelection()
   } catch (error) {
     console.error('Failed to load game:', error)
     alert('ゲームの読み込みに失敗しました')
@@ -1129,14 +1267,22 @@ watch(sectionOpen, () => {
   persistSectionOpen()
 }, { deep: true })
 
-async function selectScene(s: any) {
+async function selectScene(s: any, options?: { skipPersist?: boolean; preloadedNodes?: any[] }) {
   scene.value = s
   try {
-    nodes.value = (await api.listNodes(s.id)) as any[]
+    if (Array.isArray(options?.preloadedNodes)) {
+      nodes.value = options.preloadedNodes
+    } else {
+      nodes.value = (await api.listNodes(s.id)) as any[]
+    }
   } catch (error) {
     console.error('Failed to load nodes:', error)
+    nodes.value = []
   }
   node.value = null
+  if (!options?.skipPersist) {
+    persistCurrentSelection()
+  }
 }
 
 function buildNodeDeleteConfirmMessage(summary: any | null) {
@@ -1227,6 +1373,7 @@ async function deleteCurrentScene() {
       scene.value = null
       nodes.value = []
       node.value = null
+      clearLastSelection(game.value.id)
       return
     }
 
@@ -1342,7 +1489,7 @@ async function setStartSceneFromScene(targetScene: any) {
   }
 }
 
-function selectNode(n: any) {
+function selectNode(n: any, options?: { skipPersist?: boolean }) {
   node.value = n
   Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
   if (!nodeDraft.choices) {
@@ -1372,6 +1519,9 @@ function selectNode(n: any) {
   // watch が自動的に実行されるので明示的に呼ぶ必要はないが、
   // 互換性のため残しておく
   // hydratePortraitThumbs() は watch で自動実行される
+  if (!options?.skipPersist) {
+    persistCurrentSelection()
+  }
 }
 
 // 既存 portraits のサムネ署名URLを補完する
@@ -1550,6 +1700,7 @@ async function deleteCurrentNode() {
 
     if (nodes.value.length === 0) {
       node.value = null
+      persistCurrentSelection()
       return
     }
 
