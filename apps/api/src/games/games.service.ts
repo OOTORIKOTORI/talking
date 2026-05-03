@@ -32,6 +32,8 @@ type PublicGameSummary = {
 type PublicGamesSort = 'new' | 'updated' | 'title';
 type MyGamesSort = 'updated' | 'created' | 'title' | 'public';
 type MyGamesStatus = 'all' | 'public' | 'private';
+const GAME_TITLE_MAX_LENGTH = 120;
+const GAME_SUMMARY_MAX_LENGTH = 500;
 
 @Injectable()
 export class GamesService {
@@ -40,6 +42,37 @@ export class GamesService {
   private normalizeNodeRefId(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizeGameTitle(value: unknown, opts?: { required?: boolean }): string | null {
+    if (typeof value !== 'string') {
+      if (opts?.required) {
+        throw new BadRequestException('title is required');
+      }
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (opts?.required && trimmed.length === 0) {
+      throw new BadRequestException('title must not be empty');
+    }
+    if (trimmed.length > GAME_TITLE_MAX_LENGTH) {
+      throw new BadRequestException(`title must be at most ${GAME_TITLE_MAX_LENGTH} characters`);
+    }
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizeGameSummary(value: unknown): string | null {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string') {
+      throw new BadRequestException('summary must be a string');
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length > GAME_SUMMARY_MAX_LENGTH) {
+      throw new BadRequestException(`summary must be at most ${GAME_SUMMARY_MAX_LENGTH} characters`);
+    }
     return trimmed.length > 0 ? trimmed : null;
   }
 
@@ -367,11 +400,13 @@ export class GamesService {
   }
 
   async create(userId: string, data: { title: string; summary?: string }) {
+    const normalizedTitle = this.normalizeGameTitle(data?.title, { required: true });
+    const normalizedSummary = this.normalizeGameSummary(data?.summary);
     return this.prisma.gameProject.create({
       data: {
         ownerId: userId,
-        title: data.title,
-        summary: data.summary,
+        title: normalizedTitle,
+        summary: normalizedSummary,
       },
     });
   }
@@ -598,8 +633,13 @@ export class GamesService {
     }
 
     const allowed: any = {};
-    if (typeof data?.title === 'string') allowed.title = data.title;
-    if ('summary' in (data ?? {})) allowed.summary = data.summary ?? null;
+    if ('title' in (data ?? {})) {
+      const normalizedTitle = this.normalizeGameTitle(data?.title, { required: true });
+      allowed.title = normalizedTitle;
+    }
+    if ('summary' in (data ?? {})) {
+      allowed.summary = this.normalizeGameSummary(data?.summary);
+    }
     if (typeof data?.coverAssetId === 'string' || data?.coverAssetId === null) {
       allowed.coverAssetId = data.coverAssetId ?? null;
     }

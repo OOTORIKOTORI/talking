@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-04（ゲーム複製MVP）
+> 最終更新: 2026-05-04（ゲーム基本情報編集MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -21,6 +21,7 @@
 - 公開ゲーム一覧 `/games` 検索・並び替えMVP（`q` + `sort` + URL同期 + API側検索/ソート）
 - 自作ゲーム管理 `/my/games` 検索・並び替え・公開状態フィルタMVP（`q` + `sort` + `status` + URL同期 + API側検索/ソート/フィルタ）
 - 自作ゲーム管理 `/my/games` ゲーム複製MVP（owner限定、確認ダイアログ、複製後編集画面遷移）
+- ゲーム基本情報編集MVP（`/my/games/:id/edit` で `title` / `summary` 編集、保存状態表示、複製後タイトル変更導線）
 - 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
@@ -91,6 +92,56 @@
 | 2026-05-04 | ❌ exit 1 | ゲーム複製MVP後。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック） |
 | 2026-05-04 | ❌ exit 1 | ゲーム複製MVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
 | 2026-05-04 | ✅ exit 0 | ゲーム複製MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-04 | ❌ exit 1 | ゲーム基本情報編集MVP後。`pnpm -w build` は `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック） |
+| 2026-05-04 | ✅ exit 0 | ゲーム基本情報編集MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-04 | ❌ exit 1 | ゲーム基本情報編集MVP後。`pnpm -C apps/api run test` は `ERR_PNPM_NO_SCRIPT`（test script未定義） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-04 / ゲーム基本情報編集MVP）
+
+### 実装した内容
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- `/my/games/:id/edit` 上部にゲーム基本情報フォームを追加（`title`, `summary`）
+	- 現在のゲーム情報を初期表示し、保存後はヘッダータイトル表示も即時更新
+	- 保存ボタンは「未変更」「保存中」「入力エラー」で無効化し、二重送信を防止
+	- 保存成功時はトースト通知、保存失敗時はトースト + 画面内エラーメッセージ表示
+	- 複製直後の `元タイトル のコピー` を同画面で自然に変更可能
+- API（`apps/api/src/games/games.service.ts`, `apps/api/src/games/dto/update-game.dto.ts`）
+	- `PATCH /games/:id` の owner制御・削除済み制御を維持
+	- `title` / `summary` 更新時の入力検証を追加
+		- `title`: 必須、空白のみ不可、最大120文字
+		- `summary`: 任意、空可、最大500文字
+	- `isPublic: true` 時のみ公開前チェックを行う既存挙動を維持
+	- `title` / `summary` 更新のみでは公開前チェックを再実行しない
+
+### カバー画像（今回の扱い）
+- 方針Aを採用
+	- 今回は `title` / `summary` 編集のみをMVP対象とした
+	- `coverAssetId` の本格編集UIは将来課題として維持
+
+### 将来課題として記録
+- カバー画像選択UI
+- ゲームタグ/ジャンル編集
+- 作者コメント/あとがき
+- 年齢制限/注意書き
+- 公開設定詳細
+- slug/URL編集
+- 編集履歴/変更履歴
+- 自動保存
+- 公開済みゲーム変更時の通知
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+- `pnpm -C apps/api run test`: ❌ exit 1
+	- `ERR_PNPM_NO_SCRIPT`（`apps/api` に test script 未定義）
+
+### 未実行の確認と理由
+- ブラウザ手動E2E（複製 → editでリネーム → `/my/games`・`/games`・`/games/:id`・`/games/:id/play` 反映確認）
+	- 理由: この実行環境ではブラウザ手動検証を実施していないため
 
 ---
 

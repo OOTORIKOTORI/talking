@@ -634,6 +634,24 @@ interface MessageTheme {
   - 成功時は一覧を再取得し、複製先IDが取得できた場合は `/my/games/:newId/edit` へ遷移
   - 失敗時はトーストでエラー表示
 
+#### ゲーム基本情報編集MVP（2026-05-04 実装）
+<!-- impl: apps/frontend/pages/my/games/[id]/edit.vue, apps/api/src/games/games.service.ts, apps/api/src/games/dto/update-game.dto.ts -->
+- 編集画面 `/my/games/:id/edit` の上部に、ゲーム基本情報（`title`, `summary`）の編集UIを追加
+  - 現在値を初期表示し、保存後は画面上部タイトル表示（`game.title`）も即時更新
+  - 保存ボタンは「未変更」「保存中」「バリデーションエラー」で無効化し、二重送信を防止
+  - 成功時はトースト通知、失敗時はエラーメッセージ表示
+- バリデーション（MVP）
+  - `title`: 必須、空文字・空白のみ不可、最大120文字
+  - `summary`: 任意、空可、最大500文字
+  - フロントとAPIの両方で上記を担保
+- API更新仕様（`PATCH /games/:id`）
+  - owner 本人のみ更新可能（非ownerは `403`）
+  - 削除済みゲームは更新不可（`404`）
+  - `title` / `summary` 更新のみでは公開前チェックを再実行しない
+  - 公開前チェックは従来どおり `isPublic: true` を明示した更新時のみ実行
+- 公開済みゲームの `title` / `summary` 更新は許可し、`/games` 一覧・`/games/:id` 詳細には更新内容がそのまま反映される
+- `coverAssetId` の本格編集UIは今回対象外（将来課題）
+
 #### 選択肢と通常遷移先の優先順位（2026-05-02 更新）
 - `choice.targetNodeId !== null` の選択肢のみ「表示可能な選択肢」とする
 - 表示可能な選択肢が1件以上ある場合、プレイ時は選択肢を表示し、`nextNodeId` は使用しない
@@ -942,6 +960,7 @@ interface GameNode {
 
 ### ChangeLog (chat handover)
 
+- 2026-05-04: ゲーム基本情報編集MVPを実装。`/my/games/:id/edit` に `title` / `summary` 編集UIを追加し、保存中状態・未変更時無効化・成功/失敗通知を実装。複製直後の `元タイトル のコピー` を同画面で自然に変更可能。API側は `PATCH /games/:id` の owner制御/削除済み制御を維持しつつ、`title` 必須（空白のみ不可）・`summary` 任意の入力検証（`title<=120`, `summary<=500`）を追加。`isPublic: true` のときだけ公開前チェックを実行する既存挙動を維持。確認結果: `pnpm -w build` ❌（`apps/api prisma:generate` の `query_engine-windows.dll.node` rename で EPERM）, `pnpm -C apps/frontend test` ✅（4 files / 31 tests passed）, `pnpm -C apps/api run test` ❌（`ERR_PNPM_NO_SCRIPT`）。
 - 2026-05-04: ゲーム複製MVPを実装。`POST /games/:id/duplicate` を追加し、owner限定・削除済み除外・トランザクション実行で `GameProject`/`GameScene`/`GameNode`/`GameChoice` を複製。`startSceneId`/`startNodeId`/`nextNodeId`/`targetNodeId`/`alternateTargetNodeId` は新IDへ再マップし、壊れた参照は `null` に安全化。複製先は常に非公開、`viewCount`/`playCount` は0、セーブデータ等は非複製、アセットはID参照を維持。`/my/games` に確認付き「ゲームを複製」ボタンを追加し、成功時に一覧再取得＋複製先編集画面へ遷移。確認結果: `pnpm -w build` ❌（`apps/api prisma:generate` の `query_engine-windows.dll.node` rename で EPERM）, `pnpm -C apps/api build` ❌（同理由）, `pnpm -C apps/frontend test` ✅（4 files / 31 tests passed）, API test script は未定義のため未実行。
 - 2025-11-02: 実装を根拠にキャラクター機能のモデル/画面/APIを正規化。Favorites をアセット/キャラ横断で統一（楽観更新・一覧同期・正規化関数）。検索/URL 同期のクエリ項目を明記。署名URLの取得/再取得方針と `$api` 経由の根拠を出典付きで追記。既知の落とし穴とテストTODOを整理。
 - 2025-11-04: ゲーム制作（β）仕様を追加。シーン/ノード構造、portraits 配置、カメラ操作、署名 URL 経由の画像/音声取得を明記。

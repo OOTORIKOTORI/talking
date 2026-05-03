@@ -1,13 +1,15 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
 
 export class UpdateGameDto {
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @Matches(/\S/, { message: 'title must not be blank' })
+  @MaxLength(120)
   title?: string
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   summary?: string
 
   @IsOptional()
