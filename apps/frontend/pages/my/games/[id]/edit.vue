@@ -27,10 +27,6 @@ definePageMeta({
 const route = useRoute()
 const api = useGamesApi()
 const { get: getAsset, signedFromId } = useAssetMeta()
-const pageToast = useToast()
-
-const GAME_TITLE_MAX_LENGTH = 120
-const GAME_SUMMARY_MAX_LENGTH = 500
 
 // Declare all refs first before using them in computed/watch
 const game = ref<any>(null)
@@ -54,107 +50,6 @@ const sfxUrl = ref<string | null>(null)
 const pendingIndex = ref<number | null>(null)
 const saving = ref(false)
 const sceneNameDraft = ref('')
-const gameMetaDraft = reactive({
-  title: '',
-  summary: '',
-})
-const gameMetaSaving = ref(false)
-const gameMetaError = ref<string | null>(null)
-
-const normalizedGameTitle = computed(() => gameMetaDraft.title.trim())
-const normalizedGameSummary = computed(() => gameMetaDraft.summary.trim())
-
-const titleValidationMessage = computed(() => {
-  const title = normalizedGameTitle.value
-  if (title.length === 0) return 'タイトルは必須です'
-  if (title.length > GAME_TITLE_MAX_LENGTH) {
-    return `タイトルは${GAME_TITLE_MAX_LENGTH}文字以内で入力してください`
-  }
-  return ''
-})
-
-const summaryValidationMessage = computed(() => {
-  if (normalizedGameSummary.value.length > GAME_SUMMARY_MAX_LENGTH) {
-    return `概要は${GAME_SUMMARY_MAX_LENGTH}文字以内で入力してください`
-  }
-  return ''
-})
-
-const isGameMetaDirty = computed(() => {
-  if (!game.value) return false
-  const currentTitle = typeof game.value.title === 'string' ? game.value.title.trim() : ''
-  const currentSummary = typeof game.value.summary === 'string' ? game.value.summary.trim() : ''
-  return normalizedGameTitle.value !== currentTitle || normalizedGameSummary.value !== currentSummary
-})
-
-const canSaveGameMeta = computed(() => {
-  if (!game.value) return false
-  if (gameMetaSaving.value) return false
-  if (!isGameMetaDirty.value) return false
-  if (titleValidationMessage.value || summaryValidationMessage.value) return false
-  return true
-})
-
-function syncGameMetaDraft() {
-  gameMetaDraft.title = typeof game.value?.title === 'string' ? game.value.title : ''
-  gameMetaDraft.summary = typeof game.value?.summary === 'string' ? game.value.summary : ''
-}
-
-function resolveApiErrorMessage(error: any, fallback: string) {
-  const raw = error?.data?.message
-  if (Array.isArray(raw)) {
-    const joined = raw
-      .filter((item: unknown) => typeof item === 'string' && item.trim().length > 0)
-      .join(' / ')
-    if (joined) return joined
-  }
-  if (typeof raw === 'string' && raw.trim().length > 0) return raw
-  if (typeof error?.message === 'string' && error.message.trim().length > 0) return error.message
-  return fallback
-}
-
-async function saveGameMeta() {
-  if (!game.value || gameMetaSaving.value) return
-
-  gameMetaError.value = null
-  if (titleValidationMessage.value) {
-    gameMetaError.value = titleValidationMessage.value
-    pageToast.error(titleValidationMessage.value)
-    return
-  }
-  if (summaryValidationMessage.value) {
-    gameMetaError.value = summaryValidationMessage.value
-    pageToast.error(summaryValidationMessage.value)
-    return
-  }
-  if (!isGameMetaDirty.value) return
-
-  const payload = {
-    title: normalizedGameTitle.value,
-    summary: normalizedGameSummary.value.length > 0 ? normalizedGameSummary.value : null,
-  }
-
-  gameMetaSaving.value = true
-  try {
-    const updated = (await api.update(game.value.id, payload)) as any
-    const nextTitle = typeof updated?.title === 'string' ? updated.title : payload.title
-    const nextSummary = 'summary' in (updated ?? {}) ? (updated.summary ?? null) : payload.summary
-    game.value = {
-      ...game.value,
-      ...updated,
-      title: nextTitle,
-      summary: nextSummary,
-    }
-    syncGameMetaDraft()
-    pageToast.success('ゲーム基本情報を保存しました')
-  } catch (error: any) {
-    const message = resolveApiErrorMessage(error, 'ゲーム基本情報の保存に失敗しました')
-    gameMetaError.value = message
-    pageToast.error(message)
-  } finally {
-    gameMetaSaving.value = false
-  }
-}
 
 // ビジュアルエフェクト
 const { effectState, playEffect, stopEffect } = useVisualEffects()
@@ -1146,7 +1041,6 @@ const nextNodeInputRef = ref<HTMLElement | null>(null)
 onMounted(async () => {
   try {
     game.value = await api.getEdit(route.params.id as string)
-    syncGameMetaDraft()
     scenes.value = (await api.listScenes(game.value.id)) as any[]
     const restored = await restoreLastSelection()
     if (!restored) {
@@ -1765,61 +1659,6 @@ function onUp() {
           テストプレイ
         </button>
       </div>
-
-      <section class="rounded-lg border border-gray-200 bg-white p-4">
-        <div class="mb-3 flex items-center justify-between gap-2">
-          <h2 class="text-base font-semibold text-gray-900">ゲーム基本情報</h2>
-          <span v-if="isGameMetaDirty" class="text-xs text-amber-700">未保存の変更があります</span>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label for="game-title" class="mb-1 block text-sm font-medium text-gray-700">タイトル</label>
-            <input
-              id="game-title"
-              v-model="gameMetaDraft.title"
-              type="text"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              :maxlength="GAME_TITLE_MAX_LENGTH"
-              placeholder="ゲームタイトルを入力"
-            />
-            <div class="mt-1 flex items-center justify-between gap-2 text-xs">
-              <span class="text-red-600">{{ titleValidationMessage }}</span>
-              <span class="text-gray-500">{{ normalizedGameTitle.length }} / {{ GAME_TITLE_MAX_LENGTH }}</span>
-            </div>
-          </div>
-
-          <div>
-            <label for="game-summary" class="mb-1 block text-sm font-medium text-gray-700">概要</label>
-            <textarea
-              id="game-summary"
-              v-model="gameMetaDraft.summary"
-              rows="4"
-              class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              :maxlength="GAME_SUMMARY_MAX_LENGTH"
-              placeholder="ゲームの概要や説明を入力（任意）"
-            ></textarea>
-            <div class="mt-1 flex items-center justify-between gap-2 text-xs">
-              <span class="text-red-600">{{ summaryValidationMessage }}</span>
-              <span class="text-gray-500">{{ normalizedGameSummary.length }} / {{ GAME_SUMMARY_MAX_LENGTH }}</span>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-              :disabled="!canSaveGameMeta"
-              @click="saveGameMeta"
-            >
-              {{ gameMetaSaving ? '保存中...' : '基本情報を保存' }}
-            </button>
-            <span v-if="!isGameMetaDirty" class="text-xs text-gray-500">変更はありません</span>
-            <span v-else class="text-xs text-gray-500">保存後にタイトル表示が更新されます</span>
-            <span v-if="gameMetaError" class="text-xs text-red-600">{{ gameMetaError }}</span>
-          </div>
-        </div>
-      </section>
 
       <div
         ref="wrap"
@@ -3118,11 +2957,13 @@ function onUp() {
       <MessageThemeModal
         v-if="openThemeModal"
         :game-id="game?.id"
+        :initial-title="game?.title"
+        :initial-summary="game?.summary"
         :initial="game?.messageTheme"
         :initial-ui="game?.gameUiTheme"
         :initial-backlog="game?.backlogTheme"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) { game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme } }"
+        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme } }"
       />
     </div>
   </div>

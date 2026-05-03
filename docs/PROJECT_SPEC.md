@@ -414,6 +414,13 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/utils/themeUtils.ts -->
 `MessageThemeModal.vue` で定義される共通テーマ。保存は `PATCH /games/:id` に `{ messageTheme }` を送信。
 
+#### ゲーム全体設定（基本情報MVP）
+<!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
+- `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
+- 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
+- 基本情報MVPの対象は `title` / `summary` のみ。
+- 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
+
 #### v2（プリセット中心の新仕様）
 <!-- impl: packages/types/src/index.ts (MessageThemeV2, RGBA, FONT_K 等の定数), apps/frontend/utils/themeUtils.ts (resolveThemeV2, migrateToV2) -->
 v2 では px 直指定から「1〜10段階のプリセット」中心へ移行。色はRGBA対応。既存データは自動でプリセットへ丸め込み。
@@ -960,6 +967,7 @@ interface GameNode {
 
 ### ChangeLog (chat handover)
 
+- 2026-05-04: `/my/games/:id/edit` の上部に常時表示していたゲーム基本情報フォームを撤去し、`MessageThemeModal.vue` を「ゲーム全体設定」へ拡張。先頭に `基本情報` タブを追加し、`title` / `summary` の入力検証（title必須・空白不可・120文字以内、summary任意・500文字以内）、文字数表示、`PATCH /games/:id` への同時保存（title/summary/messageTheme/gameUiTheme/backlogTheme）を実装。保存後は親画面のタイトル/概要表示へ即時反映。
 - 2026-05-04: ゲーム基本情報編集MVPを実装。`/my/games/:id/edit` に `title` / `summary` 編集UIを追加し、保存中状態・未変更時無効化・成功/失敗通知を実装。複製直後の `元タイトル のコピー` を同画面で自然に変更可能。API側は `PATCH /games/:id` の owner制御/削除済み制御を維持しつつ、`title` 必須（空白のみ不可）・`summary` 任意の入力検証（`title<=120`, `summary<=500`）を追加。`isPublic: true` のときだけ公開前チェックを実行する既存挙動を維持。確認結果: `pnpm -w build` ❌（`apps/api prisma:generate` の `query_engine-windows.dll.node` rename で EPERM）, `pnpm -C apps/frontend test` ✅（4 files / 31 tests passed）, `pnpm -C apps/api run test` ❌（`ERR_PNPM_NO_SCRIPT`）。
 - 2026-05-04: ゲーム複製MVPを実装。`POST /games/:id/duplicate` を追加し、owner限定・削除済み除外・トランザクション実行で `GameProject`/`GameScene`/`GameNode`/`GameChoice` を複製。`startSceneId`/`startNodeId`/`nextNodeId`/`targetNodeId`/`alternateTargetNodeId` は新IDへ再マップし、壊れた参照は `null` に安全化。複製先は常に非公開、`viewCount`/`playCount` は0、セーブデータ等は非複製、アセットはID参照を維持。`/my/games` に確認付き「ゲームを複製」ボタンを追加し、成功時に一覧再取得＋複製先編集画面へ遷移。確認結果: `pnpm -w build` ❌（`apps/api prisma:generate` の `query_engine-windows.dll.node` rename で EPERM）, `pnpm -C apps/api build` ❌（同理由）, `pnpm -C apps/frontend test` ✅（4 files / 31 tests passed）, API test script は未定義のため未実行。
 - 2025-11-02: 実装を根拠にキャラクター機能のモデル/画面/APIを正規化。Favorites をアセット/キャラ横断で統一（楽観更新・一覧同期・正規化関数）。検索/URL 同期のクエリ項目を明記。署名URLの取得/再取得方針と `$api` 経由の根拠を出典付きで追記。既知の落とし穴とテストTODOを整理。

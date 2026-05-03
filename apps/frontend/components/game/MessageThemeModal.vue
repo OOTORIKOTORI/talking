@@ -5,7 +5,7 @@
         <!-- ヘッダー（固定） -->
         <div class="flex items-center justify-between px-5 pt-5 pb-0 border-b">
           <div class="flex items-end gap-0">
-            <h3 class="font-semibold text-lg mr-6 pb-3">シナリオ全体設定</h3>
+            <h3 class="font-semibold text-lg mr-6 pb-3">ゲーム全体設定</h3>
             <button
               v-for="tab in modalTabs"
               :key="tab.key"
@@ -22,7 +22,7 @@
         </div>
 
         <!-- 全体テーマ一括設定（折り畳み） -->
-        <div class="border-b bg-indigo-50/60">
+        <div v-if="activeModalTab !== 'meta'" class="border-b bg-indigo-50/60">
           <button
             class="w-full flex items-center justify-between px-5 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition"
             @click="unifiedOpen = !unifiedOpen"
@@ -56,6 +56,52 @@
 
         <!-- スクロール可能なコンテンツ領域 -->
         <div class="overflow-y-auto flex-1">
+          <!-- ===== 基本情報 タブ ===== -->
+          <template v-if="activeModalTab === 'meta'">
+          <div class="px-5 py-5 space-y-6">
+            <section class="space-y-4">
+              <h4 class="font-semibold text-md mb-1 flex items-center gap-2">
+                <span class="text-blue-600">📝</span> 基本情報
+              </h4>
+              <p class="text-sm text-gray-600">ゲームタイトルと概要を編集できます。</p>
+
+              <div>
+                <label for="game-meta-title" class="mb-1 block text-sm font-medium text-gray-700">タイトル <span class="text-red-600">*</span></label>
+                <input
+                  id="game-meta-title"
+                  v-model="metaDraft.title"
+                  type="text"
+                  class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :maxlength="GAME_TITLE_MAX_LENGTH"
+                  placeholder="ゲームタイトルを入力"
+                />
+                <div class="mt-1 flex items-center justify-between gap-2 text-xs">
+                  <span class="text-red-600">{{ metaTitleValidationMessage }}</span>
+                  <span class="text-gray-500">{{ normalizedMetaTitle.length }} / {{ GAME_TITLE_MAX_LENGTH }}</span>
+                </div>
+              </div>
+
+              <div>
+                <label for="game-meta-summary" class="mb-1 block text-sm font-medium text-gray-700">概要</label>
+                <textarea
+                  id="game-meta-summary"
+                  v-model="metaDraft.summary"
+                  rows="5"
+                  class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :maxlength="GAME_SUMMARY_MAX_LENGTH"
+                  placeholder="ゲームの概要や説明を入力（任意）"
+                ></textarea>
+                <div class="mt-1 flex items-center justify-between gap-2 text-xs">
+                  <span class="text-red-600">{{ metaSummaryValidationMessage }}</span>
+                  <span class="text-gray-500">{{ normalizedMetaSummary.length }} / {{ GAME_SUMMARY_MAX_LENGTH }}</span>
+                </div>
+              </div>
+
+              <p v-if="metaValidationMessage" class="text-sm text-red-600">{{ metaValidationMessage }}</p>
+            </section>
+          </div>
+          </template>
+
           <!-- ===== メッセージウィンドウ タブ ===== -->
           <template v-if="activeModalTab === 'message'">
           <!-- ライブプレビュー -->
@@ -815,7 +861,7 @@
             <button @click="reset" class="px-4 py-2 bg-gray-200 border rounded hover:bg-gray-300 text-sm font-medium" :disabled="saving">
               リセット
             </button>
-            <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving">
+            <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving || !!metaValidationMessage">
               {{ saving ? '保存中...' : '保存' }}
             </button>
           </div>
@@ -836,19 +882,57 @@ import MessageWindow from '@/components/game/MessageWindow.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import { migrateToV2, contrastRatio, contrastLevel, toRgba, rgbaToCss } from '@/utils/themeUtils'
 
-const props = defineProps<{ gameId: string; initial?: any; initialUi?: GameUiTheme; initialBacklog?: BacklogTheme }>()
+const props = defineProps<{
+  gameId: string
+  initialTitle?: string | null
+  initialSummary?: string | null
+  initial?: any
+  initialUi?: GameUiTheme
+  initialBacklog?: BacklogTheme
+}>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
 
 // タブ
-type ModalTabKey = 'message' | 'ui' | 'quickbtn' | 'backlog' | 'labels'
-const activeModalTab = ref<ModalTabKey>('message')
+type ModalTabKey = 'meta' | 'message' | 'ui' | 'quickbtn' | 'backlog' | 'labels'
+const activeModalTab = ref<ModalTabKey>('meta')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
+  { key: 'meta', label: '基本情報' },
   { key: 'message', label: 'メッセージウィンドウ' },
   { key: 'ui', label: 'セーブ・ロード画面' },
   { key: 'quickbtn', label: 'クイックボタン' },
   { key: 'backlog', label: 'バックログ' },
   { key: 'labels', label: '文言設定' },
 ]
+
+const GAME_TITLE_MAX_LENGTH = 120
+const GAME_SUMMARY_MAX_LENGTH = 500
+
+const metaDraft = ref({
+  title: props.initialTitle ?? '',
+  summary: props.initialSummary ?? '',
+})
+
+const normalizedMetaTitle = computed(() => metaDraft.value.title.trim())
+const normalizedMetaSummary = computed(() => metaDraft.value.summary.trim())
+
+const metaTitleValidationMessage = computed(() => {
+  if (normalizedMetaTitle.value.length === 0) return 'タイトルは必須です'
+  if (normalizedMetaTitle.value.length > GAME_TITLE_MAX_LENGTH) {
+    return `タイトルは${GAME_TITLE_MAX_LENGTH}文字以内で入力してください`
+  }
+  return ''
+})
+
+const metaSummaryValidationMessage = computed(() => {
+  if (normalizedMetaSummary.value.length > GAME_SUMMARY_MAX_LENGTH) {
+    return `概要は${GAME_SUMMARY_MAX_LENGTH}文字以内で入力してください`
+  }
+  return ''
+})
+
+const metaValidationMessage = computed(() => {
+  return metaTitleValidationMessage.value || metaSummaryValidationMessage.value
+})
 
 // デフォルトテーマ（v2）
 const defaultThemeV2: MessageThemeV2 = {
@@ -1583,6 +1667,10 @@ function reset() {
   advancedTouched.value = false
   resetUi()
   resetBacklog()
+  metaDraft.value = {
+    title: props.initialTitle ?? '',
+    summary: props.initialSummary ?? '',
+  }
 }
 
 // 保存
@@ -1590,6 +1678,12 @@ const toast = useToast()
 const saving = ref(false)
 
 async function save() {
+  if (metaValidationMessage.value) {
+    toast.error(metaValidationMessage.value)
+    activeModalTab.value = 'meta'
+    return
+  }
+
   saving.value = true
   try {
     const { $api } = useNuxtApp() // 関数内で取得してSSR問題を回避
@@ -1611,13 +1705,24 @@ async function save() {
       v.textColor = rgbaToCss(v.textColor)
     }
     
+    const titleForSave = normalizedMetaTitle.value
+    const summaryForSave = normalizedMetaSummary.value
+
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
-      body: { messageTheme: v, gameUiTheme: uiDraft.value, backlogTheme: backlogDraft.value }
+      body: {
+        title: titleForSave,
+        summary: summaryForSave,
+        messageTheme: v,
+        gameUiTheme: uiDraft.value,
+        backlogTheme: backlogDraft.value,
+      }
     })
     
     // 親へ通知（即時反映させる）
     emit('saved', {
+      title: typeof result?.title === 'string' ? result.title : titleForSave,
+      summary: typeof result?.summary === 'string' ? result.summary : summaryForSave,
       messageTheme: result?.messageTheme ?? v,
       gameUiTheme: result?.gameUiTheme ?? uiDraft.value,
       backlogTheme: result?.backlogTheme ?? backlogDraft.value,

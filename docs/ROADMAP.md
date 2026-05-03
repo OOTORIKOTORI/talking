@@ -100,6 +100,22 @@
 
 ## 🔎 今回の確認メモ（2026-05-04 / ゲーム基本情報編集MVP）
 
+### 追加反映（ゲーム全体設定モーダル統合）
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- `/my/games/:id/edit` 上部の常時表示「ゲーム基本情報フォーム」を撤去
+	- 画面上部はゲームタイトル表示のみとし、編集導線は「全体設定」モーダルへ統一
+- フロント（`apps/frontend/components/game/MessageThemeModal.vue`）
+	- 見出しを `シナリオ全体設定` → `ゲーム全体設定` に変更
+	- タブ先頭に `基本情報`（`meta`）を追加
+	- `title` / `summary` の編集・バリデーション・文字数表示を追加
+		- `title`: 必須、空白のみ不可、120文字以内
+		- `summary`: 任意、500文字以内
+	- 保存時 `PATCH /games/:id` に `title` / `summary` / `messageTheme` / `gameUiTheme` / `backlogTheme` を同時送信
+	- `saved` イベントで親画面へ `title` / `summary` を含めて返却し、ヘッダー表示へ即時反映
+	- 「全体テーマを一括設定」は `基本情報` タブ以外でのみ表示
+- 将来課題（基本情報タブ拡張）
+	- `coverAssetId` / タグ / ジャンル / 注意書き / slug などの追加検討
+
 ### 実装した内容
 - フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
 	- `/my/games/:id/edit` 上部にゲーム基本情報フォームを追加（`title`, `summary`）
