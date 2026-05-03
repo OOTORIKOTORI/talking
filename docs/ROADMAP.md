@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-04（ゲーム基本情報編集MVP）
+> 最終更新: 2026-05-04（ゲームカバー画像選択UI MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -22,6 +22,7 @@
 - 自作ゲーム管理 `/my/games` 検索・並び替え・公開状態フィルタMVP（`q` + `sort` + `status` + URL同期 + API側検索/ソート/フィルタ）
 - 自作ゲーム管理 `/my/games` ゲーム複製MVP（owner限定、確認ダイアログ、複製後編集画面遷移）
 - ゲーム基本情報編集MVP（`/my/games/:id/edit` で `title` / `summary` 編集、保存状態表示、複製後タイトル変更導線）
+- ゲームカバー画像選択UI MVP（ゲーム全体設定 > 基本情報タブで `coverAssetId` 選択/解除、公開一覧/詳細・自作一覧への反映）
 - 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
@@ -95,6 +96,70 @@
 | 2026-05-04 | ❌ exit 1 | ゲーム基本情報編集MVP後。`pnpm -w build` は `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック） |
 | 2026-05-04 | ✅ exit 0 | ゲーム基本情報編集MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
 | 2026-05-04 | ❌ exit 1 | ゲーム基本情報編集MVP後。`pnpm -C apps/api run test` は `ERR_PNPM_NO_SCRIPT`（test script未定義） |
+| 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -w build` は `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック） |
+| 2026-05-04 | ✅ exit 0 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
+| 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api run test` は `ERR_PNPM_NO_SCRIPT`（test script未定義） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-04 / ゲームカバー画像選択UI MVP）
+
+### 実装した内容
+- 既存状態の確認
+	- `GameProject.coverAssetId` は既存カラムを利用（migration 追加なし）
+	- `PATCH /games/:id` は既存更新経路を流用し、`coverAssetId` 更新を追加
+	- `GET /games` / `GET /games/:id` / `GET /games/my` は既に `coverAssetId` を返却
+	- ゲーム複製時の `coverAssetId` 参照維持（既存実装）を確認
+- フロント（`apps/frontend/components/game/MessageThemeModal.vue`）
+	- ゲーム全体設定 > 基本情報タブにカバー画像欄を追加
+	- 現在のプレビュー / 未設定表示 / `カバー画像を選択` / `クリア` を追加
+	- 画像選択は既存 `AssetPicker` を流用し `type="image"` で音声を除外
+	- 署名付きGETは既存 `useAssetMeta().signedFromId()` を利用
+	- 保存時に `title` / `summary` / `coverAssetId` / 各テーマを同時 PATCH
+	- キャンセル/閉じる時は保存しないため、未保存のカバー変更は破棄
+- フロント（`apps/frontend/pages/my/games/[id]/edit.vue`）
+	- モーダルに `initialCoverAssetId` を渡す
+	- `saved` 受信で `game.coverAssetId` を即時反映
+- フロント（`apps/frontend/pages/my/games/index.vue`）
+	- 自作ゲーム一覧カードにカバー画像サムネイル（小型）を追加
+	- 未設定時は既存プレースホルダー表示
+	- 検索/並び替え/公開状態フィルタ導線は維持
+- API（`apps/api/src/games/games.service.ts`）
+	- `coverAssetId` 更新時にサーバ側バリデーションを追加
+		- owner本人アセットのみ許可
+		- 削除済みアセット不可
+		- 画像（`contentType` が `image/`）のみ許可
+		- `null` による解除を許可
+	- `isPublic: true` を含む更新時のみ公開前チェックを実行する既存挙動を維持
+	- `coverAssetId` 更新のみでは公開前チェックを再実行しない
+- 公開側（`apps/frontend/pages/games/index.vue`, `apps/frontend/pages/games/[id]/index.vue`）
+	- 既存のカバー表示経路（`coverAssetId` + 署名URL）を継続利用
+	- プレースホルダー、`viewCount` / `playCount` 表示、検索/並び替えへの影響なし
+
+### 将来課題として記録
+- カバー画像アップロード導線
+- トリミング/クロップ
+- 推奨サイズ/縦横比チェック
+- OGP画像生成
+- カバー画像ギャラリー
+- タグ/ジャンル編集
+- slug/URL編集
+- 画像最適化/圧縮
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+- `pnpm -C apps/api build`: ❌ exit 1
+	- `prisma:generate` で EPERM（DLLロック）
+- `pnpm -C apps/api run test`: ❌ exit 1
+	- `ERR_PNPM_NO_SCRIPT`（`apps/api` に test script 未定義）
+
+### 未実行の確認と理由
+- ブラウザ手動E2E（画像選択/クリアの実操作・公開画面反映）
+	- 理由: この実行環境ではブラウザ手動検証を実施していないため
 
 ---
 

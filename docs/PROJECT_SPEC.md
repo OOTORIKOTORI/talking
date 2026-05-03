@@ -59,12 +59,14 @@
     - 検索/並び替え: `q`（タイトル/概要の部分一致）, `sort`（`new | updated | title`）
     - URLクエリ同期: `q`, `sort` を反映・復元。不正な `sort` は `new` に正規化
     - カウンタ表示: `viewCount`（閲覧）/ `playCount`（プレイ）をカード内に表示
+    - カバー表示: `coverAssetId` が設定されている場合は画像サムネイルを表示。未設定/取得失敗時はプレースホルダー表示を維持
     - 空状態: 検索あり0件時は「条件に一致する公開ゲームはありません。」を表示
     - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`
   - マイ一覧（管理）: `/my/games`
     - 検索/並び替え/公開状態: `q`（タイトル/概要の部分一致）, `sort`（`updated | created | title | public`）, `status`（`all | public | private`）
     - URLクエリ同期: `q`, `sort`, `status` を反映・復元。不正な `sort` / `status` は `updated` / `all` に正規化
     - 検索確定: 検索ボタンまたは Enter で適用（入力中値と適用済み条件を分離）
+    - カバー表示: `coverAssetId` が設定されているゲームは一覧カード左側に小型サムネイルを表示
     - 空状態: 検索/フィルタ結果0件時は「条件に一致する自作ゲームはありません。」を表示
     - 出典: `apps/frontend/pages/my/games/index.vue`, `apps/frontend/composables/useGames.ts`
 
@@ -106,7 +108,7 @@
     - `sort`: `new`（`createdAt desc`）/ `updated`（`updatedAt desc`）/ `title`（`title asc`, `createdAt desc`）
     - 不正な `sort` は `new` として扱う
     - 返却は公開ゲームのみ（`isPublic = true`, `deletedAt = null`）
-    - `items[*]` は `viewCount` / `playCount` を含む
+    - `items[*]` は `coverAssetId` / `viewCount` / `playCount` を含む
   - 公開詳細: `GET /games/:id`
     - 詳細取得自体ではカウントを増やさない
     - 詳細画面側で `POST /games/:id/view` を呼び、公開ゲームのみ `viewCount` を +1 する
@@ -121,6 +123,14 @@
     - `status`: `all`（指定なし）, `public`（公開中のみ）, `private`（非公開のみ）
     - 不正な `sort` / `status` は `updated` / `all` として扱う
     - ログイン中ユーザー自身のゲームのみ返却し、`deletedAt = null` を維持
+  - 更新: `PATCH /games/:id`
+    - owner 本人のみ更新可能、削除済みゲームは更新不可（既存仕様）
+    - `coverAssetId` は `string | null` を受け付け、`null` で解除可能
+    - `coverAssetId` 指定時は以下を満たす必要がある
+      - 自分のアセット（`ownerId === userId`）
+      - 削除済みでない（`deletedAt = null`）
+      - 画像アセット（`contentType` が `image/` で開始）
+    - `isPublic: true` を含む更新時のみ公開前チェックを実行し、`coverAssetId` 単独更新では公開前チェックを再実行しない
 
 ## お気に入り（Favorites）統一仕様
 
@@ -235,8 +245,11 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
   - 右ペインは「通常表示 / 全画面」をトグル(UI: *全画面 / 通常表示*, F で切替・Esc で閉じる)
   - ステージは 16:9 比率で **StageCanvas** に統一。通常・全画面・テストプレイすべてで**同一スケール・比率**で描画（`useStageScale` で実高さpxをCSS変数 `--stage-h-px` に流し、フォント・余白を clamp() でスケール）
-  - **「シナリオ全体設定」**ボタンから**メッセージウィンドウテーマ**を編集可能
-    - 背景色・枠線・角丸・余白・名前帯表示・文字色・文字サイズ・行間・タイプ速度を含む
+  - **「全体設定」**ボタンから**ゲーム全体設定モーダル**を開ける
+    - 基本情報タブで `title` / `summary` / `coverAssetId` を同時編集
+    - カバー画像は自分の画像アセットから選択/クリア可能（保存までゲーム本体へ未反映）
+    - 保存時は `title` / `summary` / `coverAssetId` / 各テーマ設定を同時に `PATCH /games/:id` へ送信
+    - メッセージウィンドウタブでは背景色・枠線・角丸・余白・名前帯表示・文字色・文字サイズ・行間・タイプ速度を編集
   - ノード編集欄では「開始ノードに設定」ボタンでシーンの `startNodeId` を更新
   - シーン一覧では「このシーンから開始」操作で `GameProject.startSceneId` を更新可能
     - 対象シーンの `startNodeId` が設定済みなら維持
@@ -657,7 +670,7 @@ interface MessageTheme {
   - `title` / `summary` 更新のみでは公開前チェックを再実行しない
   - 公開前チェックは従来どおり `isPublic: true` を明示した更新時のみ実行
 - 公開済みゲームの `title` / `summary` 更新は許可し、`/games` 一覧・`/games/:id` 詳細には更新内容がそのまま反映される
-- `coverAssetId` の本格編集UIは今回対象外（将来課題）
+- `coverAssetId` は「ゲーム全体設定 > 基本情報」タブで編集可能（画像アセット選択/クリア対応）
 
 #### 選択肢と通常遷移先の優先順位（2026-05-02 更新）
 - `choice.targetNodeId !== null` の選択肢のみ「表示可能な選択肢」とする

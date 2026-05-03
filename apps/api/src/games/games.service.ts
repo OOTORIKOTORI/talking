@@ -76,6 +76,34 @@ export class GamesService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
+  private normalizeCoverAssetId(value: unknown): string | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value !== 'string') {
+      throw new BadRequestException('coverAssetId must be a string or null');
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      throw new BadRequestException('coverAssetId must not be blank');
+    }
+    return trimmed;
+  }
+
+  private async assertCoverAssetUsable(userId: string, coverAssetId: string) {
+    const asset = await this.prisma.asset.findUnique({ where: { id: coverAssetId } });
+    if (!asset || asset.deletedAt) {
+      throw new BadRequestException('coverAssetId is invalid');
+    }
+    if (asset.ownerId !== userId) {
+      throw new ForbiddenException('cover asset must belong to the owner');
+    }
+    if (!asset.contentType.startsWith('image/')) {
+      throw new BadRequestException('cover asset must be an image');
+    }
+    return asset;
+  }
+
   private normalizeChoiceInput(choice: any) {
     return {
       label: choice?.label ?? '',
@@ -640,8 +668,14 @@ export class GamesService {
     if ('summary' in (data ?? {})) {
       allowed.summary = this.normalizeGameSummary(data?.summary);
     }
-    if (typeof data?.coverAssetId === 'string' || data?.coverAssetId === null) {
-      allowed.coverAssetId = data.coverAssetId ?? null;
+    if ('coverAssetId' in (data ?? {})) {
+      const normalizedCoverAssetId = this.normalizeCoverAssetId(data?.coverAssetId);
+      if (normalizedCoverAssetId === null) {
+        allowed.coverAssetId = null;
+      } else if (typeof normalizedCoverAssetId === 'string') {
+        await this.assertCoverAssetUsable(userId, normalizedCoverAssetId);
+        allowed.coverAssetId = normalizedCoverAssetId;
+      }
     }
     if (typeof data?.isPublic === 'boolean') allowed.isPublic = data.isPublic;
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {

@@ -2959,11 +2959,12 @@ function onUp() {
         :game-id="game?.id"
         :initial-title="game?.title"
         :initial-summary="game?.summary"
+        :initial-cover-asset-id="game?.coverAssetId"
         :initial="game?.messageTheme"
         :initial-ui="game?.gameUiTheme"
         :initial-backlog="game?.backlogTheme"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme } }"
+        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.coverAssetId = ('coverAssetId' in (v ?? {})) ? (v.coverAssetId ?? null) : (game.coverAssetId ?? null); game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme } }"
       />
     </div>
   </div>

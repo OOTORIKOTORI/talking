@@ -88,30 +88,44 @@
       <li
         v-for="g in list"
         :key="g.id"
-        class="p-4 border border-gray-200 rounded-lg flex justify-between items-center hover:shadow-md transition-shadow"
+        class="p-4 border border-gray-200 rounded-lg flex justify-between items-start gap-4 hover:shadow-md transition-shadow"
       >
-        <div class="flex-1">
-          <NuxtLink
-            :to="`/my/games/${g.id}/edit`"
-            class="font-semibold text-lg text-blue-600 hover:text-blue-800"
-          >
-            {{ g.title }}
-          </NuxtLink>
-          <p v-if="g.summary" class="text-sm text-gray-600 mt-1">{{ g.summary }}</p>
-          <p class="text-xs text-gray-400 mt-1">
-            更新: {{ new Date(g.updatedAt).toLocaleDateString('ja-JP') }}
-          </p>
-          <div class="mt-2">
-            <button
-              type="button"
-              class="inline-flex items-center px-3 py-1 text-xs rounded-full border transition-colors"
-              :class="g.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'"
-              :disabled="isToggling(g.id)"
-              @click="togglePublic(g)"
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <div class="w-24 h-14 rounded border border-gray-200 bg-gray-50 overflow-hidden shrink-0">
+            <img
+              v-if="coverUrls[g.id]"
+              :src="coverUrls[g.id]"
+              alt="cover"
+              class="w-full h-full object-cover"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center text-[11px] text-gray-400">
+              未設定
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <NuxtLink
+              :to="`/my/games/${g.id}/edit`"
+              class="font-semibold text-lg text-blue-600 hover:text-blue-800"
             >
-              <span v-if="isToggling(g.id)">切替中...</span>
-              <span v-else>{{ g.isPublic ? '公開中（クリックで非公開）' : '非公開（クリックで公開）' }}</span>
-            </button>
+              {{ g.title }}
+            </NuxtLink>
+            <p v-if="g.summary" class="text-sm text-gray-600 mt-1">{{ g.summary }}</p>
+            <p class="text-xs text-gray-400 mt-1">
+              更新: {{ new Date(g.updatedAt).toLocaleDateString('ja-JP') }}
+            </p>
+            <div class="mt-2">
+              <button
+                type="button"
+                class="inline-flex items-center px-3 py-1 text-xs rounded-full border transition-colors"
+                :class="g.isPublic ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'"
+                :disabled="isToggling(g.id)"
+                @click="togglePublic(g)"
+              >
+                <span v-if="isToggling(g.id)">切替中...</span>
+                <span v-else>{{ g.isPublic ? '公開中（クリックで非公開）' : '非公開（クリックで公開）' }}</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="flex flex-col items-end gap-2">
@@ -171,6 +185,7 @@ type MyGame = {
   id: string
   title: string
   summary: string | null
+  coverAssetId: string | null
   isPublic: boolean
   updatedAt: string
 }
@@ -185,8 +200,10 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const api = useGamesApi()
+const { signedFromId } = useAssetMeta()
 const toast = useToast()
 const list = ref<MyGame[]>([])
+const coverUrls = ref<Record<string, string>>({})
 const title = ref('')
 const loading = ref(true)
 const togglingIds = ref<Record<string, boolean>>({})
@@ -275,12 +292,26 @@ const buildQuery = (q: string, nextSort: MyGamesSort, nextStatus: MyGamesStatus)
   return query
 }
 
+const resolveCovers = async (games: MyGame[]) => {
+  for (const g of games) {
+    if (!g.coverAssetId) continue
+    if (coverUrls.value[g.id]) continue
+    const url = await signedFromId(g.coverAssetId, true)
+    if (url) {
+      coverUrls.value = { ...coverUrls.value, [g.id]: url }
+    }
+  }
+}
+
 const refreshList = async () => {
-  list.value = (await api.my({
+  const games = (await api.my({
     q: appliedQuery.value || undefined,
     sort: sort.value,
     status: status.value,
   })) as MyGame[]
+  list.value = games
+  coverUrls.value = {}
+  await resolveCovers(games)
 }
 
 const applySearch = async () => {

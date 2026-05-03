@@ -97,6 +97,41 @@
                 </div>
               </div>
 
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">カバー画像</label>
+                <div class="flex items-start gap-3">
+                  <div class="h-20 w-32 overflow-hidden rounded border border-gray-200 bg-gray-50">
+                    <img
+                      v-if="coverPreviewUrl"
+                      :src="coverPreviewUrl"
+                      alt="カバープレビュー"
+                      class="h-full w-full object-cover"
+                    />
+                    <div v-else class="flex h-full w-full items-center justify-center text-xs text-gray-500">
+                      {{ coverPreviewError ? '取得失敗' : '未設定' }}
+                    </div>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      class="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                      @click="openCoverPicker = true"
+                    >
+                      カバー画像を選択
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      :disabled="!normalizedMetaCoverAssetId"
+                      @click="clearCoverAsset"
+                    >
+                      クリア
+                    </button>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500">自分の画像アセットのみ選択できます。</p>
+              </div>
+
               <p v-if="metaValidationMessage" class="text-sm text-red-600">{{ metaValidationMessage }}</p>
             </section>
           </div>
@@ -869,6 +904,8 @@
       </div>
     </div>
 
+    <AssetPicker v-model:open="openCoverPicker" type="image" @select="onSelectCoverAsset" />
+
     <!-- インポート用の隠しファイル入力 -->
     <input ref="fileInput" type="file" accept=".json" @change="onFileSelected" class="hidden" />
   </div>
@@ -879,13 +916,16 @@ import { ref, computed } from 'vue'
 import type { MessageThemeV2, RGBA, GameUiTheme, BacklogTheme } from '@talking/types'
 import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS, DEFAULT_BACKLOG_THEME, resolveBacklogPreset } from '@talking/types'
 import MessageWindow from '@/components/game/MessageWindow.vue'
+import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import ColorField from '@/components/ui/ColorField.vue'
+import { useAssetMeta } from '@/composables/useAssetMeta'
 import { migrateToV2, contrastRatio, contrastLevel, toRgba, rgbaToCss } from '@/utils/themeUtils'
 
 const props = defineProps<{
   gameId: string
   initialTitle?: string | null
   initialSummary?: string | null
+  initialCoverAssetId?: string | null
   initial?: any
   initialUi?: GameUiTheme
   initialBacklog?: BacklogTheme
@@ -910,7 +950,53 @@ const GAME_SUMMARY_MAX_LENGTH = 500
 const metaDraft = ref({
   title: props.initialTitle ?? '',
   summary: props.initialSummary ?? '',
+  coverAssetId: props.initialCoverAssetId ?? null,
 })
+
+const openCoverPicker = ref(false)
+const coverPreviewUrl = ref<string | null>(null)
+const coverPreviewError = ref(false)
+const { signedFromId } = useAssetMeta()
+
+const normalizedMetaCoverAssetId = computed(() => {
+  if (typeof metaDraft.value.coverAssetId !== 'string') return null
+  const trimmed = metaDraft.value.coverAssetId.trim()
+  return trimmed.length > 0 ? trimmed : null
+})
+
+const resolveCoverPreview = async (assetId: string | null) => {
+  if (!assetId) {
+    coverPreviewUrl.value = null
+    coverPreviewError.value = false
+    return
+  }
+
+  coverPreviewError.value = false
+  const url = await signedFromId(assetId, true)
+  if (url) {
+    coverPreviewUrl.value = url
+  } else {
+    coverPreviewUrl.value = null
+    coverPreviewError.value = true
+  }
+}
+
+watch(
+  normalizedMetaCoverAssetId,
+  (next) => {
+    void resolveCoverPreview(next)
+  },
+  { immediate: true },
+)
+
+const onSelectCoverAsset = (asset: any) => {
+  const id = typeof asset?.id === 'string' ? asset.id : ''
+  metaDraft.value.coverAssetId = id || null
+}
+
+const clearCoverAsset = () => {
+  metaDraft.value.coverAssetId = null
+}
 
 const normalizedMetaTitle = computed(() => metaDraft.value.title.trim())
 const normalizedMetaSummary = computed(() => metaDraft.value.summary.trim())
@@ -1670,6 +1756,7 @@ function reset() {
   metaDraft.value = {
     title: props.initialTitle ?? '',
     summary: props.initialSummary ?? '',
+    coverAssetId: props.initialCoverAssetId ?? null,
   }
 }
 
@@ -1707,12 +1794,14 @@ async function save() {
     
     const titleForSave = normalizedMetaTitle.value
     const summaryForSave = normalizedMetaSummary.value
+    const coverAssetIdForSave = normalizedMetaCoverAssetId.value
 
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
       body: {
         title: titleForSave,
         summary: summaryForSave,
+        coverAssetId: coverAssetIdForSave,
         messageTheme: v,
         gameUiTheme: uiDraft.value,
         backlogTheme: backlogDraft.value,
@@ -1723,6 +1812,7 @@ async function save() {
     emit('saved', {
       title: typeof result?.title === 'string' ? result.title : titleForSave,
       summary: typeof result?.summary === 'string' ? result.summary : summaryForSave,
+      coverAssetId: 'coverAssetId' in (result ?? {}) ? (result?.coverAssetId ?? null) : coverAssetIdForSave,
       messageTheme: result?.messageTheme ?? v,
       gameUiTheme: result?.gameUiTheme ?? uiDraft.value,
       backlogTheme: result?.backlogTheme ?? backlogDraft.value,
