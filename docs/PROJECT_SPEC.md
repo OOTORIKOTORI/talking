@@ -54,6 +54,12 @@
     - ドラッグ＆ドロップで入替、`sortOrder` を 0..N-1 に再採番して保存
     - 保存トースト／削除は取り消し可能トースト（5秒）
     - 出典: `apps/frontend/pages/my/characters/[id].vue`
+- 公開ゲーム
+  - 一覧（公開）: `/games`
+    - 検索/並び替え: `q`（タイトル/概要の部分一致）, `sort`（`new | updated | title`）
+    - URLクエリ同期: `q`, `sort` を反映・復元。不正な `sort` は `new` に正規化
+    - 空状態: 検索あり0件時は「条件に一致する公開ゲームはありません。」を表示
+    - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`
 
 ## API と型（実装の出典）
 
@@ -86,6 +92,14 @@
   - お気に入り解除: `DELETE /characters/:id/favorite`
   - お気に入り一覧（キャラ）: `GET /my/favorites/characters`
     - 出典: フロント `apps/frontend/composables/useCharacters.ts`（`favorite`, `unfavorite`, `listFavorites`）/ サーバ `apps/api/src/characters/character-favorites.*`
+- 公開ゲーム
+  - 公開一覧: `GET /games`
+    - クエリ: `limit`, `offset`, `q`, `sort`
+    - `q`: 空白trim後に空でなければ `title` / `summary` の部分一致検索（大文字小文字非区別）
+    - `sort`: `new`（`createdAt desc`）/ `updated`（`updatedAt desc`）/ `title`（`title asc`, `createdAt desc`）
+    - 不正な `sort` は `new` として扱う
+    - 返却は公開ゲームのみ（`isPublic = true`, `deletedAt = null`）
+    - 出典: `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
 
 ## お気に入り（Favorites）統一仕様
 
@@ -106,6 +120,10 @@
 - `/characters`（公開一覧）
   - クエリ: `q`, `tags`, `sort` をURLに反映・復元
   - 出典: `apps/frontend/pages/characters/index.vue`
+- `/games`（公開一覧）
+  - クエリ: `q`, `sort` をURLに反映・復元（`sort` 未指定時は `new`）
+  - 検索対象: `title`, `summary`（UI表示上は description にマップ）
+  - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`, `apps/api/src/games/games.service.ts`
 
 ## サムネ / 署名URL 取扱
 
@@ -792,6 +810,13 @@ interface GameNode {
 - BGM/SE 音量設定UIは未実装
 - SE個別フェード（ノード別制御含む）は未実装
 - 音声ミキサー、複数BGMレイヤー、ユーザー設定保存は未実装
+- 公開ゲーム一覧 `/games` の将来課題（今回未実装）
+  - ページネーション / 無限スクロール最適化
+  - 人気順 / プレイ数順 / お気に入り数順（集計基盤整備後）
+  - タグ検索 / 作者検索
+  - 高度な全文検索（Meilisearch活用）
+  - `/my/games` への検索・並び替えUI方針統一
+  - 公開ゲームのプレイ数 / 閲覧数集計、レコメンド
 
 ---
 
@@ -809,3 +834,4 @@ interface GameNode {
 - 2026-05-03: ゲーム公開前チェックMVPを実装。`runScenarioCheck` を共通化し、`/my/games` の公開操作で `error` を公開不可、`warning` は確認後公開可、`info` のみ/問題なしは公開可に統一。`error` 時は edit画面のシナリオチェックへ誘導（クエリでエラーフィルタ初期表示）。API側公開審査は将来課題として維持。
 - 2026-05-03: ゲームプレイ画面に BGM フェードイン/フェードアウトMVPを実装。`musicAssetId` 変更時に「旧曲フェードアウト→新曲フェードイン」を直列実行し、同一BGMは再読み込みせず継続再生。`musicAssetId` 未指定時は現行仕様を維持して停止扱い（フェードアウト経由）。SEはMVPとして既存挙動維持。AUTO/SKIP高速遷移時の競合を避けるためフェード処理に世代トークン管理を導入。
 - 2026-05-03: シナリオチェック追加MVPを実装。既存チェックに加えて「ノード本文が空」「選択肢ラベルが空」「表示可能な選択肢が0件のノード」「開始シーン以外の壊れた startNodeId」を warning として検出。API側公開ブロックには追加しない。vitest に21ケースのテストを追加（4 files / 31 tests 全通過）。素材参照の厳密チェックは将来課題として記録。
+- 2026-05-03: 公開ゲーム一覧 `/games` の検索・並び替えMVPを実装。`q`（title/summary 部分一致）と `sort`（`new|updated|title`）を URL クエリ同期し、空白検索の無効化・不正sortの正規化・検索0件時空状態表示を追加。`GET /games` は `q` / `sort` を受け取り API 側で公開ゲーム検索・ソートを実施。

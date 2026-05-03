@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const SAVE_SLOT_LIMITS = {
@@ -25,6 +26,8 @@ type PublicGameSummary = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+type PublicGamesSort = 'new' | 'updated' | 'title';
 
 @Injectable()
 export class GamesService {
@@ -167,6 +170,32 @@ export class GamesService {
     };
   }
 
+  private normalizePublicGamesSort(sortRaw: unknown): PublicGamesSort {
+    const v = String(sortRaw ?? '')
+      .trim()
+      .toLowerCase();
+    if (v === 'updated' || v === 'title' || v === 'new') return v;
+    return 'new';
+  }
+
+  private normalizePublicGamesQuery(qRaw: unknown): string | null {
+    if (typeof qRaw !== 'string') return null;
+    const q = qRaw.trim();
+    return q.length > 0 ? q : null;
+  }
+
+  private publicGamesOrderBy(
+    sort: PublicGamesSort,
+  ): Prisma.GameProjectOrderByWithRelationInput | Prisma.GameProjectOrderByWithRelationInput[] {
+    if (sort === 'updated') {
+      return { updatedAt: 'desc' };
+    }
+    if (sort === 'title') {
+      return [{ title: 'asc' }, { createdAt: 'desc' }];
+    }
+    return { createdAt: 'desc' };
+  }
+
   private async assertGameOwner(
     userId: string,
     gameId: string,
@@ -245,14 +274,27 @@ export class GamesService {
     });
   }
 
-  async listPublic(limitRaw?: unknown, offsetRaw?: unknown) {
+  async listPublic(limitRaw?: unknown, offsetRaw?: unknown, qRaw?: unknown, sortRaw?: unknown) {
     const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
-    const where = { isPublic: true, deletedAt: null as null };
+    const q = this.normalizePublicGamesQuery(qRaw);
+    const sort = this.normalizePublicGamesSort(sortRaw);
+    const where: Prisma.GameProjectWhereInput = {
+      isPublic: true,
+      deletedAt: null,
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { summary: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.gameProject.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: this.publicGamesOrderBy(sort),
         skip: offset,
         take: limit,
         select: {
@@ -273,6 +315,8 @@ export class GamesService {
       total,
       limit,
       offset,
+      q,
+      sort,
     };
   }
 

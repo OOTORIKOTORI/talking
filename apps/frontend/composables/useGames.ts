@@ -1,7 +1,7 @@
 export function useGamesApi() {
   const api = useApi()
   return {
-    listPublic: (q?: { limit?: number; offset?: number }) =>
+    listPublic: (q?: { limit?: number; offset?: number; q?: string; sort?: 'new' | 'updated' | 'title' }) =>
       api('/games', { query: q }),
     getPublic: (id: string) => api(`/games/${id}`),
     getEdit: (id: string) => api(`/games/${id}/edit`),

@@ -21,8 +21,13 @@ export class GamesController {
 
   @Get()
   @UseGuards(OptionalSupabaseAuthGuard)
-  listPublic(@Query('limit') limit?: string, @Query('offset') offset?: string) {
-    return this.games.listPublic(limit, offset);
+  listPublic(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('q') q?: string,
+    @Query('sort') sort?: string,
+  ) {
+    return this.games.listPublic(limit, offset, q, sort);
   }
 
   @Get(':id/edit')

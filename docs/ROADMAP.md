@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-03（シナリオチェック追加MVP）
+> 最終更新: 2026-05-03（公開ゲーム一覧 検索・並び替えMVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -17,6 +17,7 @@
 - シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
 - シナリオチェック追加MVP（空本文/空ラベル/表示可能選択肢0件/開始シーン以外のstartNodeId壊れ → warning）
 - ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
+- 公開ゲーム一覧 `/games` 検索・並び替えMVP（`q` + `sort` + URL同期 + API側検索/ソート）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - ゲームプレイ画面 BGMフェードMVP（停止フェードアウト・切替時直列フェード・同一BGM継続）
@@ -47,6 +48,7 @@
 - 3ペイン構造そのものの再設計
 - キーコンフィグ・AUTO/Skip高度化・プレイヤーごとのセーブデータ設計
 - 作業位置保存のリセット導線（例: 「最後の選択位置をリセット」）
+- 公開ゲーム一覧の拡張（ページネーション / 無限スクロール / 人気順・プレイ数順 / タグ検索 / 作者検索）
 
 ---
 
@@ -63,6 +65,60 @@
 | 2026-05-03 | ✅ exit 0 | 公開前チェックMVP後。`pnpm -w build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 | BGMフェードMVP後。`pnpm -w build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 (frontend only) | シナリオチェック追加MVP後。`pnpm -C apps/frontend build` は成功。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック）のため frontend のみ確認。全テスト(4 files / 31 tests)は ✅ exit 0 |
+| 2026-05-03 | ❌ exit 1 | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック） |
+| 2026-05-03 | ✅ exit 0 (frontend only) | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -C apps/frontend build` は成功（既知 WARN のみ） |
+| 2026-05-03 | ✅ exit 0 | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-03 / 公開ゲーム一覧 検索・並び替えMVP）
+
+### 実装した内容
+- フロント（`apps/frontend/pages/games/index.vue`）
+	- `/games` にキーワード検索 UI を追加（対象: タイトル・概要）
+	- 並び替え UI を追加（`new` / `updated` / `title`）
+	- 検索状態・件数表示を追加（検索中表示を含む）
+	- 検索0件時の空状態文言を追加（`条件に一致する公開ゲームはありません。`）
+	- URLクエリ同期を追加（`q`, `sort`）
+		- 空白のみ検索は検索なし扱い（trim後空なら `q` を除去）
+		- 不正な `sort` は `new` に正規化
+		- リロード復元、戻る/進む復元に対応
+- フロント API 層（`apps/frontend/composables/useGames.ts`）
+	- `listPublic` のクエリ型を拡張（`q`, `sort`）
+- API（`apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`）
+	- `GET /games` に `q`, `sort` クエリを追加
+	- 公開ゲームのみ（`isPublic=true`, `deletedAt=null`）を維持
+	- `q` がある場合、`title` / `summary` の部分一致検索（大文字小文字非区別）
+	- `sort` に応じて orderBy を切替
+		- `new`: `createdAt desc`
+		- `updated`: `updatedAt desc`
+		- `title`: `title asc`（同値時は `createdAt desc`）
+	- 不正な `sort` は `new` 扱い
+
+### 将来課題として記録
+- ページネーション
+- 無限スクロール
+- 人気順 / プレイ数順 / お気に入り数順
+- タグ検索
+- 作者検索
+- 高度な全文検索 / Meilisearch 活用
+- `/my/games` 側の検索・並び替え（同一UI方針への統一）
+- 公開ゲームのプレイ数 / 閲覧数集計
+- レコメンド
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に `EPERM`（DLLロック）
+- `pnpm -C apps/frontend build`: ✅ exit 0
+	- 既知 WARN のみ（`@nuxt/icon` の Nuxt 4要件、browserslist 更新推奨、Nuxt 依存 deprecation warning）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+
+### 今回未実行の確認と理由
+- API test
+	- 理由: `apps/api/package.json` に test script が定義されていないため
+- ブラウザ手動E2E（`/games?q=xxx&sort=updated` の画面操作確認）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
 
 ---
 
