@@ -11,6 +11,7 @@
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。
 
 **実装済み（主要）**
+- ゲーム内参照アセット権限ルールの棚卸しMVP（自分+お気に入り方針の明文化、UI/API現状差分の記録）
 - アセットお気に入り数表示MVP（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
 - ゲーム制作・公開・共有フローMVP（公開一覧・API・公開切替・UI導線）
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
@@ -46,6 +47,11 @@
 	- 右ペイン開閉状態保存（`talking.editor.rightPaneSections.v1`）とは別キーで共存
 
 **直近の残課題（優先順）**
+- ゲーム内参照素材の共通バリデーション関数（`assetId`/`characterId`/`characterImageId`）
+- Node保存時の参照チェック実装（本人所有 or お気に入り、種別一致、削除済み拒否）
+- `characterImageId` が選択済みキャラクターに属することの検証
+- 削除済み/非公開化素材の参照切れ検知と公開前 warning 強化
+- アセット削除/非公開化時の「利用中ゲームへの影響表示」導線
 - アセット閲覧数 `viewCount` のMVP導入（`/assets/:id` のみカウント、一覧/管理画面は非対象）
 - アセット使用数 `usedInGameCount` の定義と集計方針（公開/非公開、削除時扱い）
 - アセット指標ソート・ランキング（お気に入り順/閲覧数順/使用数順/人気順）
@@ -100,6 +106,53 @@
 | 2026-05-04 | ✅ exit 0 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
 | 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
 | 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api run test` は `ERR_PNPM_NO_SCRIPT`（test script未定義） |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-04 / ゲーム内参照アセット権限ルール 棚卸しMVP）
+
+### 棚卸し結果（UI）
+- `AssetPicker` は「自分のアセット / お気に入り」の2タブ構成。
+- `AssetPicker` の `type="image" | "audio"` は両タブに適用される。
+- ノード編集の素材選択は以下で統一されている。
+	- 背景: `AssetPicker type="image"`
+	- BGM: `AssetPicker type="audio"`
+	- SE: `AssetPicker type="audio"`
+- ゲーム全体設定のカバー画像選択は `AssetPicker type="image"` を使用。
+- `CharacterPicker` は「自分のキャラ / お気に入り」の2タブ構成。
+- `CharacterImagePicker` は選択中キャラクターIDに対して画像を取得する（公開→自分所有の順で取得）。
+
+### 棚卸し結果（API）
+- カバー画像（`coverAssetId`）は `PATCH /games/:id` 保存時に以下を検証済み。
+	- 本人所有 or お気に入り済み
+	- `image/*` のみ
+	- 削除済み不可
+- 背景/BGM/SE/キャラクター配置/立ち絵参照のNode保存時バリデーションは未整備。
+	- 参照IDの所有・お気に入り・種別・削除状態の共通検証が未実装。
+- 付随の軽微修正として、お気に入り一覧APIで削除済み素材/参照不可キャラが混入しないようフィルタを追加。
+
+### 今回の小修正
+- `MessageThemeModal` のカバー説明文を実装実態に合わせて修正。
+	- 旧: 「自分の画像アセットのみ選択できます。」
+	- 新: 「自分の画像アセット、またはお気に入りした公開画像アセットを選択できます。」
+- `favorites` 一覧で `deletedAt: null` を適用。
+- `character-favorites` 一覧で `deletedAt` と公開可否（本人所有 or 公開）を適用。
+- `games.service.ts` の Node保存処理に、共通参照バリデーション実装TODOを追記。
+
+### 将来課題（ゲーム内参照素材）
+- 共通バリデーション関数の導入（ゲーム保存系で共通利用）
+- `assetId` が本人所有 or お気に入り済みかの確認
+- `characterId` が本人所有 or お気に入り済みかの確認
+- `characterImageId` が選択済みキャラクターに属するかの確認
+- image/audio など種別一致確認
+- 削除済み/非公開素材の参照拒否
+- 参照切れ素材のシナリオチェック warning
+- アセット削除/非公開化時の利用中ゲームへの影響表示
+
+### 実行した確認コマンド
+- `pnpm -C apps/frontend test`: ✅ exit 0（4 files / 31 tests passed）
+- `pnpm -w build`: ❌ exit 1（`apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM）
+- `pnpm -C apps/api build`: ❌ exit 1（`prisma:generate` で同様に EPERM）
 
 ---
 

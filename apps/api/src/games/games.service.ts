@@ -791,6 +791,9 @@ export class GamesService {
   async upsertNode(userId: string, sceneId: string, node: any) {
     await this.getOwnedSceneOrThrow(userId, sceneId);
 
+    // TODO(mvp-audit): Validate referenced assets/characters on save.
+    // Expected policy: owned OR favorited, type-safe(image/audio), and not deleted.
+
     if (node.id) {
       // Update existing node
       const { choices, ...nodeData } = node;

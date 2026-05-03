@@ -129,7 +129,7 @@
                     </button>
                   </div>
                 </div>
-                <p class="text-xs text-gray-500">自分の画像アセットのみ選択できます。</p>
+                <p class="text-xs text-gray-500">自分の画像アセット、またはお気に入りした公開画像アセットを選択できます。</p>
               </div>
 
               <p v-if="metaValidationMessage" class="text-sm text-red-600">{{ metaValidationMessage }}</p>

@@ -43,7 +43,10 @@ export class FavoritesService {
     if (!ids.length) return { items: [], total: 0 }
 
     // Build where clause with filters
-    const where: any = { id: { in: ids } }
+    const where: any = {
+      id: { in: ids },
+      deletedAt: null,
+    }
 
     if (opt.q) {
       where.OR = [

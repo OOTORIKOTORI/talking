@@ -34,7 +34,11 @@ export class CharacterFavoritesService {
       },
     });
 
-    let characters = favs.map(f => ({ ...f.character, isFavorited: true, isFavorite: true }));
+    let characters = favs
+      .map(f => f.character)
+      .filter((c) => !!c && !c.deletedAt)
+      .filter((c) => c.ownerId === userId || c.isPublic)
+      .map((c) => ({ ...c, isFavorited: true, isFavorite: true }));
 
     // Apply filters
     if (opt?.q) {
