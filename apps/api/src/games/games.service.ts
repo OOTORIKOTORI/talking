@@ -95,11 +95,24 @@ export class GamesService {
     if (!asset || asset.deletedAt) {
       throw new BadRequestException('coverAssetId is invalid');
     }
-    if (asset.ownerId !== userId) {
-      throw new ForbiddenException('cover asset must belong to the owner');
-    }
     if (!asset.contentType.startsWith('image/')) {
       throw new BadRequestException('cover asset must be an image');
+    }
+
+    if (asset.ownerId === userId) {
+      return asset;
+    }
+
+    const favorite = await this.prisma.favorite.findUnique({
+      where: {
+        userId_assetId: {
+          userId,
+          assetId: coverAssetId,
+        },
+      },
+    });
+    if (!favorite) {
+      throw new ForbiddenException('cover asset must be owned or favorited');
     }
     return asset;
   }
