@@ -54,6 +54,16 @@ export class GamesController {
     return this.games.getForPlay(req.user?.userId, id);
   }
 
+  @Post(':id/view')
+  countView(@Param('id') id: string) {
+    return this.games.countPublicView(id);
+  }
+
+  @Post(':id/play')
+  countPlay(@Param('id') id: string) {
+    return this.games.countPublicPlay(id);
+  }
+
   @Patch(':id')
   @UseGuards(SupabaseAuthGuard)
   update(@Req() req: any, @Param('id') id: string, @Body() b: UpdateGameDto) {

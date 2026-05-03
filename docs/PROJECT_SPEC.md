@@ -58,6 +58,7 @@
   - 一覧（公開）: `/games`
     - 検索/並び替え: `q`（タイトル/概要の部分一致）, `sort`（`new | updated | title`）
     - URLクエリ同期: `q`, `sort` を反映・復元。不正な `sort` は `new` に正規化
+    - カウンタ表示: `viewCount`（閲覧）/ `playCount`（プレイ）をカード内に表示
     - 空状態: 検索あり0件時は「条件に一致する公開ゲームはありません。」を表示
     - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`
 
@@ -99,6 +100,13 @@
     - `sort`: `new`（`createdAt desc`）/ `updated`（`updatedAt desc`）/ `title`（`title asc`, `createdAt desc`）
     - 不正な `sort` は `new` として扱う
     - 返却は公開ゲームのみ（`isPublic = true`, `deletedAt = null`）
+    - `items[*]` は `viewCount` / `playCount` を含む
+  - 公開詳細: `GET /games/:id`
+    - 詳細取得自体ではカウントを増やさない
+    - 詳細画面側で `POST /games/:id/view` を呼び、公開ゲームのみ `viewCount` を +1 する
+  - 公開プレイ開始カウント: `POST /games/:id/play`
+    - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
+    - セーブ/ロード、ノード進行では増やさない
     - 出典: `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
 
 ## お気に入り（Favorites）統一仕様
@@ -254,8 +262,10 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 - 実装優先度: 主要な制作・公開・プレイ機能が安定した後（P3 以降）
 
 ### ドメイン / モデル(Prisma 正)
-- `GameProject { id, ownerId, title, summary?, startSceneId String?, messageTheme Json?, deletedAt? ... }`
+- `GameProject { id, ownerId, title, summary?, viewCount Int, playCount Int, startSceneId String?, messageTheme Json?, deletedAt? ... }`
   - `startSceneId`: ゲーム全体の開始シーンID
+  - `viewCount`: 公開ゲーム詳細表示の累計カウント（MVP）
+  - `playCount`: 公開ゲームプレイ開始の累計カウント（MVP）
   - `messageTheme`: メッセージウィンドウテーマ設定（後述）
 - `GameScene { id, projectId(FK), name, order, startNodeId String?, createdAt, updatedAt }`
   - `startNodeId`: シーン開始ノードID（ゲーム開始時は `GameProject.startSceneId` のシーンにある `startNodeId` を使用）
@@ -816,7 +826,23 @@ interface GameNode {
   - タグ検索 / 作者検索
   - 高度な全文検索（Meilisearch活用）
   - `/my/games` への検索・並び替えUI方針統一
-  - 公開ゲームのプレイ数 / 閲覧数集計、レコメンド
+  - レコメンド
+- 公開ゲームのタグ/ジャンル機能（将来課題）
+  - ゲーム編集時のタグ設定（`/my/games`）
+  - 固定ジャンルタグ（例: 恋愛 / ホラー / ファンタジー / SF / ミステリー / コメディ / 日常 / シリアス）
+  - 形式タグ（例: 短編 / 長編 / 体験版 / 完結済み / 連載中）
+  - システムタグ（例: 選択肢あり / マルチエンド / ボイスあり / BGMあり）
+  - 固定タグとフリーワードタグの分離設計
+  - タグ未設定時の公開前 warning
+  - タグ絞り込み/タグ別一覧、Meilisearch・高度検索との連携
+- 公開ゲーム分析の将来課題
+  - ユニーク閲覧数 / ユニークプレイ数
+  - IP / ユーザー単位の重複除外
+  - 日別集計
+  - 作者ダッシュボード
+  - ランキング
+  - イベントログテーブル
+  - アナリティクス基盤
 
 ---
 
@@ -835,3 +861,4 @@ interface GameNode {
 - 2026-05-03: ゲームプレイ画面に BGM フェードイン/フェードアウトMVPを実装。`musicAssetId` 変更時に「旧曲フェードアウト→新曲フェードイン」を直列実行し、同一BGMは再読み込みせず継続再生。`musicAssetId` 未指定時は現行仕様を維持して停止扱い（フェードアウト経由）。SEはMVPとして既存挙動維持。AUTO/SKIP高速遷移時の競合を避けるためフェード処理に世代トークン管理を導入。
 - 2026-05-03: シナリオチェック追加MVPを実装。既存チェックに加えて「ノード本文が空」「選択肢ラベルが空」「表示可能な選択肢が0件のノード」「開始シーン以外の壊れた startNodeId」を warning として検出。API側公開ブロックには追加しない。vitest に21ケースのテストを追加（4 files / 31 tests 全通過）。素材参照の厳密チェックは将来課題として記録。
 - 2026-05-03: 公開ゲーム一覧 `/games` の検索・並び替えMVPを実装。`q`（title/summary 部分一致）と `sort`（`new|updated|title`）を URL クエリ同期し、空白検索の無効化・不正sortの正規化・検索0件時空状態表示を追加。`GET /games` は `q` / `sort` を受け取り API 側で公開ゲーム検索・ソートを実施。
+- 2026-05-03: 公開ゲーム閲覧数/プレイ数の集計MVPを実装。`GameProject` に `viewCount` / `playCount` を追加し、詳細画面オープン時は `POST /games/:id/view`、プレイ画面オープン時は `POST /games/:id/play` でカウント。公開一覧/詳細にカウンタ表示を追加。重複除外・人気順/プレイ数順ソートは今回未実装として将来課題へ整理。タグ/ジャンル機能の将来課題も追記。

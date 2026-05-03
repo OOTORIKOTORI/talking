@@ -22,6 +22,8 @@ type PublicGameSummary = {
   summary: string | null;
   description: string | null;
   coverAssetId: string | null;
+  viewCount: number;
+  playCount: number;
   ownerId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -154,6 +156,8 @@ export class GamesService {
     title: string;
     summary: string | null;
     coverAssetId: string | null;
+    viewCount: number;
+    playCount: number;
     ownerId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -164,6 +168,8 @@ export class GamesService {
       summary: g.summary,
       description: g.summary,
       coverAssetId: g.coverAssetId,
+      viewCount: g.viewCount,
+      playCount: g.playCount,
       ownerId: g.ownerId,
       createdAt: g.createdAt,
       updatedAt: g.updatedAt,
@@ -302,6 +308,8 @@ export class GamesService {
           title: true,
           summary: true,
           coverAssetId: true,
+          viewCount: true,
+          playCount: true,
           ownerId: true,
           createdAt: true,
           updatedAt: true,
@@ -328,6 +336,28 @@ export class GamesService {
     if (!g || g.deletedAt) throw new NotFoundException('game not found');
     if (!g.isPublic && g.ownerId !== userId) throw new NotFoundException('game not found');
     return g;
+  }
+
+  async countPublicView(id: string) {
+    const res = await this.prisma.gameProject.updateMany({
+      where: { id, isPublic: true, deletedAt: null },
+      data: { viewCount: { increment: 1 } },
+    });
+    if (res.count === 0) {
+      throw new NotFoundException('game not found');
+    }
+    return { ok: true };
+  }
+
+  async countPublicPlay(id: string) {
+    const res = await this.prisma.gameProject.updateMany({
+      where: { id, isPublic: true, deletedAt: null },
+      data: { playCount: { increment: 1 } },
+    });
+    if (res.count === 0) {
+      throw new NotFoundException('game not found');
+    }
+    return { ok: true };
   }
 
   async getForEdit(userId: string, id: string) {

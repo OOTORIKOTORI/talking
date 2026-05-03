@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-03（公開ゲーム一覧 検索・並び替えMVP）
+> 最終更新: 2026-05-03（公開ゲーム 閲覧数/プレイ数 集計MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -18,6 +18,7 @@
 - シナリオチェック追加MVP（空本文/空ラベル/表示可能選択肢0件/開始シーン以外のstartNodeId壊れ → warning）
 - ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
 - 公開ゲーム一覧 `/games` 検索・並び替えMVP（`q` + `sort` + URL同期 + API側検索/ソート）
+- 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - ゲームプレイ画面 BGMフェードMVP（停止フェードアウト・切替時直列フェード・同一BGM継続）
@@ -68,6 +69,96 @@
 | 2026-05-03 | ❌ exit 1 | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック） |
 | 2026-05-03 | ✅ exit 0 (frontend only) | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -C apps/frontend build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 | 公開ゲーム一覧 検索・並び替えMVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-03 | ❌ exit 1 | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック） |
+| 2026-05-03 | ❌ exit 1 | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/api build` も同様に `prisma:generate` で EPERM |
+| 2026-05-03 | ✅ exit 0 (frontend only) | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/frontend build` は成功（既知 WARN のみ） |
+| 2026-05-03 | ✅ exit 0 | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-03 / 公開ゲーム 閲覧数・プレイ数 集計MVP）
+
+### 実装した内容
+- DB（`apps/api/prisma/schema.prisma`）
+	- `GameProject` に `viewCount Int @default(0)` / `playCount Int @default(0)` を追加
+	- 既存データは既定値 0 で扱う
+- Migration（`apps/api/prisma/migrations/20260503100000addgamecounters/migration.sql`）
+	- `game_projects` へ `viewCount` / `playCount` カラムを追加
+- API（`apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`）
+	- `POST /games/:id/view` を追加
+		- 公開かつ未削除ゲームのみ `viewCount + 1`
+	- `POST /games/:id/play` を追加
+		- 公開かつ未削除ゲームのみ `playCount + 1`
+	- `GET /games` の返却に `viewCount` / `playCount` を追加
+	- 一覧取得(`GET /games`)ではカウント増加しない
+- フロント（`apps/frontend/composables/useGames.ts`）
+	- `countView(id)` / `countPlay(id)` を追加
+- フロント（`apps/frontend/pages/games/[id]/index.vue`）
+	- 詳細ロード後に `countView` を実行（失敗時は表示を継続）
+	- 詳細画面に `閲覧数` / `プレイ数` を表示
+- フロント（`apps/frontend/pages/games/[id]/play.vue`）
+	- プレイ画面ロード時に `countPlay` を実行（失敗時はプレイ継続）
+- フロント（`apps/frontend/pages/games/index.vue`）
+	- 一覧カードに `閲覧 n / プレイ n` を追加
+	- `undefined` は `0` 扱いで表示
+
+### 仕様メモ（MVP）
+- `viewCount`
+	- 増加タイミング: 公開ゲーム詳細ページ `/games/:id` 表示時（フロントから `POST /games/:id/view`）
+	- 非公開/削除済みは加算しない
+- `playCount`
+	- 増加タイミング: 公開ゲームプレイページ `/games/:id/play` 初期表示時（`POST /games/:id/play`）
+	- セーブ/ロードやノード進行では加算しない
+	- 非公開/削除済みは加算しない
+- 重複除外
+	- 今回は未実装（リロードで増える）
+- 人気順/プレイ数順ソート
+	- 今回は未実装（将来課題）
+
+### タグ/ジャンル機能（将来課題として記録）
+- ゲームタグ/ジャンル設定（`/my/games`）
+- 固定ジャンルタグ（恋愛/ホラー/ファンタジー/SF/ミステリー/コメディ/日常/シリアス）
+- 形式タグ（短編/長編/体験版/完結済み/連載中）
+- システムタグ（選択肢あり/マルチエンド/ボイスあり/BGMあり）
+- フリーワードタグと固定タグの分離
+- タグ検索 / タグ絞り込み / タグ別一覧
+- タグ未設定時の公開前 warning 検討
+- Meilisearch / 高度検索との連携
+
+### そのほか将来課題として記録
+- ユニーク閲覧数 / ユニークプレイ数
+- IP/ユーザー単位重複除外
+- 日別集計
+- 作者ダッシュボード
+- 人気順/プレイ数順
+- ランキング
+- レコメンド
+- イベントログテーブル
+- アナリティクス基盤
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` の DLL rename で EPERM
+- `pnpm -C apps/api build`: ❌ exit 1
+	- 同上（`prisma:generate` で EPERM）
+- `pnpm -C apps/frontend build`: ✅ exit 0
+	- 既知 WARN のみ
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+
+### 未実行の確認と理由
+- `pnpm -C apps/api prisma migrate dev`
+	- 実行したが、ローカルDBドリフト（`users` テーブル差分・欠落 migration）で中断。DBリセット要求のため採用せず、手動 migration を追加
+- `pnpm -C apps/api prisma generate`
+	- DLLロックにより EPERM（再試行でも失敗）
+- API test
+	- `apps/api/package.json` に test script がないため未実行
+
+### 禁止・注意（今回の運用）
+- タグ/ジャンル機能の実装には入っていない（将来課題のみ追記）
+- 人気順/プレイ数順ソートは実装していない
+- 公開一覧取得のみで閲覧数が増える実装は入れていない
+- 非公開/削除済みゲームはカウント対象外
 
 ---
 

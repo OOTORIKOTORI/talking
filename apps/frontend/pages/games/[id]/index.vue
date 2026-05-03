@@ -27,6 +27,8 @@
           <div class="text-sm text-gray-500 space-y-1">
             <p>作者: {{ game.ownerId }}</p>
             <p>更新日: {{ formatDate(game.updatedAt) }}</p>
+            <p>閲覧数: {{ Number(game.viewCount || 0) }}</p>
+            <p>プレイ数: {{ Number(game.playCount || 0) }}</p>
           </div>
 
           <div class="pt-2 flex flex-wrap gap-2">
@@ -67,6 +69,8 @@ type GameDetail = {
   title: string
   summary: string | null
   coverAssetId: string | null
+  viewCount?: number
+  playCount?: number
   startSceneId: string | null
   updatedAt: string
   scenes: GameScene[]
@@ -113,6 +117,18 @@ onMounted(async () => {
     const id = String(route.params.id)
     const res = await api.getPublic(id)
     game.value = res as GameDetail
+
+    try {
+      await api.countView(id)
+      if (game.value) {
+        game.value = {
+          ...game.value,
+          viewCount: Number(game.value.viewCount || 0) + 1,
+        }
+      }
+    } catch {
+      // カウント失敗時も詳細表示は継続する
+    }
 
     if (game.value?.coverAssetId) {
       coverUrl.value = await signedFromId(game.value.coverAssetId, true)

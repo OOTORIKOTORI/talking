@@ -4,6 +4,8 @@ export function useGamesApi() {
     listPublic: (q?: { limit?: number; offset?: number; q?: string; sort?: 'new' | 'updated' | 'title' }) =>
       api('/games', { query: q }),
     getPublic: (id: string) => api(`/games/${id}`),
+    countView: (id: string) => api(`/games/${id}/view`, { method: 'POST' }),
+    countPlay: (id: string) => api(`/games/${id}/play`, { method: 'POST' }),
     getEdit: (id: string) => api(`/games/${id}/edit`),
     my: () => api('/games/my'),
     create: (b: { title: string; summary?: string }) => api('/games', { method: 'POST', body: b }),

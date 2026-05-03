@@ -1697,6 +1697,12 @@ onMounted(async () => {
 
     currentUserId.value = sessionRes?.data?.session?.user?.id ?? null
     game.value = gameRes
+
+    try {
+      await api.countPlay(String(route.params.id))
+    } catch {
+      // 非公開/削除済みや通信失敗時はカウントのみスキップ
+    }
     
     // ノードマップを構築
     game.value.scenes.forEach((s: any) => {

@@ -89,6 +89,7 @@
               <h2 class="font-semibold text-gray-900 line-clamp-1">{{ g.title }}</h2>
               <p class="text-sm text-gray-600 line-clamp-2">{{ g.description || '説明はありません。' }}</p>
               <p class="text-xs text-gray-400">更新: {{ formatDate(g.updatedAt) }}</p>
+              <p class="text-xs text-gray-500">閲覧 {{ Number(g.viewCount || 0) }} / プレイ {{ Number(g.playCount || 0) }}</p>
 
               <div class="pt-2 flex gap-2">
                 <NuxtLink
@@ -128,6 +129,8 @@ type PublicGame = {
   title: string
   description: string | null
   coverAssetId: string | null
+  viewCount?: number
+  playCount?: number
   ownerId: string
   createdAt: string
   updatedAt: string
