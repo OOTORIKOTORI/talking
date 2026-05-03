@@ -61,6 +61,12 @@
     - カウンタ表示: `viewCount`（閲覧）/ `playCount`（プレイ）をカード内に表示
     - 空状態: 検索あり0件時は「条件に一致する公開ゲームはありません。」を表示
     - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`
+  - マイ一覧（管理）: `/my/games`
+    - 検索/並び替え/公開状態: `q`（タイトル/概要の部分一致）, `sort`（`updated | created | title | public`）, `status`（`all | public | private`）
+    - URLクエリ同期: `q`, `sort`, `status` を反映・復元。不正な `sort` / `status` は `updated` / `all` に正規化
+    - 検索確定: 検索ボタンまたは Enter で適用（入力中値と適用済み条件を分離）
+    - 空状態: 検索/フィルタ結果0件時は「条件に一致する自作ゲームはありません。」を表示
+    - 出典: `apps/frontend/pages/my/games/index.vue`, `apps/frontend/composables/useGames.ts`
 
 ## API と型（実装の出典）
 
@@ -108,6 +114,13 @@
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
     - セーブ/ロード、ノード進行では増やさない
     - 出典: `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
+  - 自作一覧（管理）: `GET /games/my`
+    - クエリ: `q`, `sort`, `status`
+    - `q`: 空白trim後に空でなければ `title` / `summary` の部分一致検索（大文字小文字非区別）
+    - `sort`: `updated`（`updatedAt desc`）/ `created`（`createdAt desc`）/ `title`（`title asc`, `updatedAt desc`）/ `public`（`isPublic desc`, `updatedAt desc`）
+    - `status`: `all`（指定なし）, `public`（公開中のみ）, `private`（非公開のみ）
+    - 不正な `sort` / `status` は `updated` / `all` として扱う
+    - ログイン中ユーザー自身のゲームのみ返却し、`deletedAt = null` を維持
 
 ## お気に入り（Favorites）統一仕様
 
@@ -175,6 +188,10 @@
   - クエリ: `q`, `sort` をURLに反映・復元（`sort` 未指定時は `new`）
   - 検索対象: `title`, `summary`（UI表示上は description にマップ）
   - 出典: `apps/frontend/pages/games/index.vue`, `apps/frontend/composables/useGames.ts`, `apps/api/src/games/games.service.ts`
+- `/my/games`（自作管理一覧）
+  - クエリ: `q`, `sort`, `status` をURLに反映・復元（`sort` 未指定時は `updated`、`status` 未指定時は `all`）
+  - 検索対象: `title`, `summary`
+  - 出典: `apps/frontend/pages/my/games/index.vue`, `apps/frontend/composables/useGames.ts`, `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
 
 ## サムネ / 署名URL 取扱
 

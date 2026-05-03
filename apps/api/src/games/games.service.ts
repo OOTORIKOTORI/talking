@@ -30,6 +30,8 @@ type PublicGameSummary = {
 };
 
 type PublicGamesSort = 'new' | 'updated' | 'title';
+type MyGamesSort = 'updated' | 'created' | 'title' | 'public';
+type MyGamesStatus = 'all' | 'public' | 'private';
 
 @Injectable()
 export class GamesService {
@@ -202,6 +204,43 @@ export class GamesService {
     return { createdAt: 'desc' };
   }
 
+  private normalizeMyGamesSort(sortRaw: unknown): MyGamesSort {
+    const v = String(sortRaw ?? '')
+      .trim()
+      .toLowerCase();
+    if (v === 'created' || v === 'title' || v === 'public' || v === 'updated') return v;
+    return 'updated';
+  }
+
+  private normalizeMyGamesStatus(statusRaw: unknown): MyGamesStatus {
+    const v = String(statusRaw ?? '')
+      .trim()
+      .toLowerCase();
+    if (v === 'public' || v === 'private' || v === 'all') return v;
+    return 'all';
+  }
+
+  private normalizeMyGamesQuery(qRaw: unknown): string | null {
+    if (typeof qRaw !== 'string') return null;
+    const q = qRaw.trim();
+    return q.length > 0 ? q : null;
+  }
+
+  private myGamesOrderBy(
+    sort: MyGamesSort,
+  ): Prisma.GameProjectOrderByWithRelationInput | Prisma.GameProjectOrderByWithRelationInput[] {
+    if (sort === 'created') {
+      return { createdAt: 'desc' };
+    }
+    if (sort === 'title') {
+      return [{ title: 'asc' }, { updatedAt: 'desc' }];
+    }
+    if (sort === 'public') {
+      return [{ isPublic: 'desc' }, { updatedAt: 'desc' }];
+    }
+    return { updatedAt: 'desc' };
+  }
+
   private async assertGameOwner(
     userId: string,
     gameId: string,
@@ -263,10 +302,28 @@ export class GamesService {
     }
   }
 
-  async myList(userId: string) {
+  async myList(userId: string, qRaw?: unknown, sortRaw?: unknown, statusRaw?: unknown) {
+    const q = this.normalizeMyGamesQuery(qRaw);
+    const sort = this.normalizeMyGamesSort(sortRaw);
+    const status = this.normalizeMyGamesStatus(statusRaw);
+
+    const where: Prisma.GameProjectWhereInput = {
+      ownerId: userId,
+      deletedAt: null,
+      ...(status === 'all' ? {} : { isPublic: status === 'public' }),
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { summary: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
     return this.prisma.gameProject.findMany({
-      where: { ownerId: userId, deletedAt: null },
-      orderBy: { updatedAt: 'desc' },
+      where,
+      orderBy: this.myGamesOrderBy(sort),
     });
   }
 

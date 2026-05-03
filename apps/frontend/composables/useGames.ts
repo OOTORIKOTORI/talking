@@ -1,5 +1,9 @@
 export function useGamesApi() {
   const api = useApi()
+
+  type MyGamesSort = 'updated' | 'created' | 'title' | 'public'
+  type MyGamesStatus = 'all' | 'public' | 'private'
+
   return {
     listPublic: (q?: { limit?: number; offset?: number; q?: string; sort?: 'new' | 'updated' | 'title' }) =>
       api('/games', { query: q }),
@@ -7,7 +11,7 @@ export function useGamesApi() {
     countView: (id: string) => api(`/games/${id}/view`, { method: 'POST' }),
     countPlay: (id: string) => api(`/games/${id}/play`, { method: 'POST' }),
     getEdit: (id: string) => api(`/games/${id}/edit`),
-    my: () => api('/games/my'),
+    my: (q?: { q?: string; sort?: MyGamesSort; status?: MyGamesStatus }) => api('/games/my', { query: q }),
     create: (b: { title: string; summary?: string }) => api('/games', { method: 'POST', body: b }),
     get: (id: string) => api(`/games/${id}`),
     update: (id: string, b: any) => api(`/games/${id}`, { method: 'PATCH', body: b }),

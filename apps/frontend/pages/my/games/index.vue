@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-6">ゲームプロジェクト</h1>
-    
+
     <form class="mb-6 flex gap-2" @submit.prevent="onCreate">
       <input
         v-model="title"
@@ -16,6 +16,69 @@
         作成
       </button>
     </form>
+
+    <section class="mb-6 border border-gray-200 rounded-lg p-4 bg-white">
+      <div class="flex flex-col lg:flex-row gap-3 lg:items-end">
+        <form class="flex-1" @submit.prevent="applySearch">
+          <label for="my-games-search" class="block text-sm font-medium text-gray-700 mb-1">
+            キーワード検索
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="my-games-search"
+              v-model="searchInput"
+              type="search"
+              placeholder="タイトル・概要で検索"
+              autocomplete="off"
+              class="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
+              :disabled="loading"
+            >
+              検索
+            </button>
+          </div>
+        </form>
+
+        <div class="w-full lg:w-52">
+          <label for="my-games-status" class="block text-sm font-medium text-gray-700 mb-1">公開状態</label>
+          <select
+            id="my-games-status"
+            v-model="status"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @change="applyStatus"
+          >
+            <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="w-full lg:w-56">
+          <label for="my-games-sort" class="block text-sm font-medium text-gray-700 mb-1">並び替え</label>
+          <select
+            id="my-games-sort"
+            v-model="sort"
+            class="w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @change="applySort"
+          >
+            <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+        <p v-if="appliedQuery">検索: 「{{ appliedQuery }}」 / {{ list.length }}件</p>
+        <p v-else>自作ゲーム {{ list.length }}件</p>
+        <p>公開状態: {{ currentStatusLabel }}</p>
+        <p>並び順: {{ currentSortLabel }}</p>
+        <p v-if="loading">読み込み中...</p>
+      </div>
+    </section>
 
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">読み込み中...</p>
@@ -80,8 +143,14 @@
     </ul>
 
     <div v-else class="text-center py-12">
-      <p class="text-gray-500">まだゲームプロジェクトがありません。</p>
-      <p class="text-sm text-gray-400 mt-2">上のフォームから新規作成できます。</p>
+      <template v-if="hasAppliedFilter">
+        <p class="text-gray-500">条件に一致する自作ゲームはありません。</p>
+        <p class="text-sm text-gray-400 mt-2">検索語・並び替え・公開状態を見直してください。</p>
+      </template>
+      <template v-else>
+        <p class="text-gray-500">まだゲームプロジェクトがありません。</p>
+        <p class="text-sm text-gray-400 mt-2">上のフォームから新規作成できます。</p>
+      </template>
     </div>
   </div>
 </template>
@@ -89,17 +158,55 @@
 <script setup lang="ts">
 import { runScenarioCheck } from '@/utils/scenarioCheck'
 
+type MyGame = {
+  id: string
+  title: string
+  summary: string | null
+  isPublic: boolean
+  updatedAt: string
+}
+
+type MyGamesSort = 'updated' | 'created' | 'title' | 'public'
+type MyGamesStatus = 'all' | 'public' | 'private'
+
 definePageMeta({
   middleware: 'require-auth'
 })
 
+const route = useRoute()
+const router = useRouter()
 const api = useGamesApi()
 const toast = useToast()
-const list = ref<any[]>([])
+const list = ref<MyGame[]>([])
 const title = ref('')
 const loading = ref(true)
 const togglingIds = ref<Record<string, boolean>>({})
 const deletingIds = ref<Record<string, boolean>>({})
+const searchInput = ref('')
+const appliedQuery = ref('')
+const sort = ref<MyGamesSort>('updated')
+const status = ref<MyGamesStatus>('all')
+
+const sortOptions: Array<{ value: MyGamesSort; label: string }> = [
+  { value: 'updated', label: '更新順' },
+  { value: 'created', label: '作成順' },
+  { value: 'title', label: 'タイトル順' },
+  { value: 'public', label: '公開状態順' },
+]
+
+const statusOptions: Array<{ value: MyGamesStatus; label: string }> = [
+  { value: 'all', label: 'すべて' },
+  { value: 'public', label: '公開中' },
+  { value: 'private', label: '非公開' },
+]
+
+const currentSortLabel = computed(
+  () => sortOptions.find((opt) => opt.value === sort.value)?.label ?? '更新順'
+)
+const currentStatusLabel = computed(
+  () => statusOptions.find((opt) => opt.value === status.value)?.label ?? 'すべて'
+)
+const hasAppliedFilter = computed(() => !!appliedQuery.value || status.value !== 'all')
 
 const isToggling = (id: string) => !!togglingIds.value[id]
 const isDeleting = (id: string) => !!deletingIds.value[id]
@@ -112,20 +219,109 @@ const setDeleting = (id: string, value: boolean) => {
   deletingIds.value = { ...deletingIds.value, [id]: value }
 }
 
-const refreshList = async () => {
-  list.value = (await api.my()) as any[]
+const firstQuery = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0]
+  return undefined
 }
 
-onMounted(async () => {
-  try {
-    await refreshList()
-  } catch (error) {
-    console.error('Failed to load games:', error)
-    toast.error('ゲーム一覧の取得に失敗しました')
-  } finally {
-    loading.value = false
+const normalizeSort = (value: unknown): MyGamesSort => {
+  const v = String(value ?? '').trim().toLowerCase()
+  if (v === 'updated' || v === 'created' || v === 'title' || v === 'public') return v
+  return 'updated'
+}
+
+const normalizeStatus = (value: unknown): MyGamesStatus => {
+  const v = String(value ?? '').trim().toLowerCase()
+  if (v === 'all' || v === 'public' || v === 'private') return v
+  return 'all'
+}
+
+const buildQuery = (q: string, nextSort: MyGamesSort, nextStatus: MyGamesStatus) => {
+  const query: Record<string, any> = { ...route.query }
+  if (q) {
+    query.q = q
+  } else {
+    delete query.q
   }
-})
+
+  if (nextSort !== 'updated') {
+    query.sort = nextSort
+  } else {
+    delete query.sort
+  }
+
+  if (nextStatus !== 'all') {
+    query.status = nextStatus
+  } else {
+    delete query.status
+  }
+
+  return query
+}
+
+const refreshList = async () => {
+  list.value = (await api.my({
+    q: appliedQuery.value || undefined,
+    sort: sort.value,
+    status: status.value,
+  })) as MyGame[]
+}
+
+const applySearch = async () => {
+  const q = searchInput.value.trim()
+  await router.push({ query: buildQuery(q, sort.value, status.value) })
+}
+
+const applySort = async () => {
+  await router.push({ query: buildQuery(appliedQuery.value, sort.value, status.value) })
+}
+
+const applyStatus = async () => {
+  await router.push({ query: buildQuery(appliedQuery.value, sort.value, status.value) })
+}
+
+watch(
+  () => route.query,
+  async () => {
+    const rawQ = firstQuery(route.query.q) || ''
+    const normalizedQ = rawQ.trim()
+    const rawSort = firstQuery(route.query.sort)
+    const rawStatus = firstQuery(route.query.status)
+    const normalizedSort = normalizeSort(rawSort)
+    const normalizedStatus = normalizeStatus(rawStatus)
+
+    const normalizedSortQuery = normalizedSort === 'updated' ? undefined : normalizedSort
+    const normalizedStatusQuery = normalizedStatus === 'all' ? undefined : normalizedStatus
+    const currentSortQuery = rawSort && rawSort.trim() ? rawSort.trim().toLowerCase() : undefined
+    const currentStatusQuery = rawStatus && rawStatus.trim() ? rawStatus.trim().toLowerCase() : undefined
+    const needsCanonicalize =
+      rawQ !== normalizedQ ||
+      currentSortQuery !== normalizedSortQuery ||
+      currentStatusQuery !== normalizedStatusQuery
+
+    if (needsCanonicalize) {
+      await router.replace({ query: buildQuery(normalizedQ, normalizedSort, normalizedStatus) })
+      return
+    }
+
+    searchInput.value = normalizedQ
+    appliedQuery.value = normalizedQ
+    sort.value = normalizedSort
+    status.value = normalizedStatus
+
+    loading.value = true
+    try {
+      await refreshList()
+    } catch (error) {
+      console.error('Failed to load games:', error)
+      toast.error('ゲーム一覧の取得に失敗しました')
+    } finally {
+      loading.value = false
+    }
+  },
+  { immediate: true }
+)
 
 async function onCreate() {
   if (!title.value.trim()) return
@@ -190,6 +386,7 @@ async function togglePublic(game: any) {
 
     await api.update(game.id, { isPublic: next })
     game.isPublic = next
+    await refreshList()
     toast.success(next ? '公開に切り替えました' : '非公開に切り替えました')
   } catch (error: any) {
     game.isPublic = prev
@@ -231,7 +428,7 @@ async function onDelete(game: any) {
   setDeleting(game.id, true)
   try {
     await api.del(game.id)
-    list.value = list.value.filter((item) => item.id !== game.id)
+    await refreshList()
     toast.success('ゲームを削除しました')
   } catch (error: any) {
     console.error('Failed to delete game:', error)

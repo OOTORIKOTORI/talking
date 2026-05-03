@@ -38,8 +38,13 @@ export class GamesController {
 
   @Get('my')
   @UseGuards(SupabaseAuthGuard)
-  my(@Req() req: any) {
-    return this.games.myList(req.user.userId);
+  my(
+    @Req() req: any,
+    @Query('q') q?: string,
+    @Query('sort') sort?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.games.myList(req.user.userId, q, sort, status);
   }
 
   @Post()
