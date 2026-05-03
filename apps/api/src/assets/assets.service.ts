@@ -104,16 +104,20 @@ export class AssetsService {
         { createdAt: 'desc' },
         { id: 'desc' },
       ],
+      include: { _count: { select: { favorites: true } } },
     });
 
-    let itemsWithFavorite = items;
+    let itemsWithFavorite = items.map((item: any) => {
+      const { _count, ...asset } = item;
+      return { ...asset, favoriteCount: _count?.favorites ?? 0 };
+    });
     if (query.userId && items.length) {
       const favs = await this.prisma.favorite.findMany({
         where: { userId: query.userId, assetId: { in: items.map(a => a.id) } },
         select: { assetId: true },
       });
       const favSet = new Set(favs.map(f => f.assetId));
-      itemsWithFavorite = items.map(a => ({ ...a, isFavorite: favSet.has(a.id) }));
+      itemsWithFavorite = itemsWithFavorite.map((a) => ({ ...a, isFavorite: favSet.has(a.id) }));
     }
 
     const hasNext = itemsWithFavorite.length > take;
@@ -129,15 +133,23 @@ export class AssetsService {
   async findOne(id: string, userId?: string) {
     const asset = await this.prisma.asset.findFirst({
       where: { id, deletedAt: null },
+      include: { _count: { select: { favorites: true } } },
     });
     if (!asset) return null;
+
+    const { _count, ...base } = asset as any;
+    const assetWithFavoriteCount = {
+      ...base,
+      favoriteCount: _count?.favorites ?? 0,
+    };
+
     if (userId) {
       const fav = await this.prisma.favorite.findUnique({
         where: { userId_assetId: { userId, assetId: id } },
       });
-      return { ...asset, isFavorite: !!fav };
+      return { ...assetWithFavoriteCount, isFavorite: !!fav };
     }
-    return asset;
+    return assetWithFavoriteCount;
   }
 
   async update(id: string, updateAssetDto: UpdateAssetDto, userId: string) {

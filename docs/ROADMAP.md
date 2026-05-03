@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-03（公開ゲーム 閲覧数/プレイ数 集計MVP）
+> 最終更新: 2026-05-03（アセットお気に入り数表示MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,7 @@
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。
 
 **実装済み（主要）**
+- アセットお気に入り数表示MVP（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
 - ゲーム制作・公開・共有フローMVP（公開一覧・API・公開切替・UI導線）
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
@@ -41,6 +42,11 @@
 	- 右ペイン開閉状態保存（`talking.editor.rightPaneSections.v1`）とは別キーで共存
 
 **直近の残課題（優先順）**
+- アセット閲覧数 `viewCount` のMVP導入（`/assets/:id` のみカウント、一覧/管理画面は非対象）
+- アセット使用数 `usedInGameCount` の定義と集計方針（公開/非公開、削除時扱い）
+- アセット指標ソート・ランキング（お気に入り順/閲覧数順/使用数順/人気順）
+- アセット指標の検索連携（タグ検索との複合、Meilisearch連携）
+- 指標基盤強化（`favoriteCount` カラム化、ユニーク閲覧、イベントログ、作者ダッシュボード）
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
 - edit画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）
 - 右ペインセクションの要約表示（閉じた状態での情報把握）の強化
@@ -73,6 +79,78 @@
 | 2026-05-03 | ❌ exit 1 | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/api build` も同様に `prisma:generate` で EPERM |
 | 2026-05-03 | ✅ exit 0 (frontend only) | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/frontend build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 | 公開ゲーム閲覧数/プレイ数MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-03 | ❌ exit 1 | アセットお気に入り数表示MVP後。`pnpm -w build` は `apps/api prisma:generate` の EPERM（DLLロック） |
+| 2026-05-03 | ❌ exit 1 | アセットお気に入り数表示MVP後。`pnpm -C apps/api build` は `prisma:generate` の EPERM（DLLロック） |
+| 2026-05-03 | ✅ exit 0 | アセットお気に入り数表示MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-03 / アセットお気に入り数表示MVP）
+
+### 実装した内容
+- API（`apps/api/src/search/search.controller.ts`）
+	- `GET /search/assets` の返却 `items[*]` に `favoriteCount` を追加
+	- Prisma の `_count.favorites` を使用
+	- Meilisearch経由取得時も同様に `favoriteCount` を付与
+- API（`apps/api/src/assets/assets.service.ts`）
+	- `GET /assets/:id` の返却に `favoriteCount` を追加
+	- 既存のお気に入り状態付与（`isFavorite`）は維持
+	- `GET /assets` 系返却にも `favoriteCount` を付与（互換維持）
+- API（`apps/api/src/favorites/favorites.service.ts`）
+	- `GET /favorites` 返却にも `favoriteCount` を付与（カード共通化時の自然表示を担保）
+- フロント（`apps/frontend/components/asset/AssetCard.vue`）
+	- 公開一覧カードに `お気に入り n` を表示
+	- `favoriteCount` が未定義でも `0` 扱い
+	- お気に入りトグル時に件数を楽観更新（+1 / -1、0未満防止）、失敗時ロールバック
+- フロント（`apps/frontend/pages/assets/[id].vue`）
+	- 詳細画面にお気に入り件数表示とトグル導線を追加
+	- 未ログインでも件数表示、トグル操作時のログイン導線は既存仕様を維持
+- フロント（`apps/frontend/composables/useFavoriteToggle.ts`, `apps/frontend/composables/useAssets.ts`）
+	- `isFavorite` / `isFavorited` の両方を同期
+	- `favoriteCount` の楽観更新・ロールバックに対応
+	- 正規化処理で `favoriteCount` を数値化し、未定義は `0`
+- 型（`packages/types/src/index.ts`）
+	- `Asset` 型に `favoriteCount?: number`, `isFavorited?: boolean` を追加
+
+### 今回の方針
+- DB migration 追加なし
+- `favoriteCount` カラム追加なし
+- 既存 relation の `_count` を利用
+
+### 将来課題として整理
+- アセット閲覧数 `viewCount`
+	- `/assets/:id` のみカウント対象
+	- `/assets` 一覧、`/my/assets` は非対象
+	- MVPではリロード増加を許容、ユニーク閲覧は将来課題
+- アセットお気に入り数の高度化
+	- 高負荷時は `favoriteCount` カラム化を検討
+	- favorite/unfavorite 時カウンタ増減
+	- お気に入り順 / 人気順ソート
+- アセット使用数 `usedInGameCount`
+	- 背景/BGM/SE/キャラクター素材別の集計
+	- 公開ゲームのみ対象にするか、非公開を含めるかの方針決定
+	- ゲーム削除/非公開化時の集計ルール整理
+	- 使用数順ソートへの活用
+- ランキング / 検索連携
+	- お気に入り順、閲覧数順、使用数順、人気順
+	- タグ検索との組み合わせ
+	- Meilisearch / 高度検索連携
+- 指標基盤
+	- 作者ダッシュボード
+	- ユニーク閲覧数
+	- イベントログテーブル
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で DLL rename 時に EPERM
+- `pnpm -C apps/api build`: ❌ exit 1
+	- 同上（`prisma:generate` で EPERM）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+
+### 未実行の確認と理由
+- `pnpm -C apps/api test`
+	- 理由: `apps/api/package.json` に test script が未定義
 
 ---
 

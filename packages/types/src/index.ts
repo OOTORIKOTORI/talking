@@ -43,7 +43,9 @@ export interface Asset {
   thumbWidth?: number;
   thumbHeight?: number;
   createdAt: Date;
+  favoriteCount?: number;
   isFavorite?: boolean;
+  isFavorited?: boolean;
 }
 
 /**

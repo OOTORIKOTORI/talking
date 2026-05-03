@@ -10,7 +10,9 @@ export const normalizeAssetFavorite = (a: any): AssetLike => {
     a?.favorited ??
     a?.favoritedByMe ??
     a?.is_favorite
-  return { ...a, isFavorited: !!fav }
+  const rawFavoriteCount = Number(a?.favoriteCount)
+  const favoriteCount = Number.isFinite(rawFavoriteCount) && rawFavoriteCount >= 0 ? rawFavoriteCount : 0
+  return { ...a, isFavorited: !!fav, isFavorite: !!fav, favoriteCount }
 }
 
 export const useAssetsApi = () => {

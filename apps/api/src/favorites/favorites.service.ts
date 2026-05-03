@@ -68,9 +68,24 @@ export class FavoritesService {
     }
 
     const orderBy = opt.sort === 'createdAt:asc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const }
-    const assets = await this.prisma.asset.findMany({ where, orderBy })
+    const assets = await this.prisma.asset.findMany({
+      where,
+      orderBy,
+      include: { _count: { select: { favorites: true } } },
+    })
 
     // Use isFavorited (past participle) to match frontend expectations
-    return { items: assets.map((a) => ({ ...a, isFavorited: true, isFavorite: true })), total: assets.length }
+    return {
+      items: assets.map((a: any) => {
+        const { _count, ...asset } = a
+        return {
+          ...asset,
+          favoriteCount: _count?.favorites ?? 0,
+          isFavorited: true,
+          isFavorite: true,
+        }
+      }),
+      total: assets.length,
+    }
   }
 }

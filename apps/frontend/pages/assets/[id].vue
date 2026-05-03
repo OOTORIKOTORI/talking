@@ -72,6 +72,18 @@
             <h2 class="text-2xl font-bold text-gray-900">
               {{ asset.title || 'Untitled' }}
             </h2>
+            <div class="mt-3 flex items-center gap-3">
+              <button
+                @click="toggleAssetFavorite"
+                :disabled="favoriteToggling"
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors disabled:opacity-50"
+                :class="isFavorited ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'"
+              >
+                <span aria-hidden="true">{{ isFavorited ? '♥' : '♡' }}</span>
+                <span>{{ isFavorited ? 'お気に入り済み' : 'お気に入り' }}</span>
+              </button>
+              <span class="text-sm text-gray-500">お気に入り {{ displayFavoriteCount }}</span>
+            </div>
           </div>
 
           <!-- Description -->
@@ -298,11 +310,13 @@ import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
 import { useToast } from '@/composables/useToast';
+import { useFavoriteToggle } from '@/composables/useFavoriteToggle';
 
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient() as any;
 const { getAsset, updateAsset, deleteAsset, restoreAsset } = useAssets();
+const { toggle } = useFavoriteToggle();
 const toast = useToast();
 
 // Get current user session
@@ -317,6 +331,18 @@ const mediaErrorRetried = ref(false);
 const saving = ref(false);
 const showDeleteModal = ref(false);
 const deleting = ref(false);
+const favoriteToggling = ref(false);
+
+const isFavorited = computed(() => {
+  if (!asset.value) return false;
+  return !!(asset.value.isFavorite ?? asset.value.isFavorited);
+});
+
+const displayFavoriteCount = computed(() => {
+  if (!asset.value) return 0;
+  const count = Number(asset.value.favoriteCount ?? 0);
+  return Number.isFinite(count) && count > 0 ? count : 0;
+});
 
 // Check if current user can manage this asset
 const canManage = computed(() => {
@@ -348,6 +374,19 @@ const loadAsset = async () => {
     error.value = e instanceof Error ? e.message : 'Failed to load asset';
   } finally {
     loading.value = false;
+  }
+};
+
+const toggleAssetFavorite = async () => {
+  if (!asset.value || favoriteToggling.value) return;
+  favoriteToggling.value = true;
+  try {
+    await toggle(asset.value as any);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'お気に入り更新に失敗しました';
+    toast.error(message);
+  } finally {
+    favoriteToggling.value = false;
   }
 };
 

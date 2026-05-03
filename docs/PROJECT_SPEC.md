@@ -120,6 +120,49 @@
   - `normalizeAssetFavorite()` で `isFavorited` を付与（`isFavorite`/`favorited` 等を吸収）
   - 出典: `apps/frontend/composables/useAssets.ts#normalizeAssetFavorite`
 
+## アセットお気に入り数表示MVP（2026-05-03）
+
+- 実装範囲
+  - 公開アセット一覧 `GET /search/assets` の `items[*]` に `favoriteCount` を追加
+  - アセット詳細 `GET /assets/:id` に `favoriteCount` を追加
+  - 公開一覧カード `/assets` で `お気に入り n` を表示（`undefined` は `0` 扱い）
+  - アセット詳細 `/assets/:id` で `お気に入り n` を表示し、トグルUIの近傍に配置
+- API実装方針
+  - Prisma relation の `_count`（`_count.favorites`）を利用
+  - `favoriteCount` 専用カラムは追加しない（migration なし）
+  - 削除済みアセットは既存方針どおり `deletedAt: null` のみ返却
+- お気に入り追加/解除時の更新方式
+  - 楽観更新で `isFavorite/isFavorited` と `favoriteCount` を同時更新
+  - 追加成功: `+1`、解除成功: `-1`（下限 `0`）
+  - API失敗時は favorite 状態と件数をロールバック
+- 影響範囲メモ
+  - `/my/favorites` も同じアセットカード表示時に `favoriteCount` を自然表示（取得できる場合）
+  - `/my/assets` は管理画面のため表示必須対象外（既存UIを維持）
+
+## アセット指標の将来課題
+
+- アセット閲覧数 `viewCount`
+  - 集計対象: `/assets/:id` 詳細表示
+  - 非対象: `/assets` 一覧表示、`/my/assets` 管理画面
+  - MVP案: ゲームと同様にリロードごと増加を許容
+  - 将来: ユニーク閲覧（ユーザー/IP重複除外）
+- アセットお気に入り数の高度化
+  - 一覧負荷次第で `favoriteCount` カラムの導入を検討
+  - favorite/unfavorite 時にカウンタ増減
+  - お気に入り順ソート、人気順ソートへの活用
+- アセット使用数 `usedInGameCount`
+  - 背景/BGM/SE/キャラクター素材別の集計
+  - 公開ゲームのみ対象か、非公開ゲームを含めるかを検討
+  - ゲーム削除/非公開化時の集計ルールを整理
+  - 使用数順ソートへの活用
+- ランキング/検索連携
+  - お気に入り順、閲覧数順、使用数順、人気順
+  - タグ検索との複合条件
+  - Meilisearch / 高度検索スコアリング連携
+- 分析基盤
+  - 作者ダッシュボード
+  - イベントログテーブル
+
 ## 検索 / フィルタ / URL 同期
 
 - `/assets`（公開）と `/my/assets`（自分）

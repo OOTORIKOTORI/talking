@@ -49,6 +49,7 @@
     <div class="p-3">
       <h3 class="font-medium line-clamp-1">{{ asset.title || '（無題）' }}</h3>
       <p class="text-xs text-gray-500 line-clamp-2">{{ asset.description }}</p>
+      <p class="mt-2 text-xs text-gray-500">お気に入り {{ favoriteCount }}</p>
     </div>
   </NuxtLink>
 </template>
@@ -70,6 +71,10 @@ const props = defineProps({
 const api = useAssetsApi()
 const isFav = ref(!!props.asset?.isFavorited)
 watch(() => props.asset?.isFavorited, v => (isFav.value = !!v))
+const favoriteCount = ref(Math.max(0, Number(props.asset?.favoriteCount ?? 0) || 0))
+watch(() => props.asset?.favoriteCount, v => {
+  favoriteCount.value = Math.max(0, Number(v ?? 0) || 0)
+})
 
 const toggling = ref(false)
 
@@ -79,7 +84,9 @@ const toggleFavorite = async (e: MouseEvent) => {
   if (toggling.value) return
   toggling.value = true
   const prev = isFav.value
+  const prevCount = favoriteCount.value
   isFav.value = !prev
+  favoriteCount.value = !prev ? prevCount + 1 : Math.max(0, prevCount - 1)
   try {
     if (!prev) {
       await api.favorite(props.asset.id)
@@ -87,9 +94,14 @@ const toggleFavorite = async (e: MouseEvent) => {
       await api.unfavorite(props.asset.id)
     }
     // ソースも同期
-    if (props.asset) props.asset.isFavorited = isFav.value
+    if (props.asset) {
+      props.asset.isFavorited = isFav.value
+      props.asset.isFavorite = isFav.value
+      props.asset.favoriteCount = favoriteCount.value
+    }
   } catch (err) {
     isFav.value = prev // ロールバック
+    favoriteCount.value = prevCount
   } finally {
     toggling.value = false
   }

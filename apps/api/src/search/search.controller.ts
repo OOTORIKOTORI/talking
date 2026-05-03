@@ -126,11 +126,22 @@ export class SearchController {
     const orderBy = this.parseSort(dto.sort);
 
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.asset.findMany({ where, orderBy, skip: offset, take: limit }),
+      this.prisma.asset.findMany({
+        where,
+        orderBy,
+        skip: offset,
+        take: limit,
+        include: { _count: { select: { favorites: true } } },
+      }),
       this.prisma.asset.count({ where }),
     ]);
 
-    return { items, limit, offset, total };
+    const mapped = items.map((item) => {
+      const { _count, ...asset } = item as any;
+      return { ...asset, favoriteCount: _count?.favorites ?? 0 };
+    });
+
+    return { items: mapped, limit, offset, total };
   }
 
   /**
@@ -168,10 +179,17 @@ export class SearchController {
 
       const assets = await this.prisma.asset.findMany({
         where: { id: { in: ids }, deletedAt: null },
+        include: { _count: { select: { favorites: true } } },
       });
 
       const assetMap = new Map(assets.map((a) => [a.id, a]));
-      const orderedAssets = ids.map((id) => assetMap.get(id)).filter(Boolean);
+      const orderedAssets = ids
+        .map((id) => assetMap.get(id))
+        .filter(Boolean)
+        .map((item: any) => {
+          const { _count, ...asset } = item;
+          return { ...asset, favoriteCount: _count?.favorites ?? 0 };
+        });
 
       // Meilisearch にあるが Prisma に存在しない（削除済みなど）場合 fallback
       if (orderedAssets.length === 0 && ids.length > 0) {

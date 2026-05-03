@@ -11,12 +11,20 @@ export function useFavoriteToggle() {
     return true
   }
 
-  async function toggle(asset: { id: string; isFavorite?: boolean }) {
+  async function toggle(asset: { id: string; isFavorite?: boolean; isFavorited?: boolean; favoriteCount?: number }) {
     const path = useRoute().fullPath
     if (!(await ensureLogin(path))) return
 
-    const optimistic = !asset.isFavorite
+    const prevIsFavorite = asset.isFavorite ?? asset.isFavorited ?? false
+    const prevFavoriteCount = Number(asset.favoriteCount ?? 0)
+    const optimistic = !prevIsFavorite
+
     asset.isFavorite = optimistic
+    asset.isFavorited = optimistic
+    asset.favoriteCount = optimistic
+      ? prevFavoriteCount + 1
+      : Math.max(0, prevFavoriteCount - 1)
+
     try {
       if (optimistic) {
         await $api(`/assets/${asset.id}/favorite`, { method: 'POST' })
@@ -25,7 +33,9 @@ export function useFavoriteToggle() {
       }
     } catch (e) {
       // revert on error
-      asset.isFavorite = !optimistic
+      asset.isFavorite = prevIsFavorite
+      asset.isFavorited = prevIsFavorite
+      asset.favoriteCount = prevFavoriteCount
       throw e
     }
   }
