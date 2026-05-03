@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-03（ゲームプレイ BGMフェードMVP）
+> 最終更新: 2026-05-03（シナリオチェック追加MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -15,6 +15,7 @@
 - ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
 - NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
 - シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
+- シナリオチェック追加MVP（空本文/空ラベル/表示可能選択肢0件/開始シーン以外のstartNodeId壊れ → warning）
 - ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
@@ -61,6 +62,7 @@
 | 2026-05-02 | ✅ exit 0 (frontend only) | 作業位置復元MVPfrontend フォールバック強化後。pnpm -C apps/api build は EPERM (DLLロック) で失敗だがフロントエンドビルド・全テストは exit 0 |
 | 2026-05-03 | ✅ exit 0 | 公開前チェックMVP後。`pnpm -w build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 | BGMフェードMVP後。`pnpm -w build` は成功（既知 WARN のみ） |
+| 2026-05-03 | ✅ exit 0 (frontend only) | シナリオチェック追加MVP後。`pnpm -C apps/frontend build` は成功。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック）のため frontend のみ確認。全テスト(4 files / 31 tests)は ✅ exit 0 |
 
 ---
 
@@ -107,6 +109,54 @@
 
 ---
 
+## 🔎 今回の確認メモ（2026-05-03 / シナリオチェック追加MVP）
+
+### 実装した内容
+- `apps/frontend/utils/scenarioCheck.ts`
+	- チェック1: ノード本文が空（warning）
+		- `text` が空文字または空白のみのノードを検出（全ノード対象）
+		- 演出専用ノードの可能性があるため warning（error にしない）
+	- チェック2: 選択肢ラベルが空（warning）
+		- `choice.label` が空文字または空白のみの選択肢を検出
+		- `targetNodeId = null` の選択肢でも検出対象
+	- チェック3: 選択肢はあるが表示可能な選択肢が0件（warning）
+		- `choices.length > 0` かつ `targetNodeId != null` の選択肢が0件のノードを検出
+	- チェック5: 開始シーン以外の `startNodeId` 壊れチェック（warning）
+		- 開始シーン以外のシーンで `startNodeId` が設定されているが、そのノードIDがシーン内に存在しない場合に検出
+		- `startNodeId` 未設定は許容（error にしない）
+		- 開始シーンの `startNodeId` は既存の error チェックを維持
+- `apps/frontend/tests/scenarioCheck.spec.ts`（新規作成）
+	- 上記4チェックの vitest テストを追加（21ケース）
+	- 既存チェック（error/warning/info）の後退防止テストも含む
+
+### 素材参照チェック（チェック4）について
+- 今回未実装。ノードが参照するアセットID（BGM・SE・背景・キャラクター等）の存在確認には、`runScenarioCheck` にアセット一覧を渡す設計変更が必要なため将来課題とした
+- 将来課題として ROADMAP に追記済み
+
+### API側公開前チェックへの影響
+- 今回追加した warning は API 側公開前チェックに追加していない（公開ブロック項目は増やさない方針を維持）
+
+### 将来課題
+- 素材参照の厳密チェック（ノードが参照するアセットID の存在確認）
+- アセット権限・公開可否チェック（削除済み・非公開アセット）
+- 条件分岐の完全評価（`condition` / `alternateCondition` を考慮した到達判定）
+- 変数キー存在チェック
+- フローチャート可視化
+- シナリオ Import/Export（JSON → AI向けMarkdown/DSL）
+- 公開前チェック専用画面
+
+### 実行した確認
+- `pnpm -C apps/frontend test --run`: ✅ exit 0（4 files / 31 tests passed）
+- `pnpm -C apps/frontend build`: ✅ exit 0
+- `pnpm -w build`: ❌ exit 1（`apps/api prisma:generate` で EPERM。DLLロックのため失敗。フロントエンドは正常）
+- API test コマンド: `apps/api/package.json` に test script がないため未実行
+
+### 今回未実行の確認と理由
+- ブラウザ手動確認（追加 warning の実画面確認、警告フィルタ、対象へ移動）
+	- 理由: この実行環境ではブラウザ手動E2Eを実施していないため
+
+---
+
 ## 🔎 今回の確認メモ（2026-05-03 / ゲーム公開前チェックMVP）
 
 ### 実装した内容
@@ -149,10 +199,15 @@
 
 ### 将来課題（公開審査）
 - 完全なサーバーサイド公開審査
-- アセット権限 / 削除済み素材参照チェック
+- アセット権限 / 削除済み素材参照チェック（削除済み・非公開アセットの検出）
 - 条件分岐の完全評価
+- 変数キー存在チェック
 - warning/info の API レスポンス活用
 - 公開申請 / 管理者レビュー
+- 素材参照の厳密チェック（ノードが参照する背景/BGM/SE/キャラクター立ち絵IDの存在確認）
+- フローチャート可視化
+- シナリオImport/Export（JSON → AI向けMarkdown/DSL）
+- 公開前チェック専用画面
 
 ### 実行した確認
 - `pnpm -w build`: ❌ exit 1

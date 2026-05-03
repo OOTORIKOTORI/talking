@@ -98,6 +98,26 @@ export function runScenarioCheck(payload: {
     }
   }
 
+  // ── チェック5: 開始シーン以外の startNodeId 壊れチェック ──────────────────
+  // 開始シーンの startNodeId は後段で error として判定するため、ここでは除外。
+  const startSceneIdForCheck = normalizeNodeId(payload.startSceneId)
+  for (const [, { scene: sceneItem }] of sceneById) {
+    if (sceneItem.id === startSceneIdForCheck) continue
+    const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []
+    if (sceneNodes.length === 0) continue // 空シーンは別チェック済み
+    const sid = normalizeNodeId(sceneItem?.startNodeId)
+    if (!sid) continue // 未設定は許容（開始シーン以外は必須ではない）
+    const exists = sceneNodes.some((n: any) => n?.id === sid)
+    if (!exists) {
+      pushIssue({
+        severity: 'warning',
+        sceneId: sceneItem.id,
+        message:
+          'このシーンの開始ノードが存在しません。シーン単位再生を使う場合に問題になる可能性があります。',
+      })
+    }
+  }
+
   const startSceneId = normalizeNodeId(payload.startSceneId)
   let validStartNodeId: string | null = null
 
@@ -151,6 +171,29 @@ export function runScenarioCheck(payload: {
     const choices = Array.isArray(nodeItem?.choices) ? nodeItem.choices : []
     const displayableChoices = choices.filter((choice: any) => !!normalizeNodeId(choice?.targetNodeId))
 
+    // ── チェック1: ノード本文が空 ──────────────────────────────────────────────
+    const nodeText = typeof nodeItem?.text === 'string' ? nodeItem.text : ''
+    if (!nodeText.trim()) {
+      pushIssue({
+        severity: 'warning',
+        sceneId: nodeMeta.scene.id,
+        nodeId: nodeItem.id,
+        message:
+          'このノードの本文が空です。演出専用ノードでなければ本文を入力してください。',
+      })
+    }
+
+    // ── チェック3: 選択肢はあるが表示可能な選択肢が0件 ────────────────────────
+    if (choices.length > 0 && displayableChoices.length === 0) {
+      pushIssue({
+        severity: 'warning',
+        sceneId: nodeMeta.scene.id,
+        nodeId: nodeItem.id,
+        message:
+          'このノードには選択肢がありますが、プレイ時に表示される選択肢がありません。未設定の選択肢はプレイ時に非表示になります。',
+      })
+    }
+
     const nextNodeId = normalizeNodeId(nodeItem?.nextNodeId)
     if (nextNodeId && !nodeById.has(nextNodeId)) {
       pushIssue({
@@ -174,6 +217,16 @@ export function runScenarioCheck(payload: {
       const choiceName = (typeof choice?.label === 'string' && choice.label.trim())
         ? choice.label.trim()
         : `#${choiceIndex + 1}`
+
+      // ── チェック2: 選択肢ラベルが空 ────────────────────────────────────────
+      if (typeof choice?.label !== 'string' || !choice.label.trim()) {
+        pushIssue({
+          severity: 'warning',
+          sceneId: nodeMeta.scene.id,
+          nodeId: nodeItem.id,
+          message: `選択肢 #${choiceIndex + 1} のラベルが空です。プレイヤーに表示する文言を入力してください。`,
+        })
+      }
 
       const targetNodeId = normalizeNodeId(choice?.targetNodeId)
       if (!targetNodeId) {
