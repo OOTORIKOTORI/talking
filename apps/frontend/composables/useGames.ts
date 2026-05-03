@@ -13,6 +13,7 @@ export function useGamesApi() {
     getEdit: (id: string) => api(`/games/${id}/edit`),
     my: (q?: { q?: string; sort?: MyGamesSort; status?: MyGamesStatus }) => api('/games/my', { query: q }),
     create: (b: { title: string; summary?: string }) => api('/games', { method: 'POST', body: b }),
+    duplicate: (id: string) => api(`/games/${id}/duplicate`, { method: 'POST' }),
     get: (id: string) => api(`/games/${id}`),
     update: (id: string, b: any) => api(`/games/${id}`, { method: 'PATCH', body: b }),
     del: (id: string) => api(`/games/${id}`, { method: 'DELETE' }),

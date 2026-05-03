@@ -53,6 +53,12 @@ export class GamesController {
     return this.games.create(req.user.userId, b);
   }
 
+  @Post(':id/duplicate')
+  @UseGuards(SupabaseAuthGuard)
+  duplicate(@Req() req: any, @Param('id') id: string) {
+    return this.games.duplicate(req.user.userId, id);
+  }
+
   @UseGuards(OptionalSupabaseAuthGuard)
   @Get(':id')
   get(@Req() req: any, @Param('id') id: string) {

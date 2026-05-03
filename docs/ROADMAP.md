@@ -1,12 +1,12 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-03（/my/games 検索・並び替え・公開状態フィルタMVP）
+> 最終更新: 2026-05-04（ゲーム複製MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-03）
+## 📍 現在地サマリ（2026-05-04）
 
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。
 
@@ -20,6 +20,7 @@
 - ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
 - 公開ゲーム一覧 `/games` 検索・並び替えMVP（`q` + `sort` + URL同期 + API側検索/ソート）
 - 自作ゲーム管理 `/my/games` 検索・並び替え・公開状態フィルタMVP（`q` + `sort` + `status` + URL同期 + API側検索/ソート/フィルタ）
+- 自作ゲーム管理 `/my/games` ゲーム複製MVP（owner限定、確認ダイアログ、複製後編集画面遷移）
 - 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
@@ -87,6 +88,58 @@
 | 2026-05-03 | ❌ exit 1 | `/my/games` 検索・並び替え・公開状態フィルタMVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
 | 2026-05-03 | ✅ exit 0 (frontend only) | `/my/games` 検索・並び替え・公開状態フィルタMVP後。`pnpm -C apps/frontend build` は成功（既知 WARN のみ） |
 | 2026-05-03 | ✅ exit 0 | `/my/games` 検索・並び替え・公開状態フィルタMVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+| 2026-05-04 | ❌ exit 1 | ゲーム複製MVP後。`pnpm -w build` は `apps/api prisma:generate` で EPERM（DLLロック） |
+| 2026-05-04 | ❌ exit 1 | ゲーム複製MVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
+| 2026-05-04 | ✅ exit 0 | ゲーム複製MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
+
+---
+
+## 🔎 今回の確認メモ（2026-05-04 / ゲーム複製MVP）
+
+### 実装した内容
+- API（`apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`）
+	- `POST /games/:id/duplicate` を追加
+	- owner 本人のみ複製可能（他人は `403`、削除済みは `404`）
+	- DBトランザクションで複製処理を実行し、途中失敗時の中途半端データ残存を防止
+	- 複製対象: `GameProject` / `GameScene` / `GameNode` / `GameChoice`
+	- ID再マップを実装
+		- 旧 `sceneId` → 新 `sceneId`
+		- 旧 `nodeId` → 新 `nodeId`
+		- `startSceneId` / `startNodeId` / `nextNodeId` / `targetNodeId` / `alternateTargetNodeId` を新IDへ変換
+		- 壊れた参照は `null` に安全化
+	- 複製先ゲームは必ず `isPublic = false`
+	- `viewCount` / `playCount` は 0 で初期化
+	- セーブデータ・履歴・お気に入り等の周辺データは複製しない
+	- アセット実体は複製せず、素材ID参照は維持
+	- 複製先タイトルは `元タイトル のコピー` 基本、重複時は `... のコピー 2` 形式で採番
+- フロント（`apps/frontend/composables/useGames.ts`, `apps/frontend/pages/my/games/index.vue`）
+	- `useGamesApi` に `duplicate(id)` を追加
+	- `/my/games` のカードに「ゲームを複製」ボタンを追加
+	- 複製前に確認ダイアログを表示
+	- 成功時は一覧再取得し、複製先IDが取れた場合 `/my/games/:newId/edit` へ遷移
+	- 失敗時はトーストでエラー表示
+	- 既存の検索/並び替え/公開状態フィルタ、公開切替、削除導線は維持
+
+### 将来課題として記録
+- シーン複製（シーン内ノード/選択肢一括複製、シーン内参照の再マッピング）
+- ノード複製（`nextNodeId` / choice遷移先の扱い方針）
+- ノード移動（別シーン移動時のID/参照維持方針と `startNodeId` 影響整理）
+- シーン間ノードコピー（コピー先で新nodeId採番、参照ポリシー整理）
+- 付随課題: undo/redo、操作前確認ダイアログ、コピー先選択UI、大量ノード操作、シーン/ノードテンプレート化、シナリオImport/Export連携
+
+### 実行した確認
+- `pnpm -w build`: ❌ exit 1
+	- `apps/api prisma:generate` で `query_engine-windows.dll.node` rename 時に EPERM（DLLロック）
+- `pnpm -C apps/api build`: ❌ exit 1
+	- 同上（`prisma:generate` で EPERM）
+- `pnpm -C apps/frontend test`: ✅ exit 0
+	- 4 files / 31 tests passed
+
+### 未実行の確認と理由
+- `pnpm -C apps/api test`
+	- 理由: `apps/api/package.json` に test script が未定義（`pnpm --dir apps/api run test` は `ERR_PNPM_NO_SCRIPT`）
+- ブラウザ手動E2E（owner/非owner/削除済みの実操作確認）
+	- 理由: この実行環境ではブラウザ手動検証を実施していないため
 
 ---
 
@@ -131,7 +184,7 @@
 - Meilisearch 連携
 - 最近編集したゲームの別枠表示
 - 一括操作
-- ゲーム複製
+- ゲーム複製（2026-05-04 実装済み）
 - `/games` と `/my/games` の検索UI共通コンポーネント化
 
 ### 実行した確認

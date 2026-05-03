@@ -131,6 +131,15 @@
           </div>
           <button
             type="button"
+            class="px-4 py-2 text-sm rounded border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="isDuplicating(g.id)"
+            @click="onDuplicate(g)"
+          >
+            <span v-if="isDuplicating(g.id)">複製中...</span>
+            <span v-else>ゲームを複製</span>
+          </button>
+          <button
+            type="button"
             class="px-4 py-2 text-sm rounded border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isDeleting(g.id)"
             @click="onDelete(g)"
@@ -182,6 +191,7 @@ const title = ref('')
 const loading = ref(true)
 const togglingIds = ref<Record<string, boolean>>({})
 const deletingIds = ref<Record<string, boolean>>({})
+const duplicatingIds = ref<Record<string, boolean>>({})
 const searchInput = ref('')
 const appliedQuery = ref('')
 const sort = ref<MyGamesSort>('updated')
@@ -210,6 +220,7 @@ const hasAppliedFilter = computed(() => !!appliedQuery.value || status.value !==
 
 const isToggling = (id: string) => !!togglingIds.value[id]
 const isDeleting = (id: string) => !!deletingIds.value[id]
+const isDuplicating = (id: string) => !!duplicatingIds.value[id]
 
 const setToggling = (id: string, value: boolean) => {
   togglingIds.value = { ...togglingIds.value, [id]: value }
@@ -217,6 +228,10 @@ const setToggling = (id: string, value: boolean) => {
 
 const setDeleting = (id: string, value: boolean) => {
   deletingIds.value = { ...deletingIds.value, [id]: value }
+}
+
+const setDuplicating = (id: string, value: boolean) => {
+  duplicatingIds.value = { ...duplicatingIds.value, [id]: value }
 }
 
 const firstQuery = (value: unknown): string | undefined => {
@@ -413,6 +428,41 @@ async function togglePublic(game: any) {
     }
   } finally {
     setToggling(game.id, false)
+  }
+}
+
+const resolveDuplicatedGameId = (res: any): string | null => {
+  if (typeof res?.id === 'string' && res.id.trim().length > 0) return res.id
+  if (typeof res?.gameId === 'string' && res.gameId.trim().length > 0) return res.gameId
+  if (typeof res?.game?.id === 'string' && res.game.id.trim().length > 0) return res.game.id
+  return null
+}
+
+async function onDuplicate(game: any) {
+  if (isDuplicating(game.id)) return
+
+  const titleForConfirm = String(game?.title || '無題')
+  const confirmed = window.confirm(
+    `ゲーム「${titleForConfirm}」を複製します。複製先は非公開で作成されます。続行しますか？`
+  )
+  if (!confirmed) return
+
+  setDuplicating(game.id, true)
+  try {
+    const duplicated = await api.duplicate(game.id)
+    const duplicatedId = resolveDuplicatedGameId(duplicated)
+    await refreshList()
+    toast.success('ゲームを複製しました（複製先は非公開）')
+
+    if (duplicatedId) {
+      await navigateTo(`/my/games/${duplicatedId}/edit`)
+    }
+  } catch (error: any) {
+    console.error('Failed to duplicate game:', error)
+    const message = error?.data?.message || error?.message || 'ゲームの複製に失敗しました'
+    toast.error(message)
+  } finally {
+    setDuplicating(game.id, false)
   }
 }
 

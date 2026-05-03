@@ -254,6 +254,45 @@ export class GamesService {
     return g;
   }
 
+  private remapSceneRefId(value: unknown, sceneIdMap: Map<string, string>) {
+    const sourceSceneId = this.normalizeNodeRefId(value);
+    if (!sourceSceneId) return null;
+    return sceneIdMap.get(sourceSceneId) ?? null;
+  }
+
+  private remapNodeRefId(value: unknown, nodeIdMap: Map<string, string>) {
+    const sourceNodeId = this.normalizeNodeRefId(value);
+    if (!sourceNodeId) return null;
+    return nodeIdMap.get(sourceNodeId) ?? null;
+  }
+
+  private async buildDuplicateTitle(
+    tx: Prisma.TransactionClient,
+    ownerId: string,
+    sourceTitleRaw: string,
+  ) {
+    const sourceTitle = sourceTitleRaw.trim() || '無題ゲーム';
+    const base = `${sourceTitle} のコピー`;
+
+    const existing = await tx.gameProject.findMany({
+      where: {
+        ownerId,
+        deletedAt: null,
+        title: { startsWith: base },
+      },
+      select: { title: true },
+    });
+
+    const existingSet = new Set(existing.map((item) => item.title));
+    if (!existingSet.has(base)) return base;
+
+    let suffix = 2;
+    while (existingSet.has(`${base} ${suffix}`)) {
+      suffix += 1;
+    }
+    return `${base} ${suffix}`;
+  }
+
   private async getOwnedSceneOrThrow(userId: string, sceneId: string) {
     const s = await this.prisma.gameScene.findUnique({ where: { id: sceneId } });
     if (!s) throw new NotFoundException('scene not found');
@@ -334,6 +373,129 @@ export class GamesService {
         title: data.title,
         summary: data.summary,
       },
+    });
+  }
+
+  async duplicate(userId: string, sourceGameId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const source = await tx.gameProject.findUnique({
+        where: { id: sourceGameId },
+        include: this.playInclude,
+      });
+      if (!source || source.deletedAt) {
+        throw new NotFoundException('game not found');
+      }
+      if (source.ownerId !== userId) {
+        throw new ForbiddenException();
+      }
+
+      const duplicatedTitle = await this.buildDuplicateTitle(tx, userId, source.title);
+      const duplicatedGame = await tx.gameProject.create({
+        data: {
+          ownerId: userId,
+          title: duplicatedTitle,
+          summary: source.summary,
+          coverAssetId: source.coverAssetId,
+          isPublic: false,
+          viewCount: 0,
+          playCount: 0,
+          startSceneId: null,
+          messageTheme: source.messageTheme,
+          gameUiTheme: source.gameUiTheme,
+          backlogTheme: source.backlogTheme,
+        },
+      });
+
+      const sceneIdMap = new Map<string, string>();
+      const nodeIdMap = new Map<string, string>();
+
+      for (const sourceScene of source.scenes) {
+        const createdScene = await tx.gameScene.create({
+          data: {
+            projectId: duplicatedGame.id,
+            name: sourceScene.name,
+            order: sourceScene.order,
+            startNodeId: null,
+          },
+        });
+        sceneIdMap.set(sourceScene.id, createdScene.id);
+      }
+
+      for (const sourceScene of source.scenes) {
+        const targetSceneId = sceneIdMap.get(sourceScene.id);
+        if (!targetSceneId) continue;
+
+        for (const sourceNode of sourceScene.nodes) {
+          const createdNode = await tx.gameNode.create({
+            data: {
+              sceneId: targetSceneId,
+              type: sourceNode.type,
+              order: sourceNode.order,
+              speakerCharacterId: sourceNode.speakerCharacterId,
+              speakerDisplayName: sourceNode.speakerDisplayName,
+              portraitAssetId: sourceNode.portraitAssetId,
+              portraits: sourceNode.portraits,
+              text: sourceNode.text,
+              bgAssetId: sourceNode.bgAssetId,
+              musicAssetId: sourceNode.musicAssetId,
+              sfxAssetId: sourceNode.sfxAssetId,
+              nextNodeId: null,
+              camera: sourceNode.camera,
+              cameraFx: sourceNode.cameraFx,
+              visualFx: sourceNode.visualFx,
+              colorFilter: sourceNode.colorFilter,
+              continuesPreviousText: sourceNode.continuesPreviousText,
+            },
+          });
+          nodeIdMap.set(sourceNode.id, createdNode.id);
+        }
+      }
+
+      for (const sourceScene of source.scenes) {
+        const targetSceneId = sceneIdMap.get(sourceScene.id);
+        if (!targetSceneId) continue;
+
+        await tx.gameScene.update({
+          where: { id: targetSceneId },
+          data: {
+            startNodeId: this.remapNodeRefId(sourceScene.startNodeId, nodeIdMap),
+          },
+        });
+
+        for (const sourceNode of sourceScene.nodes) {
+          const targetNodeId = nodeIdMap.get(sourceNode.id);
+          if (!targetNodeId) continue;
+
+          await tx.gameNode.update({
+            where: { id: targetNodeId },
+            data: {
+              nextNodeId: this.remapNodeRefId(sourceNode.nextNodeId, nodeIdMap),
+            },
+          });
+
+          if (sourceNode.choices.length > 0) {
+            await tx.gameChoice.createMany({
+              data: sourceNode.choices.map((choice) => ({
+                nodeId: targetNodeId,
+                label: choice.label,
+                targetNodeId: this.remapNodeRefId(choice.targetNodeId, nodeIdMap),
+                condition: choice.condition,
+                effects: choice.effects,
+                alternateTargetNodeId: this.remapNodeRefId(choice.alternateTargetNodeId, nodeIdMap),
+                alternateCondition: choice.alternateCondition,
+              })) as any,
+            });
+          }
+        }
+      }
+
+      const remappedStartSceneId = this.remapSceneRefId(source.startSceneId, sceneIdMap);
+      return tx.gameProject.update({
+        where: { id: duplicatedGame.id },
+        data: {
+          startSceneId: remappedStartSceneId,
+        },
+      });
     });
   }
 

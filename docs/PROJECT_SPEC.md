@@ -606,6 +606,34 @@ interface MessageTheme {
 - `GameChoice.targetNodeId` / `GameChoice.alternateTargetNodeId` は参照解除時に `null` を設定する
 - 既存の `targetNodeId = ''` データは migration で `null` に移行する
 
+#### ゲーム複製MVP（2026-05-04 実装）
+<!-- impl: apps/api/src/games/games.controller.ts, apps/api/src/games/games.service.ts, apps/frontend/composables/useGames.ts, apps/frontend/pages/my/games/index.vue -->
+- API: `POST /games/:id/duplicate` を追加（要ログイン）
+- owner 本人のみ複製可能
+  - 他人のゲーム: `403`
+  - 削除済みゲーム: `404`
+- 複製対象
+  - `GameProject`: `title`, `summary`, `coverAssetId`, `messageTheme`, `gameUiTheme`, `backlogTheme`
+  - `GameScene`: `name`, `order`, `startNodeId`
+  - `GameNode`: 現行ノード設定一式（本文/話者/素材参照/演出/カメラ/分岐関連）
+  - `GameChoice`: `label`, `targetNodeId`, `condition`, `effects`, `alternateTargetNodeId`, `alternateCondition`
+- ID再マッピング
+  - 旧 `sceneId` → 新 `sceneId`
+  - 旧 `nodeId` → 新 `nodeId`
+  - `GameProject.startSceneId` / `GameScene.startNodeId` / `GameNode.nextNodeId` / `GameChoice.targetNodeId` / `GameChoice.alternateTargetNodeId` を新IDへ変換
+  - 壊れた参照や未設定は `null` に安全化
+- 複製時に引き継がないもの
+  - 公開状態（複製先は常に `isPublic = false`）
+  - `viewCount` / `playCount`（複製先は `0`）
+  - セーブデータ、プレイ履歴、お気に入り等の周辺データ
+  - アセット実体（素材ID参照は引き継ぎ）
+- タイトルは `元タイトル のコピー` を基本とし、重複時は `元タイトル のコピー 2` のように採番
+- 実装はDBトランザクションで行い、途中失敗時に中途半端な複製データを残さない
+- UI: `/my/games` の各カードに「ゲームを複製」ボタンを追加
+  - 実行前に確認ダイアログ表示
+  - 成功時は一覧を再取得し、複製先IDが取得できた場合は `/my/games/:newId/edit` へ遷移
+  - 失敗時はトーストでエラー表示
+
 #### 選択肢と通常遷移先の優先順位（2026-05-02 更新）
 - `choice.targetNodeId !== null` の選択肢のみ「表示可能な選択肢」とする
 - 表示可能な選択肢が1件以上ある場合、プレイ時は選択肢を表示し、`nextNodeId` は使用しない
@@ -871,6 +899,12 @@ interface GameNode {
 - target未設定の選択肢をプレイ時にどう扱うかは将来課題
 - NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール位置保持は残課題
 - ノード参照切れ警告、到達不能ノード検出、フローチャート可視化は将来課題
+- シーン/ノードコピー・移動は将来課題
+  - シーン複製（シーン内ノード/選択肢の一括複製、シーン内参照再マップ、シーン外参照ポリシー選択）
+  - ノード複製（同一シーン内複製時の `nextNodeId` / `choice.targetNodeId` の扱い方針）
+  - ノード移動（別シーン移動時のID維持方針、参照維持/警告、`startNodeId` 影響整理）
+  - シーン間ノードコピー（コピー先で新nodeId発行、参照関係の扱い）
+  - 付随課題: undo/redo、操作前確認ダイアログ、コピー先選択UI、大量ノード操作、シーン/ノードテンプレート化、シナリオImport/Export連携
 - シナリオのエクスポート/インポート（JSON → 将来的にAI向けMarkdown/DSL）は将来課題
 - キーコンフィグ・AUTO再生・Skip機能・プレイヤーごとのセーブデータ設計は将来課題
 - スマホ/タブレット向けプレイ操作最適化は将来課題
@@ -908,6 +942,7 @@ interface GameNode {
 
 ### ChangeLog (chat handover)
 
+- 2026-05-04: ゲーム複製MVPを実装。`POST /games/:id/duplicate` を追加し、owner限定・削除済み除外・トランザクション実行で `GameProject`/`GameScene`/`GameNode`/`GameChoice` を複製。`startSceneId`/`startNodeId`/`nextNodeId`/`targetNodeId`/`alternateTargetNodeId` は新IDへ再マップし、壊れた参照は `null` に安全化。複製先は常に非公開、`viewCount`/`playCount` は0、セーブデータ等は非複製、アセットはID参照を維持。`/my/games` に確認付き「ゲームを複製」ボタンを追加し、成功時に一覧再取得＋複製先編集画面へ遷移。確認結果: `pnpm -w build` ❌（`apps/api prisma:generate` の `query_engine-windows.dll.node` rename で EPERM）, `pnpm -C apps/api build` ❌（同理由）, `pnpm -C apps/frontend test` ✅（4 files / 31 tests passed）, API test script は未定義のため未実行。
 - 2025-11-02: 実装を根拠にキャラクター機能のモデル/画面/APIを正規化。Favorites をアセット/キャラ横断で統一（楽観更新・一覧同期・正規化関数）。検索/URL 同期のクエリ項目を明記。署名URLの取得/再取得方針と `$api` 経由の根拠を出典付きで追記。既知の落とし穴とテストTODOを整理。
 - 2025-11-04: ゲーム制作（β）仕様を追加。シーン/ノード構造、portraits 配置、カメラ操作、署名 URL 経由の画像/音声取得を明記。
 - 2025-12-07: ゲーム制作機能を拡張。`continuesPreviousText`（セリフ継続表示）と `cameraFx`（カメラ演出）フィールドを追加。MessageThemeV2 にグラデーション（`gradientDirection`, `gradientColor`）とフォントスタイル（`fontWeight`, `fontStyle`）プロパティを追加。カメラ演出では4つのアニメーションモード（together/pan-then-zoom/zoom-then-pan/cut）を実装し、`requestAnimationFrame` で滑らかな動きを実現。エディタではキーボードショートカット（Ctrl/⌘+Enter, Ctrl/⌘+K, F, Esc）を拡充し、NodePicker による次ノード選択と「保存して次のノードへ」機能を強化。`visualFx`（ビジュアルエフェクト）を追加し、画面揺れ（shake）とフラッシュ（flash）の2種類×3段階強度のプリセットエフェクトを実装。エディタでのプレビュー機能とテストプレイでの自動再生に対応。
