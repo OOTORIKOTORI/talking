@@ -160,6 +160,36 @@
 - 公開一覧取得のみで閲覧数が増える実装は入れていない
 - 非公開/削除済みゲームはカウント対象外
 
+### ⚠️ viewCount/playCount migration 未適用時の復旧手順
+
+`game_projects.viewCount does not exist` エラーが出た場合（migration ファイルは存在するが DB に未適用）、`prisma migrate reset` を使わず以下の手順でカラムを追加する。
+
+```powershell
+# 1. SQL ファイルをパイプで prisma db execute --stdin に渡す
+#    (--file フラグは PowerShell でシンタックスエラーになる場合があるため --stdin を使用)
+Get-Content apps/api/prisma/manual_add_game_counters.sql -Raw |
+  pnpm --filter @talking/api exec prisma db execute --schema prisma/schema.prisma --stdin
+
+# 2. Prisma クライアントを再生成
+pnpm --filter @talking/api exec prisma generate
+
+# 3. 動作確認: dev:all 起動後に /games と /my/games が 500 にならないことを確認
+pnpm dev:all
+```
+
+実行する SQL（`apps/api/prisma/manual_add_game_counters.sql` に保存済み）:
+
+```sql
+ALTER TABLE "game_projects"
+ADD COLUMN IF NOT EXISTS "viewCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "playCount" INTEGER NOT NULL DEFAULT 0;
+```
+
+**注意点**
+- `prisma db execute --file` は PowerShell 上で `syntax error at or near "ALTER"` になる場合がある。`-Raw` で読み込んだ文字列をパイプする `--stdin` 方式を使うこと。
+- `prisma migrate dev` を使うと既存の migration ドリフトで DB リセットを要求される場合があるため、手動 `db execute` で対応する。
+- 上記 SQL は `IF NOT EXISTS` を含むため、カラムが既に存在していても安全に再実行できる。
+
 ---
 
 ## 🔎 今回の確認メモ（2026-05-03 / 公開ゲーム一覧 検索・並び替えMVP）
