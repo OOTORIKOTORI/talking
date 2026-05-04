@@ -99,8 +99,11 @@ export const useAssets = () => {
   const deleteAsset = (id: string) =>
     $api(`/assets/${id}`, { method: 'DELETE' }) as any
 
-    const restoreAsset = (id: string) =>
-      $api(`/assets/${id}/restore`, { method: 'POST' }) as any
+  const restoreAsset = (id: string) =>
+    $api(`/assets/${id}/restore`, { method: 'POST' }) as any
+
+  const getUsageImpact = (id: string) =>
+    $api(`/assets/${id}/usage-impact`) as Promise<any>
 
   return {
     searchAssets,
@@ -108,5 +111,6 @@ export const useAssets = () => {
     updateAsset,
     deleteAsset,
       restoreAsset,
+    getUsageImpact,
   }
 }

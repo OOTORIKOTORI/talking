@@ -270,7 +270,7 @@
       class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
       @click.self="showDeleteModal = false"
     >
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-start">
           <div class="flex-shrink-0">
             <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -280,8 +280,49 @@
           <div class="ml-3 flex-1">
             <h3 class="text-lg font-medium text-gray-900 mb-2">アセットを削除</h3>
             <p class="text-sm text-gray-500 mb-4">
-              このアセットを完全に削除してよろしいですか？この操作は取り消せません。
+              このアセットを削除してよろしいですか？削除後しばらくの間は「元に戻す」で復元できます。
             </p>
+
+            <!-- Usage Impact -->
+            <div class="mb-4">
+              <div v-if="usageImpactLoading" class="text-sm text-gray-500 italic">
+                利用中ゲームへの影響を確認中...
+              </div>
+              <div v-else-if="usageImpactError" class="text-sm text-amber-700 bg-amber-50 rounded p-3">
+                影響確認に失敗しました。削除は続行できますが、利用中のゲームがある可能性があります。
+              </div>
+              <div v-else-if="usageImpact">
+                <div v-if="usageImpact.totalGameCount === 0" class="text-sm text-gray-500">
+                  このアセットを参照しているゲームは見つかりませんでした。
+                </div>
+                <div v-else class="text-sm space-y-2">
+                  <p class="text-amber-700 font-medium">このアセットはゲーム内で使用されています。</p>
+                  <p class="text-gray-600 text-xs">削除すると、使用中のゲームで参照警告が表示され、画像・音声が表示・再生されなくなる可能性があります。</p>
+                  <div class="bg-amber-50 rounded p-3 space-y-1">
+                    <div class="flex gap-4 text-xs">
+                      <span>あなたのゲーム: <strong>{{ usageImpact.ownGameCount }}件 / {{ usageImpact.ownReferenceCount }}箇所</strong></span>
+                      <span>他のユーザーのゲーム: <strong>{{ usageImpact.otherGameCount }}件 / {{ usageImpact.otherReferenceCount }}箇所</strong></span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                      用途: {{ formatByField(usageImpact.byField) }}
+                    </div>
+                  </div>
+                  <div v-if="usageImpact.ownGameSamples.length > 0" class="mt-2">
+                    <p class="text-xs font-medium text-gray-700 mb-1">あなたのゲームでの使用例（最大{{ usageImpact.sampleLimit }}件）:</p>
+                    <ul class="text-xs text-gray-600 space-y-0.5">
+                      <li
+                        v-for="g in usageImpact.ownGameSamples"
+                        :key="g.gameId"
+                      >
+                        — {{ g.title }}: {{ formatByFieldShort(g.byField) }}
+                      </li>
+                    </ul>
+                    <p v-if="usageImpact.hasMoreOwnGames" class="text-xs text-gray-400 mt-1">他にも使用しているゲームがあります。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="flex space-x-3">
               <button
                 @click="handleDelete"
@@ -315,7 +356,7 @@ import { useFavoriteToggle } from '@/composables/useFavoriteToggle';
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient() as any;
-const { getAsset, updateAsset, deleteAsset, restoreAsset } = useAssets();
+const { getAsset, updateAsset, deleteAsset, restoreAsset, getUsageImpact } = useAssets();
 const { toggle } = useFavoriteToggle();
 const toast = useToast();
 
@@ -332,6 +373,9 @@ const saving = ref(false);
 const showDeleteModal = ref(false);
 const deleting = ref(false);
 const favoriteToggling = ref(false);
+const usageImpact = ref<any>(null);
+const usageImpactLoading = ref(false);
+const usageImpactError = ref(false);
 
 const isFavorited = computed(() => {
   if (!asset.value) return false;
@@ -482,6 +526,28 @@ const formatPrimaryTag = (tag: string): string => {
   return labels[tag] || tag;
 };
 
+const FIELD_LABELS: Record<string, string> = {
+  coverAssetId: 'カバー',
+  bgAssetId: '背景',
+  musicAssetId: 'BGM',
+  sfxAssetId: 'SE',
+  portraitAssetId: '立ち絵互換',
+};
+
+const formatByField = (byField: Record<string, number>) => {
+  return Object.entries(byField)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${FIELD_LABELS[k] ?? k} ${v}`)
+    .join(' / ') || 'なし';
+};
+
+const formatByFieldShort = (byField: Record<string, number>) => {
+  const parts = Object.entries(byField)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${FIELD_LABELS[k] ?? k} ${v}箇所`);
+  return parts.join('、') || '—';
+};
+
 const copyUrl = async () => {
   if (signedUrl.value) {
     try {
@@ -496,8 +562,19 @@ const copyUrl = async () => {
   }
 };
 
-const confirmDelete = () => {
+const confirmDelete = async () => {
+  usageImpact.value = null;
+  usageImpactError.value = false;
   showDeleteModal.value = true;
+  if (!asset.value) return;
+  usageImpactLoading.value = true;
+  try {
+    usageImpact.value = await getUsageImpact(asset.value.id);
+  } catch {
+    usageImpactError.value = true;
+  } finally {
+    usageImpactLoading.value = false;
+  }
 };
 
 const handleDelete = async () => {

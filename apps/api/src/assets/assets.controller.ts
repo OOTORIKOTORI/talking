@@ -65,4 +65,10 @@ export class AssetsController {
     await this.assetsService.restore(id, user.userId);
     return { ok: true };
   }
+
+  @Get(':id/usage-impact')
+  @UseGuards(SupabaseAuthGuard)
+  async getUsageImpact(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.assetsService.getUsageImpact(id, user.userId);
+  }
 }

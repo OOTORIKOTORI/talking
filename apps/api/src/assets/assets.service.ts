@@ -241,4 +241,177 @@ export class AssetsService {
 
     return;
   }
+
+  async getUsageImpact(id: string, userId: string) {
+    // アセット存在確認（削除済みは NotFoundException）
+    const asset = await this.prisma.asset.findUnique({ where: { id } });
+    if (!asset || asset.deletedAt) {
+      throw new NotFoundException(`Asset with ID ${id} not found`);
+    }
+    if (asset.ownerId !== userId) {
+      throw new ForbiddenException('You do not own this asset');
+    }
+
+    const SAMPLE_LIMIT = 10;
+
+    // 1. カバー参照: GameProject.coverAssetId
+    const coverProjects = await this.prisma.gameProject.findMany({
+      where: { coverAssetId: id, deletedAt: null },
+      select: { id: true, ownerId: true, title: true, isPublic: true },
+    });
+
+    // 2. ノード参照: bgAssetId / musicAssetId / sfxAssetId / portraitAssetId
+    const nodeRefs = await this.prisma.gameNode.findMany({
+      where: {
+        OR: [
+          { bgAssetId: id },
+          { musicAssetId: id },
+          { sfxAssetId: id },
+          { portraitAssetId: id },
+        ],
+        scene: { project: { deletedAt: null } },
+      },
+      select: {
+        id: true,
+        order: true,
+        text: true,
+        bgAssetId: true,
+        musicAssetId: true,
+        sfxAssetId: true,
+        portraitAssetId: true,
+        scene: {
+          select: {
+            id: true,
+            name: true,
+            project: {
+              select: { id: true, ownerId: true, title: true, isPublic: true },
+            },
+          },
+        },
+      },
+    });
+
+    // --- 集計 ---
+    type ByField = {
+      coverAssetId: number;
+      bgAssetId: number;
+      musicAssetId: number;
+      sfxAssetId: number;
+      portraitAssetId: number;
+    };
+
+    type GameAgg = {
+      gameId: string;
+      title: string;
+      isOwn: boolean;
+      isPublic: boolean;
+      refs: Array<{
+        field: keyof ByField;
+        sceneId: string | null;
+        sceneName: string;
+        nodeId: string | null;
+        nodeOrder: number | null;
+        nodePreview: string;
+      }>;
+    };
+
+    const gameMap = new Map<string, GameAgg>();
+
+    const ensureGame = (
+      gameId: string,
+      title: string,
+      ownerId: string,
+      isPublic: boolean,
+    ) => {
+      if (!gameMap.has(gameId)) {
+        gameMap.set(gameId, {
+          gameId,
+          title,
+          isOwn: ownerId === userId,
+          isPublic,
+          refs: [],
+        });
+      }
+      return gameMap.get(gameId)!;
+    };
+
+    // カバー参照を登録
+    for (const p of coverProjects) {
+      const g = ensureGame(p.id, p.title, p.ownerId, p.isPublic);
+      g.refs.push({
+        field: 'coverAssetId',
+        sceneId: null,
+        sceneName: '—',
+        nodeId: null,
+        nodeOrder: null,
+        nodePreview: '（カバー画像）',
+      });
+    }
+
+    // ノード参照を登録
+    for (const n of nodeRefs) {
+      const p = n.scene.project;
+      const g = ensureGame(p.id, p.title, p.ownerId, p.isPublic);
+      const nodePreview = n.text ? n.text.slice(0, 30) + (n.text.length > 30 ? '…' : '') : '';
+      const fields: Array<keyof ByField> = ['bgAssetId', 'musicAssetId', 'sfxAssetId', 'portraitAssetId'];
+      for (const field of fields) {
+        if ((n as any)[field] === id) {
+          g.refs.push({
+            field,
+            sceneId: n.scene.id,
+            sceneName: n.scene.name,
+            nodeId: n.id,
+            nodeOrder: n.order,
+            nodePreview,
+          });
+        }
+      }
+    }
+
+    // 集計
+    const allGames = Array.from(gameMap.values());
+    const ownGames = allGames.filter(g => g.isOwn);
+    const otherGames = allGames.filter(g => !g.isOwn);
+
+    const sumByField = (games: GameAgg[]): ByField => {
+      const counts: ByField = { coverAssetId: 0, bgAssetId: 0, musicAssetId: 0, sfxAssetId: 0, portraitAssetId: 0 };
+      for (const g of games) {
+        for (const r of g.refs) counts[r.field]++;
+      }
+      return counts;
+    };
+
+    const totalByField = sumByField(allGames);
+    const ownByField = sumByField(ownGames);
+
+    const totalReferenceCount = allGames.reduce((s, g) => s + g.refs.length, 0);
+    const ownReferenceCount = ownGames.reduce((s, g) => s + g.refs.length, 0);
+
+    const ownGameSamples = ownGames.slice(0, SAMPLE_LIMIT).map(g => {
+      const byField = sumByField([g]);
+      return {
+        gameId: g.gameId,
+        title: g.title,
+        isPublic: g.isPublic,
+        referenceCount: g.refs.length,
+        byField,
+        refs: g.refs,
+      };
+    });
+
+    return {
+      assetId: id,
+      totalGameCount: allGames.length,
+      ownGameCount: ownGames.length,
+      otherGameCount: otherGames.length,
+      totalReferenceCount,
+      ownReferenceCount,
+      otherReferenceCount: totalReferenceCount - ownReferenceCount,
+      byField: totalByField,
+      ownGameSamples,
+      sampleLimit: SAMPLE_LIMIT,
+      hasMoreOwnGames: ownGames.length > SAMPLE_LIMIT,
+      checkedAt: new Date().toISOString(),
+    };
   }
+}

@@ -446,6 +446,76 @@ GET /games/:id/reference-diagnostics
   - 存在しない/削除済みキャラクターのお気に入りは `NotFoundException` で拒否。
   - 非公開の他人キャラクターのお気に入りは `ForbiddenException` で拒否。
 
+### アセット削除時の利用影響表示MVP（2026-05-04）
+
+#### 概要
+アセット所有者が自分のアセットを削除しようとしたときに、そのアセットがゲーム内でどう使われているかを削除確認UIで事前表示する。削除自体はブロックしない（warning表示のみ）。
+
+#### API
+`GET /assets/:id/usage-impact` (`SupabaseAuthGuard` 必須、アセット所有者のみ実行可能)
+
+- 他人のアセットIDを指定した場合: `ForbiddenException`
+- 存在しない/削除済みアセット: `NotFoundException`
+- 削除済みアセットのMVP判断: `NotFoundException` で返す（削除済みアセットは診断不要なため）
+
+#### 診断対象フィールド
+| フィールド | モデル | 備考 |
+|-----------|-------|------|
+| `coverAssetId` | `GameProject` | カバー画像 |
+| `bgAssetId` | `GameNode` | 背景 |
+| `musicAssetId` | `GameNode` | BGM |
+| `sfxAssetId` | `GameNode` | SE |
+| `portraitAssetId` | `GameNode` | 立ち絵互換（レガシーフィールド） |
+
+- `portraits[*].imageId` は `CharacterImage` 参照であり、Asset ID ではないため今回の診断対象外。将来的に `CharacterImage` → `Asset` の逆引きが必要になった場合に対応する。
+- 対象ゲームは `GameProject.deletedAt: null` のゲームのみ（論理削除済みゲームは除外）。
+- 公開・非公開ゲームの両方を集計対象にする。
+
+#### レスポンス設計
+- `totalGameCount` / `ownGameCount` / `otherGameCount`: distinct ゲーム件数
+- `totalReferenceCount` / `ownReferenceCount` / `otherReferenceCount`: 参照箇所合計
+- `byField`: フィールド別件数（cover/bg/music/sfx/portrait）
+- `ownGameSamples`: 自分のゲームの最大10件サンプル（`sampleLimit: 10`、`hasMoreOwnGames: boolean`）
+- `checkedAt`: 診断実行時刻（ISO 8601）
+
+#### 他人ゲームのプライバシー方針
+他人のゲームは、公開・非公開に関わらず **件数だけ** 返す。以下は返さない:
+- 他人のゲームタイトル
+- 他人のシーン名・ノード本文
+- 他人の userId / ownerId
+- 他人ゲームの公開/非公開内訳
+
+**理由**: 非公開ゲームの存在・タイトル・内容がアセット所有者に漏れるのを避けるため。また、「誰がこの素材を使っているか」の監視機能にならないようにするため。
+
+#### Asset.isPublic / visibility について
+現行の `Asset` モデルには `isPublic` / visibility フィールドがない。現状は `deletedAt: null` が実質的な公開条件。「非公開化時の影響表示」は将来 `Asset.visibility` / `Asset.isPublic` 等を設計するときに接続する。MVPでは対象外。
+
+### 共有素材の再アップロード/コピー問題（設計論点）
+
+ユーザーが参照切れを避けるために他人のアセットをダウンロードして自分のアセットとして再アップロードする可能性がある。
+
+#### 問題点
+- アセット人気度が分散し、本来の作者への評価や利用実績が見えづらくなる
+- 作者が削除/公開停止したい素材が、別ユーザーの再アップロードとして残り続ける
+- 権利/利用許諾/クレジットの扱いが曖昧になる
+- 「参照切れ回避」のためにコピー文化が強まると、素材共有サービスとしての信頼性が落ちる
+
+#### 基本方針（MVP）
+- 表示可能な画像/音声の完全なダウンロード防止は現実的ではない（signed URL はアクセス制御であってDRMではない）
+- MVPでは技術的な検出・ブロックは実装しない
+- 対策は「完全防止」ではなく、プロダクト設計で正規ルートを使いやすくする方向を目指す
+
+#### 将来の対策案
+- `AssetUsage` / `GameAssetReference` のような参照関係テーブルを導入し、ゲームがどの素材を実際に採用しているかを明示的に記録する
+- `sourceAssetId` / `derivedFromAssetId` のような派生元フィールドを検討する
+- 「素材棚に追加」や「ゲームで使用」の正規フローを整え、再アップロードよりも公式の参照/採用が便利になるUXにする
+- 作者が削除したい場合の意味を分ける
+  - ギャラリーから非表示/新規利用停止
+  - 既存ゲームでの継続利用を許すアーカイブ
+  - 権利侵害/規約違反などの強制停止
+- 画像のperceptual hash、音声fingerprint、ファイルhashによる重複検出は将来課題（誤検知・計算コスト・回避可能性があるためMVPでは実装しない）
+- ライセンス/利用条件/クレジット表示方針を将来整理する
+
 ### ルーティング / 画面
 - **エディタ**: `/my/games/:id/edit`
   - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
