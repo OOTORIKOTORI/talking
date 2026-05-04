@@ -34,7 +34,7 @@
             />
             <button
               type="submit"
-              class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
+              class="inline-flex min-w-[4rem] shrink-0 items-center justify-center whitespace-nowrap rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
               :disabled="loading"
             >
               検索
@@ -132,35 +132,37 @@
           <div class="flex gap-2">
             <NuxtLink
               :to="`/my/games/${g.id}/edit`"
-              class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+              class="inline-flex min-w-[4.5rem] items-center justify-center whitespace-nowrap rounded bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
             >
               編集
             </NuxtLink>
             <NuxtLink
               :to="`/games/${g.id}/play`"
-              class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+              class="inline-flex min-w-[4.5rem] items-center justify-center whitespace-nowrap rounded bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
             >
               再生
             </NuxtLink>
           </div>
-          <button
-            type="button"
-            class="px-4 py-2 text-sm rounded border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed"
-            :disabled="isDuplicating(g.id)"
-            @click="onDuplicate(g)"
-          >
-            <span v-if="isDuplicating(g.id)">複製中...</span>
-            <span v-else>ゲームを複製</span>
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 text-sm rounded border border-red-300 text-red-700 bg-white hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-            :disabled="isDeleting(g.id)"
-            @click="onDelete(g)"
-          >
-            <span v-if="isDeleting(g.id)">削除中...</span>
-            <span v-else>ゲームを削除</span>
-          </button>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="inline-flex min-w-[4.5rem] items-center justify-center whitespace-nowrap rounded border border-blue-200 bg-white px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isDuplicating(g.id)"
+              @click="onDuplicate(g)"
+            >
+              <span v-if="isDuplicating(g.id)">複製中...</span>
+              <span v-else>複製</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-[4.5rem] items-center justify-center whitespace-nowrap rounded border border-red-300 bg-white px-3 py-1.5 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isDeleting(g.id)"
+              @click="onDelete(g)"
+            >
+              <span v-if="isDeleting(g.id)">削除中...</span>
+              <span v-else>削除</span>
+            </button>
+          </div>
         </div>
       </li>
     </ul>

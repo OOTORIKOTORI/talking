@@ -826,7 +826,7 @@ const scenarioCategoryFilterItems = computed(() => [
   { key: 'structure' as const, label: '構成', count: scenarioCategoryCounts.value.structure },
   { key: 'asset-reference' as const, label: '素材参照', count: scenarioCategoryCounts.value.assetReference },
   { key: 'character-reference' as const, label: 'キャラクター参照', count: scenarioCategoryCounts.value.characterReference },
-])
+].map((item) => ({ ...item, displayLabel: `${item.label} ${item.count}件` })))
 
 const scenarioCheckFilteredIssues = computed(() => {
   let result = scenarioCheckIssues.value
@@ -1939,11 +1939,6 @@ function onUp() {
                 <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
                 <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
               </div>
-              <div class="mt-1 flex flex-wrap gap-1 text-[11px]">
-                <span class="rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700">構成 {{ scenarioCategoryCounts.structure }}件</span>
-                <span class="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-sky-700">素材参照 {{ scenarioCategoryCounts.assetReference }}件</span>
-                <span class="rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-violet-700">キャラクター参照 {{ scenarioCategoryCounts.characterReference }}件</span>
-              </div>
               <div v-if="referenceDiagnosticsLoading" class="mt-2 flex items-center gap-1 text-xs text-slate-500">
                 <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500"></span>
                 素材・キャラクター参照を確認中...
@@ -1974,7 +1969,7 @@ function onUp() {
                   :class="scenarioCategoryFilterButtonClass(item.key, item.count)"
                   @click="selectScenarioCategoryFilter(item.key)"
                 >
-                  {{ item.label }} {{ item.count }}
+                  {{ item.displayLabel }}
                 </button>
               </div>
               <div v-if="scenarioCheckTotalCount === 0" class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
