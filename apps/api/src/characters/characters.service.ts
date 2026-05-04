@@ -114,6 +114,166 @@ export class CharactersService {
     return { success: true };
   }
 
+  async getUsageImpact(ownerId: string, id: string) {
+    const character = await this.prisma.character.findUnique({ where: { id } });
+    if (!character || character.deletedAt) throw new NotFoundException('Character not found');
+    if (character.ownerId !== ownerId) throw new ForbiddenException();
+
+    // キャラクター画像IDセット（portraits[*].imageId 参照チェック用）
+    const charImages = await this.prisma.characterImage.findMany({
+      where: { characterId: id },
+      select: { id: true },
+    });
+    const charImageIds = new Set(charImages.map(i => i.id));
+
+    const SAMPLE_LIMIT = 10;
+
+    // 1. speakerCharacterId 参照（DB直接検索）
+    const speakerNodes = await this.prisma.gameNode.findMany({
+      where: {
+        speakerCharacterId: id,
+        scene: { project: { deletedAt: null } },
+      },
+      select: {
+        id: true,
+        order: true,
+        text: true,
+        scene: {
+          select: {
+            id: true,
+            name: true,
+            project: { select: { id: true, ownerId: true, title: true, isPublic: true } },
+          },
+        },
+      },
+    });
+
+    // 2. portraits 候補ノード（portraits != null のノードをTS側でフィルタ）
+    const portraitCandidates = await this.prisma.gameNode.findMany({
+      where: {
+        NOT: { portraits: null },
+        scene: { project: { deletedAt: null } },
+      },
+      select: {
+        id: true,
+        order: true,
+        text: true,
+        portraits: true,
+        scene: {
+          select: {
+            id: true,
+            name: true,
+            project: { select: { id: true, ownerId: true, title: true, isPublic: true } },
+          },
+        },
+      },
+    });
+
+    type PortraitEntry = { characterId?: string; imageId?: string };
+    const portraitNodes = portraitCandidates.filter(n => {
+      const ps = n.portraits as PortraitEntry[] | null;
+      if (!Array.isArray(ps)) return false;
+      return ps.some(p => p.characterId === id || (p.imageId && charImageIds.has(p.imageId)));
+    });
+
+    type GameAgg = {
+      gameId: string;
+      title: string;
+      isOwn: boolean;
+      isPublic: boolean;
+      refs: Array<{
+        field: 'speakerCharacterId' | 'portraits';
+        sceneId: string | null;
+        sceneName: string;
+        nodeId: string | null;
+        nodeOrder: number | null;
+        nodePreview: string;
+      }>;
+    };
+
+    const gameMap = new Map<string, GameAgg>();
+
+    const ensureGame = (gameId: string, title: string, nodeOwnerId: string, isPublic: boolean) => {
+      if (!gameMap.has(gameId)) {
+        gameMap.set(gameId, { gameId, title, isOwn: nodeOwnerId === ownerId, isPublic, refs: [] });
+      }
+      return gameMap.get(gameId)!;
+    };
+
+    const makePreview = (text: string | null | undefined) =>
+      text ? text.slice(0, 30) + (text.length > 30 ? '…' : '') : '';
+
+    for (const n of speakerNodes) {
+      const p = n.scene.project;
+      const g = ensureGame(p.id, p.title, p.ownerId, p.isPublic);
+      g.refs.push({
+        field: 'speakerCharacterId',
+        sceneId: n.scene.id,
+        sceneName: n.scene.name,
+        nodeId: n.id,
+        nodeOrder: n.order,
+        nodePreview: makePreview(n.text),
+      });
+    }
+
+    for (const n of portraitNodes) {
+      const p = n.scene.project;
+      const g = ensureGame(p.id, p.title, p.ownerId, p.isPublic);
+      g.refs.push({
+        field: 'portraits',
+        sceneId: n.scene.id,
+        sceneName: n.scene.name,
+        nodeId: n.id,
+        nodeOrder: n.order,
+        nodePreview: makePreview(n.text),
+      });
+    }
+
+    const allGames = Array.from(gameMap.values());
+    const ownGames = allGames.filter(g => g.isOwn);
+    const otherGames = allGames.filter(g => !g.isOwn);
+
+    const sumByField = (games: GameAgg[]) => {
+      let speakerCount = 0;
+      let portraitsCount = 0;
+      for (const g of games) {
+        for (const r of g.refs) {
+          if (r.field === 'speakerCharacterId') speakerCount++;
+          else portraitsCount++;
+        }
+      }
+      return { speakerCharacterId: speakerCount, portraits: portraitsCount };
+    };
+
+    const ownByField = sumByField(ownGames);
+    const totalReferenceCount = allGames.reduce((s, g) => s + g.refs.length, 0);
+    const ownReferenceCount = ownGames.reduce((s, g) => s + g.refs.length, 0);
+
+    const ownGameSamples = ownGames.slice(0, SAMPLE_LIMIT).map(g => ({
+      gameId: g.gameId,
+      title: g.title,
+      isPublic: g.isPublic,
+      referenceCount: g.refs.length,
+      byField: sumByField([g]),
+      refs: g.refs,
+    }));
+
+    return {
+      characterId: id,
+      totalGameCount: allGames.length,
+      ownGameCount: ownGames.length,
+      otherGameCount: otherGames.length,
+      totalReferenceCount,
+      ownReferenceCount,
+      otherReferenceCount: totalReferenceCount - ownReferenceCount,
+      ownByField,
+      ownGameSamples,
+      sampleLimit: SAMPLE_LIMIT,
+      hasMoreOwnGames: ownGames.length > SAMPLE_LIMIT,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
   async listImages(userId: string|null, characterId: string, publicOnly: boolean) {
     const c = await this.prisma.character.findUnique({ where: { id: characterId } });
     if (!c || c.deletedAt) throw new NotFoundException('Character not found');

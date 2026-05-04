@@ -25,6 +25,7 @@ export const useCharactersApi = () => {
     update: (id: string, payload: Partial<Pick<Character,'name'|'displayName'|'description'|'isPublic'|'tags'>>) =>
       $api<Character>(`/my/characters/${id}`, { method: 'PATCH', body: payload }),
     remove: (id: string) => $api(`/my/characters/${id}`, { method: 'DELETE' }),
+    getUsageImpact: (id: string) => $api<any>(`/my/characters/${id}/usage-impact`),
 
     // 画像メタ
     addImage: (id: string, payload: Partial<CharacterImage> & { key: string; contentType: string }) =>

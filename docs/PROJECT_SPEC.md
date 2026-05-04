@@ -165,7 +165,7 @@
   - `/my/favorites` も同じアセットカード表示時に `favoriteCount` を自然表示（取得できる場合）
   - `/my/assets` は管理画面のため表示必須対象外（既存UIを維持）
 
-## お気に入り / 素材棚 / 引用 — 概念整理（設計方針）
+## いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）
 
 ### 現状（MVP）
 
@@ -544,7 +544,47 @@ GET /games/:id/reference-diagnostics
   - 既存ゲームでの継続利用を許すアーカイブ
   - 権利侵害/規約違反などの強制停止
 
-### ルーティング / 画面
+### キャラクター削除時の利用影響表示MVP（2026-05-04）
+
+#### 概要
+キャラクター所有者が自分のキャラクターを削除しようとしたときに、そのキャラクターがゲーム内でどう使われているかを削除確認UIで事前表示する。削除自体はブロックしない（warning表示のみ）。アセット削除時MVPの横展開だが、参照フィールドがキャラクター固有のため実装は独立。
+
+#### API
+`GET /my/characters/:id/usage-impact` (`SupabaseAuthGuard` 必須、キャラクター所有者のみ実行可能)
+
+- 存在しない/削除済みキャラクター: `NotFoundException`
+- 他人のキャラクターIDを指定した場合: `ForbiddenException`
+
+#### 診断対象フィールド
+| フィールド | モデル | 備考 |
+|-----------|-------|------|
+| `speakerCharacterId` | `GameNode` | 話者として設定されている場合 |
+| `portraits[*].characterId` | `GameNode` | 立ち絵配置の characterId 一致 |
+| `portraits[*].imageId` | `GameNode` | 立ち絵配置の imageId が対象キャラクター画像IDに一致する場合 |
+
+- `portraits` は JSON フィールドのため、DB側フィルタではなく TypeScript 側でフィルタ（N+1なし）
+- 対象ゲームは `GameProject.deletedAt: null` のゲームのみ（論理削除済みゲームは除外）
+- 公開・非公開ゲームの両方を集計対象にする
+
+#### レスポンス設計
+- `characterId` / `totalGameCount` / `ownGameCount` / `otherGameCount`
+- `totalReferenceCount` / `ownReferenceCount` / `otherReferenceCount`
+- `ownByField`: 自分のゲームでのフィールド別件数（`{ speakerCharacterId, portraits }`）
+- `ownGameSamples`: 自分のゲームの最大10件サンプル（`sampleLimit: 10`、`hasMoreOwnGames: boolean`）
+- `checkedAt`: 診断実行時刻（ISO 8601）
+
+#### 他人ゲームのプライバシー方針
+アセット削除時MVPと同じ方針：他人のゲームは **件数だけ** 返す。以下は返さない:
+- 他人のゲームタイトル / シーン名 / ノード本文
+- 他人の userId / ownerId
+- 他人ゲームの公開/非公開内訳
+
+#### アセット削除時MVPとの関係
+- アセット削除時MVP（`GET /assets/:id/usage-impact`）と設計方針・レスポンス構造を揃えている
+- フロントUIもアセット削除モーダルに倣い、`showDeleteModal` / `usageImpact` / `usageImpactLoading` / `usageImpactError` で管理
+- キャラクター固有の表示: 話者（`speakerCharacterId`）/ 立ち絵配置（`portraits`）の2区分
+
+
 - **エディタ**: `/my/games/:id/edit`
   - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
   - 右ペインは「通常表示 / 全画面」をトグル(UI: *全画面 / 通常表示*, F で切替・Esc で閉じる)

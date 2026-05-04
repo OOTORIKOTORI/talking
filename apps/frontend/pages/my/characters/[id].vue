@@ -110,6 +110,80 @@
         >元に戻す</button>
       </div>
     </Transition>
+
+    <!-- 削除確認モーダル -->
+    <div
+      v-if="showDeleteModal"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+      @click.self="showDeleteModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">キャラクターを削除</h3>
+            <p class="text-sm text-gray-500 mb-4">
+              このキャラクターを削除してよろしいですか？削除すると、使用中のゲームで参照警告が表示される可能性があります。
+            </p>
+
+            <!-- 利用影響 -->
+            <div class="mb-4">
+              <div v-if="usageImpactLoading" class="text-sm text-gray-500 italic">
+                利用中ゲームへの影響を確認中...
+              </div>
+              <div v-else-if="usageImpactError" class="text-sm text-amber-700 bg-amber-50 rounded p-3">
+                影響確認に失敗しました。削除は続行できますが、利用中のゲームがある可能性があります。
+              </div>
+              <div v-else-if="usageImpact">
+                <div v-if="usageImpact.totalGameCount === 0" class="text-sm text-gray-500">
+                  このキャラクターを参照しているゲームは見つかりませんでした。
+                </div>
+                <div v-else class="text-sm space-y-2">
+                  <p class="text-amber-700 font-medium">このキャラクターはゲーム内で使用されています。</p>
+                  <p class="text-gray-600 text-xs">削除すると、使用中のゲームで参照警告が表示され、話者名や立ち絵が表示できなくなる可能性があります。</p>
+                  <div class="bg-amber-50 rounded p-3 space-y-1">
+                    <div class="flex flex-wrap gap-4 text-xs">
+                      <span>あなたのゲーム: <strong>{{ usageImpact.ownGameCount }}件 / {{ usageImpact.ownReferenceCount }}箇所</strong></span>
+                      <span>他のユーザーのゲーム: <strong>{{ usageImpact.otherGameCount }}件 / {{ usageImpact.otherReferenceCount }}箇所</strong></span>
+                    </div>
+                  </div>
+                  <div v-if="usageImpact.ownGameSamples.length > 0" class="mt-2">
+                    <p class="text-xs font-medium text-gray-700 mb-1">あなたのゲームでの使用例（最大{{ usageImpact.sampleLimit }}件）:</p>
+                    <ul class="text-xs text-gray-600 space-y-0.5">
+                      <li v-for="g in usageImpact.ownGameSamples" :key="g.gameId">
+                        — {{ g.title }}: {{ formatCharByFieldShort(g.byField) }}
+                      </li>
+                    </ul>
+                    <p v-if="usageImpact.hasMoreOwnGames" class="text-xs text-gray-400 mt-1">他にも使用しているゲームがあります。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex space-x-3">
+              <button
+                @click="doRemove"
+                :disabled="removing"
+                class="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {{ removing ? '削除中...' : '削除する' }}
+              </button>
+              <button
+                @click="showDeleteModal = false"
+                :disabled="removing"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -357,11 +431,37 @@ const pickAndUploadMany = async () => {
 
 const router = useRouter()
 const removing = ref(false)
+const showDeleteModal = ref(false)
+const usageImpact = ref<any>(null)
+const usageImpactLoading = ref(false)
+const usageImpactError = ref(false)
+
+const formatCharByFieldShort = (byField: { speakerCharacterId: number; portraits: number }) => {
+  const parts: string[] = []
+  if (byField.speakerCharacterId > 0) parts.push(`話者 ${byField.speakerCharacterId}箇所`)
+  if (byField.portraits > 0) parts.push(`立ち絵配置 ${byField.portraits}箇所`)
+  return parts.join('、') || '—'
+}
+
 const onRemove = async () => {
-  if (!confirm('このキャラクターを完全に削除します。よろしいですか？')) return
+  usageImpact.value = null
+  usageImpactError.value = false
+  showDeleteModal.value = true
+  usageImpactLoading.value = true
+  try {
+    usageImpact.value = await api.getUsageImpact(id)
+  } catch {
+    usageImpactError.value = true
+  } finally {
+    usageImpactLoading.value = false
+  }
+}
+
+const doRemove = async () => {
   try {
     removing.value = true
     await api.remove(id)
+    showDeleteModal.value = false
     showToast('削除しました')
     await router.push('/my/characters')
   } finally {
@@ -387,7 +487,11 @@ defineExpose({
   saveImage,
   removeImage,
   previewOpen,
-  previewSrc
+  previewSrc,
+  showDeleteModal,
+  usageImpact,
+  usageImpactLoading,
+  usageImpactError,
 })
 </script>
 

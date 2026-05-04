@@ -58,4 +58,10 @@ export class CharactersController {
   async remove(@Req() req: any, @Param('id') id: string) {
     return this.service.remove(req.user.userId, id);
   }
+
+  @Get('/my/characters/:id/usage-impact')
+  @UseGuards(SupabaseAuthGuard)
+  async getUsageImpact(@Req() req: any, @Param('id') id: string) {
+    return this.service.getUsageImpact(req.user.userId, id);
+  }
 }
