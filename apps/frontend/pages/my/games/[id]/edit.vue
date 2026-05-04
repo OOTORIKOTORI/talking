@@ -1872,6 +1872,13 @@ function onUp() {
                 <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
                 <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
               </div>
+              <div v-if="referenceDiagnosticsLoading" class="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500"></span>
+                素材・キャラクター参照を確認中...
+              </div>
+              <div v-else-if="referenceDiagnosticsError" class="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                {{ referenceDiagnosticsError }} — 時間をおいて再読み込みしてください。
+              </div>
             </div>
             <div v-if="sectionOpen.scenarioCheck" class="border-t border-gray-200 px-3 py-2">
               <div class="mb-2 flex flex-wrap gap-2">

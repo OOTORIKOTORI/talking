@@ -322,17 +322,17 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 
 | コード | 対象 | 原因 | 説明 |
 |--------|------|------|------|
-| `MISSING_ASSET` | 背景/BGM/SE | 存在しない | アセットIDが見つからない |
-| `DELETED_ASSET` | 背景/BGM/SE | 削除済み | アセットが削除済み状態（`deletedAt` が非null） |
-| `INVALID_ASSET_TYPE` | 背景/BGM/SE | 種別不一致 | アセット種別（image/audio）が用途と一致しない |
-| `UNUSABLE_ASSET` | 背景/BGM/SE | 権限なし | ユーザーが所有/お気に入りしていない |
-| `MISSING_CHARACTER` | 話者/立ち絵 | 存在しない | キャラクターIDが見つからない |
-| `DELETED_CHARACTER` | 話者/立ち絵 | 削除済み | キャラクターが削除済み状態（`deletedAt` が非null） |
-| `PRIVATE_CHARACTER` | 話者/立ち絵 | 非公開 | 他人のプライベートキャラクター（`isPublic=false`, 所有していない、未お気に入り） |
-| `UNUSABLE_CHARACTER` | 話者/立ち絵 | 権限なし | ユーザーが所有/お気に入りしていない（他人の公開キャラのみお気に入り必須） |
-| `MISSING_CHARACTER_IMAGE` | 立ち絵画像 | 存在しない | CharacterImage IDが見つからない |
-| `CHARACTER_IMAGE_MISMATCH` | 立ち絵画像 | 画像ID/キャラIDの不一致 | `portrait.imageId` がキャラクターに属していない |
-| `CHARACTER_IMAGE_KEY_MISMATCH` | 立ち絵画像 | keyの不整合 | クライアント側の `portrait.key` とDB上の canonical な `key` が不一致 |
+| `ASSET_MISSING` | 背景/BGM/SE | 存在しない | アセットIDが見つからない |
+| `ASSET_DELETED` | 背景/BGM/SE | 削除済み | アセットが削除済み状態（`deletedAt` が非null） |
+| `ASSET_KIND_MISMATCH` | 背景/BGM/SE | 種別不一致 | アセット種別（image/audio）が用途と一致しない |
+| `ASSET_NOT_USABLE` | 背景/BGM/SE | 権限なし | ユーザーが所有/お気に入りしていない（他人のアセット） |
+| `CHARACTER_MISSING` | 話者/立ち絵 | 存在しない | キャラクターIDが見つからない |
+| `CHARACTER_DELETED` | 話者/立ち絵 | 削除済み | キャラクターが削除済み状態（`deletedAt` が非null） |
+| `CHARACTER_NOT_USABLE` | 話者/立ち絵 | 権限なし/非公開 | 所有/お気に入りしていない、または他人の非公開キャラクター |
+| `CHARACTER_IMAGE_MISSING` | 立ち絵画像 | 存在しない | CharacterImage IDが見つからない |
+| `CHARACTER_IMAGE_MISMATCH` | 立ち絵画像 | 画像ID/キャラIDの不一致 | `portrait.imageId` が `portrait.characterId` に属していない |
+| `PORTRAIT_KEY_MISMATCH` | 立ち絵画像 | keyの不整合 | クライアント側の `portrait.key` とDB上の canonical な `key` が不一致 |
+| `PORTRAITS_INVALID` | 立ち絵全体 | 構造不正 | `portraits` 配列の構造に問題がある（characterId/imageId 欠落等） |
 
 #### APIエンドポイント
 ```
@@ -381,8 +381,9 @@ GET /games/:id/reference-diagnostics
   - onMounted時にも自動取得。
 
 #### 実装補足
-- bulk fetch で N+1 を防止（全アセット/キャラクター/画像を一度に取得後、ローカル検証）
-- ownership / favorite status は getUsableAssets() / getUsableCharacters() で抽象化
+- 対象ゲームの全シーン/ノードを一括ロードし、参照されている assetId / characterId / imageId を収集
+- 収集した全IDを Prisma `findMany` + `in: []` ガードで一括取得し、Map 化してローカル検証（N+1 回避）
+- お気に入り（Favorite / FavoriteCharacter）も同様に一括取得し、所有者またはお気に入り済みかをマップで判定
 - portrait key normalize は Node 保存時の既存処理と統合
 
 #### 将来課題
