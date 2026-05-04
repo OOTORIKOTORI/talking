@@ -123,6 +123,98 @@ export class GamesService {
     await this.assertGameAssetUsable(userId, coverAssetId, 'image');
   }
 
+  private async assertGameCharacterUsable(
+    userId: string,
+    characterId: string | null | undefined,
+  ): Promise<void> {
+    if (!characterId || characterId.trim().length === 0) return;
+
+    const character = await this.prisma.character.findUnique({ where: { id: characterId } });
+    if (!character || character.deletedAt) {
+      throw new BadRequestException(`character ${characterId} is invalid or deleted`);
+    }
+
+    if (character.ownerId === userId) return;
+
+    // Other user's character: must be public AND favorited
+    if (!character.isPublic) {
+      throw new ForbiddenException(`character ${characterId} is not accessible (not public)`);
+    }
+
+    const favorite = await this.prisma.favoriteCharacter.findUnique({
+      where: { userId_characterId: { userId, characterId } },
+    });
+    if (!favorite) {
+      throw new ForbiddenException(`character ${characterId} must be owned or favorited`);
+    }
+  }
+
+  private async validateAndNormalizePortraits(
+    userId: string,
+    portraits: unknown,
+  ): Promise<any[] | null | undefined> {
+    if (portraits === null || portraits === undefined) return portraits as null | undefined;
+    if (!Array.isArray(portraits)) {
+      throw new BadRequestException('portraits must be an array');
+    }
+
+    const normalized: any[] = [];
+    for (const entry of portraits) {
+      if (typeof entry?.characterId !== 'string' || entry.characterId.trim().length === 0) {
+        throw new BadRequestException('portraits[*].characterId must be a non-empty string');
+      }
+      if (typeof entry?.imageId !== 'string' || entry.imageId.trim().length === 0) {
+        throw new BadRequestException('portraits[*].imageId must be a non-empty string');
+      }
+
+      const characterId = entry.characterId.trim();
+      const imageId = entry.imageId.trim();
+
+      // Validate character accessibility
+      await this.assertGameCharacterUsable(userId, characterId);
+
+      // Validate CharacterImage existence and ownership
+      const image = await this.prisma.characterImage.findUnique({ where: { id: imageId } });
+      if (!image) {
+        throw new BadRequestException(`characterImage ${imageId} does not exist`);
+      }
+      if (image.characterId !== characterId) {
+        throw new BadRequestException(
+          `characterImage ${imageId} does not belong to character ${characterId}`,
+        );
+      }
+
+      // Override key with canonical DB value to prevent S3 key spoofing
+      const { key: _clientKey, ...rest } = entry;
+      normalized.push({
+        ...rest,
+        characterId,
+        imageId,
+        key: image.key,
+      });
+    }
+
+    return normalized;
+  }
+
+  private async validateAndNormalizeNodeReferences(userId: string, node: any): Promise<any> {
+    // Validate all asset references
+    await Promise.all([
+      this.assertGameAssetUsable(userId, node?.bgAssetId, 'image'),
+      this.assertGameAssetUsable(userId, node?.musicAssetId, 'audio'),
+      this.assertGameAssetUsable(userId, node?.sfxAssetId, 'audio'),
+      this.assertGameAssetUsable(userId, node?.portraitAssetId, 'image'),
+    ]);
+
+    // Validate speaker character
+    await this.assertGameCharacterUsable(userId, node?.speakerCharacterId);
+
+    // Validate and normalize portraits (also normalizes canonical keys)
+    const normalizedPortraits = await this.validateAndNormalizePortraits(userId, node?.portraits);
+
+    return { ...node, portraits: normalizedPortraits };
+  }
+
   private normalizeChoiceInput(choice: any) {
     return {
       label: choice?.label ?? '',
@@ -797,42 +889,34 @@ export class GamesService {
   async upsertNode(userId: string, sceneId: string, node: any) {
     await this.getOwnedSceneOrThrow(userId, sceneId);
 
-    // Validate referenced assets: owned OR favorited, correct type, not deleted.
-    await Promise.all([
-      this.assertGameAssetUsable(userId, node?.bgAssetId, 'image'),
-      this.assertGameAssetUsable(userId, node?.musicAssetId, 'audio'),
-      this.assertGameAssetUsable(userId, node?.sfxAssetId, 'audio'),
-    ]);
-
     if (node.id) {
-      // Update existing node
-      const { choices, ...nodeData } = node;
-      
-      // Update node
-      // Prisma の仕様変更: sceneId を直接渡せないので connect 形式に変換
-      const { sceneId, ...rest } = nodeData as any;
-      const updated = await this.prisma.gameNode.update({
+      // Verify the existing node actually belongs to the specified scene
+      const existingNode = await this.prisma.gameNode.findUnique({ where: { id: node.id } });
+      if (!existingNode) throw new NotFoundException('node not found');
+      if (existingNode.sceneId !== sceneId) {
+        throw new BadRequestException('node does not belong to the specified scene');
+      }
+
+      // Validate and normalize all asset/character references; normalizes portraits keys
+      const normalizedNode = await this.validateAndNormalizeNodeReferences(userId, node);
+      const { choices, ...nodeData } = normalizedNode;
+
+      // Strip sceneId from nodeData to prevent cross-scene move
+      const { sceneId: _ignoredSceneId, ...rest } = nodeData as any;
+
+      await this.prisma.gameNode.update({
         where: { id: node.id },
-        data: {
-          ...rest,
-          ...(sceneId ? { scene: { connect: { id: sceneId } } } : {}),
-        },
+        data: rest,
       });
 
       // Update choices if provided
       if (choices !== undefined) {
-        // Delete existing choices
         await this.prisma.gameChoice.deleteMany({ where: { nodeId: node.id } });
-        
-        // Create new choices
         if (choices.length > 0) {
           await this.prisma.gameChoice.createMany({
             data: choices.map((c: any) => {
               const normalized = this.normalizeChoiceInput(c);
-              return {
-              nodeId: node.id,
-              ...normalized,
-            };
+              return { nodeId: node.id, ...normalized };
             }) as any,
           });
         }
@@ -845,23 +929,29 @@ export class GamesService {
     }
 
     // Create new node
+    // Validate and normalize all asset/character references
+    const normalizedNode = await this.validateAndNormalizeNodeReferences(userId, node);
+
     const max = await this.prisma.gameNode.aggregate({
       _max: { order: true },
       where: { sceneId },
     });
 
-    const { choices, ...nodeData } = node;
-    const choiceCreate = Array.isArray(choices) && choices.length > 0
-      ? {
-          create: choices.map((c: any) => this.normalizeChoiceInput(c)) as any,
-        }
-      : undefined
-    
+    const { choices, ...nodeData } = normalizedNode;
+    // Strip any sceneId in nodeData; use URL-derived sceneId
+    const { sceneId: _ignored, ...restNodeData } = nodeData as any;
+    const choiceCreate =
+      Array.isArray(choices) && choices.length > 0
+        ? {
+            create: choices.map((c: any) => this.normalizeChoiceInput(c)) as any,
+          }
+        : undefined;
+
     return this.prisma.gameNode.create({
       data: {
         sceneId,
         order: (max._max.order ?? 0) + 1,
-        ...nodeData,
+        ...restNodeData,
         ...(choiceCreate ? { choices: choiceCreate } : {}),
       },
       include: { choices: true },

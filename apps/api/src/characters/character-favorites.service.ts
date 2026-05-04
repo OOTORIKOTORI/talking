@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -6,6 +6,15 @@ export class CharacterFavoritesService {
   constructor(private prisma: PrismaService) {}
 
   async add(userId: string, characterId: string) {
+    const character = await this.prisma.character.findUnique({ where: { id: characterId } });
+    if (!character || character.deletedAt) {
+      throw new NotFoundException('character not found');
+    }
+    // Only own characters or public characters can be favorited
+    if (character.ownerId !== userId && !character.isPublic) {
+      throw new ForbiddenException('cannot favorite a non-public character');
+    }
+
     await this.prisma.favoriteCharacter.upsert({
       where: { userId_characterId: { userId, characterId } },
       update: {},

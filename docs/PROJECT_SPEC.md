@@ -346,7 +346,22 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
   - 種別違い（画像 → 音声フィールド等）は `BadRequestException`、権限なしは `ForbiddenException`。
   - 共通ロジックは `GamesService.assertGameAssetUsable(userId, assetId, 'image'|'audio')` に集約。
   - カバー画像の `assertCoverAssetUsable` はこの共通関数に委譲。
-- キャラクター配置（`speakerCharacterId`）・立ち絵（`portraitAssetId` / `characterImageId`）の検証は将来課題として `docs/ROADMAP.md` で管理する。
+- キャラクター参照（`speakerCharacterId` / `portraits[*].characterId`）の Node 保存時バリデーションを実装済み（2026-05-04 MVP）。
+  - `speakerCharacterId`: 本人所有 or 公開かつお気に入り済みキャラクターのみ保存可能。`null`/未指定は許可。
+  - 共通ロジックは `GamesService.assertGameCharacterUsable(userId, characterId)` に集約。
+- 立ち絵 JSON（`portraits`）の Node 保存時バリデーションを実装済み（2026-05-04 MVP）。
+  - `portraits[*].imageId` は `CharacterImage.id` として存在し、entry の `characterId` に属している必要がある。
+  - `portraits[*].key` は API 保存時に DB 上の canonical `CharacterImage.key` へ上書き正規化される（クライアントから送られた値は信用しない）。
+  - キャラクターのアクセス可否は `assertGameCharacterUsable` と同ルールで検証される。
+- `portraitAssetId` は互換維持のレガシー画像アセット参照フィールド。現行立ち絵は `portraits[*].imageId` を使う。
+  - `portraitAssetId` が非空で指定された場合は `assertGameAssetUsable(userId, portraitAssetId, 'image')` を通す。
+  - `null`/未指定/空文字は許可。
+- Node 更新時の所有確認を強化済み（2026-05-04 MVP）。
+  - `node.id` が指定されている場合、そのノードが URL の `sceneId` 配下であることを検証する。
+  - クライアントから送られた `sceneId` フィールドは無視し、URL の `sceneId` に固定する（クロスシーン移動を防止）。
+- `POST /characters/:id/favorite` に防御を追加済み（2026-05-04 MVP）。
+  - 存在しない/削除済みキャラクターのお気に入りは `NotFoundException` で拒否。
+  - 非公開の他人キャラクターのお気に入りは `ForbiddenException` で拒否。
 
 ### ルーティング / 画面
 - **エディタ**: `/my/games/:id/edit`
