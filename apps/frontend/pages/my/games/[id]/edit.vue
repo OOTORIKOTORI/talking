@@ -13,8 +13,11 @@ import { useVisualEffects } from '@/composables/useVisualEffects'
 import { resolveFallbackNodeId } from '@/utils/editorSelection'
 import {
   runScenarioCheck,
+  categorizeIssue,
+  prepublishCategoryLabel,
   type ScenarioCheckIssue,
   type ScenarioCheckSeverity,
+  type PrepublishIssueCategory,
 } from '@/utils/scenarioCheck'
 import type { VisualEffect } from '@talking/types'
 const baseURL = useRuntimeConfig().public.apiBase
@@ -724,6 +727,7 @@ const showChoiceNextPriorityNotice = computed(() => {
 type ScenarioCheckFilter = 'all' | ScenarioCheckSeverity
 
 const scenarioCheckFilter = ref<ScenarioCheckFilter>('all')
+const scenarioCategoryFilter = ref<'all' | PrepublishIssueCategory>('all')
 const scenarioCheckInfoOpen = ref(false)
 const scenarioSeverityOrder: ScenarioCheckSeverity[] = ['error', 'warning', 'info']
 
@@ -808,9 +812,32 @@ const scenarioCheckFilterItems = computed(() => {
   ]
 })
 
+const scenarioCategoryCounts = computed(() => {
+  const all = scenarioCheckIssues.value
+  return {
+    structure: all.filter((i) => categorizeIssue(i as any) === 'structure').length,
+    assetReference: all.filter((i) => categorizeIssue(i as any) === 'asset-reference').length,
+    characterReference: all.filter((i) => categorizeIssue(i as any) === 'character-reference').length,
+  }
+})
+
+const scenarioCategoryFilterItems = computed(() => [
+  { key: 'all' as const, label: '全カテゴリ', count: scenarioCheckTotalCount.value },
+  { key: 'structure' as const, label: '構成', count: scenarioCategoryCounts.value.structure },
+  { key: 'asset-reference' as const, label: '素材参照', count: scenarioCategoryCounts.value.assetReference },
+  { key: 'character-reference' as const, label: 'キャラクター参照', count: scenarioCategoryCounts.value.characterReference },
+])
+
 const scenarioCheckFilteredIssues = computed(() => {
-  if (scenarioCheckFilter.value === 'all') return scenarioCheckIssues.value
-  return scenarioCheckIssues.value.filter((issue) => issue.severity === scenarioCheckFilter.value)
+  let result = scenarioCheckIssues.value
+  if (scenarioCheckFilter.value !== 'all') {
+    result = result.filter((issue) => issue.severity === scenarioCheckFilter.value)
+  }
+  if (scenarioCategoryFilter.value !== 'all') {
+    const cat = scenarioCategoryFilter.value
+    result = result.filter((issue) => categorizeIssue(issue as any) === cat)
+  }
+  return result
 })
 
 const scenarioCheckFilteredInfoIssues = computed(() => {
@@ -872,6 +899,43 @@ function scenarioFilterButtonClass(filter: ScenarioCheckFilter) {
   }
   if (active) return 'border-gray-300 bg-gray-100 text-gray-800'
   return 'border-gray-200 bg-white text-gray-700'
+}
+
+function scenarioCategoryFilterButtonClass(key: 'all' | PrepublishIssueCategory, count: number) {
+  const active = scenarioCategoryFilter.value === key
+  if (key === 'all') {
+    if (active) return 'border-gray-300 bg-gray-100 text-gray-800'
+    return 'border-gray-200 bg-white text-gray-700'
+  }
+  if (key === 'asset-reference') {
+    if (active) return 'border-sky-300 bg-sky-100 text-sky-800'
+    if (count > 0) return 'border-sky-200 bg-sky-50 text-sky-700'
+    return 'border-gray-200 bg-white text-gray-500'
+  }
+  if (key === 'character-reference') {
+    if (active) return 'border-violet-300 bg-violet-100 text-violet-800'
+    if (count > 0) return 'border-violet-200 bg-violet-50 text-violet-700'
+    return 'border-gray-200 bg-white text-gray-500'
+  }
+  // structure
+  if (active) return 'border-orange-300 bg-orange-100 text-orange-800'
+  if (count > 0) return 'border-orange-200 bg-orange-50 text-orange-700'
+  return 'border-gray-200 bg-white text-gray-500'
+}
+
+function selectScenarioCategoryFilter(key: 'all' | PrepublishIssueCategory) {
+  scenarioCategoryFilter.value = key
+}
+
+function issueCategoryLabel(issue: any): string {
+  return prepublishCategoryLabel(categorizeIssue(issue))
+}
+
+function issueCategoryClass(issue: any): string {
+  const cat = categorizeIssue(issue)
+  if (cat === 'asset-reference') return 'text-sky-600'
+  if (cat === 'character-reference') return 'text-violet-600'
+  return 'text-orange-600'
 }
 
 function scenarioSeverityLabel(severity: ScenarioCheckSeverity) {
@@ -1857,7 +1921,10 @@ function onUp() {
 
           <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50">
             <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
-              <div class="font-semibold text-sm">シナリオチェック</div>
+              <div>
+                <div class="font-semibold text-sm">公開前チェック</div>
+                <div class="text-[11px] text-gray-500">ゲーム構成・素材参照・キャラクター参照を確認します。警告は公開をブロックしません。</div>
+              </div>
               <button
                 type="button"
                 class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
@@ -1872,6 +1939,11 @@ function onUp() {
                 <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
                 <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
               </div>
+              <div class="mt-1 flex flex-wrap gap-1 text-[11px]">
+                <span class="rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700">構成 {{ scenarioCategoryCounts.structure }}件</span>
+                <span class="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-sky-700">素材参照 {{ scenarioCategoryCounts.assetReference }}件</span>
+                <span class="rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-violet-700">キャラクター参照 {{ scenarioCategoryCounts.characterReference }}件</span>
+              </div>
               <div v-if="referenceDiagnosticsLoading" class="mt-2 flex items-center gap-1 text-xs text-slate-500">
                 <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500"></span>
                 素材・キャラクター参照を確認中...
@@ -1881,7 +1953,7 @@ function onUp() {
               </div>
             </div>
             <div v-if="sectionOpen.scenarioCheck" class="border-t border-gray-200 px-3 py-2">
-              <div class="mb-2 flex flex-wrap gap-2">
+              <div class="mb-1 flex flex-wrap gap-2">
                 <button
                   v-for="item in scenarioCheckFilterItems"
                   :key="item.key"
@@ -1889,6 +1961,18 @@ function onUp() {
                   class="rounded border px-2 py-1 text-xs transition-colors"
                   :class="scenarioFilterButtonClass(item.key)"
                   @click="selectScenarioCheckFilter(item.key)"
+                >
+                  {{ item.label }} {{ item.count }}
+                </button>
+              </div>
+              <div class="mb-2 flex flex-wrap gap-1">
+                <button
+                  v-for="item in scenarioCategoryFilterItems"
+                  :key="item.key"
+                  type="button"
+                  class="rounded border px-2 py-0.5 text-[11px] transition-colors"
+                  :class="scenarioCategoryFilterButtonClass(item.key, item.count)"
+                  @click="selectScenarioCategoryFilter(item.key)"
                 >
                   {{ item.label }} {{ item.count }}
                 </button>
@@ -1924,9 +2008,13 @@ function onUp() {
                     :class="scenarioSeverityClass(issue.severity)"
                   >
                     <div class="mb-1 flex items-center justify-between gap-2">
-                      <span class="font-semibold">{{ scenarioSeverityLabel(issue.severity) }}</span>
+                      <span class="font-semibold">
+                        {{ scenarioSeverityLabel(issue.severity) }}
+                        <span class="font-normal opacity-70">·</span>
+                        <span :class="issueCategoryClass(issue)">{{ issueCategoryLabel(issue) }}</span>
+                      </span>
                       <button
-                        v-if="issue.sceneId"
+                        v-if="issue.sceneId && issue.nodeId"
                         type="button"
                         class="rounded border border-gray-300 bg-white px-2 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100"
                         @click="focusScenarioIssue(issue)"

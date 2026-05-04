@@ -1120,7 +1120,24 @@ interface MessageTheme {
 - 変数条件の厳密評価を含む到達可能性判定
 - フローチャート可視化
 
-#### シナリオチェック追加MVP（2026-05-03 実装）
+#### 公開前チェックUIカテゴリ分けMVP（2026-05-04 実装）
+<!-- impl: apps/frontend/utils/scenarioCheck.ts, apps/frontend/pages/my/games/[id]/edit.vue, apps/frontend/pages/my/games/index.vue -->
+- 編集画面の「シナリオチェック」欄を「公開前チェック」に改称
+- 補足文を追加: 「ゲーム構成・素材参照・キャラクター参照を確認します。警告は公開をブロックしません。」
+- issueをフロント側で3カテゴリに分類（APIは変更なし）:
+  - `structure`: `runScenarioCheck` 由来の構成チェック全般
+  - `asset-reference`: `reference-diagnostics` 由来のうち `ASSET_*` コードまたは asset 系フィールド
+  - `character-reference`: `reference-diagnostics` 由来のうち `CHARACTER_*` / `PORTRAIT_*` コードまたは character 系フィールド
+- カテゴリ件数バッジを重大度件数の下に表示（構成・素材参照・キャラクター参照）
+- カテゴリフィルタボタンを重大度フィルタの下に追加（全カテゴリ / 構成 / 素材参照 / キャラクター参照）
+  - 重大度フィルタとAND条件で絞り込む
+- 各issueカードに「重大度 · カテゴリ」を表示
+- node-levelのissueのみ「対象へ移動」ボタンを表示（`sceneId && nodeId` が両方ある場合）
+- 公開切替時（`index.vue`）に `getReferenceDiagnostics` も呼び、カテゴリ別件数を warning確認ダイアログに表示
+  - 参照診断取得失敗時は、ローカルチェックのみで進め、失敗旨をダイアログに表示
+  - error ブロック条件は変更なし（ローカル `runScenarioCheck` の error のみ）
+
+
 <!-- impl: apps/frontend/utils/scenarioCheck.ts, apps/frontend/tests/scenarioCheck.spec.ts -->
 - 既存の開始地点/参照切れ/到達不能チェックに加えて、以下のwarningチェックを追加
 

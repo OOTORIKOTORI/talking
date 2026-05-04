@@ -1,5 +1,38 @@
 export type ScenarioCheckSeverity = 'error' | 'warning' | 'info'
 
+export type PrepublishIssueCategory = 'structure' | 'asset-reference' | 'character-reference'
+
+export function categorizeIssue(issue: {
+  source?: string
+  code?: string
+  field?: string
+}): PrepublishIssueCategory {
+  if (!issue.source || issue.source !== 'reference') return 'structure'
+
+  const code = issue.code ?? ''
+  if (code.startsWith('ASSET_')) return 'asset-reference'
+  if (
+    code.startsWith('CHARACTER_') ||
+    code.startsWith('PORTRAIT_') ||
+    code === 'PORTRAITS_INVALID'
+  ) return 'character-reference'
+
+  const field = issue.field ?? ''
+  const assetFields = ['coverAssetId', 'bgAssetId', 'musicAssetId', 'sfxAssetId', 'portraitAssetId', 'ゲームカバー画像', '背景画像', 'BGM', 'SE', '立ち絵画像']
+  const charFields = ['speakerCharacterId', 'portraits', 'characterId', 'imageId', 'スピーカーキャラクター', '立ち絵[']
+
+  if (assetFields.some((f) => field.includes(f))) return 'asset-reference'
+  if (charFields.some((f) => field.includes(f))) return 'character-reference'
+
+  return 'asset-reference'
+}
+
+export function prepublishCategoryLabel(category: PrepublishIssueCategory): string {
+  if (category === 'structure') return '構成'
+  if (category === 'asset-reference') return '素材参照'
+  return 'キャラクター参照'
+}
+
 export type ScenarioCheckIssue = {
   id: string
   severity: ScenarioCheckSeverity

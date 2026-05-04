@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { runScenarioCheck } from '@/utils/scenarioCheck'
+import { runScenarioCheck, categorizeIssue } from '@/utils/scenarioCheck'
 
 type MyGame = {
   id: string
@@ -399,7 +399,32 @@ async function togglePublic(game: any) {
       })
 
       const errorIssues = check.issues.filter((issue) => issue.severity === 'error')
-      const warningCount = check.counts.warning
+
+      // Fetch reference diagnostics (non-blocking on failure)
+      let refIssues: any[] = []
+      let refDiagFailed = false
+      try {
+        const refResult = await api.getReferenceDiagnostics(game.id) as any
+        refIssues = refResult?.issues ?? []
+      } catch {
+        refDiagFailed = true
+      }
+
+      // Merge all issues for category counts
+      const allIssues = [
+        ...check.issues,
+        ...refIssues.map((i: any) => ({ ...i, severity: 'warning' as const })),
+      ]
+      const structureWarnings = allIssues.filter(
+        (i) => i.severity === 'warning' && categorizeIssue(i as any) === 'structure',
+      ).length
+      const assetWarnings = allIssues.filter(
+        (i) => i.severity === 'warning' && categorizeIssue(i as any) === 'asset-reference',
+      ).length
+      const charWarnings = allIssues.filter(
+        (i) => i.severity === 'warning' && categorizeIssue(i as any) === 'character-reference',
+      ).length
+      const totalWarnings = structureWarnings + assetWarnings + charWarnings
 
       if (errorIssues.length > 0) {
         const details = errorIssues
@@ -411,7 +436,7 @@ async function togglePublic(game: any) {
 
         toast.error(`エラー${errorIssues.length}件のため公開できません`)
         const shouldMoveToEdit = window.confirm(
-          `公開できません。シナリオチェックでエラーが見つかりました。エラーを修正してから公開してください。\n\n${details}${suffix}\n\nシナリオチェックを確認するため編集画面へ移動しますか？`
+          `公開できません。公開前チェックでエラーが見つかりました。エラーを修正してから公開してください。\n\n${details}${suffix}\n\n公開前チェックを確認するため編集画面へ移動しますか？`
         )
         if (shouldMoveToEdit) {
           await navigateTo(`/my/games/${game.id}/edit?focusScenarioCheck=1&scenarioCheckFilter=error`)
@@ -419,9 +444,19 @@ async function togglePublic(game: any) {
         return
       }
 
-      if (warningCount > 0) {
+      if (totalWarnings > 0) {
+        const categoryLines = [
+          structureWarnings > 0 ? `構成: ${structureWarnings}件` : null,
+          assetWarnings > 0 ? `素材参照: ${assetWarnings}件` : null,
+          charWarnings > 0 ? `キャラクター参照: ${charWarnings}件` : null,
+        ].filter(Boolean).join('\n')
+        const refNote = refDiagFailed
+          ? '\n\n※ 参照診断の取得に失敗したため、素材/キャラクター参照の最新状態は確認できませんでした。'
+          : (assetWarnings + charWarnings > 0
+              ? '\n\n素材・キャラクター参照の警告がある場合、公開後に画像・音声・立ち絵などが表示されない可能性があります。'
+              : '')
         const proceed = window.confirm(
-          `警告がありますが公開しますか？未設定の選択肢や到達不能ノードが残っている可能性があります。\n\n警告 ${warningCount} 件`
+          `警告がありますが公開しますか？\n\n${categoryLines}${refNote}`
         )
         if (!proceed) {
           toast.info('公開をキャンセルしました')
