@@ -89,6 +89,7 @@
 
 **直近の残課題（優先順）**
 - 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
+- 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
