@@ -38,40 +38,72 @@
             <h2 class="text-sm font-semibold tracking-wide text-gray-700">使用素材・キャラクター</h2>
 
             <div v-if="credits?.assetCredits?.length" class="space-y-2">
-              <h3 class="text-xs font-semibold text-gray-600">素材</h3>
-              <ul class="space-y-1.5 text-sm">
-                <li v-for="item in credits.assetCredits" :key="`asset-${item.assetId}`" class="text-gray-700">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">素材</h3>
+              <ul class="space-y-1.5">
+                <li
+                  v-for="item in credits.assetCredits"
+                  :key="`asset-${item.assetId}`"
+                  class="rounded border border-gray-200 bg-white px-3 py-2"
+                >
                   <template v-if="item.linkable">
-                    <NuxtLink :to="`/assets/${item.assetId}`" class="font-medium text-gray-900 hover:underline">
+                    <NuxtLink :to="`/assets/${item.assetId}`" class="block font-medium text-gray-900 hover:underline text-sm">
                       {{ item.title }}
                     </NuxtLink>
-                    <span class="text-gray-600"> / by {{ item.ownerId || 'unknown' }} / {{ formatCreditFields(item.fields) }}</span>
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span class="text-xs text-gray-500">by {{ formatOwnerLabel(item.ownerId) }}</span>
+                      <span
+                        v-for="badge in creditFieldBadges(item.fields)"
+                        :key="badge"
+                        class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
+                      >{{ badge }}</span>
+                    </div>
                   </template>
                   <template v-else>
-                    <span class="font-medium text-gray-500">{{ item.title }}</span>
-                    <span class="text-gray-500"> / {{ formatCreditFields(item.fields) }}</span>
+                    <span class="block font-medium text-gray-400 text-sm">{{ item.title }}</span>
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span class="text-xs text-gray-400">詳細非公開</span>
+                      <span
+                        v-for="badge in creditFieldBadges(item.fields)"
+                        :key="badge"
+                        class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-500"
+                      >{{ badge }}</span>
+                    </div>
                   </template>
                 </li>
               </ul>
             </div>
 
             <div v-if="credits?.characterCredits?.length" class="space-y-2">
-              <h3 class="text-xs font-semibold text-gray-600">キャラクター</h3>
-              <ul class="space-y-1.5 text-sm">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">キャラクター</h3>
+              <ul class="space-y-1.5">
                 <li
                   v-for="item in credits.characterCredits"
                   :key="`character-${item.characterId}`"
-                  class="text-gray-700"
+                  class="rounded border border-gray-200 bg-white px-3 py-2"
                 >
                   <template v-if="item.linkable">
-                    <NuxtLink :to="`/characters/${item.characterId}`" class="font-medium text-gray-900 hover:underline">
+                    <NuxtLink :to="`/characters/${item.characterId}`" class="block font-medium text-gray-900 hover:underline text-sm">
                       {{ item.displayName || item.name }}
                     </NuxtLink>
-                    <span class="text-gray-600"> / by {{ item.ownerId || 'unknown' }} / {{ formatCreditFields(item.fields) }}</span>
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span class="text-xs text-gray-500">by {{ formatOwnerLabel(item.ownerId) }}</span>
+                      <span
+                        v-for="badge in creditFieldBadges(item.fields)"
+                        :key="badge"
+                        class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
+                      >{{ badge }}</span>
+                    </div>
                   </template>
                   <template v-else>
-                    <span class="font-medium text-gray-500">{{ item.displayName || item.name }}</span>
-                    <span class="text-gray-500"> / {{ formatCreditFields(item.fields) }}</span>
+                    <span class="block font-medium text-gray-400 text-sm">{{ item.displayName || item.name }}</span>
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span class="text-xs text-gray-400">詳細非公開</span>
+                      <span
+                        v-for="badge in creditFieldBadges(item.fields)"
+                        :key="badge"
+                        class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-500"
+                      >{{ badge }}</span>
+                    </div>
                   </template>
                 </li>
               </ul>
@@ -168,8 +200,13 @@ const coverUrl = ref<string | null>(null)
 const credits = ref<GameCreditsResult | null>(null)
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
-const formatCreditFields = (fields: Array<{ label: string; count: number }>) =>
-  fields.map((field) => `${field.label} ${field.count}箇所`).join('、')
+const formatOwnerLabel = (ownerId?: string | null): string => {
+  if (!ownerId) return 'unknown'
+  if (ownerId.length <= 12) return ownerId
+  return `${ownerId.slice(0, 4)}...${ownerId.slice(-4)}`
+}
+const creditFieldBadges = (fields: Array<{ label: string; count: number }>): string[] =>
+  fields.map((field) => `${field.label} ${field.count}箇所`)
 
 const hasCredits = computed(() => Number(credits.value?.counts?.total || 0) > 0)
 

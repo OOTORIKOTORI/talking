@@ -14,6 +14,7 @@
 - キャラクター削除時の利用影響表示MVP（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
 - アセット削除時の利用影響表示MVP（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
 - 公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
+- クレジット欄UI polish（ownerId短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
 - いいね / 素材棚 / 採用 / 引用・クレジット の4概念分離設計を docs に明文化（`docs/PROJECT_SPEC.md` 「いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）」、コード実装は将来段階的に実施）
 - ゲーム内参照アセット権限ルールの棚卸しMVP（自分+お気に入り方針の明文化、UI/API現状差分の記録）
 - アセットお気に入り数表示MVP（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
@@ -95,7 +96,7 @@
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
 - ライセンス/利用条件表示の導入
-- クレジット作者表示の改善（ownerId UUID表示の短縮、プロフィール/クリエイター名表示、作者ページリンク）
+- クレジット作者表示の改善（ownerId短縮表示は2026-05-05 UI polishで実施済み。残: プロフィール/クリエイター名表示、作者ページリンク）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
