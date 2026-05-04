@@ -1177,9 +1177,11 @@ interface MessageTheme {
   - `structure`: `runScenarioCheck` 由来の構成チェック全般
   - `asset-reference`: `reference-diagnostics` 由来のうち `ASSET_*` コードまたは asset 系フィールド
   - `character-reference`: `reference-diagnostics` 由来のうち `CHARACTER_*` / `PORTRAIT_*` コードまたは character 系フィールド
-- カテゴリ件数バッジを重大度件数の下に表示（構成・素材参照・キャラクター参照）
-- カテゴリフィルタボタンを重大度フィルタの下に追加（全カテゴリ / 構成 / 素材参照 / キャラクター参照）
+- ヘッダー部に重大度件数（エラー/警告/情報）を表示
+- 展開部に重大度フィルタとカテゴリフィルタを表示
+  - カテゴリフィルタボタンがカテゴリ件数表示も兼ねる（例: `全カテゴリ 4件` / `構成 3件` / `素材参照 1件` / `キャラクター参照 0件`）
   - 重大度フィルタとAND条件で絞り込む
+- 非クリックのカテゴリ件数バッジ行は削除済み（2026-05-05 UI polish）
 - 各issueカードに「重大度 · カテゴリ」を表示
 - node-levelのissueのみ「対象へ移動」ボタンを表示（`sceneId && nodeId` が両方ある場合）
 - 公開切替時（`index.vue`）に `getReferenceDiagnostics` も呼び、カテゴリ別件数を warning確認ダイアログに表示
@@ -1198,11 +1200,16 @@ interface MessageTheme {
 | 開始シーン以外で `startNodeId` が設定済みだが存在しないノードIDを参照 | 開始シーン以外のシーン | warning |
 
 - 今回追加した warning は API 側公開前チェックで公開ブロックしない（既存の error チェックのみが API 側でのブロック対象）
-- 素材参照チェック（ノードが参照するアセットID の存在確認）は将来課題
+- 素材・キャラクター参照の warning 検出と公開前チェックUIへの統合は実装済み（`GET /games/:id/reference-diagnostics`）
+  - bg/BGM/SE/cover/portraitAsset の参照診断、speakerCharacterId / portraits の参照診断を含む
+  - 削除済み/存在しない/権限なし/種別違いの warning を検出
+  - ただし、これらの warning は公開をブロックしない
+  - API側公開ブロックへの参照診断統合は未実装・将来課題
 
 将来課題:
-- 素材参照の厳密チェック（背景・BGM・SE・キャラクター立ち絵のアセットID存在確認）
-- アセット権限・公開可否チェック（削除済み・非公開アセット）
+- 参照診断warningの自動修復/一括差し替え
+- クレジット未設定チェック
+- 必要に応じたAPI側公開審査への参照診断統合（ブロック条件化するかは別途設計）
 - 条件分岐の完全評価
 - 変数キー存在チェック
 - フローチャート可視化
