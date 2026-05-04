@@ -95,6 +95,7 @@
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
 - ライセンス/利用条件表示の導入
+- クレジット作者表示の改善（ownerId UUID表示の短縮、プロフィール/クリエイター名表示、作者ページリンク）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
