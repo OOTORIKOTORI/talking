@@ -338,10 +338,15 @@ Talking 上で"シーン→ノード"の順にテキスト/演出を組み立て
 - `image/audio/character` など用途別の型不一致は拒否する。
 - 削除済み素材・参照不可素材は拒否する。
 
-#### 現状棚卸し（2026-05-04）
+#### 現状棚卸し（2026-05-04 更新）
 - カバー画像（`coverAssetId`）は API で「本人所有 or お気に入り済み」「`image/*`」「未削除」を検証済み。
-- Node保存（背景/BGM/SE、キャラクター配置、立ち絵参照）は共通の保存時バリデーションが未整備。
-- そのため、Node保存時の参照検証は将来課題として `docs/ROADMAP.md` で管理する。
+- Node保存時の `bgAssetId` / `musicAssetId` / `sfxAssetId` も API 側で以下を検証済み（2026-05-04 MVP）。
+  - `bgAssetId`: `image/*` のみ。本人所有 or お気に入り済み。削除済み不可。`null`/未指定は許可。
+  - `musicAssetId` / `sfxAssetId`: `audio/*` のみ。本人所有 or お気に入り済み。削除済み不可。`null`/未指定は許可。
+  - 種別違い（画像 → 音声フィールド等）は `BadRequestException`、権限なしは `ForbiddenException`。
+  - 共通ロジックは `GamesService.assertGameAssetUsable(userId, assetId, 'image'|'audio')` に集約。
+  - カバー画像の `assertCoverAssetUsable` はこの共通関数に委譲。
+- キャラクター配置（`speakerCharacterId`）・立ち絵（`portraitAssetId` / `characterImageId`）の検証は将来課題として `docs/ROADMAP.md` で管理する。
 
 ### ルーティング / 画面
 - **エディタ**: `/my/games/:id/edit`

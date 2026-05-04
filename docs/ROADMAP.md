@@ -24,6 +24,7 @@
 - 自作ゲーム管理 `/my/games` ゲーム複製MVP（owner限定、確認ダイアログ、複製後編集画面遷移）
 - ゲーム基本情報編集MVP（`/my/games/:id/edit` で `title` / `summary` 編集、保存状態表示、複製後タイトル変更導線）
 - ゲームカバー画像選択UI MVP（ゲーム全体設定 > 基本情報タブで `coverAssetId` 選択/解除、公開一覧/詳細・自作一覧への反映）
+- Node保存時の背景/BGM/SE参照アセット共通バリデーション MVP（`bgAssetId`=`image/*`・`musicAssetId`/`sfxAssetId`=`audio/*`・本人所有 or お気に入り済み・削除済み拒否。`GamesService.assertGameAssetUsable` 共通化。カバー画像チェックも同関数に委譲。）
 - 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
 - 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
 - ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
@@ -82,9 +83,8 @@ UI文言整理:
 ---
 
 **直近の残課題（優先順）**
-- ゲーム内参照素材の共通バリデーション関数（`assetId`/`characterId`/`characterImageId`）
-- Node保存時の参照チェック実装（本人所有 or お気に入り、種別一致、削除済み拒否）
 - `characterImageId` が選択済みキャラクターに属することの検証
+- `characterId`（speakerCharacterId）が本人所有 or お気に入り済みかの確認
 - 削除済み/非公開化素材の参照切れ検知と公開前 warning 強化
 - アセット削除/非公開化時の「利用中ゲームへの影響表示」導線
 - アセット閲覧数 `viewCount` のMVP導入（`/assets/:id` のみカウント、一覧/管理画面は非対象）
@@ -162,7 +162,11 @@ UI文言整理:
 	- 本人所有 or お気に入り済み
 	- `image/*` のみ
 	- 削除済み不可
-- 背景/BGM/SE/キャラクター配置/立ち絵参照のNode保存時バリデーションは未整備。
+- **Node保存時の `bgAssetId` / `musicAssetId` / `sfxAssetId` は 2026-05-04 MVP で検証済み。**
+	- `bgAssetId`: `image/*`・本人所有 or お気に入り済み・削除済み不可。
+	- `musicAssetId` / `sfxAssetId`: `audio/*`・本人所有 or お気に入り済み・削除済み不可。
+	- 共通ロジック: `GamesService.assertGameAssetUsable(userId, assetId, 'image'|'audio')`。
+- キャラクター配置/立ち絵参照（`speakerCharacterId`/`portraitAssetId`）のNode保存時バリデーションは未整備。
 	- 参照IDの所有・お気に入り・種別・削除状態の共通検証が未実装。
 - 付随の軽微修正として、お気に入り一覧APIで削除済み素材/参照不可キャラが混入しないようフィルタを追加。
 
@@ -172,16 +176,13 @@ UI文言整理:
 	- 新: 「自分の画像アセット、またはお気に入りした公開画像アセットを選択できます。」
 - `favorites` 一覧で `deletedAt: null` を適用。
 - `character-favorites` 一覧で `deletedAt` と公開可否（本人所有 or 公開）を適用。
-- `games.service.ts` の Node保存処理に、共通参照バリデーション実装TODOを追記。
+- `games.service.ts` の Node保存処理に、`bgAssetId`/`musicAssetId`/`sfxAssetId` の共通バリデーション実装（`assertGameAssetUsable`）。
 
 ### 将来課題（ゲーム内参照素材）
-- 共通バリデーション関数の導入（ゲーム保存系で共通利用）
-- `assetId` が本人所有 or お気に入り済みかの確認
-- `characterId` が本人所有 or お気に入り済みかの確認
-- `characterImageId` が選択済みキャラクターに属するかの確認
-- image/audio など種別一致確認
-- 削除済み/非公開素材の参照拒否
-- 参照切れ素材のシナリオチェック warning
+- `characterId`（speakerCharacterId）が本人所有 or お気に入り済みかの確認
+- `characterImageId` / `portraitAssetId` が選択済みキャラクターに属するかの確認
+- キャラクター配置全体の参照バリデーション（キャラ配置ブロックまとめて検証）
+- 参照切れ素材のシナリオチェック warning（bg/BGM/SE/キャラ全体）
 - アセット削除/非公開化時の利用中ゲームへの影響表示
 
 ### 実行した確認コマンド

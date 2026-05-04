@@ -90,31 +90,37 @@ export class GamesService {
     return trimmed;
   }
 
-  private async assertCoverAssetUsable(userId: string, coverAssetId: string) {
-    const asset = await this.prisma.asset.findUnique({ where: { id: coverAssetId } });
+  private async assertGameAssetUsable(
+    userId: string,
+    assetId: string | null | undefined,
+    expectedKind: 'image' | 'audio',
+  ): Promise<void> {
+    if (!assetId || assetId.trim().length === 0) return;
+
+    const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
     if (!asset || asset.deletedAt) {
-      throw new BadRequestException('coverAssetId is invalid');
-    }
-    if (!asset.contentType.startsWith('image/')) {
-      throw new BadRequestException('cover asset must be an image');
+      throw new BadRequestException(`asset ${assetId} is invalid or deleted`);
     }
 
-    if (asset.ownerId === userId) {
-      return asset;
+    if (expectedKind === 'image' && !asset.contentType.startsWith('image/')) {
+      throw new BadRequestException(`asset must be an image (got ${asset.contentType})`);
     }
+    if (expectedKind === 'audio' && !asset.contentType.startsWith('audio/')) {
+      throw new BadRequestException(`asset must be audio (got ${asset.contentType})`);
+    }
+
+    if (asset.ownerId === userId) return;
 
     const favorite = await this.prisma.favorite.findUnique({
-      where: {
-        userId_assetId: {
-          userId,
-          assetId: coverAssetId,
-        },
-      },
+      where: { userId_assetId: { userId, assetId } },
     });
     if (!favorite) {
-      throw new ForbiddenException('cover asset must be owned or favorited');
+      throw new ForbiddenException(`asset ${assetId} must be owned or favorited`);
     }
-    return asset;
+  }
+
+  private async assertCoverAssetUsable(userId: string, coverAssetId: string) {
+    await this.assertGameAssetUsable(userId, coverAssetId, 'image');
   }
 
   private normalizeChoiceInput(choice: any) {
@@ -791,8 +797,12 @@ export class GamesService {
   async upsertNode(userId: string, sceneId: string, node: any) {
     await this.getOwnedSceneOrThrow(userId, sceneId);
 
-    // TODO(mvp-audit): Validate referenced assets/characters on save.
-    // Expected policy: owned OR favorited, type-safe(image/audio), and not deleted.
+    // Validate referenced assets: owned OR favorited, correct type, not deleted.
+    await Promise.all([
+      this.assertGameAssetUsable(userId, node?.bgAssetId, 'image'),
+      this.assertGameAssetUsable(userId, node?.musicAssetId, 'audio'),
+      this.assertGameAssetUsable(userId, node?.sfxAssetId, 'audio'),
+    ]);
 
     if (node.id) {
       // Update existing node
