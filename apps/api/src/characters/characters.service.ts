@@ -148,10 +148,9 @@ export class CharactersService {
       },
     });
 
-    // 2. portraits 候補ノード（portraits != null のノードをTS側でフィルタ）
+    // 2. portraits 候補ノード（JSON null 条件はPrismaに渡さず、TS側でフィルタ）
     const portraitCandidates = await this.prisma.gameNode.findMany({
       where: {
-        NOT: { portraits: null },
         scene: { project: { deletedAt: null } },
       },
       select: {
@@ -169,11 +168,16 @@ export class CharactersService {
       },
     });
 
-    type PortraitEntry = { characterId?: string; imageId?: string };
+    type PortraitEntry = { characterId?: unknown; imageId?: unknown };
     const portraitNodes = portraitCandidates.filter(n => {
-      const ps = n.portraits as PortraitEntry[] | null;
+      const ps = n.portraits;
       if (!Array.isArray(ps)) return false;
-      return ps.some(p => p.characterId === id || (p.imageId && charImageIds.has(p.imageId)));
+      return ps.some(p => {
+        if (!p || typeof p !== 'object') return false;
+        const entry = p as PortraitEntry;
+        return (typeof entry.characterId === 'string' && entry.characterId === id) ||
+          (typeof entry.imageId === 'string' && charImageIds.has(entry.imageId));
+      });
     });
 
     type GameAgg = {

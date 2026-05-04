@@ -584,6 +584,13 @@ GET /games/:id/reference-diagnostics
 - フロントUIもアセット削除モーダルに倣い、`showDeleteModal` / `usageImpact` / `usageImpactLoading` / `usageImpactError` で管理
 - キャラクター固有の表示: 話者（`speakerCharacterId`）/ 立ち絵配置（`portraits`）の2区分
 
+#### portraits フィールドの実装方針
+- `portraits` は Prisma JSON フィールドのため、DB 側で `NOT: { portraits: null }` のような null 条件は指定しない（Prisma の runtime validation エラーになる）
+- MVP では `scene: { project: { deletedAt: null } }` のみ DB 条件とし、候補ノードを全取得
+- TypeScript 側で `Array.isArray(n.portraits)` によって絞り込み、各エントリが object であること・`characterId` / `imageId` が string であることを確認してから比較
+- 不正な JSON 形状（null / object / malformed 配列）が混在しても API が 500 にならないよう堅牢化している
+
+### ルーティング / 画面
 
 - **エディタ**: `/my/games/:id/edit`
   - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
