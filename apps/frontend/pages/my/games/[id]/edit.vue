@@ -51,6 +51,11 @@ const pendingIndex = ref<number | null>(null)
 const saving = ref(false)
 const sceneNameDraft = ref('')
 
+// Reference diagnostics
+const referenceDiagnostics = ref<any>(null)
+const referenceDiagnosticsLoading = ref(false)
+const referenceDiagnosticsError = ref<string | null>(null)
+
 // ビジュアルエフェクト
 const { effectState, playEffect, stopEffect } = useVisualEffects()
 
@@ -767,10 +772,31 @@ const scenarioCheckResult = computed(() => {
 })
 
 const scenarioCheckIssues = computed(() => {
-  const issues = scenarioCheckResult.value.issues
-  return scenarioSeverityOrder.flatMap((severity) => issues.filter((issue) => issue.severity === severity))
+  const localIssues = scenarioCheckResult.value.issues
+  const referenceIssues = referenceDiagnostics.value?.issues ?? []
+  
+  // Merge and sort by severity
+  const allIssues = [
+    ...localIssues,
+    ...referenceIssues.map((issue: any) => ({
+      ...issue,
+      severity: 'warning' as const, // reference diagnostics are always warning
+    }))
+  ]
+  
+  return scenarioSeverityOrder.flatMap((severity) => allIssues.filter((issue) => issue.severity === severity))
 })
-const scenarioCheckCounts = computed(() => scenarioCheckResult.value.counts)
+
+const scenarioCheckCounts = computed(() => {
+  const localCounts = scenarioCheckResult.value.counts
+  const referenceCounts = referenceDiagnostics.value?.counts ?? { warning: 0 }
+  
+  return {
+    error: localCounts.error,
+    warning: localCounts.warning + referenceCounts.warning,
+    info: localCounts.info,
+  }
+})
 const scenarioCheckTotalCount = computed(() => scenarioCheckIssues.value.length)
 
 const scenarioCheckFilterItems = computed(() => {
@@ -887,6 +913,24 @@ async function focusScenarioIssue(issue: ScenarioCheckIssue) {
   const targetNode = nodes.value.find((nodeItem: any) => nodeItem.id === issue.nodeId)
   if (!targetNode) return
   selectNode(targetNode)
+}
+
+async function refreshReferenceDiagnostics() {
+  if (!game.value?.id) return
+  
+  referenceDiagnosticsLoading.value = true
+  referenceDiagnosticsError.value = null
+  
+  try {
+    const result = await api.getReferenceDiagnostics(game.value.id)
+    referenceDiagnostics.value = result
+  } catch (error) {
+    console.warn('Failed to fetch reference diagnostics:', error)
+    referenceDiagnosticsError.value = '参照診断の取得に失敗しました'
+    referenceDiagnostics.value = null
+  } finally {
+    referenceDiagnosticsLoading.value = false
+  }
 }
 
 function createEmptyChoiceCondition() {
@@ -1046,6 +1090,8 @@ onMounted(async () => {
     if (!restored) {
       await selectInitialSceneAndNode()
     }
+    // Fetch reference diagnostics after loading game
+    await refreshReferenceDiagnostics()
   } catch (error) {
     console.error('Failed to load game:', error)
     alert('ゲームの読み込みに失敗しました')
@@ -1186,12 +1232,16 @@ async function deleteCurrentScene() {
       nodes.value = []
       node.value = null
       clearLastSelection(game.value.id)
+      // Refresh reference diagnostics
+      await refreshReferenceDiagnostics()
       return
     }
 
     const fallbackIndex = Math.min(currentIndex, scenes.value.length - 1)
     const nextScene = scenes.value[fallbackIndex]
     await selectScene(nextScene)
+    // Refresh reference diagnostics
+    await refreshReferenceDiagnostics()
   } catch (error: any) {
     console.error('Failed to delete scene:', error)
     const message = error?.data?.message || error?.message || 'シーンの削除に失敗しました'
@@ -1366,6 +1416,8 @@ async function addNode() {
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // scenes.valueも更新して次ノードラベル表示を最新に
     scenes.value = (await api.listScenes(game.value.id)) as any[]
+    // Refresh reference diagnostics
+    await refreshReferenceDiagnostics()
   } catch (error) {
     console.error('Failed to add node:', error)
     alert('ノードの追加に失敗しました')
@@ -1404,6 +1456,8 @@ async function saveNode() {
     if (updated) {
       selectNode(updated)
     }
+    // Refresh reference diagnostics
+    await refreshReferenceDiagnostics()
   } catch (error) {
     console.error('Failed to save node:', error)
     alert('ノードの保存に失敗しました')
@@ -1474,6 +1528,9 @@ async function saveAndCreateNext() {
     const found = nodes.value.find(n => n.id === created.id) || created
     selectNode(found)
     
+    // Refresh reference diagnostics
+    await refreshReferenceDiagnostics()
+    
     // トースト通知
     const toast = useToast()
     toast.success('次のノードを作成して連結しました')
@@ -1513,6 +1570,8 @@ async function deleteCurrentNode() {
     if (nodes.value.length === 0) {
       node.value = null
       persistCurrentSelection()
+      // Refresh reference diagnostics
+      await refreshReferenceDiagnostics()
       return
     }
 
@@ -1520,10 +1579,14 @@ async function deleteCurrentNode() {
     const nextNode = nodes.value[fallbackIndex]
     if (nextNode) {
       selectNode(nextNode)
+      // Refresh reference diagnostics
+      await refreshReferenceDiagnostics()
       return
     }
 
     node.value = null
+    // Refresh reference diagnostics
+    await refreshReferenceDiagnostics()
   } catch (error) {
     console.error('Failed to delete node:', error)
     alert('ノードの削除に失敗しました')

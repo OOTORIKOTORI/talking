@@ -30,6 +30,12 @@ export class GamesController {
     return this.games.listPublic(limit, offset, q, sort);
   }
 
+  @Get(':id/reference-diagnostics')
+  @UseGuards(SupabaseAuthGuard)
+  getReferenceDiagnostics(@Req() req: any, @Param('id') id: string) {
+    return this.games.getReferenceDiagnostics(req.user.userId, id);
+  }
+
   @Get(':id/edit')
   @UseGuards(SupabaseAuthGuard)
   getEdit(@Req() req: any, @Param('id') id: string) {

@@ -11,6 +11,7 @@ export function useGamesApi() {
     countView: (id: string) => api(`/games/${id}/view`, { method: 'POST' }),
     countPlay: (id: string) => api(`/games/${id}/play`, { method: 'POST' }),
     getEdit: (id: string) => api(`/games/${id}/edit`),
+    getReferenceDiagnostics: (id: string) => api(`/games/${id}/reference-diagnostics`),
     my: (q?: { q?: string; sort?: MyGamesSort; status?: MyGamesStatus }) => api('/games/my', { query: q }),
     create: (b: { title: string; summary?: string }) => api('/games', { method: 'POST', body: b }),
     duplicate: (id: string) => api(`/games/${id}/duplicate`, { method: 'POST' }),

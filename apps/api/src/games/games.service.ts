@@ -35,6 +35,42 @@ type MyGamesStatus = 'all' | 'public' | 'private';
 const GAME_TITLE_MAX_LENGTH = 120;
 const GAME_SUMMARY_MAX_LENGTH = 500;
 
+// Reference diagnostics types
+type GameReferenceDiagnosticCode =
+  | 'ASSET_MISSING'
+  | 'ASSET_DELETED'
+  | 'ASSET_KIND_MISMATCH'
+  | 'ASSET_NOT_USABLE'
+  | 'CHARACTER_MISSING'
+  | 'CHARACTER_DELETED'
+  | 'CHARACTER_NOT_USABLE'
+  | 'CHARACTER_IMAGE_MISSING'
+  | 'CHARACTER_IMAGE_MISMATCH'
+  | 'PORTRAIT_KEY_MISMATCH'
+  | 'PORTRAITS_INVALID';
+
+type GameReferenceDiagnosticIssue = {
+  id: string;
+  source: 'reference';
+  severity: 'warning';
+  code: GameReferenceDiagnosticCode;
+  message: string;
+  field: string;
+  refId?: string | null;
+  sceneId: string | null;
+  sceneName: string;
+  sceneOrder: number | null;
+  nodeId: string | null;
+  nodeOrder: number | null;
+  nodePreview: string;
+};
+
+type GameReferenceDiagnosticsResult = {
+  issues: GameReferenceDiagnosticIssue[];
+  counts: { warning: number };
+  checkedAt: string;
+};
+
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
@@ -1267,5 +1303,396 @@ export class GamesService {
       },
     });
     return { ok: true, deleted: deleted.count };
+  }
+
+  async getReferenceDiagnostics(userId: string, gameId: string): Promise<GameReferenceDiagnosticsResult> {
+    // Verify ownership
+    await this.assertGameOwner(userId, gameId);
+
+    // Load full game with all references
+    const game = await this.prisma.gameProject.findUnique({
+      where: { id: gameId },
+      include: this.playInclude,
+    });
+    if (!game || game.deletedAt) {
+      throw new NotFoundException('game not found');
+    }
+
+    const issues: GameReferenceDiagnosticIssue[] = [];
+    let issueSeq = 0;
+
+    // Build maps for efficient lookups
+    const sceneList = Array.isArray(game.scenes) ? game.scenes : [];
+    const sceneById = new Map<string, { scene: any; sceneOrder: number }>();
+    const nodeById = new Map<string, { scene: any; sceneOrder: number; node: any; nodeOrder: number }>();
+
+    for (let si = 0; si < sceneList.length; si++) {
+      const sceneItem = sceneList[si];
+      sceneById.set(sceneItem.id, { scene: sceneItem, sceneOrder: si + 1 });
+      const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : [];
+      for (let ni = 0; ni < sceneNodes.length; ni++) {
+        const nodeItem = sceneNodes[ni];
+        nodeById.set(nodeItem.id, {
+          scene: sceneItem,
+          sceneOrder: si + 1,
+          node: nodeItem,
+          nodeOrder: ni + 1,
+        });
+      }
+    }
+
+    function pushIssue(input: {
+      code: GameReferenceDiagnosticCode;
+      message: string;
+      field: string;
+      refId?: string | null;
+      sceneId?: string | null;
+      nodeId?: string | null;
+    }) {
+      const sceneId = input.sceneId ?? null;
+      const nodeId = input.nodeId ?? null;
+      const sceneMeta = sceneId ? sceneById.get(sceneId) : null;
+      const nodeMeta = nodeId ? nodeById.get(nodeId) : null;
+      const baseScene = nodeMeta?.scene ?? sceneMeta?.scene ?? null;
+      const baseSceneOrder = nodeMeta?.sceneOrder ?? sceneMeta?.sceneOrder ?? null;
+      const baseNodeOrder = nodeMeta?.nodeOrder ?? null;
+
+      let nodePreview = '';
+      if (nodeMeta) {
+        const nodeText = typeof nodeMeta.node?.text === 'string' ? nodeMeta.node.text : '';
+        const normalized = nodeText.replace(/\s+/g, ' ').trim();
+        nodePreview = normalized ? (normalized.length > 28 ? normalized.slice(0, 28) + '…' : normalized) : '(本文なし)';
+      }
+
+      issues.push({
+        id: `ref-diag-${++issueSeq}`,
+        source: 'reference',
+        severity: 'warning',
+        code: input.code,
+        message: input.message,
+        field: input.field,
+        refId: input.refId ?? null,
+        sceneId: baseScene?.id ?? sceneId,
+        sceneName: baseScene?.name || '',
+        sceneOrder: baseSceneOrder,
+        nodeId,
+        nodeOrder: baseNodeOrder,
+        nodePreview,
+      });
+    }
+
+    // Collect all unique reference IDs
+    const assetIds = new Set<string>();
+    const characterIds = new Set<string>();
+    const characterImageIds = new Set<string>();
+
+    // Game-level coverAssetId
+    if (game.coverAssetId) {
+      assetIds.add(game.coverAssetId);
+    }
+
+    // Node-level references
+    for (const { node } of nodeById.values()) {
+      if (node.bgAssetId) assetIds.add(node.bgAssetId);
+      if (node.musicAssetId) assetIds.add(node.musicAssetId);
+      if (node.sfxAssetId) assetIds.add(node.sfxAssetId);
+      if (node.portraitAssetId) assetIds.add(node.portraitAssetId);
+      if (node.speakerCharacterId) characterIds.add(node.speakerCharacterId);
+
+      // Portraits
+      if (Array.isArray(node.portraits)) {
+        for (const p of node.portraits) {
+          if (typeof p?.characterId === 'string' && p.characterId.trim()) {
+            characterIds.add(p.characterId.trim());
+          }
+          if (typeof p?.imageId === 'string' && p.imageId.trim()) {
+            characterImageIds.add(p.imageId.trim());
+          }
+        }
+      }
+    }
+
+    // Fetch all assets, characters, character images, and favorites in bulk
+    const assetIdArray = Array.from(assetIds);
+    const characterIdArray = Array.from(characterIds);
+    const characterImageIdArray = Array.from(characterImageIds);
+
+    const [assets, favorites, characters, favoriteCharacters, characterImages] = await Promise.all([
+      assetIdArray.length > 0
+        ? this.prisma.asset.findMany({ where: { id: { in: assetIdArray } } })
+        : Promise.resolve([]),
+      assetIdArray.length > 0
+        ? this.prisma.favorite.findMany({
+            where: { userId, assetId: { in: assetIdArray } },
+          })
+        : Promise.resolve([]),
+      characterIdArray.length > 0
+        ? this.prisma.character.findMany({ where: { id: { in: characterIdArray } } })
+        : Promise.resolve([]),
+      characterIdArray.length > 0
+        ? this.prisma.favoriteCharacter.findMany({
+            where: { userId, characterId: { in: characterIdArray } },
+          })
+        : Promise.resolve([]),
+      characterImageIdArray.length > 0
+        ? this.prisma.characterImage.findMany({ where: { id: { in: characterImageIdArray } } })
+        : Promise.resolve([]),
+    ]);
+
+    // Build maps for diagnostics
+    const assetById = new Map(assets.map((a) => [a.id, a]));
+    const favoriteByAssetId = new Map(
+      favorites.map((f) => [`${f.userId}:${f.assetId}`, f]),
+    );
+    const characterById = new Map(characters.map((c) => [c.id, c]));
+    const favoriteCharacterByCharId = new Map(
+      favoriteCharacters.map((f) => [`${f.userId}:${f.characterId}`, f]),
+    );
+    const characterImageById = new Map(characterImages.map((ci) => [ci.id, ci]));
+
+    // Helper to check asset usability
+    const checkAssetUsable = (assetId: string, expectedKind: 'image' | 'audio', field: string, sceneId?: string, nodeId?: string) => {
+      const asset = assetById.get(assetId);
+      if (!asset) {
+        pushIssue({
+          code: 'ASSET_MISSING',
+          message: `${field}として指定されたアセットが見つかりません。`,
+          field,
+          refId: assetId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (asset.deletedAt) {
+        pushIssue({
+          code: 'ASSET_DELETED',
+          message: `${field}として指定されたアセットが削除されています。別のアセットに差し替えてください。`,
+          field,
+          refId: assetId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (expectedKind === 'image' && !asset.contentType.startsWith('image/')) {
+        pushIssue({
+          code: 'ASSET_KIND_MISMATCH',
+          message: `${field}は画像形式である必要があります。音声素材が指定されています。`,
+          field,
+          refId: assetId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (expectedKind === 'audio' && !asset.contentType.startsWith('audio/')) {
+        pushIssue({
+          code: 'ASSET_KIND_MISMATCH',
+          message: `${field}は音声形式である必要があります。画像素材が指定されています。`,
+          field,
+          refId: assetId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (asset.ownerId !== userId) {
+        const isFavorited = !!favoriteByAssetId.get(`${userId}:${assetId}`);
+        if (!isFavorited) {
+          pushIssue({
+            code: 'ASSET_NOT_USABLE',
+            message: `${field}として指定されたアセットは利用できません。自分が所有するアセット、またはお気に入り済みのアセットを選び直してください。`,
+            field,
+            refId: assetId,
+            sceneId,
+            nodeId,
+          });
+        }
+      }
+    };
+
+    // Helper to check character usability
+    const checkCharacterUsable = (characterId: string, field: string, sceneId?: string, nodeId?: string) => {
+      const character = characterById.get(characterId);
+      if (!character) {
+        pushIssue({
+          code: 'CHARACTER_MISSING',
+          message: `${field}として指定されたキャラクターが見つかりません。`,
+          field,
+          refId: characterId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (character.deletedAt) {
+        pushIssue({
+          code: 'CHARACTER_DELETED',
+          message: `${field}として指定されたキャラクターが削除されています。別のキャラクターに差し替えてください。`,
+          field,
+          refId: characterId,
+          sceneId,
+          nodeId,
+        });
+        return;
+      }
+
+      if (character.ownerId !== userId) {
+        if (!character.isPublic) {
+          pushIssue({
+            code: 'CHARACTER_NOT_USABLE',
+            message: `${field}は利用できません。自分のキャラクターか、公開されているお気に入りのキャラクターを選び直してください。`,
+            field,
+            refId: characterId,
+            sceneId,
+            nodeId,
+          });
+          return;
+        }
+
+        const isFavorited = !!favoriteCharacterByCharId.get(`${userId}:${characterId}`);
+        if (!isFavorited) {
+          pushIssue({
+            code: 'CHARACTER_NOT_USABLE',
+            message: `${field}は利用できません。このキャラクターをお気に入りにしてから使用してください。`,
+            field,
+            refId: characterId,
+            sceneId,
+            nodeId,
+          });
+        }
+      }
+    };
+
+    // Check game-level coverAssetId
+    if (game.coverAssetId) {
+      checkAssetUsable(game.coverAssetId, 'image', 'ゲームカバー画像');
+    }
+
+    // Check node-level references
+    for (const [nodeId, nodeMeta] of nodeById) {
+      const { node, scene } = nodeMeta;
+      const sceneId = scene.id;
+
+      // Asset references
+      if (node.bgAssetId) {
+        checkAssetUsable(node.bgAssetId, 'image', '背景画像', sceneId, nodeId);
+      }
+      if (node.musicAssetId) {
+        checkAssetUsable(node.musicAssetId, 'audio', 'BGM', sceneId, nodeId);
+      }
+      if (node.sfxAssetId) {
+        checkAssetUsable(node.sfxAssetId, 'audio', 'SE', sceneId, nodeId);
+      }
+      if (node.portraitAssetId) {
+        checkAssetUsable(node.portraitAssetId, 'image', '立ち絵画像', sceneId, nodeId);
+      }
+
+      // Speaker character
+      if (node.speakerCharacterId) {
+        checkCharacterUsable(node.speakerCharacterId, 'スピーカーキャラクター', sceneId, nodeId);
+      }
+
+      // Portraits validation
+      if (node.portraits) {
+        if (!Array.isArray(node.portraits)) {
+          pushIssue({
+            code: 'PORTRAITS_INVALID',
+            message: 'portraits のデータ形式が不正です。',
+            field: 'portraits',
+            sceneId,
+            nodeId,
+          });
+        } else {
+          for (let pi = 0; pi < node.portraits.length; pi++) {
+            const portrait = node.portraits[pi];
+
+            // Validate portrait entry structure
+            if (!portrait || typeof portrait !== 'object') {
+              pushIssue({
+                code: 'PORTRAITS_INVALID',
+                message: `portraits[${pi}] のデータ形式が不正です。`,
+                field: `portraits[${pi}]`,
+                sceneId,
+                nodeId,
+              });
+              continue;
+            }
+
+            const { characterId: portraitCharId, imageId: portraitImageId, key: portraitKey } = portrait;
+
+            // Validate characterId
+            if (typeof portraitCharId !== 'string' || !portraitCharId.trim()) {
+              pushIssue({
+                code: 'PORTRAITS_INVALID',
+                message: `portraits[${pi}].characterId が無効です。`,
+                field: `portraits[${pi}].characterId`,
+                sceneId,
+                nodeId,
+              });
+              continue;
+            }
+
+            // Validate imageId
+            if (typeof portraitImageId !== 'string' || !portraitImageId.trim()) {
+              pushIssue({
+                code: 'PORTRAITS_INVALID',
+                message: `portraits[${pi}].imageId が無効です。`,
+                field: `portraits[${pi}].imageId`,
+                sceneId,
+                nodeId,
+              });
+              continue;
+            }
+
+            // Check character usability
+            checkCharacterUsable(portraitCharId.trim(), `立ち絵[${pi}]キャラクター`, sceneId, nodeId);
+
+            // Check character image existence and ownership
+            const charImage = characterImageById.get(portraitImageId.trim());
+            if (!charImage) {
+              pushIssue({
+                code: 'CHARACTER_IMAGE_MISSING',
+                message: `立ち絵[${pi}]の画像がキャラクターに属していません。立ち絵を選び直してください。`,
+                field: `portraits[${pi}].imageId`,
+                refId: portraitImageId.trim(),
+                sceneId,
+                nodeId,
+              });
+            } else if (charImage.characterId !== portraitCharId.trim()) {
+              pushIssue({
+                code: 'CHARACTER_IMAGE_MISMATCH',
+                message: `立ち絵[${pi}]の画像がキャラクターに属していません。立ち絵を選び直してください。`,
+                field: `portraits[${pi}].imageId`,
+                refId: portraitImageId.trim(),
+                sceneId,
+                nodeId,
+              });
+            } else if (portraitKey && charImage.key !== portraitKey) {
+              // Key mismatch warning (old data, not critical)
+              pushIssue({
+                code: 'PORTRAIT_KEY_MISMATCH',
+                message: `立ち絵[${pi}]のキーが古い値です。ノードを開いて保存し直すと正規化されます。`,
+                field: `portraits[${pi}].key`,
+                sceneId,
+                nodeId,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      issues,
+      counts: { warning: issues.length },
+      checkedAt: new Date().toISOString(),
+    };
   }
 }
