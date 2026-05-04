@@ -1,18 +1,19 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-04（公開前チェックUIカテゴリ分けMVP）
+> 最終更新: 2026-05-05（クレジット表示MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-04）
+## 📍 現在地サマリ（2026-05-05）
 
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。
 
 **実装済み（主要）**
 - キャラクター削除時の利用影響表示MVP（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
 - アセット削除時の利用影響表示MVP（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
+- 公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
 - いいね / 素材棚 / 採用 / 引用・クレジット の4概念分離設計を docs に明文化（`docs/PROJECT_SPEC.md` 「いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）」、コード実装は将来段階的に実施）
 - ゲーム内参照アセット権限ルールの棚卸しMVP（自分+お気に入り方針の明文化、UI/API現状差分の記録）
 - アセットお気に入り数表示MVP（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
@@ -91,6 +92,9 @@
 - 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
+- クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
+- クレジット情報のスナップショット保存（公開時固定化）
+- ライセンス/利用条件表示の導入
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）

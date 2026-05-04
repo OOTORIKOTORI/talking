@@ -10,6 +10,7 @@ export function useGamesApi() {
     getPublic: (id: string) => api(`/games/${id}`),
     countView: (id: string) => api(`/games/${id}/view`, { method: 'POST' }),
     countPlay: (id: string) => api(`/games/${id}/play`, { method: 'POST' }),
+    getCredits: (id: string) => api(`/games/${id}/credits`),
     getEdit: (id: string) => api(`/games/${id}/edit`),
     getReferenceDiagnostics: (id: string) => api(`/games/${id}/reference-diagnostics`),
     my: (q?: { q?: string; sort?: MyGamesSort; status?: MyGamesStatus }) => api('/games/my', { query: q }),

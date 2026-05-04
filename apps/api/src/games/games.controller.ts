@@ -66,6 +66,12 @@ export class GamesController {
   }
 
   @UseGuards(OptionalSupabaseAuthGuard)
+  @Get(':id/credits')
+  getCredits(@Req() req: any, @Param('id') id: string) {
+    return this.games.getCredits(req.user?.userId, id);
+  }
+
+  @UseGuards(OptionalSupabaseAuthGuard)
   @Get(':id')
   get(@Req() req: any, @Param('id') id: string) {
     return this.games.getForPlay(req.user?.userId, id);

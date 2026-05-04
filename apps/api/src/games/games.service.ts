@@ -71,6 +71,71 @@ type GameReferenceDiagnosticsResult = {
   checkedAt: string;
 };
 
+type GameCreditAssetField =
+  | 'coverAssetId'
+  | 'bgAssetId'
+  | 'musicAssetId'
+  | 'sfxAssetId'
+  | 'portraitAssetId';
+
+type GameCreditCharacterField = 'speakerCharacterId' | 'portraits';
+
+type GameAssetCreditItem = {
+  assetId: string;
+  title: string;
+  ownerId: string | null;
+  contentType: string | null;
+  primaryTag: string | null;
+  usageCount: number;
+  fields: Array<{
+    field: GameCreditAssetField;
+    label: string;
+    count: number;
+  }>;
+  status: 'active' | 'deleted' | 'missing';
+  linkable: boolean;
+};
+
+type GameCharacterCreditItem = {
+  characterId: string;
+  displayName: string;
+  name: string;
+  ownerId: string | null;
+  usageCount: number;
+  fields: Array<{
+    field: GameCreditCharacterField;
+    label: string;
+    count: number;
+  }>;
+  status: 'active' | 'deleted' | 'missing' | 'private';
+  linkable: boolean;
+};
+
+type GameCreditsResult = {
+  gameId: string;
+  assetCredits: GameAssetCreditItem[];
+  characterCredits: GameCharacterCreditItem[];
+  counts: {
+    assets: number;
+    characters: number;
+    total: number;
+  };
+  checkedAt: string;
+};
+
+const GAME_CREDIT_ASSET_FIELD_LABELS: Record<GameCreditAssetField, string> = {
+  coverAssetId: 'カバー',
+  bgAssetId: '背景',
+  musicAssetId: 'BGM',
+  sfxAssetId: 'SE',
+  portraitAssetId: '立ち絵互換',
+};
+
+const GAME_CREDIT_CHARACTER_FIELD_LABELS: Record<GameCreditCharacterField, string> = {
+  speakerCharacterId: '話者',
+  portraits: '立ち絵',
+};
+
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
@@ -765,6 +830,301 @@ export class GamesService {
     if (!g || g.deletedAt) throw new NotFoundException('game not found');
     if (!g.isPublic && g.ownerId !== userId) throw new NotFoundException('game not found');
     return g;
+  }
+
+  async getCredits(userId: string | undefined, id: string): Promise<GameCreditsResult> {
+    const game = await this.prisma.gameProject.findUnique({
+      where: { id },
+      include: this.playInclude,
+    });
+    if (!game || game.deletedAt) throw new NotFoundException('game not found');
+    if (!game.isPublic && game.ownerId !== userId) throw new NotFoundException('game not found');
+
+    const assetUsageById = new Map<
+      string,
+      {
+        usageCount: number;
+        fields: Map<GameCreditAssetField, number>;
+      }
+    >();
+
+    const characterUsageById = new Map<
+      string,
+      {
+        usageCount: number;
+        fields: Map<GameCreditCharacterField, number>;
+      }
+    >();
+
+    const pushAssetUsage = (assetId: string, field: GameCreditAssetField) => {
+      const current = assetUsageById.get(assetId) ?? {
+        usageCount: 0,
+        fields: new Map<GameCreditAssetField, number>(),
+      };
+      current.usageCount += 1;
+      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
+      assetUsageById.set(assetId, current);
+    };
+
+    const pushCharacterUsage = (characterId: string, field: GameCreditCharacterField) => {
+      const current = characterUsageById.get(characterId) ?? {
+        usageCount: 0,
+        fields: new Map<GameCreditCharacterField, number>(),
+      };
+      current.usageCount += 1;
+      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
+      characterUsageById.set(characterId, current);
+    };
+
+    if (typeof game.coverAssetId === 'string' && game.coverAssetId.trim().length > 0) {
+      pushAssetUsage(game.coverAssetId, 'coverAssetId');
+    }
+
+    const portraitEntries: Array<{ characterId: string | null; imageId: string | null }> = [];
+    const portraitImageIds = new Set<string>();
+
+    for (const scene of game.scenes) {
+      const nodes = Array.isArray(scene?.nodes) ? scene.nodes : [];
+      for (const node of nodes) {
+        if (typeof node?.bgAssetId === 'string' && node.bgAssetId.trim().length > 0) {
+          pushAssetUsage(node.bgAssetId, 'bgAssetId');
+        }
+        if (typeof node?.musicAssetId === 'string' && node.musicAssetId.trim().length > 0) {
+          pushAssetUsage(node.musicAssetId, 'musicAssetId');
+        }
+        if (typeof node?.sfxAssetId === 'string' && node.sfxAssetId.trim().length > 0) {
+          pushAssetUsage(node.sfxAssetId, 'sfxAssetId');
+        }
+        if (typeof node?.portraitAssetId === 'string' && node.portraitAssetId.trim().length > 0) {
+          pushAssetUsage(node.portraitAssetId, 'portraitAssetId');
+        }
+
+        if (
+          typeof node?.speakerCharacterId === 'string' &&
+          node.speakerCharacterId.trim().length > 0
+        ) {
+          pushCharacterUsage(node.speakerCharacterId, 'speakerCharacterId');
+        }
+
+        const portraits = node?.portraits;
+        if (!Array.isArray(portraits)) continue;
+        for (const portraitEntry of portraits) {
+          if (!portraitEntry || typeof portraitEntry !== 'object') continue;
+
+          const rawCharacterId = (portraitEntry as Record<string, unknown>).characterId;
+          const rawImageId = (portraitEntry as Record<string, unknown>).imageId;
+
+          const characterId =
+            typeof rawCharacterId === 'string' && rawCharacterId.trim().length > 0
+              ? rawCharacterId.trim()
+              : null;
+          const imageId =
+            typeof rawImageId === 'string' && rawImageId.trim().length > 0
+              ? rawImageId.trim()
+              : null;
+
+          if (imageId) portraitImageIds.add(imageId);
+          portraitEntries.push({ characterId, imageId });
+        }
+      }
+    }
+
+    const portraitImageIdList = Array.from(portraitImageIds);
+    const portraitImages =
+      portraitImageIdList.length > 0
+        ? await this.prisma.characterImage.findMany({
+            where: { id: { in: portraitImageIdList } },
+            select: { id: true, characterId: true },
+          })
+        : [];
+    const portraitImageToCharacterId = new Map(
+      portraitImages.map((image) => [image.id, image.characterId]),
+    );
+
+    for (const entry of portraitEntries) {
+      const candidateCharacterIds = new Set<string>();
+      if (entry.characterId) candidateCharacterIds.add(entry.characterId);
+      if (entry.imageId) {
+        const fromImage = portraitImageToCharacterId.get(entry.imageId);
+        if (fromImage) candidateCharacterIds.add(fromImage);
+      }
+
+      for (const characterId of candidateCharacterIds) {
+        pushCharacterUsage(characterId, 'portraits');
+      }
+    }
+
+    const assetIds = Array.from(assetUsageById.keys());
+    const characterIds = Array.from(characterUsageById.keys());
+
+    const [assets, characters] = await Promise.all([
+      assetIds.length > 0
+        ? this.prisma.asset.findMany({
+            where: { id: { in: assetIds } },
+            select: {
+              id: true,
+              title: true,
+              ownerId: true,
+              contentType: true,
+              primaryTag: true,
+              deletedAt: true,
+            },
+          })
+        : Promise.resolve([]),
+      characterIds.length > 0
+        ? this.prisma.character.findMany({
+            where: { id: { in: characterIds } },
+            select: {
+              id: true,
+              displayName: true,
+              name: true,
+              ownerId: true,
+              isPublic: true,
+              deletedAt: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const assetById = new Map(assets.map((item) => [item.id, item]));
+    const characterById = new Map(characters.map((item) => [item.id, item]));
+
+    const assetCredits: GameAssetCreditItem[] = assetIds.map((assetId) => {
+      const usage = assetUsageById.get(assetId)!;
+      const asset = assetById.get(assetId);
+
+      const fields = Array.from(usage.fields.entries()).map(([field, count]) => ({
+        field,
+        label: GAME_CREDIT_ASSET_FIELD_LABELS[field],
+        count,
+      }));
+
+      if (!asset) {
+        return {
+          assetId,
+          title: '不明な素材',
+          ownerId: null,
+          contentType: null,
+          primaryTag: null,
+          usageCount: usage.usageCount,
+          fields,
+          status: 'missing',
+          linkable: false,
+        };
+      }
+
+      if (asset.deletedAt) {
+        return {
+          assetId,
+          title: '削除済み素材',
+          ownerId: null,
+          contentType: null,
+          primaryTag: null,
+          usageCount: usage.usageCount,
+          fields,
+          status: 'deleted',
+          linkable: false,
+        };
+      }
+
+      const normalizedTitle =
+        typeof asset.title === 'string' && asset.title.trim().length > 0 ? asset.title : '無題素材';
+      return {
+        assetId,
+        title: normalizedTitle,
+        ownerId: asset.ownerId ?? null,
+        contentType: asset.contentType ?? null,
+        primaryTag: asset.primaryTag ?? null,
+        usageCount: usage.usageCount,
+        fields,
+        status: 'active',
+        linkable: true,
+      };
+    });
+
+    const characterCredits: GameCharacterCreditItem[] = characterIds.map((characterId) => {
+      const usage = characterUsageById.get(characterId)!;
+      const character = characterById.get(characterId);
+
+      const fields = Array.from(usage.fields.entries()).map(([field, count]) => ({
+        field,
+        label: GAME_CREDIT_CHARACTER_FIELD_LABELS[field],
+        count,
+      }));
+
+      if (!character) {
+        return {
+          characterId,
+          displayName: '不明なキャラクター',
+          name: '不明なキャラクター',
+          ownerId: null,
+          usageCount: usage.usageCount,
+          fields,
+          status: 'missing',
+          linkable: false,
+        };
+      }
+
+      if (character.deletedAt) {
+        return {
+          characterId,
+          displayName: '削除済みキャラクター',
+          name: '削除済みキャラクター',
+          ownerId: null,
+          usageCount: usage.usageCount,
+          fields,
+          status: 'deleted',
+          linkable: false,
+        };
+      }
+
+      if (!character.isPublic) {
+        return {
+          characterId,
+          displayName: '非公開キャラクター',
+          name: '非公開キャラクター',
+          ownerId: null,
+          usageCount: usage.usageCount,
+          fields,
+          status: 'private',
+          linkable: false,
+        };
+      }
+
+      return {
+        characterId,
+        displayName: character.displayName,
+        name: character.name,
+        ownerId: character.ownerId ?? null,
+        usageCount: usage.usageCount,
+        fields,
+        status: 'active',
+        linkable: true,
+      };
+    });
+
+    const sortByUsageAndTitle = <T extends { usageCount: number; title?: string; displayName?: string }>(
+      a: T,
+      b: T,
+    ) => {
+      if (b.usageCount !== a.usageCount) return b.usageCount - a.usageCount;
+      return String(a.title ?? a.displayName ?? '').localeCompare(String(b.title ?? b.displayName ?? ''));
+    };
+
+    assetCredits.sort(sortByUsageAndTitle);
+    characterCredits.sort(sortByUsageAndTitle);
+
+    return {
+      gameId: game.id,
+      assetCredits,
+      characterCredits,
+      counts: {
+        assets: assetCredits.length,
+        characters: characterCredits.length,
+        total: assetCredits.length + characterCredits.length,
+      },
+      checkedAt: new Date().toISOString(),
+    };
   }
 
   async countPublicView(id: string) {

@@ -31,6 +31,53 @@
             <p>プレイ数: {{ Number(game.playCount || 0) }}</p>
           </div>
 
+          <section
+            v-if="hasCredits"
+            class="rounded-lg border border-gray-200 bg-gray-50/70 p-4 space-y-3"
+          >
+            <h2 class="text-sm font-semibold tracking-wide text-gray-700">使用素材・キャラクター</h2>
+
+            <div v-if="credits?.assetCredits?.length" class="space-y-2">
+              <h3 class="text-xs font-semibold text-gray-600">素材</h3>
+              <ul class="space-y-1.5 text-sm">
+                <li v-for="item in credits.assetCredits" :key="`asset-${item.assetId}`" class="text-gray-700">
+                  <template v-if="item.linkable">
+                    <NuxtLink :to="`/assets/${item.assetId}`" class="font-medium text-gray-900 hover:underline">
+                      {{ item.title }}
+                    </NuxtLink>
+                    <span class="text-gray-600"> / by {{ item.ownerId || 'unknown' }} / {{ formatCreditFields(item.fields) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="font-medium text-gray-500">{{ item.title }}</span>
+                    <span class="text-gray-500"> / {{ formatCreditFields(item.fields) }}</span>
+                  </template>
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="credits?.characterCredits?.length" class="space-y-2">
+              <h3 class="text-xs font-semibold text-gray-600">キャラクター</h3>
+              <ul class="space-y-1.5 text-sm">
+                <li
+                  v-for="item in credits.characterCredits"
+                  :key="`character-${item.characterId}`"
+                  class="text-gray-700"
+                >
+                  <template v-if="item.linkable">
+                    <NuxtLink :to="`/characters/${item.characterId}`" class="font-medium text-gray-900 hover:underline">
+                      {{ item.displayName || item.name }}
+                    </NuxtLink>
+                    <span class="text-gray-600"> / by {{ item.ownerId || 'unknown' }} / {{ formatCreditFields(item.fields) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="font-medium text-gray-500">{{ item.displayName || item.name }}</span>
+                    <span class="text-gray-500"> / {{ formatCreditFields(item.fields) }}</span>
+                  </template>
+                </li>
+              </ul>
+            </div>
+          </section>
+
           <div class="pt-2 flex flex-wrap gap-2">
             <NuxtLink
               :to="detailPlayTo"
@@ -76,6 +123,40 @@ type GameDetail = {
   scenes: GameScene[]
 }
 
+type GameCreditAssetField = 'coverAssetId' | 'bgAssetId' | 'musicAssetId' | 'sfxAssetId' | 'portraitAssetId'
+type GameCreditCharacterField = 'speakerCharacterId' | 'portraits'
+
+type GameCreditsResult = {
+  gameId: string
+  assetCredits: Array<{
+    assetId: string
+    title: string
+    ownerId: string | null
+    contentType: string | null
+    primaryTag: string | null
+    usageCount: number
+    fields: Array<{ field: GameCreditAssetField; label: string; count: number }>
+    status: 'active' | 'deleted' | 'missing'
+    linkable: boolean
+  }>
+  characterCredits: Array<{
+    characterId: string
+    displayName: string
+    name: string
+    ownerId: string | null
+    usageCount: number
+    fields: Array<{ field: GameCreditCharacterField; label: string; count: number }>
+    status: 'active' | 'deleted' | 'missing' | 'private'
+    linkable: boolean
+  }>
+  counts: {
+    assets: number
+    characters: number
+    total: number
+  }
+  checkedAt: string
+}
+
 const route = useRoute()
 const api = useGamesApi()
 const { signedFromId } = useAssetMeta()
@@ -84,8 +165,13 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const game = ref<GameDetail | null>(null)
 const coverUrl = ref<string | null>(null)
+const credits = ref<GameCreditsResult | null>(null)
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
+const formatCreditFields = (fields: Array<{ label: string; count: number }>) =>
+  fields.map((field) => `${field.label} ${field.count}箇所`).join('、')
+
+const hasCredits = computed(() => Number(credits.value?.counts?.total || 0) > 0)
 
 const resolvedStartScene = computed(() => {
   if (!game.value) return null
@@ -117,6 +203,15 @@ onMounted(async () => {
     const id = String(route.params.id)
     const res = await api.getPublic(id)
     game.value = res as GameDetail
+
+    void (async () => {
+      try {
+        const creditsRes = await api.getCredits(id)
+        credits.value = creditsRes as GameCreditsResult
+      } catch (creditsFetchError) {
+        console.warn('failed to fetch game credits', creditsFetchError)
+      }
+    })()
 
     try {
       await api.countView(id)
