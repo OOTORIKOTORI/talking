@@ -277,14 +277,14 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 用途バッジ化・行表示改善も実施済み。
 - 将来課題:
   - 作者プロフィールの slug 対応。
-  - 作者別作品一覧（プロフィール配下）。
+  - 本格的な作者別作品一覧（全件表示、ページネーション、タブUI、検索/絞り込み機能）。MVP の公開コンテンツ一覧は実装済み。
   - プロフィール画像・SNSリンク。
   - 表示名スナップショット保存（公開時点の表示名固定）を検討する。
   - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理する。
 
   ## プロフィール/クリエイター名MVP（2026-05-05）
 
-  - 2026-05-05: プロフィール/クリエイター名MVPを実装。`CreatorProfile`（`creator_profiles`）を追加し、`GET /my/profile` / `PATCH /my/profile` / `GET /profiles/:userId` を追加。公開ゲーム一覧・詳細・クレジット表示では `ownerDisplayName` を優先表示し、未設定時は短縮 `ownerId` にフォールバックする。`/my/profile` ページを追加。
+  - 2026-05-05: プロフィール/クリエイター名MVPを実装。`CreatorProfile`（`creator_profiles`）を追加し、`GET /my/profile` / `PATCH /my/profile` / `GET /profiles/:userId` を追加。公開ゲーム一覧・詳細・クレジット表示では `ownerDisplayName` を優先表示し、未設定時は短縮 `ownerId` にフォールバックする。`/my/profile` ページを追加（プロフィール編集画面。公開プロフィール確認リンクから `/profiles/:userId` に遷移可能。公開コンテンツ一覧は `/profiles/:userId` 側に表示）。
   - 2026-05-05: 作者プロフィールページリンクMVPを実装。公開プロフィールページ `/profiles/:userId`（フロント: `/profiles/[userId]`）を追加し、公開ゲーム一覧・公開ゲーム詳細・クレジット欄の作者名から遷移可能にした。`linkable === false` のクレジット項目は従来どおり非リンク表示を維持。
   - 2026-05-05: アセット作者プロフィールリンクMVPを実装。公開アセット一覧 `/assets`（`GET /search/assets`）と公開アセット詳細 `/assets/:id`（`GET /assets/:id`）で `ownerDisplayName` を返却・表示し、作者名から `/profiles/:userId` へ遷移可能にした。`ownerDisplayName` 未設定時は短縮 `ownerId` にフォールバックする。
   - 2026-05-05: キャラクター作者プロフィールリンクMVPを実装。公開キャラクター詳細 `/characters/:id`（`GET /characters/:id`）と公開キャラクター一覧 `/characters`（`GET /characters`）で `ownerDisplayName` を返却・表示し、作者名から `/profiles/:userId` へ遷移可能にした。一覧カードでは作者リンクのクリックイベント伝播を停止し、カード本体の詳細遷移と干渉しない実装とした。
@@ -294,7 +294,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 認証不要（`OptionalSupabaseAuthGuard`）
   - プロフィールが存在しない場合は `404`
   - 各カテゴリは公開・未削除のもののみ返却（games: `isPublic=true, deletedAt=null`; characters: `isPublic=true, deletedAt=null`; assets: `deletedAt=null`）
-  - 各カテゴリ最大6件、`updatedAt desc` 順
+  - 各カテゴリ最大6件、games/characters は `updatedAt desc` 順、assets は `createdAt desc` 順（Asset に `updatedAt` がないため）
   - `ownerDisplayName` は当該プロフィールの `displayName` を各アイテムに付与
   - 個人情報（email等）は返却しない
   - DB schema 変更なし
