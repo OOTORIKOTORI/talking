@@ -237,7 +237,8 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 | 意味 | ゲーム内で実際に参照されている状態。背景/BGM/SE/カバー画像/立ち絵互換など、ゲームデータに保存されている参照。作者に返る実績として重要 |
 | 用途 | 使用数/採用数集計、アセット作者への利用実績表示、削除影響表示との連携 |
 | 保持したい情報例 | `gameId`、`assetId` or `characterId`、`field`（coverAssetId / bgAssetId / musicAssetId / sfxAssetId / portraitAssetId / speakerCharacterId / portraits 等）、`sceneId?`、`nodeId?`、`createdAt`、`updatedAt` |
-| 将来DB候補 | `GameAssetReference`、`GameCharacterReference`、`AssetUsage`、`CharacterUsage` |
+| 現行DB | `GameAssetReference`、`GameCharacterReference` |
+| 将来DB候補 | `AssetUsage`、`CharacterUsage` |
 | 注意 | 採用は「棚に入っている」だけでは発生しない。保存時/公開前チェック/参照診断/削除影響表示と連携する。非公開ゲームの採用情報は、作者に詳細を返さない（集計だけ、または自分のゲームだけ詳細表示） |
 
 #### 4. 引用・クレジット / Credit
@@ -290,7 +291,6 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - プロフィール/クリエイター名MVPにより `ownerDisplayName` 優先表示（未設定時は短縮 `ownerId`）へ対応済み。
 
 将来課題:
-- `GameAssetReference` / `GameCharacterReference` 導入
 - `GameCredit` 導入（DB分離・スナップショット保存）
 - クレジットのスナップショット保存
 - 手動追記/スタッフロール
@@ -311,7 +311,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-  - `GameCredit` / `GameAssetReference` 等のDB分離・スナップショット保存は将来課題のまま。
+  - `GameAssetReference` / `GameCharacterReference` は導入済み。`GameCredit` のDB分離、および公開時点の利用条件・作者名・素材名スナップショット保存は将来課題。
 
 #### クレジット作者表示の将来改善
 
