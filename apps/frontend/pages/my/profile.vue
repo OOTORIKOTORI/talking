@@ -52,6 +52,13 @@
 
         <div v-if="saveSuccess" class="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-sm">
           保存しました。
+          <NuxtLink
+            v-if="publicProfileUrl"
+            :to="publicProfileUrl"
+            class="ml-1 underline underline-offset-2 hover:text-green-800"
+          >
+            公開プロフィールを確認
+          </NuxtLink>
         </div>
 
         <div class="flex gap-3">
@@ -67,6 +74,13 @@
             class="px-4 py-2 rounded border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
           >
             戻る
+          </NuxtLink>
+          <NuxtLink
+            v-if="publicProfileUrl"
+            :to="publicProfileUrl"
+            class="px-4 py-2 rounded border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+          >
+            公開プロフィールを確認
           </NuxtLink>
         </div>
       </form>
@@ -93,6 +107,7 @@ const initError = ref<string | null>(null)
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 const saveSuccess = ref(false)
+const userId = ref('')
 
 const savedDisplayName = ref('')
 const savedBio = ref('')
@@ -107,12 +122,14 @@ const isValid = computed(() => form.displayName.trim().length > 0 && form.displa
 const hasChanges = computed(
   () => form.displayName.trim() !== savedDisplayName.value || form.bio.trim() !== savedBio.value,
 )
+const publicProfileUrl = computed(() => (userId.value ? `/profiles/${userId.value}` : ''))
 
 onMounted(async () => {
   try {
     const profile = (await profilesApi.getMyProfile()) as MyProfile
     const dn = profile.displayName ?? ''
     const bio = profile.bio ?? ''
+    userId.value = profile.userId ?? ''
     savedDisplayName.value = dn
     savedBio.value = bio
     form.displayName = dn
