@@ -25,7 +25,7 @@
           <p class="text-gray-700 whitespace-pre-wrap">{{ game.summary || '説明はありません。' }}</p>
 
           <div class="text-sm text-gray-500 space-y-1">
-            <p>作者: {{ game.ownerId }}</p>
+            <p>作者: {{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}</p>
             <p>更新日: {{ formatDate(game.updatedAt) }}</p>
             <p>閲覧数: {{ Number(game.viewCount || 0) }}</p>
             <p>プレイ数: {{ Number(game.playCount || 0) }}</p>
@@ -50,7 +50,7 @@
                       {{ item.title }}
                     </NuxtLink>
                     <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span class="text-xs text-gray-500">by {{ formatOwnerLabel(item.ownerId) }}</span>
+                      <span class="text-xs text-gray-500">by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}</span>
                       <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
@@ -86,7 +86,7 @@
                       {{ item.displayName || item.name }}
                     </NuxtLink>
                     <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span class="text-xs text-gray-500">by {{ formatOwnerLabel(item.ownerId) }}</span>
+                      <span class="text-xs text-gray-500">by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}</span>
                       <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
@@ -145,6 +145,7 @@ type GameScene = {
 type GameDetail = {
   id: string
   ownerId: string
+  ownerDisplayName?: string | null
   title: string
   summary: string | null
   coverAssetId: string | null
@@ -164,6 +165,7 @@ type GameCreditsResult = {
     assetId: string
     title: string
     ownerId: string | null
+    ownerDisplayName?: string | null
     contentType: string | null
     primaryTag: string | null
     usageCount: number
@@ -176,6 +178,7 @@ type GameCreditsResult = {
     displayName: string
     name: string
     ownerId: string | null
+    ownerDisplayName?: string | null
     usageCount: number
     fields: Array<{ field: GameCreditCharacterField; label: string; count: number }>
     status: 'active' | 'deleted' | 'missing' | 'private'
@@ -200,11 +203,16 @@ const coverUrl = ref<string | null>(null)
 const credits = ref<GameCreditsResult | null>(null)
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
-const formatOwnerLabel = (ownerId?: string | null): string => {
+const formatShortOwnerId = (ownerId?: string | null): string => {
   if (!ownerId) return 'unknown'
   if (ownerId.length <= 12) return ownerId
   return `${ownerId.slice(0, 4)}...${ownerId.slice(-4)}`
 }
+const formatCreatorLabel = (displayName?: string | null, ownerId?: string | null): string => {
+  const name = typeof displayName === 'string' ? displayName.trim() : ''
+  return name || formatShortOwnerId(ownerId)
+}
+const formatOwnerLabel = (ownerId?: string | null): string => formatShortOwnerId(ownerId)
 const creditFieldBadges = (fields: Array<{ label: string; count: number }>): string[] =>
   fields.map((field) => `${field.label} ${field.count}箇所`)
 

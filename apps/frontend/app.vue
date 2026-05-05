@@ -12,6 +12,7 @@
           <NuxtLink v-if="user" to="/my/assets" class="text-gray-700 hover:text-gray-900">アセット管理</NuxtLink>
          <NuxtLink v-if="user" to="/my/characters" class="text-gray-700 hover:text-gray-900">マイキャラ</NuxtLink>
           <NuxtLink v-if="user" to="/my/favorites" class="text-pink-600 hover:text-pink-700">お気に入り</NuxtLink>
+          <NuxtLink v-if="user" to="/my/profile" class="text-gray-700 hover:text-gray-900">プロフィール</NuxtLink>
           <div v-if="user" class="flex items-center space-x-3">
             <span class="text-sm text-gray-600">{{ user.email }}</span>
             <NuxtLink to="/logout" class="text-red-600 hover:text-red-700">ログアウト</NuxtLink>

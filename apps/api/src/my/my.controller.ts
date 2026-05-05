@@ -1,11 +1,25 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Patch, Query, Req, Body, UseGuards } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { ProfilesService } from '../profiles/profiles.service'
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard'
 
 @UseGuards(SupabaseAuthGuard)
 @Controller('my')
 export class MyController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private profiles: ProfilesService,
+  ) {}
+
+  @Get('profile')
+  getMyProfile(@Req() req: any) {
+    return this.profiles.getMyProfile(req.user.userId)
+  }
+
+  @Patch('profile')
+  updateMyProfile(@Req() req: any, @Body() body: any) {
+    return this.profiles.updateMyProfile(req.user.userId, body)
+  }
 
   @Get('assets')
   async myAssets(

@@ -9,6 +9,7 @@ import { SearchModule } from './search/search.module';
 import { CharactersModule } from './characters/characters.module';
 import { GamesModule } from './games/games.module';
 import { MyModule } from './my/my.module';
+import { ProfilesModule } from './profiles/profiles.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MyModule } from './my/my.module';
   CharactersModule,
   GamesModule,
   MyModule,
+  ProfilesModule,
   ],
 })
 export class AppModule {}

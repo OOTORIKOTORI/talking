@@ -88,6 +88,7 @@
             <div class="p-4 space-y-2">
               <h2 class="font-semibold text-gray-900 line-clamp-1">{{ g.title }}</h2>
               <p class="text-sm text-gray-600 line-clamp-2">{{ g.description || '説明はありません。' }}</p>
+              <p class="text-xs text-gray-500">作者: {{ formatCreatorLabel(g.ownerDisplayName, g.ownerId) }}</p>
               <p class="text-xs text-gray-400">更新: {{ formatDate(g.updatedAt) }}</p>
               <p class="text-xs text-gray-500">閲覧 {{ Number(g.viewCount || 0) }} / プレイ {{ Number(g.playCount || 0) }}</p>
 
@@ -132,6 +133,7 @@ type PublicGame = {
   viewCount?: number
   playCount?: number
   ownerId: string
+  ownerDisplayName?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -164,6 +166,17 @@ const sortOptions: Array<{ value: PublicGamesSort; label: string }> = [
 let fetchSeq = 0
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
+
+const formatShortOwnerId = (ownerId?: string | null): string => {
+  if (!ownerId) return 'unknown'
+  if (ownerId.length <= 12) return ownerId
+  return `${ownerId.slice(0, 4)}...${ownerId.slice(-4)}`
+}
+
+const formatCreatorLabel = (displayName?: string | null, ownerId?: string | null): string => {
+  const name = typeof displayName === 'string' ? displayName.trim() : ''
+  return name || formatShortOwnerId(ownerId)
+}
 
 const firstQuery = (value: unknown): string | undefined => {
   if (typeof value === 'string') return value

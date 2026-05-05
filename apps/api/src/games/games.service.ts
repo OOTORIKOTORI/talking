@@ -25,6 +25,7 @@ type PublicGameSummary = {
   viewCount: number;
   playCount: number;
   ownerId: string;
+  ownerDisplayName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -84,6 +85,7 @@ type GameAssetCreditItem = {
   assetId: string;
   title: string;
   ownerId: string | null;
+  ownerDisplayName: string | null;
   contentType: string | null;
   primaryTag: string | null;
   usageCount: number;
@@ -101,6 +103,7 @@ type GameCharacterCreditItem = {
   displayName: string;
   name: string;
   ownerId: string | null;
+  ownerDisplayName: string | null;
   usageCount: number;
   fields: Array<{
     field: GameCreditCharacterField;
@@ -426,17 +429,20 @@ export class GamesService {
     return { limit, offset };
   }
 
-  private toPublicSummary(g: {
-    id: string;
-    title: string;
-    summary: string | null;
-    coverAssetId: string | null;
-    viewCount: number;
-    playCount: number;
-    ownerId: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }): PublicGameSummary {
+  private toPublicSummary(
+    g: {
+      id: string;
+      title: string;
+      summary: string | null;
+      coverAssetId: string | null;
+      viewCount: number;
+      playCount: number;
+      ownerId: string;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    ownerDisplayNameMap?: Map<string, string>,
+  ): PublicGameSummary {
     return {
       id: g.id,
       title: g.title,
@@ -446,9 +452,33 @@ export class GamesService {
       viewCount: g.viewCount,
       playCount: g.playCount,
       ownerId: g.ownerId,
+      ownerDisplayName: ownerDisplayNameMap?.get(g.ownerId) ?? null,
       createdAt: g.createdAt,
       updatedAt: g.updatedAt,
     };
+  }
+
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
   }
 
   private normalizePublicGamesSort(sortRaw: unknown): PublicGamesSort {
@@ -812,8 +842,10 @@ export class GamesService {
       this.prisma.gameProject.count({ where }),
     ]);
 
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(items.map((g) => g.ownerId));
+
     return {
-      items: items.map((g) => this.toPublicSummary(g)),
+      items: items.map((g) => this.toPublicSummary(g, ownerDisplayNameMap)),
       total,
       limit,
       offset,
@@ -829,7 +861,8 @@ export class GamesService {
     });
     if (!g || g.deletedAt) throw new NotFoundException('game not found');
     if (!g.isPublic && g.ownerId !== userId) throw new NotFoundException('game not found');
-    return g;
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([g.ownerId]);
+    return { ...g, ownerDisplayName: ownerDisplayNameMap.get(g.ownerId) ?? null };
   }
 
   async getCredits(userId: string | undefined, id: string): Promise<GameCreditsResult> {
@@ -989,6 +1022,13 @@ export class GamesService {
     const assetById = new Map(assets.map((item) => [item.id, item]));
     const characterById = new Map(characters.map((item) => [item.id, item]));
 
+    // Collect all ownerIds for display name lookup (active/linkable only)
+    const allOwnerIds = [
+      ...assets.filter((a) => !a.deletedAt).map((a) => a.ownerId),
+      ...characters.filter((c) => !c.deletedAt && c.isPublic).map((c) => c.ownerId),
+    ];
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(allOwnerIds);
+
     const assetCredits: GameAssetCreditItem[] = assetIds.map((assetId) => {
       const usage = assetUsageById.get(assetId)!;
       const asset = assetById.get(assetId);
@@ -1004,6 +1044,7 @@ export class GamesService {
           assetId,
           title: '不明な素材',
           ownerId: null,
+          ownerDisplayName: null,
           contentType: null,
           primaryTag: null,
           usageCount: usage.usageCount,
@@ -1018,6 +1059,7 @@ export class GamesService {
           assetId,
           title: '削除済み素材',
           ownerId: null,
+          ownerDisplayName: null,
           contentType: null,
           primaryTag: null,
           usageCount: usage.usageCount,
@@ -1033,6 +1075,7 @@ export class GamesService {
         assetId,
         title: normalizedTitle,
         ownerId: asset.ownerId ?? null,
+        ownerDisplayName: asset.ownerId ? (ownerDisplayNameMap.get(asset.ownerId) ?? null) : null,
         contentType: asset.contentType ?? null,
         primaryTag: asset.primaryTag ?? null,
         usageCount: usage.usageCount,
@@ -1058,6 +1101,7 @@ export class GamesService {
           displayName: '不明なキャラクター',
           name: '不明なキャラクター',
           ownerId: null,
+          ownerDisplayName: null,
           usageCount: usage.usageCount,
           fields,
           status: 'missing',
@@ -1071,6 +1115,7 @@ export class GamesService {
           displayName: '削除済みキャラクター',
           name: '削除済みキャラクター',
           ownerId: null,
+          ownerDisplayName: null,
           usageCount: usage.usageCount,
           fields,
           status: 'deleted',
@@ -1084,6 +1129,7 @@ export class GamesService {
           displayName: '非公開キャラクター',
           name: '非公開キャラクター',
           ownerId: null,
+          ownerDisplayName: null,
           usageCount: usage.usageCount,
           fields,
           status: 'private',
@@ -1096,6 +1142,7 @@ export class GamesService {
         displayName: character.displayName,
         name: character.name,
         ownerId: character.ownerId ?? null,
+        ownerDisplayName: character.ownerId ? (ownerDisplayNameMap.get(character.ownerId) ?? null) : null,
         usageCount: usage.usageCount,
         fields,
         status: 'active',

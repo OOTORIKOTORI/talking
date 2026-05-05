@@ -329,3 +329,21 @@ export interface ColorFilter {
   durationMs?: number; // フェード時間、default 500ms
 }
 
+
+// === Creator Profiles ===================
+export interface CreatorProfile {
+  userId: string
+  displayName: string
+  bio?: string | null
+  createdAt: string | Date
+  updatedAt: string | Date
+}
+
+export interface MyCreatorProfile {
+  userId: string
+  displayName: string | null
+  bio: string | null
+  isConfigured: boolean
+  createdAt?: string | Date
+  updatedAt?: string | Date
+}
