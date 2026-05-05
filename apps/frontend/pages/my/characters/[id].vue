@@ -263,13 +263,20 @@ const openPreview = async (img: any) => {
   setFullKey(img.key); await refreshFull(); previewOpen.value = true
 }
 
+const syncFormFromCharacter = (character: Character) => {
+  name.value = character.name
+  displayName.value = character.displayName
+  description.value = character.description || ''
+  isPublic.value = !!character.isPublic
+  creditRequired.value = character.creditRequired !== false
+  usageTerms.value = character.usageTerms || ''
+  tagsCsv.value = (character.tags || []).join(', ')
+  images.value = (character.images || []).map(i => ({ ...i })) as UiCharacterImage[]
+}
+
 onMounted(async () => {
   data.value = await api.getMine(id)
-  name.value = data.value.name; displayName.value = data.value.displayName; description.value = data.value.description || ''; isPublic.value = !!data.value.isPublic
-  creditRequired.value = data.value.creditRequired !== false
-  usageTerms.value = data.value.usageTerms || ''
-  images.value = (data.value.images || []).map(i => ({ ...i })) as UiCharacterImage[]
-  tagsCsv.value = (data.value.tags || []).join(', ')
+  syncFormFromCharacter(data.value)
   // 初期スナップショット
   initial.value = JSON.stringify(snapshot())
 })
@@ -293,8 +300,9 @@ const save = async () => {
   if (saving.value || !isDirty.value) return
   try {
     saving.value = true
-    await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value), creditRequired: creditRequired.value, usageTerms: usageTerms.value.trim() || undefined })
+    await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value), creditRequired: creditRequired.value, usageTerms: usageTerms.value })
     data.value = await api.getMine(id)
+    syncFormFromCharacter(data.value)
     // 初期スナップショット更新
     initial.value = JSON.stringify(snapshot())
     showToast('保存しました', 'success')

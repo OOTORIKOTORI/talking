@@ -15,7 +15,9 @@
     "dev:web": "pnpm -C apps/frontend dev",
     "dev:worker": "pnpm -C apps/worker dev",
     "dev:all": "pnpm dev:infra && concurrently -n API,WEB,WORKER -c auto \"pnpm -C apps/api start:dev\" \"pnpm -C apps/frontend dev\" \"pnpm -C apps/worker dev\"",
-    "fix:asset:urls": "node apps/api/scripts/fix-asset-urls.mjs"
+    "fix:asset:urls": "node apps/api/scripts/fix-asset-urls.mjs",
+    "db:status": "pnpm -C apps/api exec prisma migrate status",
+    "db:migrate": "pnpm -C apps/api prisma:migrate"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
