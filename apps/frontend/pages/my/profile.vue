@@ -52,13 +52,6 @@
 
         <div v-if="saveSuccess" class="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-sm">
           保存しました。
-          <NuxtLink
-            v-if="publicProfileUrl"
-            :to="publicProfileUrl"
-            class="ml-1 underline underline-offset-2 hover:text-green-800"
-          >
-            公開プロフィールを確認
-          </NuxtLink>
         </div>
 
         <div class="flex gap-3">

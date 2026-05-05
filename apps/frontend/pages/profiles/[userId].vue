@@ -27,15 +27,17 @@
       <template v-else-if="profile">
         <article class="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
           <div>
-            <h2 class="text-2xl font-semibold text-gray-900">
+            <h2 class="text-3xl font-semibold text-gray-900">
               {{ formatCreatorLabel(profile.displayName, profile.userId) }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">ID: {{ formatShortOwnerId(profile.userId) }}</p>
+            <p class="mt-1 text-xs text-gray-400">ID: {{ formatShortOwnerId(profile.userId) }}</p>
           </div>
 
           <section>
             <h3 class="text-sm font-medium text-gray-700 mb-2">自己紹介</h3>
-            <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ profile.bio?.trim() || '自己紹介はまだありません。' }}</p>
+            <p :class="['text-sm whitespace-pre-wrap', profile.bio?.trim() ? 'text-gray-700' : 'text-gray-400']">
+              {{ profile.bio?.trim() || '自己紹介はまだありません。' }}
+            </p>
           </section>
         </article>
 
@@ -48,8 +50,8 @@
           <template v-else>
             <!-- 公開ゲーム -->
             <section>
-              <h3 class="text-base font-semibold text-gray-800 mb-3">公開ゲーム</h3>
-              <div v-if="contentsLoading" class="text-sm text-gray-400">読み込み中...</div>
+              <h3 class="text-base font-semibold text-gray-800 mb-3">公開ゲーム（{{ contents?.games?.length ?? 0 }}）</h3>
+              <div v-if="contentsLoading" class="text-sm text-gray-400">公開コンテンツを読み込み中...</div>
               <p v-else-if="!contents?.games?.length" class="text-sm text-gray-400">まだ公開ゲームはありません。</p>
               <ul v-else class="space-y-2">
                 <li v-for="game in contents.games" :key="game.id">
@@ -67,8 +69,8 @@
 
             <!-- 公開アセット -->
             <section>
-              <h3 class="text-base font-semibold text-gray-800 mb-3">公開アセット</h3>
-              <div v-if="contentsLoading" class="text-sm text-gray-400">読み込み中...</div>
+              <h3 class="text-base font-semibold text-gray-800 mb-3">公開アセット（{{ contents?.assets?.length ?? 0 }}）</h3>
+              <div v-if="contentsLoading" class="text-sm text-gray-400">公開コンテンツを読み込み中...</div>
               <p v-else-if="!contents?.assets?.length" class="text-sm text-gray-400">まだ公開アセットはありません。</p>
               <ul v-else class="space-y-2">
                 <li v-for="asset in contents.assets" :key="asset.id">
@@ -86,8 +88,8 @@
 
             <!-- 公開キャラクター -->
             <section>
-              <h3 class="text-base font-semibold text-gray-800 mb-3">公開キャラクター</h3>
-              <div v-if="contentsLoading" class="text-sm text-gray-400">読み込み中...</div>
+              <h3 class="text-base font-semibold text-gray-800 mb-3">公開キャラクター（{{ contents?.characters?.length ?? 0 }}）</h3>
+              <div v-if="contentsLoading" class="text-sm text-gray-400">公開コンテンツを読み込み中...</div>
               <p v-else-if="!contents?.characters?.length" class="text-sm text-gray-400">まだ公開キャラクターはありません。</p>
               <ul v-else class="space-y-2">
                 <li v-for="character in contents.characters" :key="character.id">
