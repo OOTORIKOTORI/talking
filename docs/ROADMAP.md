@@ -100,8 +100,8 @@
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
-- ライセンス/利用条件表示の導入
-- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンクは実装済み。残: 表示名スナップショット、ライセンス表示など）
+- ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
+- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンクは実装済み。残: 表示名スナップショット、ライセンス体系化など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）

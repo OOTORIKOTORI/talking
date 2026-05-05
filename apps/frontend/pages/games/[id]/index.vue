@@ -69,11 +69,18 @@
                       </NuxtLink>
                       <span v-else class="text-xs text-gray-500">by {{ item.ownerId ? formatCreatorLabel(item.ownerDisplayName, item.ownerId) : 'unknown' }}</span>
                       <span
+                        class="rounded-full px-1.5 py-0.5 text-[11px] font-medium"
+                        :class="item.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+                      >
+                        {{ item.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+                      </span>
+                      <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
                         class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
                       >{{ badge }}</span>
                     </div>
+                    <p v-if="item.usageTerms" class="mt-1.5 text-xs text-gray-600 line-clamp-2 whitespace-pre-wrap">{{ item.usageTerms }}</p>
                   </template>
                   <template v-else>
                     <span class="block font-medium text-gray-400 text-sm">{{ item.title }}</span>
@@ -112,11 +119,18 @@
                       </NuxtLink>
                       <span v-else class="text-xs text-gray-500">by {{ item.ownerId ? formatCreatorLabel(item.ownerDisplayName, item.ownerId) : 'unknown' }}</span>
                       <span
+                        class="rounded-full px-1.5 py-0.5 text-[11px] font-medium"
+                        :class="item.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+                      >
+                        {{ item.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+                      </span>
+                      <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
                         class="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-600"
                       >{{ badge }}</span>
                     </div>
+                    <p v-if="item.usageTerms" class="mt-1.5 text-xs text-gray-600 line-clamp-2 whitespace-pre-wrap">{{ item.usageTerms }}</p>
                   </template>
                   <template v-else>
                     <span class="block font-medium text-gray-400 text-sm">{{ item.displayName || item.name }}</span>
@@ -198,6 +212,8 @@ type GameCreditsResult = {
     fields: Array<{ field: GameCreditAssetField; label: string; count: number }>
     status: 'active' | 'deleted' | 'missing'
     linkable: boolean
+    usageTerms?: string | null
+    creditRequired?: boolean
   }>
   characterCredits: Array<{
     characterId: string
@@ -209,6 +225,8 @@ type GameCreditsResult = {
     fields: Array<{ field: GameCreditCharacterField; label: string; count: number }>
     status: 'active' | 'deleted' | 'missing' | 'private'
     linkable: boolean
+    usageTerms?: string | null
+    creditRequired?: boolean
   }>
   counts: {
     assets: number

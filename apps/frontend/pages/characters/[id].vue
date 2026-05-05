@@ -37,6 +37,21 @@
       <NuxtLink v-for="t in data?.tags" :key="t" :to="`/characters?tags=${encodeURIComponent(t)}`" class="px-2 py-0.5 rounded-full bg-slate-100 ring-1 ring-slate-200 text-slate-700 text-xs hover:bg-slate-200 transition-colors">{{ t }}</NuxtLink>
     </div>
 
+    <!-- Usage Terms -->
+    <div class="mt-4 bg-slate-50 rounded-lg p-4">
+      <div class="text-sm font-medium text-slate-500 mb-2">利用条件</div>
+      <div class="flex items-center gap-2 mb-2">
+        <span
+          class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full"
+          :class="data?.creditRequired !== false ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'"
+        >
+          {{ data?.creditRequired !== false ? 'クレジット表記: 必須' : 'クレジット表記: 任意' }}
+        </span>
+      </div>
+      <p v-if="data?.usageTerms" class="text-sm text-slate-800 whitespace-pre-wrap">{{ data.usageTerms }}</p>
+      <p v-else class="text-sm text-slate-400">個別の利用条件は未設定です。</p>
+    </div>
+
     <div class="mt-6 flex gap-3 items-center">
       <label class="text-sm text-slate-500">感情</label>
       <select v-model="emotion" class="border rounded px-2 py-1">

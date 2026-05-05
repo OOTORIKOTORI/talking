@@ -263,10 +263,27 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 
 将来課題:
 - `GameAssetReference` / `GameCharacterReference` 導入
-- `GameCredit` 導入
+- `GameCredit` 導入（DB分離・スナップショット保存）
 - クレジットのスナップショット保存
 - 手動追記/スタッフロール
-- ライセンス/利用条件表示
+- ライセンス/利用条件の本格体系化（CC ライセンス等）
+
+#### ライセンス/利用条件表示 MVP（2026-05-05）
+
+- **概要:** 法的に厳密なライセンス体系ではなく、作者が素材/キャラクターごとに簡単な利用条件メモとクレジット要否を設定できるMVP。
+- **対象モデル:** `Asset` / `Character` に以下を追加:
+  - `usageTerms String? @db.Text` — 作者が自由入力する利用条件メモ（最大1000文字）
+  - `creditRequired Boolean @default(true)` — クレジット表記が必要かどうか（既存データは`true`扱い）
+- **表示箇所:**
+  - 公開アセット詳細 `/assets/:id`: 「利用条件」セクション（クレジット必須/任意バッジ + 自由テキスト）
+  - アセットカード: クレジット必須/任意バッジ
+  - 公開キャラクター詳細 `/characters/:id`: 「利用条件」セクション
+  - キャラクターカード: クレジット必須/任意バッジ
+  - 公開ゲーム詳細クレジット欄: `linkable` な項目にのみバッジ + `usageTerms` を表示（非公開/削除済みは出さない）
+- **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
+- **注意:**
+  - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
+  - `GameCredit` / `GameAssetReference` 等のDB分離・スナップショット保存は将来課題のまま。
 
 #### クレジット作者表示の将来改善
 

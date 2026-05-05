@@ -47,6 +47,8 @@ export interface Asset {
   favoriteCount?: number;
   isFavorite?: boolean;
   isFavorited?: boolean;
+  usageTerms?: string | null;
+  creditRequired?: boolean;
 }
 
 /**
@@ -112,6 +114,8 @@ export interface Character {
   images?: CharacterImage[]
   tags?: string[]
   isFavorite?: boolean
+  usageTerms?: string | null
+  creditRequired?: boolean
 }
 
 // === Message Theme =====================

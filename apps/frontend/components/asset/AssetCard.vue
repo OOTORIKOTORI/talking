@@ -61,7 +61,15 @@
         </button>
         <span v-else>{{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}</span>
       </p>
-      <p class="mt-2 text-xs text-gray-500">お気に入り {{ favoriteCount }}</p>
+      <div class="mt-2 flex items-center gap-2">
+        <span
+          class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full"
+          :class="asset.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+        >
+          {{ asset.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+        </span>
+        <span class="text-xs text-gray-500">お気に入り {{ favoriteCount }}</span>
+      </div>
     </div>
   </NuxtLink>
 </template>

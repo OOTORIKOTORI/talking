@@ -7,6 +7,14 @@
       <div class="p-3">
         <div class="font-semibold line-clamp-1">{{ character.name }}</div>
         <div class="text-sm text-slate-500 line-clamp-1">{{ character.displayName }}</div>
+        <div class="mt-2">
+          <span
+            class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full"
+            :class="character.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+          >
+            {{ character.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+          </span>
+        </div>
       </div>
     </NuxtLink>
     <button

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsBoolean, MaxLength } from 'class-validator';
 import { AssetPrimaryTag } from '@prisma/client';
 
 export class UpdateAssetDto {
@@ -18,4 +18,13 @@ export class UpdateAssetDto {
   @IsOptional()
   @IsEnum(AssetPrimaryTag)
   primaryTag?: AssetPrimaryTag;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  usageTerms?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  creditRequired?: boolean;
 }

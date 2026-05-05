@@ -96,6 +96,8 @@ type GameAssetCreditItem = {
   }>;
   status: 'active' | 'deleted' | 'missing';
   linkable: boolean;
+  usageTerms: string | null;
+  creditRequired: boolean;
 };
 
 type GameCharacterCreditItem = {
@@ -112,6 +114,8 @@ type GameCharacterCreditItem = {
   }>;
   status: 'active' | 'deleted' | 'missing' | 'private';
   linkable: boolean;
+  usageTerms: string | null;
+  creditRequired: boolean;
 };
 
 type GameCreditsResult = {
@@ -1001,6 +1005,8 @@ export class GamesService {
               contentType: true,
               primaryTag: true,
               deletedAt: true,
+              usageTerms: true,
+              creditRequired: true,
             },
           })
         : Promise.resolve([]),
@@ -1014,6 +1020,8 @@ export class GamesService {
               ownerId: true,
               isPublic: true,
               deletedAt: true,
+              usageTerms: true,
+              creditRequired: true,
             },
           })
         : Promise.resolve([]),
@@ -1051,6 +1059,8 @@ export class GamesService {
           fields,
           status: 'missing',
           linkable: false,
+          usageTerms: null,
+          creditRequired: true,
         };
       }
 
@@ -1066,6 +1076,8 @@ export class GamesService {
           fields,
           status: 'deleted',
           linkable: false,
+          usageTerms: null,
+          creditRequired: true,
         };
       }
 
@@ -1082,6 +1094,8 @@ export class GamesService {
         fields,
         status: 'active',
         linkable: true,
+        usageTerms: asset.usageTerms ?? null,
+        creditRequired: asset.creditRequired,
       };
     });
 
@@ -1106,6 +1120,8 @@ export class GamesService {
           fields,
           status: 'missing',
           linkable: false,
+          usageTerms: null,
+          creditRequired: true,
         };
       }
 
@@ -1120,6 +1136,8 @@ export class GamesService {
           fields,
           status: 'deleted',
           linkable: false,
+          usageTerms: null,
+          creditRequired: true,
         };
       }
 
@@ -1134,6 +1152,8 @@ export class GamesService {
           fields,
           status: 'private',
           linkable: false,
+          usageTerms: null,
+          creditRequired: true,
         };
       }
 
@@ -1147,6 +1167,8 @@ export class GamesService {
         fields,
         status: 'active',
         linkable: true,
+        usageTerms: character.usageTerms ?? null,
+        creditRequired: character.creditRequired,
       };
     });
 

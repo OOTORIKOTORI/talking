@@ -36,6 +36,8 @@ model Asset {
   thumbKeyAvif String?
   thumbWidth   Int?            @default(512)
   thumbHeight  Int?            @default(512)
+  usageTerms   String?         @db.Text
+  creditRequired Boolean        @default(true)
   createdAt    DateTime        @default(now())
   deletedAt    DateTime?
 
@@ -93,6 +95,8 @@ model Character {
   displayName String
   description String?
   isPublic    Boolean   @default(true)
+  usageTerms  String?   @db.Text
+  creditRequired Boolean @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?

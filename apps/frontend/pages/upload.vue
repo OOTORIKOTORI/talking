@@ -64,6 +64,35 @@
           <p class="mt-1 text-xs text-gray-500">カンマ区切りで複数入力できます</p>
         </div>
 
+        <!-- Credit Required -->
+        <div class="flex items-center gap-3">
+          <input
+            id="creditRequired"
+            v-model="creditRequired"
+            type="checkbox"
+            class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label for="creditRequired" class="text-sm font-medium text-gray-700">
+            クレジット表記を必須にする
+          </label>
+        </div>
+
+        <!-- Usage Terms -->
+        <div>
+          <label for="usageTerms" class="block text-sm font-medium text-gray-700 mb-2">
+            利用条件(任意)
+          </label>
+          <textarea
+            id="usageTerms"
+            v-model="usageTerms"
+            rows="3"
+            maxlength="1000"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="例: 改変OK。ゲーム内クレジット表記をお願いします。"
+          ></textarea>
+          <p class="mt-1 text-xs text-gray-500">{{ usageTerms.length }}/1000文字</p>
+        </div>
+
         <!-- File Upload Area -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -218,6 +247,8 @@ const title = ref('')
 const description = ref('')
 const tagsInput = ref('')
 const primaryTag = ref('')
+const creditRequired = ref(true)
+const usageTerms = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement>()
 const isDragging = ref(false)
@@ -266,6 +297,8 @@ async function handleUpload() {
       description: description.value || undefined,
       tags: tags.length > 0 ? tags : undefined,
       primaryTag: primaryTag.value,
+      usageTerms: usageTerms.value.trim() || undefined,
+      creditRequired: creditRequired.value,
     })
     uploadResult.value = {
       ...result,

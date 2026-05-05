@@ -28,6 +28,12 @@
           </div>
         </div>
         <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="isPublic" /> 公開する</label>
+        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="creditRequired" /> クレジット表記を必須にする</label>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">利用条件（任意）</label>
+          <textarea v-model="usageTerms" rows="3" maxlength="1000" class="w-full border rounded px-3 py-2" placeholder="例: 改変OK。ゲーム内クレジット表記をお願いします。" />
+          <p class="mt-1 text-xs text-gray-500">{{ usageTerms.length }}/1000文字</p>
+        </div>
       </div>
       <div class="mt-4">
         <button
@@ -242,6 +248,8 @@ const id = String(route.params.id)
 type UiCharacterImage = CharacterImage & { __saving?: boolean }
 const data = ref<Character | null>(null)
 const name = ref(''); const displayName = ref(''); const description = ref(''); const isPublic = ref(true)
+const creditRequired = ref(true)
+const usageTerms = ref('')
 const images = ref<UiCharacterImage[]>([])
 const tagsCsv = ref('')
 
@@ -258,6 +266,8 @@ const openPreview = async (img: any) => {
 onMounted(async () => {
   data.value = await api.getMine(id)
   name.value = data.value.name; displayName.value = data.value.displayName; description.value = data.value.description || ''; isPublic.value = !!data.value.isPublic
+  creditRequired.value = data.value.creditRequired !== false
+  usageTerms.value = data.value.usageTerms || ''
   images.value = (data.value.images || []).map(i => ({ ...i })) as UiCharacterImage[]
   tagsCsv.value = (data.value.tags || []).join(', ')
   // 初期スナップショット
@@ -272,6 +282,8 @@ const snapshot = () => ({
   displayName: displayName.value,
   description: description.value,
   isPublic: isPublic.value,
+  creditRequired: creditRequired.value,
+  usageTerms: usageTerms.value,
   tags: toTags(tagsCsv.value)
 })
 const isDirty = computed(() => initial.value !== JSON.stringify(snapshot()))
@@ -281,7 +293,7 @@ const save = async () => {
   if (saving.value || !isDirty.value) return
   try {
     saving.value = true
-    await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value) })
+    await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value), creditRequired: creditRequired.value, usageTerms: usageTerms.value.trim() || undefined })
     data.value = await api.getMine(id)
     // 初期スナップショット更新
     initial.value = JSON.stringify(snapshot())

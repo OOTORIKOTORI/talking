@@ -6,4 +6,6 @@ export class CreateCharacterDto {
   @IsString() @IsOptional() @MaxLength(2000) description?: string;
   @IsBoolean() @IsOptional() isPublic?: boolean;
   @IsArray() @IsString({ each: true }) @IsOptional() tags?: string[];
+  @IsString() @IsOptional() @MaxLength(1000) usageTerms?: string;
+  @IsBoolean() @IsOptional() creditRequired?: boolean;
 }

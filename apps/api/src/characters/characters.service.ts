@@ -35,8 +35,18 @@ export class CharactersService {
 
   async create(ownerId: string, dto: CreateCharacterDto) {
     const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
+    const usageTerms = typeof dto.usageTerms === 'string' ? dto.usageTerms.trim() || null : null;
     return this.prisma.character.create({
-      data: { ownerId, name: dto.name, displayName: dto.displayName, description: dto.description, isPublic: dto.isPublic ?? true, tags },
+      data: {
+        ownerId,
+        name: dto.name,
+        displayName: dto.displayName,
+        description: dto.description,
+        isPublic: dto.isPublic ?? true,
+        tags,
+        usageTerms,
+        ...(dto.creditRequired !== undefined && { creditRequired: dto.creditRequired }),
+      },
     });
   }
 
@@ -44,8 +54,20 @@ export class CharactersService {
     const c = await this.prisma.character.findUnique({ where: { id } });
     if (!c || c.deletedAt) throw new NotFoundException('Character not found');
     if (c.ownerId !== ownerId) throw new ForbiddenException();
-    const tags = dto.tags ? dto.tags.map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined
-    return this.prisma.character.update({ where: { id }, data: { ...dto, ...(tags !== undefined ? { tags } : {}) } });
+    const tags = dto.tags ? dto.tags.map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined;
+    const usageTerms = dto.usageTerms !== undefined
+      ? (dto.usageTerms.trim() || null)
+      : undefined;
+    const { usageTerms: _u, creditRequired: _cr, tags: _tags, ...rest } = dto;
+    return this.prisma.character.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(tags !== undefined ? { tags } : {}),
+        ...(usageTerms !== undefined ? { usageTerms } : {}),
+        ...(dto.creditRequired !== undefined ? { creditRequired: dto.creditRequired } : {}),
+      },
+    });
   }
 
   async remove(ownerId: string, id: string) {

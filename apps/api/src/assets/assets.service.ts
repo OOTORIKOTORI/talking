@@ -82,6 +82,11 @@ export class AssetsService {
     
     const url = `${this.s3PublicBase}/${createAssetDto.key}`;
 
+    const normalizedUsageTerms =
+      typeof createAssetDto.usageTerms === 'string'
+        ? createAssetDto.usageTerms.trim() || null
+        : null;
+
     const asset = await this.prisma.asset.create({
       data: {
         key: createAssetDto.key,
@@ -93,6 +98,8 @@ export class AssetsService {
         size: createAssetDto.size,
         url,
         ownerId,
+        usageTerms: normalizedUsageTerms,
+        ...(createAssetDto.creditRequired !== undefined && { creditRequired: createAssetDto.creditRequired }),
       },
     });
 
@@ -207,6 +214,10 @@ export class AssetsService {
         ...(updateAssetDto.description !== undefined && { description: updateAssetDto.description }),
         ...(updateAssetDto.tags !== undefined && { tags: updateAssetDto.tags }),
         ...(updateAssetDto.primaryTag !== undefined && { primaryTag: updateAssetDto.primaryTag }),
+        ...(updateAssetDto.usageTerms !== undefined && {
+          usageTerms: updateAssetDto.usageTerms.trim() || null,
+        }),
+        ...(updateAssetDto.creditRequired !== undefined && { creditRequired: updateAssetDto.creditRequired }),
       },
     });
 
