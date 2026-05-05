@@ -37,6 +37,7 @@ export interface Asset {
   size: number;
   url: string;
   ownerId?: string;
+  ownerDisplayNameSnapshot?: string | null;
   ownerDisplayName?: string | null;
   thumbKey?: string;
     thumbKeyWebp?: string;
@@ -103,6 +104,7 @@ export interface CharacterImage {
 export interface Character {
   id: string
   ownerId: string
+  ownerDisplayNameSnapshot?: string | null
   ownerDisplayName?: string | null
   name: string
   displayName: string

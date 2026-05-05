@@ -25,6 +25,7 @@ type PublicGameSummary = {
   viewCount: number;
   playCount: number;
   ownerId: string;
+  ownerDisplayNameSnapshot?: string | null;
   ownerDisplayName: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -442,6 +443,7 @@ export class GamesService {
       viewCount: number;
       playCount: number;
       ownerId: string;
+      ownerDisplayNameSnapshot?: string | null;
       createdAt: Date;
       updatedAt: Date;
     },
@@ -456,7 +458,12 @@ export class GamesService {
       viewCount: g.viewCount,
       playCount: g.playCount,
       ownerId: g.ownerId,
-      ownerDisplayName: ownerDisplayNameMap?.get(g.ownerId) ?? null,
+      ownerDisplayNameSnapshot: g.ownerDisplayNameSnapshot ?? null,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        g.ownerId,
+        g.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
       createdAt: g.createdAt,
       updatedAt: g.updatedAt,
     };
@@ -483,6 +490,29 @@ export class GamesService {
       if (name.length > 0) map.set(p.userId, name);
     }
     return map;
+  }
+
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap?: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap?.get(ownerId) ?? null;
+  }
+
+  private async getOwnerDisplayNameSnapshot(
+    ownerId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<string | null> {
+    const profile = await prismaClient.creatorProfile.findUnique({
+      where: { userId: ownerId },
+      select: { displayName: true },
+    });
+    const name = profile?.displayName?.trim();
+    return name ? name : null;
   }
 
   private normalizePublicGamesSort(sortRaw: unknown): PublicGamesSort {
@@ -676,9 +706,11 @@ export class GamesService {
   async create(userId: string, data: { title: string; summary?: string }) {
     const normalizedTitle = this.normalizeGameTitle(data?.title, { required: true });
     const normalizedSummary = this.normalizeGameSummary(data?.summary);
+    const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(userId);
     return this.prisma.gameProject.create({
       data: {
         ownerId: userId,
+        ownerDisplayNameSnapshot,
         title: normalizedTitle,
         summary: normalizedSummary,
       },
@@ -699,9 +731,11 @@ export class GamesService {
       }
 
       const duplicatedTitle = await this.buildDuplicateTitle(tx, userId, source.title);
+      const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(userId, tx);
       const duplicatedGame = await tx.gameProject.create({
         data: {
           ownerId: userId,
+          ownerDisplayNameSnapshot,
           title: duplicatedTitle,
           summary: source.summary,
           coverAssetId: source.coverAssetId,
@@ -839,6 +873,7 @@ export class GamesService {
           viewCount: true,
           playCount: true,
           ownerId: true,
+          ownerDisplayNameSnapshot: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -866,7 +901,14 @@ export class GamesService {
     if (!g || g.deletedAt) throw new NotFoundException('game not found');
     if (!g.isPublic && g.ownerId !== userId) throw new NotFoundException('game not found');
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([g.ownerId]);
-    return { ...g, ownerDisplayName: ownerDisplayNameMap.get(g.ownerId) ?? null };
+    return {
+      ...g,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        g.ownerId,
+        g.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
+    };
   }
 
   async getCredits(userId: string | undefined, id: string): Promise<GameCreditsResult> {
@@ -1002,6 +1044,7 @@ export class GamesService {
               id: true,
               title: true,
               ownerId: true,
+              ownerDisplayNameSnapshot: true,
               contentType: true,
               primaryTag: true,
               deletedAt: true,
@@ -1018,6 +1061,7 @@ export class GamesService {
               displayName: true,
               name: true,
               ownerId: true,
+              ownerDisplayNameSnapshot: true,
               isPublic: true,
               deletedAt: true,
               usageTerms: true,
@@ -1087,7 +1131,11 @@ export class GamesService {
         assetId,
         title: normalizedTitle,
         ownerId: asset.ownerId ?? null,
-        ownerDisplayName: asset.ownerId ? (ownerDisplayNameMap.get(asset.ownerId) ?? null) : null,
+        ownerDisplayName: this.resolveOwnerDisplayName(
+          asset.ownerId,
+          asset.ownerDisplayNameSnapshot,
+          ownerDisplayNameMap,
+        ),
         contentType: asset.contentType ?? null,
         primaryTag: asset.primaryTag ?? null,
         usageCount: usage.usageCount,
@@ -1162,7 +1210,11 @@ export class GamesService {
         displayName: character.displayName,
         name: character.name,
         ownerId: character.ownerId ?? null,
-        ownerDisplayName: character.ownerId ? (ownerDisplayNameMap.get(character.ownerId) ?? null) : null,
+        ownerDisplayName: this.resolveOwnerDisplayName(
+          character.ownerId,
+          character.ownerDisplayNameSnapshot,
+          ownerDisplayNameMap,
+        ),
         usageCount: usage.usageCount,
         fields,
         status: 'active',

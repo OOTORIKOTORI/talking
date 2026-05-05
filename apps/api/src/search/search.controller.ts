@@ -61,11 +61,28 @@ export class SearchController {
     return map;
   }
 
-  private async attachOwnerDisplayName<T extends { ownerId?: string | null }>(items: T[]) {
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
+  private async attachOwnerDisplayName<
+    T extends { ownerId?: string | null; ownerDisplayNameSnapshot?: string | null },
+  >(items: T[]) {
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(items.map((item) => item.ownerId));
     return items.map((item) => ({
       ...item,
-      ownerDisplayName: item.ownerId ? (ownerDisplayNameMap.get(item.ownerId) ?? null) : null,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        item.ownerId,
+        item.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
     }));
   }
 

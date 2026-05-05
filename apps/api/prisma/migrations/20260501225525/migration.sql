@@ -1,0 +1,2 @@
+-- Restored placeholder for migration present in local DB history.
+-- Original SQL was not present in this workspace snapshot.

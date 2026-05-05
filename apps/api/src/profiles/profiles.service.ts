@@ -10,6 +10,16 @@ const BIO_MAX_LENGTH = 500;
 export class ProfilesService {
   constructor(private prisma: PrismaService) {}
 
+  private resolveOwnerDisplayName(
+    ownerDisplayNameSnapshot: string | null | undefined,
+    currentDisplayName: string | null | undefined,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    const current = currentDisplayName?.trim();
+    return current ? current : null;
+  }
+
   async getMyProfile(userId: string) {
     const profile = await this.prisma.creatorProfile.findUnique({
       where: { userId },
@@ -111,6 +121,7 @@ export class ProfilesService {
           summary: true,
           coverAssetId: true,
           ownerId: true,
+          ownerDisplayNameSnapshot: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -125,6 +136,7 @@ export class ProfilesService {
           displayName: true,
           description: true,
           ownerId: true,
+          ownerDisplayNameSnapshot: true,
           createdAt: true,
           updatedAt: true,
           images: {
@@ -149,15 +161,25 @@ export class ProfilesService {
           thumbKeyWebp: true,
           thumbKeyAvif: true,
           ownerId: true,
+          ownerDisplayNameSnapshot: true,
           createdAt: true,
         },
       }),
     ]);
 
     return {
-      games: games.map((g) => ({ ...g, ownerDisplayName })),
-      characters: characters.map((c) => ({ ...c, ownerDisplayName })),
-      assets: assets.map((a) => ({ ...a, ownerDisplayName })),
+      games: games.map((g) => ({
+        ...g,
+        ownerDisplayName: this.resolveOwnerDisplayName(g.ownerDisplayNameSnapshot, ownerDisplayName),
+      })),
+      characters: characters.map((c) => ({
+        ...c,
+        ownerDisplayName: this.resolveOwnerDisplayName(c.ownerDisplayNameSnapshot, ownerDisplayName),
+      })),
+      assets: assets.map((a) => ({
+        ...a,
+        ownerDisplayName: this.resolveOwnerDisplayName(a.ownerDisplayNameSnapshot, ownerDisplayName),
+      })),
     };
   }
 }

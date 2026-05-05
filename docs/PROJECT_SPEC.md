@@ -5,7 +5,7 @@
 ## ドメインモデル（実装準拠）
 
 - Character（キャラクター）
-  - フィールド: `id`, `ownerId`, `ownerDisplayName?`, `name`, `displayName`, `description?`, `isPublic`, `createdAt`, `updatedAt`, `deletedAt?`, `tags?: string[]`, `images?: CharacterImage[]`, `isFavorite?`
+  - フィールド: `id`, `ownerId`, `ownerDisplayNameSnapshot?`, `ownerDisplayName?`, `name`, `displayName`, `description?`, `isPublic`, `createdAt`, `updatedAt`, `deletedAt?`, `tags?: string[]`, `images?: CharacterImage[]`, `isFavorite?`
   - 出典: `packages/types/src/index.ts` の `export interface Character`
 - CharacterImage（立ち絵画像単位）
   - フィールド: `id`, `characterId`, `key`, `thumbKey?`, `width?`, `height?`, `contentType`, `size?`, `emotion: CharacterEmotion`, `emotionLabel?`, `pattern?`, `sortOrder: number`, `createdAt`, `updatedAt`
@@ -79,6 +79,13 @@
 
 - 型の出典
   - 共通型: `packages/types/src/index.ts`（`Asset`, `Character`, `CharacterImage`, `CharacterEmotion` など）
+- 作者表示名スナップショット（2026-05-06 MVP）
+  - `Asset` / `Character` / `GameProject` は作成時点の `ownerDisplayNameSnapshot` を保持する。
+  - API の `ownerDisplayName` は `ownerDisplayNameSnapshot` → 現在の `CreatorProfile.displayName` → `null` の順で解決する。
+  - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
+  - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
+  - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
+  - 公開時点の完全クレジット/利用条件スナップショット保存、`GameCredit` DB分離は将来課題。
 - 署名URL（GET/PUT）
   - GET（閲覧用）: `GET /uploads/signed-get?key=...&ttl=...` → JSON `{ url }`
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedGetUrl`
@@ -95,7 +102,7 @@
   - 公開一覧: `GET /characters`（`publicOnly` 省略時は公開のみ）
   - 公開詳細: `GET /characters/:id`
     - 返却に `ownerDisplayName?: string | null` を含む
-    - `ownerId` がある場合は `CreatorProfile.displayName` を参照し、未設定時は `null` を返す（個人情報は返さない）
+    - `ownerDisplayName` は `ownerDisplayNameSnapshot` を優先し、未設定時は `CreatorProfile.displayName`、それも無ければ `null` を返す（個人情報は返さない）
     - 一覧は ownerId を集約してまとめて取得し、N+1 を回避
   - 作成: `POST /my/characters`
   - 取得（自分）: `GET /my/characters/:id`
@@ -130,7 +137,7 @@
     - 同一IDはクレジット上で1件に集約し、`usageCount` と `fields[*].count` を返却
     - 公開詳細ページでは「使用素材・キャラクター」欄として表示
     - 削除済み/非公開/不明の素材・キャラクターは詳細を出しすぎない（フォールバック名で表示、`linkable: false`）
-    - 作者表示は `ownerDisplayName` を優先し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
+    - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
   - 公開プレイ開始カウント: `POST /games/:id/play`
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
     - セーブ/ロード、ノード進行では増やさない
@@ -312,16 +319,16 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - プロフィールが存在しない場合は `404`
   - 各カテゴリは公開・未削除のもののみ返却（games: `isPublic=true, deletedAt=null`; characters: `isPublic=true, deletedAt=null`; assets: `deletedAt=null`）
   - 各カテゴリ最大6件、games/characters は `updatedAt desc` 順、assets は `createdAt desc` 順（Asset に `updatedAt` がないため）
-  - `ownerDisplayName` は当該プロフィールの `displayName` を各アイテムに付与
+  - `ownerDisplayName` は各アイテムの `ownerDisplayNameSnapshot` を優先し、未設定時は当該プロフィールの `displayName` を利用
   - 個人情報（email等）は返却しない
   - DB schema 変更なし
-  - ページネーション、タブUI、表示名スナップショット、slug、プロフィール画像/SNSリンクは将来課題
+  - ページネーション、タブUI、slug、プロフィール画像/SNSリンクは将来課題
 
   アセット系APIの補足（MVP）:
-  - `GET /search/assets`: `items[*].ownerDisplayName?: string | null` を追加（`CreatorProfile.displayName` を ownerId でまとめて引き当て）
+  - `GET /search/assets`: `items[*].ownerDisplayName?: string | null` を追加（`ownerDisplayNameSnapshot` 優先、未設定時は `CreatorProfile.displayName` を ownerId でまとめて引き当て）
   - `GET /assets/:id`: `ownerDisplayName?: string | null` を追加
   - プロフィール未設定時は `ownerDisplayName: null`
-  - slug、作者別作品一覧、表示名スナップショット、プロフィール画像/SNSリンクは将来課題
+  - slug、作者別作品一覧、プロフィール画像/SNSリンクは将来課題
 
 ### 正規採用ルート（UX設計方針）
 

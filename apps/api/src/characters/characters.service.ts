@@ -33,12 +33,34 @@ export class CharactersService {
     return map;
   }
 
+  private async getOwnerDisplayNameSnapshot(ownerId: string): Promise<string | null> {
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { userId: ownerId },
+      select: { displayName: true },
+    });
+    const name = profile?.displayName?.trim();
+    return name ? name : null;
+  }
+
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
   async create(ownerId: string, dto: CreateCharacterDto) {
     const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
     const usageTerms = typeof dto.usageTerms === 'string' ? dto.usageTerms.trim() || null : null;
+    const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(ownerId);
     return this.prisma.character.create({
       data: {
         ownerId,
+        ownerDisplayNameSnapshot,
         name: dto.name,
         displayName: dto.displayName,
         description: dto.description,
@@ -96,7 +118,11 @@ export class CharactersService {
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(characters.map(c => c.ownerId));
     const withOwnerDisplayName = characters.map(c => ({
       ...c,
-      ownerDisplayName: c.ownerId ? (ownerDisplayNameMap.get(c.ownerId) ?? null) : null,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        c.ownerId,
+        c.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
     }));
     
     // Check favorites for this user
@@ -120,7 +146,11 @@ export class CharactersService {
     if (!c) throw new NotFoundException('Character not found');
 
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([c.ownerId]);
-    const ownerDisplayName = c.ownerId ? (ownerDisplayNameMap.get(c.ownerId) ?? null) : null;
+    const ownerDisplayName = this.resolveOwnerDisplayName(
+      c.ownerId,
+      c.ownerDisplayNameSnapshot,
+      ownerDisplayNameMap,
+    );
     
     // Check if user has favorited this character
     let isFavorited = false;

@@ -1,16 +1,17 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-05（作者プロフィール公開コンテンツ一覧MVP）
+> 最終更新: 2026-05-06（表示名スナップショット保存MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-05）
+## 📍 現在地サマリ（2026-05-06）
 
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。
 
 **実装済み（主要）**
+- 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一。クレジットDB分離や公開時点の完全スナップショットは将来課題として維持）
 - 作者プロフィール公開コンテンツ一覧MVP（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
 - キャラクター作者プロフィールリンクMVP（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
 - プロフィール/クリエイター名MVP（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮ownerIdフォールバック）
@@ -101,7 +102,7 @@
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
-- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンクは実装済み。残: 表示名スナップショット、ライセンス体系化など）
+- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: 公開時点クレジットスナップショット、ライセンス体系化など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）

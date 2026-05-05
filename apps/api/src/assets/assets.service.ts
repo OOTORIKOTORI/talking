@@ -76,6 +76,26 @@ export class AssetsService {
     return map;
   }
 
+  private async getOwnerDisplayNameSnapshot(ownerId: string): Promise<string | null> {
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { userId: ownerId },
+      select: { displayName: true },
+    });
+    const name = profile?.displayName?.trim();
+    return name ? name : null;
+  }
+
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
   async create(createAssetDto: CreateAssetDto, ownerId: string) {
     // Validate primaryTag against contentType
     this.validatePrimaryTag(createAssetDto.primaryTag, createAssetDto.contentType);
@@ -86,6 +106,7 @@ export class AssetsService {
       typeof createAssetDto.usageTerms === 'string'
         ? createAssetDto.usageTerms.trim() || null
         : null;
+    const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(ownerId);
 
     const asset = await this.prisma.asset.create({
       data: {
@@ -98,6 +119,7 @@ export class AssetsService {
         size: createAssetDto.size,
         url,
         ownerId,
+        ownerDisplayNameSnapshot,
         usageTerms: normalizedUsageTerms,
         ...(createAssetDto.creditRequired !== undefined && { creditRequired: createAssetDto.creditRequired }),
       },
@@ -146,7 +168,11 @@ export class AssetsService {
       return {
         ...asset,
         favoriteCount: _count?.favorites ?? 0,
-        ownerDisplayName: ownerDisplayNameMap.get(asset.ownerId) ?? null,
+        ownerDisplayName: this.resolveOwnerDisplayName(
+          asset.ownerId,
+          asset.ownerDisplayNameSnapshot,
+          ownerDisplayNameMap,
+        ),
       };
     });
     if (query.userId && items.length) {
@@ -180,7 +206,11 @@ export class AssetsService {
     const assetWithFavoriteCount = {
       ...base,
       favoriteCount: _count?.favorites ?? 0,
-      ownerDisplayName: ownerDisplayNameMap.get(base.ownerId) ?? null,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        base.ownerId,
+        base.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
     };
 
     if (userId) {
