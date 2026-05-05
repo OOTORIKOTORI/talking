@@ -130,7 +130,8 @@
   - クレジット取得: `GET /games/:id/credits`
     - 認可は公開詳細と同様（公開ゲームは未ログイン可、非公開ゲームは owner のみ）
     - 非存在 / `deletedAt != null` / 権限なしは `NotFoundException('game not found')`
-    - `GameAssetReference` / `GameCredit` テーブルは未導入のため、`GameProject` / `GameScene` / `GameNode` 参照から動的集計
+    - `GameAssetReference` / `GameCharacterReference` テーブルを優先利用して集計（`GameCredit` テーブルは未導入）
+    - 互換安全策として、参照テーブルが空のときのみ `GameProject` / `GameScene` / `GameNode` 参照の動的集計にフォールバック
     - 集計対象
       - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
       - characters: `speakerCharacterId`, `portraits[*].characterId`, `portraits[*].imageId`（`CharacterImage.id` から逆引き）
@@ -251,13 +252,33 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 
 ## クレジット表示MVP（2026-05-05）
 
-- 現在は `GameAssetReference` / `GameCharacterReference` / `GameCredit` テーブルを追加せず、保存済みの `GameProject` / `GameNode` 参照を API 側で動的集計する。
+- `GameAssetReference` / `GameCharacterReference` を導入し、ゲームの現在参照を同期保存する。
+- `/games/:id/credits` は参照テーブルを優先利用し、参照テーブルが空の場合のみ既存動的集計にフォールバックする。
+- `GameCredit` テーブルの完全分離は未実装（将来課題）。
+- 公開時点の利用条件・作者名・素材名の完全スナップショット固定は未実装（将来課題）。
 - 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
 - 削除済み/非公開/不明の素材・キャラクターは詳細情報を出しすぎず、フォールバック名と非リンク表示にする。
 - 作者表示は `ownerDisplayName` を優先し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする。
+
+## Game 参照テーブル同期MVP（2026-05-06）
+
+- 追加モデル
+  - `GameAssetReference`（`@@id([gameId, assetId])` / `usageCount` / `fields` JSON）
+  - `GameCharacterReference`（`@@id([gameId, characterId])` / `usageCount` / `fields` JSON）
+- 同期タイミング
+  - `create`
+  - `update`（`coverAssetId` 更新時）
+  - `upsertNode`（作成・更新）
+  - `deleteNode`
+  - `deleteScene`
+  - `duplicate`（複製先ゲームID）
+- 同期方式（MVP）
+  - 対象ゲームIDの既存参照を `deleteMany`
+  - 現在参照を collector で再集計して `createMany`
+  - 参照0件なら delete のみ
 
 #### クレジット欄UI polish（2026-05-05）
 

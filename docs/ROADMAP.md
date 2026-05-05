@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-06（表示名スナップショット保存MVP）
+> 最終更新: 2026-05-06（ゲーム使用素材・キャラクター参照DB分離MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,7 @@
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。
 
 **実装済み（主要）**
+- ゲーム使用素材・キャラクター参照DB分離MVP（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時fallbackでレスポンス互換を維持）
 - 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一。クレジットDB分離や公開時点の完全スナップショットは将来課題として維持）
 - 作者プロフィール公開コンテンツ一覧MVP（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
 - キャラクター作者プロフィールリンクMVP（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
@@ -99,15 +100,17 @@
 - 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
-- クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
-- クレジット情報のスナップショット保存（公開時固定化）
+- クレジットDB分離の次段（`GameCredit` テーブル導入）
+- クレジット情報のスナップショット保存（公開時固定化、利用条件/作者名/素材名）
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
 - クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: 公開時点クレジットスナップショット、ライセンス体系化など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
 - 非公開化時の影響表示（削除時影響表示APIと接続する形で実装予定）
-- `GameAssetReference` / `GameCharacterReference` テーブル導入による採用関係の明示的記録（→ いいね/素材棚/採用/クレジット4概念分離の段階3）
+- `GameAssetReference` / `GameCharacterReference` 運用後の改善（参照整合性監視、欠落データ補修、診断UX強化）
+- `GameCredit` テーブル導入（クレジット表示専用の分離）
+- 公開時点クレジット/利用条件のスナップショット保存
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）
 - ライセンス/利用条件/クレジット表示方針の整理

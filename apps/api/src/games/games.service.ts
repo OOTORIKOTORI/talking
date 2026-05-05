@@ -131,6 +131,16 @@ type GameCreditsResult = {
   checkedAt: string;
 };
 
+type GameReferenceUsage<TField extends string> = {
+  usageCount: number;
+  fields: Map<TField, number>;
+};
+
+type CollectedGameReferences = {
+  assetUsageById: Map<string, GameReferenceUsage<GameCreditAssetField>>;
+  characterUsageById: Map<string, GameReferenceUsage<GameCreditCharacterField>>;
+};
+
 const GAME_CREDIT_ASSET_FIELD_LABELS: Record<GameCreditAssetField, string> = {
   coverAssetId: 'カバー',
   bgAssetId: '背景',
@@ -147,6 +157,251 @@ const GAME_CREDIT_CHARACTER_FIELD_LABELS: Record<GameCreditCharacterField, strin
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
+
+  private normalizeReferenceFields<TField extends string>(
+    value: Prisma.JsonValue | null | undefined,
+    allowedFields: readonly TField[],
+  ): Map<TField, number> {
+    const result = new Map<TField, number>();
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return result;
+
+    const obj = value as Record<string, unknown>;
+    for (const field of allowedFields) {
+      const rawCount = obj[field];
+      if (typeof rawCount !== 'number' || !Number.isFinite(rawCount)) continue;
+      const count = Math.floor(rawCount);
+      if (count <= 0) continue;
+      result.set(field, count);
+    }
+    return result;
+  }
+
+  private fieldsMapToObject<TField extends string>(fieldsMap: Map<TField, number>): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [field, count] of fieldsMap.entries()) {
+      if (count > 0) out[field] = count;
+    }
+    return out;
+  }
+
+  private async getGameForReferenceCollection(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ) {
+    return prismaClient.gameProject.findUnique({
+      where: { id: gameId },
+      include: this.playInclude,
+    });
+  }
+
+  private async collectGameReferenceUsageFromGame(
+    game: {
+    coverAssetId?: string | null;
+    scenes: Array<{
+      nodes: Array<{
+        bgAssetId?: string | null;
+        musicAssetId?: string | null;
+        sfxAssetId?: string | null;
+        portraitAssetId?: string | null;
+        speakerCharacterId?: string | null;
+        portraits?: unknown;
+      }>;
+    }>;
+    },
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<CollectedGameReferences> {
+    const assetUsageById = new Map<string, GameReferenceUsage<GameCreditAssetField>>();
+    const characterUsageById = new Map<string, GameReferenceUsage<GameCreditCharacterField>>();
+
+    const pushAssetUsage = (assetIdRaw: string, field: GameCreditAssetField) => {
+      const assetId = assetIdRaw.trim();
+      if (!assetId) return;
+      const current = assetUsageById.get(assetId) ?? {
+        usageCount: 0,
+        fields: new Map<GameCreditAssetField, number>(),
+      };
+      current.usageCount += 1;
+      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
+      assetUsageById.set(assetId, current);
+    };
+
+    const pushCharacterUsage = (characterIdRaw: string, field: GameCreditCharacterField) => {
+      const characterId = characterIdRaw.trim();
+      if (!characterId) return;
+      const current = characterUsageById.get(characterId) ?? {
+        usageCount: 0,
+        fields: new Map<GameCreditCharacterField, number>(),
+      };
+      current.usageCount += 1;
+      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
+      characterUsageById.set(characterId, current);
+    };
+
+    if (typeof game.coverAssetId === 'string' && game.coverAssetId.trim().length > 0) {
+      pushAssetUsage(game.coverAssetId, 'coverAssetId');
+    }
+
+    const portraitEntries: Array<{ characterId: string | null; imageId: string | null }> = [];
+    const portraitImageIds = new Set<string>();
+
+    for (const scene of game.scenes) {
+      const nodes = Array.isArray(scene?.nodes) ? scene.nodes : [];
+      for (const node of nodes) {
+        if (typeof node?.bgAssetId === 'string' && node.bgAssetId.trim().length > 0) {
+          pushAssetUsage(node.bgAssetId, 'bgAssetId');
+        }
+        if (typeof node?.musicAssetId === 'string' && node.musicAssetId.trim().length > 0) {
+          pushAssetUsage(node.musicAssetId, 'musicAssetId');
+        }
+        if (typeof node?.sfxAssetId === 'string' && node.sfxAssetId.trim().length > 0) {
+          pushAssetUsage(node.sfxAssetId, 'sfxAssetId');
+        }
+        if (typeof node?.portraitAssetId === 'string' && node.portraitAssetId.trim().length > 0) {
+          pushAssetUsage(node.portraitAssetId, 'portraitAssetId');
+        }
+
+        if (
+          typeof node?.speakerCharacterId === 'string' &&
+          node.speakerCharacterId.trim().length > 0
+        ) {
+          pushCharacterUsage(node.speakerCharacterId, 'speakerCharacterId');
+        }
+
+        const portraits = node?.portraits;
+        if (!Array.isArray(portraits)) continue;
+        for (const portraitEntry of portraits) {
+          if (!portraitEntry || typeof portraitEntry !== 'object') continue;
+
+          const rawCharacterId = (portraitEntry as Record<string, unknown>).characterId;
+          const rawImageId = (portraitEntry as Record<string, unknown>).imageId;
+
+          const characterId =
+            typeof rawCharacterId === 'string' && rawCharacterId.trim().length > 0
+              ? rawCharacterId.trim()
+              : null;
+          const imageId =
+            typeof rawImageId === 'string' && rawImageId.trim().length > 0
+              ? rawImageId.trim()
+              : null;
+
+          if (imageId) portraitImageIds.add(imageId);
+          portraitEntries.push({ characterId, imageId });
+        }
+      }
+    }
+
+    const portraitImageIdList = Array.from(portraitImageIds);
+    const portraitImages =
+      portraitImageIdList.length > 0
+        ? await prismaClient.characterImage.findMany({
+            where: { id: { in: portraitImageIdList } },
+            select: { id: true, characterId: true },
+          })
+        : [];
+    const portraitImageToCharacterId = new Map(
+      portraitImages.map((image) => [image.id, image.characterId]),
+    );
+
+    for (const entry of portraitEntries) {
+      const candidateCharacterIds = new Set<string>();
+      if (entry.characterId) candidateCharacterIds.add(entry.characterId);
+      if (entry.imageId) {
+        const fromImage = portraitImageToCharacterId.get(entry.imageId);
+        if (fromImage) candidateCharacterIds.add(fromImage);
+      }
+
+      for (const characterId of candidateCharacterIds) {
+        pushCharacterUsage(characterId, 'portraits');
+      }
+    }
+
+    return {
+      assetUsageById,
+      characterUsageById,
+    };
+  }
+
+  private async collectGameReferenceUsageByGameId(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<CollectedGameReferences> {
+    const game = await this.getGameForReferenceCollection(gameId, prismaClient);
+    if (!game || game.deletedAt) {
+      throw new NotFoundException('game not found');
+    }
+    return this.collectGameReferenceUsageFromGame(game, prismaClient);
+  }
+
+  public async syncGameReferences(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const { assetUsageById, characterUsageById } = await this.collectGameReferenceUsageByGameId(
+      gameId,
+      prismaClient,
+    );
+
+    await prismaClient.gameAssetReference.deleteMany({ where: { gameId } });
+    await prismaClient.gameCharacterReference.deleteMany({ where: { gameId } });
+
+    const assetRefs = Array.from(assetUsageById.entries());
+    if (assetRefs.length > 0) {
+      await prismaClient.gameAssetReference.createMany({
+        data: assetRefs.map(([assetId, usage]) => ({
+          gameId,
+          assetId,
+          usageCount: usage.usageCount,
+          fields: this.fieldsMapToObject(usage.fields),
+        })),
+      });
+    }
+
+    const characterRefs = Array.from(characterUsageById.entries());
+    if (characterRefs.length > 0) {
+      await prismaClient.gameCharacterReference.createMany({
+        data: characterRefs.map(([characterId, usage]) => ({
+          gameId,
+          characterId,
+          usageCount: usage.usageCount,
+          fields: this.fieldsMapToObject(usage.fields),
+        })),
+      });
+    }
+  }
+
+  private async loadGameReferenceUsageFromTable(gameId: string): Promise<CollectedGameReferences> {
+    const [assetRows, characterRows] = await Promise.all([
+      this.prisma.gameAssetReference.findMany({ where: { gameId } }),
+      this.prisma.gameCharacterReference.findMany({ where: { gameId } }),
+    ]);
+
+    const assetUsageById = new Map<string, GameReferenceUsage<GameCreditAssetField>>();
+    for (const row of assetRows) {
+      assetUsageById.set(row.assetId, {
+        usageCount: row.usageCount,
+        fields: this.normalizeReferenceFields(row.fields, [
+          'coverAssetId',
+          'bgAssetId',
+          'musicAssetId',
+          'sfxAssetId',
+          'portraitAssetId',
+        ]),
+      });
+    }
+
+    const characterUsageById = new Map<string, GameReferenceUsage<GameCreditCharacterField>>();
+    for (const row of characterRows) {
+      characterUsageById.set(row.characterId, {
+        usageCount: row.usageCount,
+        fields: this.normalizeReferenceFields(row.fields, ['speakerCharacterId', 'portraits']),
+      });
+    }
+
+    return {
+      assetUsageById,
+      characterUsageById,
+    };
+  }
 
   private normalizeNodeRefId(value: unknown): string | null {
     if (typeof value !== 'string') return null;
@@ -706,14 +961,18 @@ export class GamesService {
   async create(userId: string, data: { title: string; summary?: string }) {
     const normalizedTitle = this.normalizeGameTitle(data?.title, { required: true });
     const normalizedSummary = this.normalizeGameSummary(data?.summary);
-    const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(userId);
-    return this.prisma.gameProject.create({
-      data: {
-        ownerId: userId,
-        ownerDisplayNameSnapshot,
-        title: normalizedTitle,
-        summary: normalizedSummary,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const ownerDisplayNameSnapshot = await this.getOwnerDisplayNameSnapshot(userId, tx);
+      const created = await tx.gameProject.create({
+        data: {
+          ownerId: userId,
+          ownerDisplayNameSnapshot,
+          title: normalizedTitle,
+          summary: normalizedSummary,
+        },
+      });
+      await this.syncGameReferences(created.id, tx);
+      return created;
     });
   }
 
@@ -833,12 +1092,14 @@ export class GamesService {
       }
 
       const remappedStartSceneId = this.remapSceneRefId(source.startSceneId, sceneIdMap);
-      return tx.gameProject.update({
+      const duplicated = await tx.gameProject.update({
         where: { id: duplicatedGame.id },
         data: {
           startSceneId: remappedStartSceneId,
         },
       });
+      await this.syncGameReferences(duplicatedGame.id, tx);
+      return duplicated;
     });
   }
 
@@ -919,118 +1180,9 @@ export class GamesService {
     if (!game || game.deletedAt) throw new NotFoundException('game not found');
     if (!game.isPublic && game.ownerId !== userId) throw new NotFoundException('game not found');
 
-    const assetUsageById = new Map<
-      string,
-      {
-        usageCount: number;
-        fields: Map<GameCreditAssetField, number>;
-      }
-    >();
-
-    const characterUsageById = new Map<
-      string,
-      {
-        usageCount: number;
-        fields: Map<GameCreditCharacterField, number>;
-      }
-    >();
-
-    const pushAssetUsage = (assetId: string, field: GameCreditAssetField) => {
-      const current = assetUsageById.get(assetId) ?? {
-        usageCount: 0,
-        fields: new Map<GameCreditAssetField, number>(),
-      };
-      current.usageCount += 1;
-      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
-      assetUsageById.set(assetId, current);
-    };
-
-    const pushCharacterUsage = (characterId: string, field: GameCreditCharacterField) => {
-      const current = characterUsageById.get(characterId) ?? {
-        usageCount: 0,
-        fields: new Map<GameCreditCharacterField, number>(),
-      };
-      current.usageCount += 1;
-      current.fields.set(field, (current.fields.get(field) ?? 0) + 1);
-      characterUsageById.set(characterId, current);
-    };
-
-    if (typeof game.coverAssetId === 'string' && game.coverAssetId.trim().length > 0) {
-      pushAssetUsage(game.coverAssetId, 'coverAssetId');
-    }
-
-    const portraitEntries: Array<{ characterId: string | null; imageId: string | null }> = [];
-    const portraitImageIds = new Set<string>();
-
-    for (const scene of game.scenes) {
-      const nodes = Array.isArray(scene?.nodes) ? scene.nodes : [];
-      for (const node of nodes) {
-        if (typeof node?.bgAssetId === 'string' && node.bgAssetId.trim().length > 0) {
-          pushAssetUsage(node.bgAssetId, 'bgAssetId');
-        }
-        if (typeof node?.musicAssetId === 'string' && node.musicAssetId.trim().length > 0) {
-          pushAssetUsage(node.musicAssetId, 'musicAssetId');
-        }
-        if (typeof node?.sfxAssetId === 'string' && node.sfxAssetId.trim().length > 0) {
-          pushAssetUsage(node.sfxAssetId, 'sfxAssetId');
-        }
-        if (typeof node?.portraitAssetId === 'string' && node.portraitAssetId.trim().length > 0) {
-          pushAssetUsage(node.portraitAssetId, 'portraitAssetId');
-        }
-
-        if (
-          typeof node?.speakerCharacterId === 'string' &&
-          node.speakerCharacterId.trim().length > 0
-        ) {
-          pushCharacterUsage(node.speakerCharacterId, 'speakerCharacterId');
-        }
-
-        const portraits = node?.portraits;
-        if (!Array.isArray(portraits)) continue;
-        for (const portraitEntry of portraits) {
-          if (!portraitEntry || typeof portraitEntry !== 'object') continue;
-
-          const rawCharacterId = (portraitEntry as Record<string, unknown>).characterId;
-          const rawImageId = (portraitEntry as Record<string, unknown>).imageId;
-
-          const characterId =
-            typeof rawCharacterId === 'string' && rawCharacterId.trim().length > 0
-              ? rawCharacterId.trim()
-              : null;
-          const imageId =
-            typeof rawImageId === 'string' && rawImageId.trim().length > 0
-              ? rawImageId.trim()
-              : null;
-
-          if (imageId) portraitImageIds.add(imageId);
-          portraitEntries.push({ characterId, imageId });
-        }
-      }
-    }
-
-    const portraitImageIdList = Array.from(portraitImageIds);
-    const portraitImages =
-      portraitImageIdList.length > 0
-        ? await this.prisma.characterImage.findMany({
-            where: { id: { in: portraitImageIdList } },
-            select: { id: true, characterId: true },
-          })
-        : [];
-    const portraitImageToCharacterId = new Map(
-      portraitImages.map((image) => [image.id, image.characterId]),
-    );
-
-    for (const entry of portraitEntries) {
-      const candidateCharacterIds = new Set<string>();
-      if (entry.characterId) candidateCharacterIds.add(entry.characterId);
-      if (entry.imageId) {
-        const fromImage = portraitImageToCharacterId.get(entry.imageId);
-        if (fromImage) candidateCharacterIds.add(fromImage);
-      }
-
-      for (const characterId of candidateCharacterIds) {
-        pushCharacterUsage(characterId, 'portraits');
-      }
+    let { assetUsageById, characterUsageById } = await this.loadGameReferenceUsageFromTable(id);
+    if (assetUsageById.size === 0 && characterUsageById.size === 0) {
+      ({ assetUsageById, characterUsageById } = await this.collectGameReferenceUsageFromGame(game));
     }
 
     const assetIds = Array.from(assetUsageById.keys());
@@ -1338,6 +1490,15 @@ export class GamesService {
       }
     }
     if (Object.keys(allowed).length === 0) return g;
+
+    if (Object.prototype.hasOwnProperty.call(allowed, 'coverAssetId')) {
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.gameProject.update({ where: { id }, data: allowed });
+        await this.syncGameReferences(id, tx);
+        return updated;
+      });
+    }
+
     return this.prisma.gameProject.update({ where: { id }, data: allowed });
   }
 
@@ -1404,7 +1565,7 @@ export class GamesService {
   }
 
   async upsertNode(userId: string, sceneId: string, node: any) {
-    await this.getOwnedSceneOrThrow(userId, sceneId);
+    const { game } = await this.getOwnedSceneOrThrow(userId, sceneId);
 
     if (node.id) {
       // Verify the existing node actually belongs to the specified scene
@@ -1421,27 +1582,31 @@ export class GamesService {
       // Strip sceneId from nodeData to prevent cross-scene move
       const { sceneId: _ignoredSceneId, ...rest } = nodeData as any;
 
-      await this.prisma.gameNode.update({
-        where: { id: node.id },
-        data: rest,
-      });
+      return this.prisma.$transaction(async (tx) => {
+        await tx.gameNode.update({
+          where: { id: node.id },
+          data: rest,
+        });
 
-      // Update choices if provided
-      if (choices !== undefined) {
-        await this.prisma.gameChoice.deleteMany({ where: { nodeId: node.id } });
-        if (choices.length > 0) {
-          await this.prisma.gameChoice.createMany({
-            data: choices.map((c: any) => {
-              const normalized = this.normalizeChoiceInput(c);
-              return { nodeId: node.id, ...normalized };
-            }) as any,
-          });
+        // Update choices if provided
+        if (choices !== undefined) {
+          await tx.gameChoice.deleteMany({ where: { nodeId: node.id } });
+          if (choices.length > 0) {
+            await tx.gameChoice.createMany({
+              data: choices.map((c: any) => {
+                const normalized = this.normalizeChoiceInput(c);
+                return { nodeId: node.id, ...normalized };
+              }) as any,
+            });
+          }
         }
-      }
 
-      return this.prisma.gameNode.findUnique({
-        where: { id: node.id },
-        include: { choices: true },
+        await this.syncGameReferences(game.id, tx);
+
+        return tx.gameNode.findUnique({
+          where: { id: node.id },
+          include: { choices: true },
+        });
       });
     }
 
@@ -1464,19 +1629,23 @@ export class GamesService {
           }
         : undefined;
 
-    return this.prisma.gameNode.create({
-      data: {
-        sceneId,
-        order: (max._max.order ?? 0) + 1,
-        ...restNodeData,
-        ...(choiceCreate ? { choices: choiceCreate } : {}),
-      },
-      include: { choices: true },
+    return this.prisma.$transaction(async (tx) => {
+      const createdNode = await tx.gameNode.create({
+        data: {
+          sceneId,
+          order: (max._max.order ?? 0) + 1,
+          ...restNodeData,
+          ...(choiceCreate ? { choices: choiceCreate } : {}),
+        },
+        include: { choices: true },
+      });
+      await this.syncGameReferences(game.id, tx);
+      return createdNode;
     });
   }
 
   async deleteNode(userId: string, nodeId: string) {
-    await this.getOwnedNodeOrThrow(userId, nodeId);
+    const { game } = await this.getOwnedNodeOrThrow(userId, nodeId);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.gameScene.updateMany({
@@ -1500,6 +1669,7 @@ export class GamesService {
       });
 
       await tx.gameNode.delete({ where: { id: nodeId } });
+      await this.syncGameReferences(game.id, tx);
     });
 
     return { ok: true };
@@ -1645,6 +1815,7 @@ export class GamesService {
       }
 
       await tx.gameScene.delete({ where: { id: sceneId } });
+      await this.syncGameReferences(game.id, tx);
     });
 
     return { ok: true };
