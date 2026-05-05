@@ -111,3 +111,16 @@
 
 - 2025-11-02: タブUI共通化、拡大操作、並び替え・`sortOrder` の規約化。`$api` 経由・署名URL JSON 経由・楽観更新を明文化。CI lockfile ポリシーを追記。
 - 2025-11-04: ゲーム制作（β）実装規約を追加。署名 URL 必須、portraits scale の暫定互換、カメラ JSON 仕様、エディタ UX（通常/全画面トグル、ピッカー共通 UX）を明文化。
+
+### 日本語差分/patch確認時の文字化け対策
+
+- ソース/MarkdownはUTF-8で保存する（.editorconfig の charset = utf-8 を尊重）。
+- Windows PowerShellで差分をファイル出力する場合は Set-Content -Encoding utf8 を使う。
+- Gitの日本語パス/ログ表示が崩れる場合は以下を確認する。
+
+\\powershell
+git config --global core.quotepath false
+git config --global i18n.commitEncoding utf-8
+git config --global i18n.logOutputEncoding utf-8
+\
+- GitHub の commit .patch URL はメール形式のため、Subjectが \=?UTF-8?...?=\ のように表示されることがある。これはファイル破損とは限らない（表示側の問題）。実ファイルと \git diff --check\ を基準に判断する。
