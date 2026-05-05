@@ -12,6 +12,7 @@
 
 **実装済み（主要）**
 - プロフィール/クリエイター名MVP（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮ownerIdフォールバック）
+- 作者プロフィールページリンクMVP（フロント `/profiles/[userId]` 公開ページ追加、公開ゲーム一覧/詳細/クレジット欄の作者表示から `/profiles/:userId` へ遷移、`linkable === false` クレジット項目は非リンク維持）
 - キャラクター削除時の利用影響表示MVP（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
 - アセット削除時の利用影響表示MVP（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
 - 公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
@@ -2060,7 +2061,6 @@ ADD COLUMN IF NOT EXISTS "playCount" INTEGER NOT NULL DEFAULT 0;
 
 #### ゲーム公開・共有フロー（MVP後の残件）
 - 公開一覧の並び替え・検索（MVPでは未対応）
-- 作者プロフィールページ連携（`ownerDisplayName` 優先表示は実装済み。残: 作者プロフィールページへのリンク）
 - 公開ゲームのランキング/プレイ数集計（MVP対象外）
 - 403/404時のUX統一（現状はページ別に個別メッセージ）
 

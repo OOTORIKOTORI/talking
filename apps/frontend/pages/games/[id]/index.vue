@@ -25,7 +25,17 @@
           <p class="text-gray-700 whitespace-pre-wrap">{{ game.summary || '説明はありません。' }}</p>
 
           <div class="text-sm text-gray-500 space-y-1">
-            <p>作者: {{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}</p>
+            <p>
+              作者:
+              <NuxtLink
+                v-if="game.ownerId"
+                :to="`/profiles/${game.ownerId}`"
+                class="text-blue-600 hover:underline"
+              >
+                {{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}
+              </NuxtLink>
+              <span v-else>{{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}</span>
+            </p>
             <p>更新日: {{ formatDate(game.updatedAt) }}</p>
             <p>閲覧数: {{ Number(game.viewCount || 0) }}</p>
             <p>プレイ数: {{ Number(game.playCount || 0) }}</p>
@@ -50,7 +60,14 @@
                       {{ item.title }}
                     </NuxtLink>
                     <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span class="text-xs text-gray-500">by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}</span>
+                      <NuxtLink
+                        v-if="item.ownerId && item.linkable !== false"
+                        :to="`/profiles/${item.ownerId}`"
+                        class="text-xs text-blue-600 hover:underline"
+                      >
+                        by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}
+                      </NuxtLink>
+                      <span v-else class="text-xs text-gray-500">by {{ item.ownerId ? formatCreatorLabel(item.ownerDisplayName, item.ownerId) : 'unknown' }}</span>
                       <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
@@ -86,7 +103,14 @@
                       {{ item.displayName || item.name }}
                     </NuxtLink>
                     <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span class="text-xs text-gray-500">by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}</span>
+                      <NuxtLink
+                        v-if="item.ownerId && item.linkable !== false"
+                        :to="`/profiles/${item.ownerId}`"
+                        class="text-xs text-blue-600 hover:underline"
+                      >
+                        by {{ formatCreatorLabel(item.ownerDisplayName, item.ownerId) }}
+                      </NuxtLink>
+                      <span v-else class="text-xs text-gray-500">by {{ item.ownerId ? formatCreatorLabel(item.ownerDisplayName, item.ownerId) : 'unknown' }}</span>
                       <span
                         v-for="badge in creditFieldBadges(item.fields)"
                         :key="badge"
@@ -136,6 +160,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatCreatorLabel } from '~/utils/creatorDisplay'
+
 type GameScene = {
   id: string
   startNodeId?: string | null
@@ -203,16 +229,6 @@ const coverUrl = ref<string | null>(null)
 const credits = ref<GameCreditsResult | null>(null)
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
-const formatShortOwnerId = (ownerId?: string | null): string => {
-  if (!ownerId) return 'unknown'
-  if (ownerId.length <= 12) return ownerId
-  return `${ownerId.slice(0, 4)}...${ownerId.slice(-4)}`
-}
-const formatCreatorLabel = (displayName?: string | null, ownerId?: string | null): string => {
-  const name = typeof displayName === 'string' ? displayName.trim() : ''
-  return name || formatShortOwnerId(ownerId)
-}
-const formatOwnerLabel = (ownerId?: string | null): string => formatShortOwnerId(ownerId)
 const creditFieldBadges = (fields: Array<{ label: string; count: number }>): string[] =>
   fields.map((field) => `${field.label} ${field.count}箇所`)
 
