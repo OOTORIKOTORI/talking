@@ -5,7 +5,7 @@
 ## ドメインモデル（実装準拠）
 
 - Character（キャラクター）
-  - フィールド: `id`, `ownerId`, `name`, `displayName`, `description?`, `isPublic`, `createdAt`, `updatedAt`, `deletedAt?`, `tags?: string[]`, `images?: CharacterImage[]`, `isFavorite?`
+  - フィールド: `id`, `ownerId`, `ownerDisplayName?`, `name`, `displayName`, `description?`, `isPublic`, `createdAt`, `updatedAt`, `deletedAt?`, `tags?: string[]`, `images?: CharacterImage[]`, `isFavorite?`
   - 出典: `packages/types/src/index.ts` の `export interface Character`
 - CharacterImage（立ち絵画像単位）
   - フィールド: `id`, `characterId`, `key`, `thumbKey?`, `width?`, `height?`, `contentType`, `size?`, `emotion: CharacterEmotion`, `emotionLabel?`, `pattern?`, `sortOrder: number`, `createdAt`, `updatedAt`
@@ -40,7 +40,12 @@
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
     - 画像クリックで拡大モーダル
+    - 作者表示からプロフィールページ `/profiles/:userId` へ遷移可能（表示は `ownerDisplayName` 優先、未設定時は短縮 `ownerId` フォールバック）
     - 出典: `apps/frontend/pages/characters/[id].vue`, `apps/frontend/components/common/ImageLightbox.vue`
+  - 一覧（公開）: `/characters`
+    - キャラクターカードに作者表示を追加し、作者名クリックでプロフィールページ `/profiles/:userId` へ遷移可能
+    - カード本体の詳細遷移（`/characters/:id`）と干渉しないよう、作者リンククリックはイベント伝播を停止
+    - 出典: `apps/frontend/pages/characters/index.vue`
   - マイ一覧: `/my/characters`
     - 出典: `apps/frontend/pages/my/characters/index.vue`
   - 新規作成: `/my/characters/new`
@@ -89,6 +94,9 @@
 - キャラクター
   - 公開一覧: `GET /characters`（`publicOnly` 省略時は公開のみ）
   - 公開詳細: `GET /characters/:id`
+    - 返却に `ownerDisplayName?: string | null` を含む
+    - `ownerId` がある場合は `CreatorProfile.displayName` を参照し、未設定時は `null` を返す（個人情報は返さない）
+    - 一覧は ownerId を集約してまとめて取得し、N+1 を回避
   - 作成: `POST /my/characters`
   - 取得（自分）: `GET /my/characters/:id`
   - 更新: `PATCH /my/characters/:id`

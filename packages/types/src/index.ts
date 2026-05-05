@@ -101,6 +101,7 @@ export interface CharacterImage {
 export interface Character {
   id: string
   ownerId: string
+  ownerDisplayName?: string | null
   name: string
   displayName: string
   description?: string

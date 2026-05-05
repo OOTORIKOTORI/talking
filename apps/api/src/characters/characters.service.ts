@@ -8,6 +8,31 @@ import { CreateCharacterImageDto } from './dto/create-image.dto';
 export class CharactersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
+  }
+
   async create(ownerId: string, dto: CreateCharacterDto) {
     const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
     return this.prisma.character.create({
@@ -45,6 +70,12 @@ export class CharactersService {
       where, take: limit, skip: offset, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       include: { images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], take: 1 } }, // 先頭1枚をサムネに
     });
+
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(characters.map(c => c.ownerId));
+    const withOwnerDisplayName = characters.map(c => ({
+      ...c,
+      ownerDisplayName: c.ownerId ? (ownerDisplayNameMap.get(c.ownerId) ?? null) : null,
+    }));
     
     // Check favorites for this user
     if (userId) {
@@ -53,10 +84,10 @@ export class CharactersService {
         select: { characterId: true },
       });
       const favSet = new Set(favoriteIds.map(f => f.characterId));
-      return characters.map(c => ({ ...c, isFavorited: favSet.has(c.id), isFavorite: favSet.has(c.id) }));
+      return withOwnerDisplayName.map(c => ({ ...c, isFavorited: favSet.has(c.id), isFavorite: favSet.has(c.id) }));
     }
     
-    return characters.map(c => ({ ...c, isFavorited: false, isFavorite: false }));
+    return withOwnerDisplayName.map(c => ({ ...c, isFavorited: false, isFavorite: false }));
   }
 
   async findPublic(id: string, userId: string | null = null) {
@@ -65,6 +96,9 @@ export class CharactersService {
       include: { images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
     });
     if (!c) throw new NotFoundException('Character not found');
+
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([c.ownerId]);
+    const ownerDisplayName = c.ownerId ? (ownerDisplayNameMap.get(c.ownerId) ?? null) : null;
     
     // Check if user has favorited this character
     let isFavorited = false;
@@ -75,7 +109,7 @@ export class CharactersService {
       isFavorited = !!fav;
     }
     
-    return { ...c, isFavorited, isFavorite: isFavorited };
+    return { ...c, ownerDisplayName, isFavorited, isFavorite: isFavorited };
   }
 
   async findOwned(ownerId: string, id: string) {

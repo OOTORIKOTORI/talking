@@ -8,6 +8,18 @@
       <NuxtLink v-for="c in list" :key="c.id" :to="`/characters/${c.id}`" class="block rounded shadow bg-white overflow-hidden">
         <div class="aspect-[3/4]"><CharacterImageThumb :keyOrThumb="c.images?.[0]?.thumbKey || c.images?.[0]?.key || null" :alt="c.name" /></div>
         <div class="p-3 font-medium line-clamp-1">{{ c.name }}</div>
+        <div class="px-3 pb-3 text-xs text-slate-600">
+          <span>作者: </span>
+          <button
+            v-if="c.ownerId"
+            type="button"
+            class="text-blue-600 hover:underline"
+            @click.stop.prevent="goToProfile(c.ownerId)"
+          >
+            {{ formatCreatorLabel(c.ownerDisplayName, c.ownerId) }}
+          </button>
+          <span v-else>unknown</span>
+        </div>
       </NuxtLink>
     </div>
   </div>
@@ -15,6 +27,7 @@
 <script setup lang="ts">
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
 import { useCharactersApi } from '@/composables/useCharacters'
+import { formatCreatorLabel } from '@/utils/creatorDisplay'
 const api = useCharactersApi()
 const route = useRoute()
 const router = useRouter()
@@ -55,6 +68,10 @@ function toTags(csv: string): string[] {
     if (uniq.length >= 20) break
   }
   return uniq
+}
+
+function goToProfile(ownerId: string) {
+  router.push(`/profiles/${ownerId}`)
 }
 
 // データ取得 + 並び替え（API未対応時のフォールバック）

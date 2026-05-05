@@ -8,6 +8,17 @@
       <div class="flex-1">
         <h1 class="text-3xl font-bold">{{ data?.name }}</h1>
         <div class="text-slate-600">{{ data?.displayName }}</div>
+        <div class="mt-1 text-sm text-slate-600">
+          <span>作者: </span>
+          <NuxtLink
+            v-if="data?.ownerId"
+            :to="`/profiles/${data.ownerId}`"
+            class="text-blue-600 hover:underline"
+          >
+            {{ formatCreatorLabel(data.ownerDisplayName, data.ownerId) }}
+          </NuxtLink>
+          <span v-else>unknown</span>
+        </div>
       </div>
       <button
         v-if="data"
@@ -56,6 +67,7 @@ import { EMOTION_JP_LABEL, emotionOptions } from '@/utils/characterLocales'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import { useSignedUrl } from '@/composables/useSignedUrl'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
+import { formatCreatorLabel } from '@/utils/creatorDisplay'
 const route = useRoute()
 const api = useCharactersApi()
 const data = ref<Character | null>(null)
