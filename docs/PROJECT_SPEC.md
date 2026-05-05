@@ -287,6 +287,18 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 2026-05-05: プロフィール/クリエイター名MVPを実装。`CreatorProfile`（`creator_profiles`）を追加し、`GET /my/profile` / `PATCH /my/profile` / `GET /profiles/:userId` を追加。公開ゲーム一覧・詳細・クレジット表示では `ownerDisplayName` を優先表示し、未設定時は短縮 `ownerId` にフォールバックする。`/my/profile` ページを追加。
   - 2026-05-05: 作者プロフィールページリンクMVPを実装。公開プロフィールページ `/profiles/:userId`（フロント: `/profiles/[userId]`）を追加し、公開ゲーム一覧・公開ゲーム詳細・クレジット欄の作者名から遷移可能にした。`linkable === false` のクレジット項目は従来どおり非リンク表示を維持。
   - 2026-05-05: アセット作者プロフィールリンクMVPを実装。公開アセット一覧 `/assets`（`GET /search/assets`）と公開アセット詳細 `/assets/:id`（`GET /assets/:id`）で `ownerDisplayName` を返却・表示し、作者名から `/profiles/:userId` へ遷移可能にした。`ownerDisplayName` 未設定時は短縮 `ownerId` にフォールバックする。
+  - 2026-05-05: キャラクター作者プロフィールリンクMVPを実装。公開キャラクター詳細 `/characters/:id`（`GET /characters/:id`）と公開キャラクター一覧 `/characters`（`GET /characters`）で `ownerDisplayName` を返却・表示し、作者名から `/profiles/:userId` へ遷移可能にした。一覧カードでは作者リンクのクリックイベント伝播を停止し、カード本体の詳細遷移と干渉しない実装とした。
+  - 2026-05-05: 作者プロフィール公開コンテンツ一覧MVPを実装。`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示するセクションを追加した。
+
+  `GET /profiles/:userId/contents` 仕様（MVP）:
+  - 認証不要（`OptionalSupabaseAuthGuard`）
+  - プロフィールが存在しない場合は `404`
+  - 各カテゴリは公開・未削除のもののみ返却（games: `isPublic=true, deletedAt=null`; characters: `isPublic=true, deletedAt=null`; assets: `deletedAt=null`）
+  - 各カテゴリ最大6件、`updatedAt desc` 順
+  - `ownerDisplayName` は当該プロフィールの `displayName` を各アイテムに付与
+  - 個人情報（email等）は返却しない
+  - DB schema 変更なし
+  - ページネーション、タブUI、表示名スナップショット、slug、プロフィール画像/SNSリンクは将来課題
 
   アセット系APIの補足（MVP）:
   - `GET /search/assets`: `items[*].ownerDisplayName?: string | null` を追加（`CreatorProfile.displayName` を ownerId でまとめて引き当て）

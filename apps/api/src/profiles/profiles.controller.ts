@@ -11,4 +11,10 @@ export class ProfilesController {
   getPublicProfile(@Param('userId') userId: string) {
     return this.profiles.getPublicProfile(userId);
   }
+
+  @Get(':userId/contents')
+  @UseGuards(OptionalSupabaseAuthGuard)
+  getProfileContents(@Param('userId') userId: string) {
+    return this.profiles.getProfileContents(userId);
+  }
 }

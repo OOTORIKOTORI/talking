@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+const PROFILE_CONTENTS_LIMIT = 6;
+
 const DISPLAY_NAME_MAX_LENGTH = 40;
 const BIO_MAX_LENGTH = 500;
 
@@ -85,5 +87,77 @@ export class ProfilesService {
       throw new NotFoundException('profile not found');
     }
     return profile;
+  }
+
+  async getProfileContents(userId: string) {
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { userId },
+      select: { userId: true, displayName: true },
+    });
+    if (!profile) {
+      throw new NotFoundException('profile not found');
+    }
+
+    const ownerDisplayName = profile.displayName?.trim() || null;
+
+    const [games, characters, assets] = await Promise.all([
+      this.prisma.gameProject.findMany({
+        where: { ownerId: userId, isPublic: true, deletedAt: null },
+        orderBy: { updatedAt: 'desc' },
+        take: PROFILE_CONTENTS_LIMIT,
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          coverAssetId: true,
+          ownerId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.character.findMany({
+        where: { ownerId: userId, isPublic: true, deletedAt: null },
+        orderBy: { updatedAt: 'desc' },
+        take: PROFILE_CONTENTS_LIMIT,
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          description: true,
+          ownerId: true,
+          createdAt: true,
+          updatedAt: true,
+          images: {
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            take: 1,
+            select: { id: true, key: true },
+          },
+        },
+      }),
+      this.prisma.asset.findMany({
+        where: { ownerId: userId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: PROFILE_CONTENTS_LIMIT,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          contentType: true,
+          primaryTag: true,
+          key: true,
+          thumbKey: true,
+          thumbKeyWebp: true,
+          thumbKeyAvif: true,
+          ownerId: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return {
+      games: games.map((g) => ({ ...g, ownerDisplayName })),
+      characters: characters.map((c) => ({ ...c, ownerDisplayName })),
+      assets: assets.map((a) => ({ ...a, ownerDisplayName })),
+    };
   }
 }
