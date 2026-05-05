@@ -36,6 +36,39 @@ export class SearchController {
     return { createdAt: 'desc' };
   }
 
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
+  }
+
+  private async attachOwnerDisplayName<T extends { ownerId?: string | null }>(items: T[]) {
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(items.map((item) => item.ownerId));
+    return items.map((item) => ({
+      ...item,
+      ownerDisplayName: item.ownerId ? (ownerDisplayNameMap.get(item.ownerId) ?? null) : null,
+    }));
+  }
+
   private buildPrismaWhere(dto: SearchAssetsDto, userId?: string | null): Prisma.AssetWhereInput {
     const where: Prisma.AssetWhereInput = { deletedAt: null };
     const q = (dto.q || '').trim();
@@ -141,7 +174,9 @@ export class SearchController {
       return { ...asset, favoriteCount: _count?.favorites ?? 0 };
     });
 
-    return { items: mapped, limit, offset, total };
+    const withOwnerDisplayName = await this.attachOwnerDisplayName(mapped);
+
+    return { items: withOwnerDisplayName, limit, offset, total };
   }
 
   /**
@@ -191,13 +226,15 @@ export class SearchController {
           return { ...asset, favoriteCount: _count?.favorites ?? 0 };
         });
 
+      const withOwnerDisplayName = await this.attachOwnerDisplayName(orderedAssets as any[]);
+
       // Meilisearch にあるが Prisma に存在しない（削除済みなど）場合 fallback
       if (orderedAssets.length === 0 && ids.length > 0) {
         return this.searchAssetsWithPrisma(dto, userId);
       }
 
       return {
-        items: orderedAssets,
+        items: withOwnerDisplayName,
         limit,
         offset,
         total: searchResult.estimatedTotalHits || 0,

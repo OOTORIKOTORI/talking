@@ -278,6 +278,13 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 
   - 2026-05-05: プロフィール/クリエイター名MVPを実装。`CreatorProfile`（`creator_profiles`）を追加し、`GET /my/profile` / `PATCH /my/profile` / `GET /profiles/:userId` を追加。公開ゲーム一覧・詳細・クレジット表示では `ownerDisplayName` を優先表示し、未設定時は短縮 `ownerId` にフォールバックする。`/my/profile` ページを追加。
   - 2026-05-05: 作者プロフィールページリンクMVPを実装。公開プロフィールページ `/profiles/:userId`（フロント: `/profiles/[userId]`）を追加し、公開ゲーム一覧・公開ゲーム詳細・クレジット欄の作者名から遷移可能にした。`linkable === false` のクレジット項目は従来どおり非リンク表示を維持。
+  - 2026-05-05: アセット作者プロフィールリンクMVPを実装。公開アセット一覧 `/assets`（`GET /search/assets`）と公開アセット詳細 `/assets/:id`（`GET /assets/:id`）で `ownerDisplayName` を返却・表示し、作者名から `/profiles/:userId` へ遷移可能にした。`ownerDisplayName` 未設定時は短縮 `ownerId` にフォールバックする。
+
+  アセット系APIの補足（MVP）:
+  - `GET /search/assets`: `items[*].ownerDisplayName?: string | null` を追加（`CreatorProfile.displayName` を ownerId でまとめて引き当て）
+  - `GET /assets/:id`: `ownerDisplayName?: string | null` を追加
+  - プロフィール未設定時は `ownerDisplayName: null`
+  - slug、作者別作品一覧、表示名スナップショット、プロフィール画像/SNSリンクは将来課題
 
 ### 正規採用ルート（UX設計方針）
 

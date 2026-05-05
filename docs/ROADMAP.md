@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-05（クレジット表示MVP）
+> 最終更新: 2026-05-05（アセット作者プロフィールリンクMVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -13,6 +13,7 @@
 **実装済み（主要）**
 - プロフィール/クリエイター名MVP（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮ownerIdフォールバック）
 - 作者プロフィールページリンクMVP（フロント `/profiles/[userId]` 公開ページ追加、公開ゲーム一覧/詳細/クレジット欄の作者表示から `/profiles/:userId` へ遷移、`linkable === false` クレジット項目は非リンク維持）
+- アセット作者プロフィールリンクMVP（公開アセット一覧 `/assets` と公開アセット詳細 `/assets/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。アセット系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
 - キャラクター削除時の利用影響表示MVP（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
 - アセット削除時の利用影響表示MVP（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
 - 公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
@@ -98,7 +99,7 @@
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
 - ライセンス/利用条件表示の導入
-- クレジット作者表示の改善（`ownerDisplayName` 優先表示はプロフィール/クリエイター名MVPで実装済み。残: 作者プロフィールページリンク、表示名スナップショット、ライセンス表示など）
+- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンクは実装済み。残: 表示名スナップショット、ライセンス表示など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）

@@ -51,6 +51,31 @@ export class AssetsService {
     }
   }
 
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
+  }
+
   async create(createAssetDto: CreateAssetDto, ownerId: string) {
     // Validate primaryTag against contentType
     this.validatePrimaryTag(createAssetDto.primaryTag, createAssetDto.contentType);
@@ -107,9 +132,15 @@ export class AssetsService {
       include: { _count: { select: { favorites: true } } },
     });
 
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(items.map((item) => item.ownerId));
+
     let itemsWithFavorite = items.map((item: any) => {
       const { _count, ...asset } = item;
-      return { ...asset, favoriteCount: _count?.favorites ?? 0 };
+      return {
+        ...asset,
+        favoriteCount: _count?.favorites ?? 0,
+        ownerDisplayName: ownerDisplayNameMap.get(asset.ownerId) ?? null,
+      };
     });
     if (query.userId && items.length) {
       const favs = await this.prisma.favorite.findMany({
@@ -138,9 +169,11 @@ export class AssetsService {
     if (!asset) return null;
 
     const { _count, ...base } = asset as any;
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([base.ownerId]);
     const assetWithFavoriteCount = {
       ...base,
       favoriteCount: _count?.favorites ?? 0,
+      ownerDisplayName: ownerDisplayNameMap.get(base.ownerId) ?? null,
     };
 
     if (userId) {

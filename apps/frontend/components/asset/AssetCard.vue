@@ -49,6 +49,18 @@
     <div class="p-3">
       <h3 class="font-medium line-clamp-1">{{ asset.title || '（無題）' }}</h3>
       <p class="text-xs text-gray-500 line-clamp-2">{{ asset.description }}</p>
+      <p class="mt-2 text-xs text-gray-500">
+        作者:
+        <button
+          v-if="asset.ownerId"
+          type="button"
+          class="text-blue-600 hover:underline"
+          @click.stop.prevent="goToProfile"
+        >
+          {{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}
+        </button>
+        <span v-else>{{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}</span>
+      </p>
       <p class="mt-2 text-xs text-gray-500">お気に入り {{ favoriteCount }}</p>
     </div>
   </NuxtLink>
@@ -56,6 +68,7 @@
 
 <script setup lang="ts">
 import { useAssetsApi } from '@/composables/useAssets'
+import { formatCreatorLabel } from '@/utils/creatorDisplay'
 
 const props = defineProps({
   asset: {
@@ -69,6 +82,7 @@ const props = defineProps({
 });
 
 const api = useAssetsApi()
+const router = useRouter()
 const isFav = ref(!!props.asset?.isFavorited)
 watch(() => props.asset?.isFavorited, v => (isFav.value = !!v))
 const favoriteCount = ref(Math.max(0, Number(props.asset?.favoriteCount ?? 0) || 0))
@@ -155,6 +169,11 @@ function onImgError() {
   // TTL切れなど。最大2回まで再取得
   attempts.value++
   if (attempts.value <= 2) fetchSignedUrl(true)
+}
+
+function goToProfile() {
+  if (!props.asset?.ownerId) return
+  router.push(`/profiles/${props.asset.ownerId}`)
 }
 </script>
 

@@ -121,6 +121,20 @@
             <dd v-else class="text-gray-400">—</dd>
           </div>
 
+          <div class="bg-gray-50 rounded-lg p-4">
+            <dt class="text-sm font-medium text-gray-500 mb-2">作者</dt>
+            <dd>
+              <NuxtLink
+                v-if="asset.ownerId"
+                :to="`/profiles/${asset.ownerId}`"
+                class="text-blue-600 hover:underline"
+              >
+                {{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}
+              </NuxtLink>
+              <span v-else class="text-gray-600">unknown</span>
+            </dd>
+          </div>
+
           <!-- Info Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
@@ -352,6 +366,7 @@ import { getSignedGetUrl } from '@/composables/useSignedUrl';
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
 import { useToast } from '@/composables/useToast';
 import { useFavoriteToggle } from '@/composables/useFavoriteToggle';
+import { formatCreatorLabel } from '@/utils/creatorDisplay';
 
 const route = useRoute();
 const router = useRouter();

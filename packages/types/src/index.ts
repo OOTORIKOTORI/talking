@@ -37,6 +37,7 @@ export interface Asset {
   size: number;
   url: string;
   ownerId?: string;
+  ownerDisplayName?: string | null;
   thumbKey?: string;
     thumbKeyWebp?: string;
     thumbKeyAvif?: string;
