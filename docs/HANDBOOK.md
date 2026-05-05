@@ -118,9 +118,10 @@
 - Windows PowerShellで差分をファイル出力する場合は Set-Content -Encoding utf8 を使う。
 - Gitの日本語パス/ログ表示が崩れる場合は以下を確認する。
 
-\\powershell
+```powershell
 git config --global core.quotepath false
 git config --global i18n.commitEncoding utf-8
 git config --global i18n.logOutputEncoding utf-8
-\
-- GitHub の commit .patch URL はメール形式のため、Subjectが \=?UTF-8?...?=\ のように表示されることがある。これはファイル破損とは限らない（表示側の問題）。実ファイルと \git diff --check\ を基準に判断する。
+```
+
+- GitHub の commit `.patch` URL はメール形式のため、Subject が `=?UTF-8?...?=` のように表示されることがある。これはファイル破損とは限らない（表示側の問題）。実ファイルと `git diff --check` を基準に判断する。

@@ -97,7 +97,7 @@
 - クレジットDB分離（`GameAssetReference` / `GameCharacterReference` / `GameCredit`）
 - クレジット情報のスナップショット保存（公開時固定化）
 - ライセンス/利用条件表示の導入
-- クレジット作者表示の改善（ownerId短縮表示は2026-05-05 UI polishで実施済み。残: プロフィール/クリエイター名表示、作者ページリンク）
+- クレジット作者表示の改善（`ownerDisplayName` 優先表示はプロフィール/クリエイター名MVPで実装済み。残: 作者プロフィールページリンク、表示名スナップショット、ライセンス表示など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
@@ -2060,7 +2060,7 @@ ADD COLUMN IF NOT EXISTS "playCount" INTEGER NOT NULL DEFAULT 0;
 
 #### ゲーム公開・共有フロー（MVP後の残件）
 - 公開一覧の並び替え・検索（MVPでは未対応）
-- 作者プロフィールページ連携（MVPでは ownerId 表示のみ）
+- 作者プロフィールページ連携（`ownerDisplayName` 優先表示は実装済み。残: 作者プロフィールページへのリンク）
 - 公開ゲームのランキング/プレイ数集計（MVP対象外）
 - 403/404時のUX統一（現状はページ別に個別メッセージ）
 
