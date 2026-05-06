@@ -182,6 +182,7 @@
     <GameCreditConfirmModal
       :open="creditConfirmModalOpen"
       :loading="creditConfirmLoading"
+      :publishing="creditConfirmPublishing"
       :data="creditConfirmData"
       :error="creditConfirmError"
       @cancel="onCreditConfirmCancel"
@@ -232,6 +233,7 @@ const status = ref<MyGamesStatus>('all')
 // クレジット確認モーダル用状態
 const creditConfirmModalOpen = ref(false)
 const creditConfirmLoading = ref(false)
+const creditConfirmPublishing = ref(false)
 const creditConfirmData = ref<GameCreditsResult | null>(null)
 const creditConfirmError = ref<string | null>(null)
 const creditConfirmPendingGameId = ref<string | null>(null)
@@ -546,11 +548,13 @@ async function showCreditConfirmModal(gameId: string) {
 }
 
 async function onCreditConfirmCancel() {
+  if (creditConfirmPublishing.value) return
   const gameId = creditConfirmPendingGameId.value
   creditConfirmModalOpen.value = false
   creditConfirmPendingGameId.value = null
   creditConfirmData.value = null
   creditConfirmError.value = null
+  creditConfirmPublishing.value = false
   // togglePublic のトグル状態を解除
   if (gameId) {
     setToggling(gameId, false)
@@ -565,20 +569,25 @@ async function onCreditConfirmRetry() {
 async function onCreditConfirmConfirm() {
   const gameId = creditConfirmPendingGameId.value
   if (!gameId) return
+  if (creditConfirmPublishing.value) return
 
-  creditConfirmModalOpen.value = false
-  
+  creditConfirmPublishing.value = true
+
   try {
     // 公開処理を実行
     await api.update(gameId, { isPublic: true })
-    
-    // リスト更新＆状態リセット
+
+    // 成功：モーダルを閉じてリスト更新
+    creditConfirmModalOpen.value = false
     const game = list.value.find(g => g.id === gameId)
     if (game) {
       game.isPublic = true
     }
     await refreshList()
     toast.success('公開に切り替えました')
+    creditConfirmPendingGameId.value = null
+    creditConfirmData.value = null
+    creditConfirmError.value = null
   } catch (error: any) {
     console.error('Failed to publish game:', error)
     const rawMessage = error?.data?.message
@@ -586,16 +595,11 @@ async function onCreditConfirmConfirm() {
       ? rawMessage.join(' / ')
       : (typeof rawMessage === 'string' ? rawMessage : (error?.message || '公開設定の変更に失敗しました'))
     toast.error(message)
-    
-    // エラーの場合、ゲームの状態をリセット
-    const game = list.value.find(g => g.id === gameId)
-    if (game) {
-      game.isPublic = false
-    }
+    // エラーはモーダルを開いたまま残し再試行可能にする
   } finally {
-    creditConfirmPendingGameId.value = null
-    creditConfirmData.value = null
-    creditConfirmError.value = null
+    creditConfirmPublishing.value = false
+    // setToggling は成功/失敗どちらでも解除
+    setToggling(gameId, false)
   }
 }
 

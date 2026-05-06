@@ -1,10 +1,19 @@
 <template>
   <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+    <div
+      v-if="open"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+      @keydown.esc="onEscape"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="'credit-confirm-title'"
+        class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <!-- Header -->
         <div class="border-b border-gray-200 px-6 py-4">
-          <h2 class="text-xl font-bold text-gray-900">公開前にクレジットを確認</h2>
+          <h2 id="credit-confirm-title" class="text-xl font-bold text-gray-900">公開前にクレジットを確認</h2>
           <p class="text-sm text-gray-600 mt-1">
             このゲームで使用している素材・キャラクターのクレジットと利用条件を確認してください。<br />
             公開すると、現在のクレジット情報が公開時点の記録として固定されます。
@@ -35,6 +44,23 @@
 
           <!-- Content -->
           <template v-else-if="data">
+            <!-- Status warning summary -->
+            <div
+              v-if="hasStatusWarnings"
+              class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+              role="alert"
+            >
+              ⚠ 公開前に確認が必要そうな項目があります（削除済み・非公開など）。
+            </div>
+
+            <!-- Empty total state -->
+            <div
+              v-if="data.counts.total === 0"
+              class="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 text-center"
+            >
+              参照中の素材・キャラクターはありません。
+            </div>
+
             <!-- Asset Credits Section -->
             <section class="mb-6">
               <h3 class="font-semibold text-gray-900 mb-3">
@@ -74,26 +100,32 @@
                         v-if="asset.status === 'deleted'"
                         class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-red-100 text-red-800"
                       >
-                        削除済み
+                        ⚠ 削除済み
                       </span>
                       <span
                         v-else-if="asset.status === 'missing'"
                         class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-red-100 text-red-800"
                       >
-                        見つかりません
+                        ⚠ 見つかりません
+                      </span>
+                      <span
+                        v-else-if="asset.status === 'private'"
+                        class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-800"
+                      >
+                        ⚠ 非公開
                       </span>
                     </div>
                   </div>
 
                   <!-- Author -->
                   <div class="text-sm text-gray-600 mb-2">
-                    {{ asset.ownerDisplayName || `by ${asset.ownerId?.substring(0, 7) || '不明'}` }}
+                    作者: {{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}
                   </div>
 
                   <!-- Usage Terms -->
                   <div v-if="asset.usageTerms" class="text-sm text-gray-700 bg-blue-50 border-l-2 border-blue-300 p-2 mb-2">
-                    <span class="font-medium">利用条件: </span>
-                    <span class="break-words">{{ asset.usageTerms }}</span>
+                    <p class="font-medium mb-1">利用条件:</p>
+                    <p class="whitespace-pre-wrap break-words max-h-32 overflow-auto">{{ asset.usageTerms }}</p>
                   </div>
                   <div v-else class="text-xs text-gray-400 italic mb-2">個別条件なし</div>
 
@@ -145,26 +177,26 @@
                         v-if="character.status === 'deleted'"
                         class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-red-100 text-red-800"
                       >
-                        削除済み
+                        ⚠ 削除済み
                       </span>
                       <span
                         v-else-if="character.status === 'missing'"
                         class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-red-100 text-red-800"
                       >
-                        見つかりません
+                        ⚠ 見つかりません
                       </span>
                       <span
                         v-else-if="character.status === 'private'"
                         class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-800"
                       >
-                        非公開
+                        ⚠ 非公開
                       </span>
                     </div>
                   </div>
 
                   <!-- Author -->
                   <div class="text-sm text-gray-600 mb-2">
-                    {{ character.ownerDisplayName || `by ${character.ownerId?.substring(0, 7) || '不明'}` }}
+                    作者: {{ formatCreatorLabel(character.ownerDisplayName, character.ownerId) }}
                   </div>
 
                   <!-- Usage Terms -->
@@ -172,8 +204,8 @@
                     v-if="character.usageTerms"
                     class="text-sm text-gray-700 bg-blue-50 border-l-2 border-blue-300 p-2 mb-2"
                   >
-                    <span class="font-medium">利用条件: </span>
-                    <span class="break-words">{{ character.usageTerms }}</span>
+                    <p class="font-medium mb-1">利用条件:</p>
+                    <p class="whitespace-pre-wrap break-words max-h-32 overflow-auto">{{ character.usageTerms }}</p>
                   </div>
                   <div v-else class="text-xs text-gray-400 italic mb-2">個別条件なし</div>
 
@@ -189,11 +221,11 @@
         </div>
 
         <!-- Footer -->
-        <div class="border-t border-gray-200 px-6 py-4 flex gap-3 justify-end">
+        <div class="border-t border-gray-200 px-6 py-4 flex flex-wrap gap-3 justify-end">
           <button
             type="button"
             @click="$emit('cancel')"
-            :disabled="loading"
+            :disabled="loading || publishing"
             class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             キャンセル
@@ -201,10 +233,11 @@
           <button
             type="button"
             @click="$emit('confirm')"
-            :disabled="loading || error || !data"
+            :disabled="loading || publishing || !!error || !data"
             class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            確認して公開
+            <span v-if="publishing">公開中...</span>
+            <span v-else>確認して公開</span>
           </button>
         </div>
       </div>
@@ -214,19 +247,36 @@
 
 <script setup lang="ts">
 import type { GameCreditsResult } from '@talking/types'
+import { formatCreatorLabel } from '@/utils/creatorDisplay'
 
 interface Props {
   open: boolean
   loading?: boolean
+  publishing?: boolean
   data?: GameCreditsResult | null
   error?: string | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   cancel: []
   confirm: []
   retry: []
 }>()
+
+const hasStatusWarnings = computed(() => {
+  if (!props.data) return false
+  const badStatuses = new Set(['deleted', 'missing', 'private'])
+  return (
+    props.data.assetCredits.some((a) => badStatuses.has(a.status ?? '')) ||
+    props.data.characterCredits.some((c) => badStatuses.has(c.status ?? ''))
+  )
+})
+
+function onEscape() {
+  if (!props.loading && !props.publishing) {
+    emit('cancel')
+  }
+}
 </script>
