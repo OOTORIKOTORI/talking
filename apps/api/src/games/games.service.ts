@@ -667,10 +667,13 @@ export class GamesService {
         .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
 
-    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !unlockedAssetIds.has(id));
+    const coveredAssetIds = new Set([...unlockedAssetIds, ...lockedAssetIds]);
+    const coveredCharacterIds = new Set([...unlockedCharacterIds, ...lockedCharacterIds]);
+
+    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !coveredAssetIds.has(id));
     const extraAssetIds = Array.from(unlockedAssetIds).filter((id) => !expectedAssetIds.has(id));
     const missingCharacterIds = Array.from(expectedCharacterIds).filter(
-      (id) => !unlockedCharacterIds.has(id),
+      (id) => !coveredCharacterIds.has(id),
     );
     const extraCharacterIds = Array.from(unlockedCharacterIds).filter(
       (id) => !expectedCharacterIds.has(id),

@@ -297,7 +297,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 各 credit item の必須フィールド（`id` / `assetId` / `characterId`, `title` / `displayName`, `ownerId`, `ownerDisplayName`, `status`, `linkable`, `usageCount`, `fields`, `usageTerms`, `creditRequired` など）の確認
 - GameCredit 優先経路とfallback経路の両方が壊れていないことを確認。
 - DB整合チェック（`db:check-game-credits`）とsnapshot lockチェック（`db:check-game-credit-snapshots`）とAPIレスポンス互換チェック（`smoke:game-credits`）の役割を分離
-  - `db:check-game-credits`: GameAssetReference / GameCharacterReference と未lock（`snapshotLockedAt = null`）GameCredit の整合確認。locked GameCredit は公開時点履歴として扱い、現在参照との差分 extra 判定から除外。
+  - `db:check-game-credits`: GameAssetReference / GameCharacterReference と GameCredit の整合確認。missing 判定は「現在参照が未lock（`snapshotLockedAt = null`）またはlocked（`snapshotLockedAt != null`）のどちらかで covered されているか」を見る。extra 判定は未lock GameCredit のみを対象にし、locked GameCredit は公開時点履歴として扱って NG にしない。
   - `db:check-game-credit-snapshots`: 公開済みゲームの locked snapshot 状態を検査（公開済みで unlocked が残っていないか、`snapshotLockedAt` と snapshot表示値の妥当性）。
   - `smoke:game-credits`: `/games/:id/credits` APIレスポンス構造の互換性確認
 
