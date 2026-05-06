@@ -73,12 +73,55 @@
     - 検索確定: 検索ボタンまたは Enter で適用（入力中値と適用済み条件を分離）
     - カバー表示: `coverAssetId` が設定されているゲームは一覧カード左側に小型サムネイルを表示
     - 空状態: 検索/フィルタ結果0件時は「条件に一致する自作ゲームはありません。」を表示
-    - 出典: `apps/frontend/pages/my/games/index.vue`, `apps/frontend/composables/useGames.ts`
+    - 公開前クレジット確認画面MVP（2026-05-06）
+      - 公開ボタンを押すと、シナリオチェック＋参照診断を実行
+      - エラーがあれば公開を阻止（既存）
+      - 警告があれば確認ダイアログを表示（既存）
+      - その後、「公開前にクレジットを確認」モーダルを表示
+      - モーダル内容
+        - 素材一覧（アセットクレジット）
+        - キャラクター一覧（キャラクターヨジ）
+        - 各クレジット項目：
+          - 名前、作者（`ownerDisplayName` → 短縮 `ownerId`）
+          - クレジット必須/任意バッジ
+          - 利用条件（`usageTerms`） → 無い場合は「個別条件なし」と表示
+          - status（`active` / `deleted` / `missing` / `private`） → 異常時は警告表示
+          - 使用箇所（各フィールドの使用数）
+        - 件数表示：素材 X 件 / キャラクター Y 件
+        - キャンセルボタン（公開しない）
+        - 「確認して公開」ボタン（クレジット確認後に公開処理実行）
+      - キャンセルで非公開のまま
+      - 「確認して公開」で既存の公開処理を実行（`PATCH /games/:id { isPublic: true }`）
+      - 公開後、既存の snapshot lock により公開時点のクレジット情報が固定される
+      - 非公開化ではモーダルを表示しない
+      - 既に公開済みゲームの通常保存ではモーダルを表示しない
+    - 出典: `apps/frontend/pages/my/games/index.vue`、`apps/frontend/components/game/GameCreditConfirmModal.vue`
 
 ## API と型（実装の出典）
 
 - 型の出典
-  - 共通型: `packages/types/src/index.ts`（`Asset`, `Character`, `CharacterImage`, `CharacterEmotion` など）
+  - 共通型: `packages/types/src/index.ts`（`Asset`, `Character`, `CharacterImage`, `CharacterEmotion`, `GameAssetCreditItem`, `GameCharacterCreditItem`, `GameCreditsResult` など）
+- 公開前クレジット確認画面MVP（2026-05-06）
+  - `GET /games/:id/credits` を使用してクレジット情報を取得
+  - 返却データ（`GameCreditsResult`）：
+    - `gameId`: ゲームID
+    - `assetCredits`: 素材クレジット配列
+    - `characterCredits`: キャラクタークレジット配列
+    - `counts`: `{ assets: number, characters: number, total: number }`
+    - `checkedAt`: 確認時刻（ISO8601）
+  - 各素材クレジット（`GameAssetCreditItem`）フィールド：
+    - `assetId`, `title`, `ownerId`, `ownerDisplayName`, `contentType`, `primaryTag`
+    - `usageCount`, `fields` (使用箇所の詳細)
+    - `status` (`active` / `deleted` / `missing`)
+    - `linkable` (作者プロフィールリンク可能)
+    - `usageTerms` (利用条件), `creditRequired`
+  - 各キャラクタークレジット（`GameCharacterCreditItem`）フィールド：
+    - `characterId`, `displayName`, `name`, `ownerId`, `ownerDisplayName`
+    - `usageCount`, `fields`
+    - `status` (`active` / `deleted` / `missing` / `private`)
+    - `linkable`, `usageTerms`, `creditRequired`
+  - クレジット取得失敗時：エラー表示＋再試行ボタン
+  - 手動クレジット編集、手動追加・削除、スタッフロール、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は本MVP対象外
 - 作者表示名スナップショット（2026-05-06 MVP）
   - `Asset` / `Character` / `GameProject` は作成時点の `ownerDisplayNameSnapshot` を保持する。
   - API の `ownerDisplayName` は `ownerDisplayNameSnapshot` → 現在の `CreatorProfile.displayName` → `null` の順で解決する。

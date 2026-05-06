@@ -355,3 +355,54 @@ export interface MyCreatorProfile {
   createdAt?: string | Date
   updatedAt?: string | Date
 }
+
+// === Game Credits (公開前クレジット確認MVP) ===
+
+export interface GameAssetCreditItem {
+  assetId: string
+  title: string
+  ownerId: string | null
+  ownerDisplayName: string | null
+  contentType: string | null
+  primaryTag: string | null
+  usageCount: number
+  fields: Array<{
+    field: string
+    label: string
+    count: number
+  }>
+  status: 'active' | 'deleted' | 'missing'
+  linkable: boolean
+  usageTerms: string | null
+  creditRequired: boolean
+}
+
+export interface GameCharacterCreditItem {
+  characterId: string
+  displayName: string
+  name: string
+  ownerId: string | null
+  ownerDisplayName: string | null
+  usageCount: number
+  fields: Array<{
+    field: string
+    label: string
+    count: number
+  }>
+  status: 'active' | 'deleted' | 'missing' | 'private'
+  linkable: boolean
+  usageTerms: string | null
+  creditRequired: boolean
+}
+
+export interface GameCreditsResult {
+  gameId: string
+  assetCredits: GameAssetCreditItem[]
+  characterCredits: GameCharacterCreditItem[]
+  counts: {
+    assets: number
+    characters: number
+    total: number
+  }
+  checkedAt: string
+}

@@ -177,11 +177,24 @@
         <p class="text-sm text-gray-400 mt-2">上のフォームから新規作成できます。</p>
       </template>
     </div>
+
+    <!-- クレジット確認モーダル -->
+    <GameCreditConfirmModal
+      :open="creditConfirmModalOpen"
+      :loading="creditConfirmLoading"
+      :data="creditConfirmData"
+      :error="creditConfirmError"
+      @cancel="onCreditConfirmCancel"
+      @confirm="onCreditConfirmConfirm"
+      @retry="onCreditConfirmRetry"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { runScenarioCheck, categorizeIssue } from '@/utils/scenarioCheck'
+import GameCreditConfirmModal from '@/components/game/GameCreditConfirmModal.vue'
+import type { GameCreditsResult } from '@talking/types'
 
 type MyGame = {
   id: string
@@ -215,6 +228,13 @@ const searchInput = ref('')
 const appliedQuery = ref('')
 const sort = ref<MyGamesSort>('updated')
 const status = ref<MyGamesStatus>('all')
+
+// クレジット確認モーダル用状態
+const creditConfirmModalOpen = ref(false)
+const creditConfirmLoading = ref(false)
+const creditConfirmData = ref<GameCreditsResult | null>(null)
+const creditConfirmError = ref<string | null>(null)
+const creditConfirmPendingGameId = ref<string | null>(null)
 
 const sortOptions: Array<{ value: MyGamesSort; label: string }> = [
   { value: 'updated', label: '更新順' },
@@ -394,6 +414,7 @@ async function togglePublic(game: any) {
 
   try {
     if (next) {
+      // 非公開→公開のときだけシナリオチェック＋クレジット確認を実行
       const editable = await api.getEdit(game.id)
       const check = runScenarioCheck({
         scenes: editable?.scenes ?? [],
@@ -465,12 +486,17 @@ async function togglePublic(game: any) {
           return
         }
       }
-    }
 
-    await api.update(game.id, { isPublic: next })
-    game.isPublic = next
-    await refreshList()
-    toast.success(next ? '公開に切り替えました' : '非公開に切り替えました')
+      // === クレジット確認モーダルを表示 ===
+      await showCreditConfirmModal(game.id)
+      return // モーダルが確認を処理
+    } else {
+      // 公開→非公開：確認なし、そのまま実行
+      await api.update(game.id, { isPublic: next })
+      game.isPublic = next
+      await refreshList()
+      toast.success('非公開に切り替えました')
+    }
   } catch (error: any) {
     game.isPublic = prev
     console.error('Failed to toggle public:', error)
@@ -496,6 +522,80 @@ async function togglePublic(game: any) {
     }
   } finally {
     setToggling(game.id, false)
+  }
+}
+
+async function showCreditConfirmModal(gameId: string) {
+  creditConfirmPendingGameId.value = gameId
+  creditConfirmData.value = null
+  creditConfirmError.value = null
+  creditConfirmLoading.value = true
+  creditConfirmModalOpen.value = true
+
+  try {
+    const credits = await api.getCredits(gameId)
+    creditConfirmData.value = credits
+    creditConfirmError.value = null
+  } catch (error: any) {
+    console.error('Failed to fetch game credits:', error)
+    creditConfirmError.value = 'クレジット情報を取得できませんでした。時間をおいて再試行してください。'
+    creditConfirmData.value = null
+  } finally {
+    creditConfirmLoading.value = false
+  }
+}
+
+async function onCreditConfirmCancel() {
+  const gameId = creditConfirmPendingGameId.value
+  creditConfirmModalOpen.value = false
+  creditConfirmPendingGameId.value = null
+  creditConfirmData.value = null
+  creditConfirmError.value = null
+  // togglePublic のトグル状態を解除
+  if (gameId) {
+    setToggling(gameId, false)
+  }
+}
+
+async function onCreditConfirmRetry() {
+  if (!creditConfirmPendingGameId.value) return
+  await showCreditConfirmModal(creditConfirmPendingGameId.value)
+}
+
+async function onCreditConfirmConfirm() {
+  const gameId = creditConfirmPendingGameId.value
+  if (!gameId) return
+
+  creditConfirmModalOpen.value = false
+  
+  try {
+    // 公開処理を実行
+    await api.update(gameId, { isPublic: true })
+    
+    // リスト更新＆状態リセット
+    const game = list.value.find(g => g.id === gameId)
+    if (game) {
+      game.isPublic = true
+    }
+    await refreshList()
+    toast.success('公開に切り替えました')
+  } catch (error: any) {
+    console.error('Failed to publish game:', error)
+    const rawMessage = error?.data?.message
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.join(' / ')
+      : (typeof rawMessage === 'string' ? rawMessage : (error?.message || '公開設定の変更に失敗しました'))
+    toast.error(message)
+    
+    // エラーの場合、ゲームの状態をリセット
+    const game = list.value.find(g => g.id === gameId)
+    if (game) {
+      game.isPublic = false
+    }
+  } finally {
+    creditConfirmPendingGameId.value = null
+    creditConfirmData.value = null
+    creditConfirmError.value = null
   }
 }
 
