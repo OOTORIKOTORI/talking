@@ -92,8 +92,8 @@
 コード実装の段階案:
 1. 文言整理MVP（お気に入りを素材棚寄りにするか検討）
 2. Like / Shelf DB分離（`AssetLike` / `AssetShelfItem` 導入）
-3. 導入済みの `GameCredit` を前提に、公開時点のクレジット/利用条件スナップショット固定を設計・実装
-4. 手動クレジットUI/API・公開前確認（check guard）など運用ガードを強化
+3. ~~公開時点のクレジット/利用条件スナップショット固定を設計・実装~~ → **実装済み（2026-05-06）**（`GameCredit` DB分離・`snapshotLockedAt` 導入・公開前クレジット確認画面MVP）
+4. 手動クレジットUI/API・公開前確認画面からの編集導線強化・スタッフロールUIなど運用ガードを強化
 5. 構造化ライセンス / `Asset.visibility` / `Asset.isPublic` / 派生元追跡を段階実装
 
 関連: スタッフロール/クレジット表示（`docs/PROJECT_SPEC.md` 内 スタッフロール/クレジット表示（将来課題）も参照）
@@ -104,10 +104,11 @@
 - 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
-- 公開前クレジット確認画面
+- ~~公開前クレジット確認画面~~ → **実装済み（2026-05-06）** — `/my/games` 公開ボタン押下後にクレジット確認モーダルを表示。詳細は PROJECT_SPEC.md 参照。
 - 手動クレジットUI/API（manual credit運用）
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
 - 公開後の参照追加・削除の厳密運用
+- 公開前確認画面からの編集導線強化
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
 - クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
 

@@ -80,7 +80,7 @@
       - その後、「公開前にクレジットを確認」モーダルを表示
       - モーダル内容
         - 素材一覧（アセットクレジット）
-        - キャラクター一覧（キャラクターヨジ）
+        - キャラクター一覧（キャラクタークレジット）
         - 各クレジット項目：
           - 名前、作者（`ownerDisplayName` → 短縮 `ownerId`）
           - クレジット必須/任意バッジ
@@ -324,7 +324,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
   - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
 - `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
-- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、`Asset.visibility` / `Asset.isPublic`、公開後の参照追加・削除の厳密運用、公開前クレジット確認画面は本MVP対象外。
+- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、`Asset.visibility` / `Asset.isPublic`、公開後の参照追加・削除の厳密運用は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
@@ -375,9 +375,9 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - プロフィール/クリエイター名MVPにより `ownerDisplayName` 優先表示（未設定時は短縮 `ownerId`）へ対応済み。
 
 将来課題:
-- 公開前クレジット確認画面
 - 手動追記/スタッフロール
 - 公開後の参照追加・削除の厳密運用
+- 公開前確認画面からの編集導線強化
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
 #### ライセンス/利用条件表示 MVP（2026-05-05）
@@ -395,7 +395,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点の利用条件・作者名・素材名スナップショットの厳密な固定運用は将来課題。
+  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用・公開前確認画面からの編集導線強化は将来課題。
 
 #### クレジット作者表示の将来改善
 
