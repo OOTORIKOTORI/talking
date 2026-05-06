@@ -89,9 +89,9 @@
 コード実装の段階案:
 1. 文言整理MVP（お気に入りを素材棚寄りにするか検討）
 2. Like / Shelf DB分離（`AssetLike` / `AssetShelfItem` 導入）
-3. 導入済みの `GameAssetReference` / `GameCharacterReference` を前提に、`GameCredit` 分離へ進む
-4. クレジット表示MVP（公開ゲームページへの素材クレジット表示）
-5. 派生元追跡 / 重複検出 / ライセンス整理
+3. 導入済みの `GameCredit` を前提に、公開時点のクレジット/利用条件スナップショット固定を設計・実装
+4. 手動クレジットUI/API・公開前確認（check guard）など運用ガードを強化
+5. 構造化ライセンス / `Asset.visibility` / `Asset.isPublic` / 派生元追跡を段階実装
 
 関連: スタッフロール/クレジット表示（`docs/PROJECT_SPEC.md` 内 スタッフロール/クレジット表示（将来課題）も参照）
 
@@ -112,8 +112,7 @@
 - `GameAssetReference` / `GameCharacterReference` 運用後の改善（参照整合性監視、欠落データ補修、診断UX強化）
   - `db:check-game-references` … 読み取り専用の同期ズレ検出（実装済み 2026-05-06）
   - `db:sync-game-references` … ズレを修復する backfill / 修復用スクリプト（実装済み）
-- `GameCredit` テーブル導入（クレジット表示専用の分離）
-- `GameCredit` check guard（`db:check-game-credits`） … 実装済み。将来は差分詳細（項目値比較）まで拡張検討
+- `GameCredit` 運用ガード強化（`db:check-game-credits` の差分詳細化、公開前確認フロー連携）
 - 公開時点クレジット/利用条件のスナップショット保存
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）

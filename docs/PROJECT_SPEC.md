@@ -85,7 +85,7 @@
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点の完全クレジット/利用条件スナップショット保存、`GameCredit` DB分離は将来課題。
+  - 公開時点の完全クレジット/利用条件スナップショット保存は将来課題（`GameCredit` DB分離MVPは実装済み）。
 - 署名URL（GET/PUT）
   - GET（閲覧用）: `GET /uploads/signed-get?key=...&ttl=...` → JSON `{ url }`
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedGetUrl`
@@ -249,14 +249,15 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 | 意味 | 公開ゲームやスタッフロールで、素材作者・キャラクター作者を表示するための関係。「採用」と近いが、見せ方・権利・作者尊重の文脈 |
 | 用途 | ゲームページでの素材クレジット表示、スタッフロール、作者への帰属明示 |
 | UI文言候補 | `使用素材` / `素材クレジット` / `このゲームで使われている素材` / `クレジットに表示` |
-| 将来DB候補 | `GameCredit`、`GameAssetCredit`、`GameCharacterCredit`、または `GameAssetReference` から自動生成 |
+| 現行DB（MVP） | `GameCredit`（`GameAssetReference` / `GameCharacterReference` から自動同期） |
+| 将来拡張候補 | `GameAssetCredit`、`GameCharacterCredit` など用途別分離 |
 | 注意 | MVPでは自動生成方針でよい。手動編集・任意追記は将来課題。削除済み/非公開素材の表示名をどう残すかは将来課題。表示名・作者名のスナップショット保存が必要になる可能性がある |
 
 ## クレジット表示MVP（2026-05-05）
 
 - `GameAssetReference` / `GameCharacterReference` を導入し、ゲームの現在参照を同期保存する。
 - `/games/:id/credits` は参照テーブルを優先利用し、参照テーブルが空の場合のみ既存動的集計にフォールバックする。
-- `GameCredit` テーブルの完全分離は未実装（将来課題）。
+- 2026-05-05 時点では `GameCredit` 分離は未実装だったが、2026-05-06 の GameCredit DB分離MVPで実装済み。
 - 公開時点の利用条件・作者名・素材名の完全スナップショット固定は未実装（将来課題）。
 - 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
 
@@ -309,8 +310,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - プロフィール/クリエイター名MVPにより `ownerDisplayName` 優先表示（未設定時は短縮 `ownerId`）へ対応済み。
 
 将来課題:
-- `GameCredit` 導入（DB分離・スナップショット保存）
-- クレジットのスナップショット保存
+- 公開時点のクレジット/利用条件の完全固定スナップショット保存
 - 手動追記/スタッフロール
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
@@ -329,7 +329,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-  - `GameAssetReference` / `GameCharacterReference` は導入済み。`GameCredit` のDB分離、および公開時点の利用条件・作者名・素材名スナップショット保存は将来課題。
+  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点の利用条件・作者名・素材名スナップショットの厳密な固定運用は将来課題。
 
 #### クレジット作者表示の将来改善
 
