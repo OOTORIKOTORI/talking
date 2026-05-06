@@ -5,7 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, GameCreditKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const SAVE_SLOT_LIMITS = {
@@ -141,6 +141,19 @@ type CollectedGameReferences = {
   characterUsageById: Map<string, GameReferenceUsage<GameCreditCharacterField>>;
 };
 
+type SyncedGameCreditItem = {
+  kind: GameCreditKind;
+  assetId: string | null;
+  characterId: string | null;
+  label: string;
+  ownerUserId: string | null;
+  ownerDisplayNameSnapshot: string | null;
+  sourceNameSnapshot: string | null;
+  usageTermsSnapshot: string | null;
+  creditRequiredSnapshot: boolean | null;
+  sortOrder: number;
+};
+
 const GAME_CREDIT_ASSET_FIELD_LABELS: Record<GameCreditAssetField, string> = {
   coverAssetId: 'カバー',
   bgAssetId: '背景',
@@ -157,6 +170,12 @@ const GAME_CREDIT_CHARACTER_FIELD_LABELS: Record<GameCreditCharacterField, strin
 @Injectable()
 export class GamesService {
   constructor(private prisma: PrismaService) {}
+
+  private normalizeGameCreditName(value: string | null | undefined, fallback: string): string {
+    if (typeof value !== 'string') return fallback;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
 
   private normalizeReferenceFields<TField extends string>(
     value: Prisma.JsonValue | null | undefined,
@@ -367,6 +386,156 @@ export class GamesService {
         })),
       });
     }
+
+    await this.syncGameCredits(gameId, prismaClient);
+  }
+
+  private async buildSyncedGameCredits(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient,
+  ): Promise<SyncedGameCreditItem[]> {
+    const [assetRows, characterRows] = await Promise.all([
+      prismaClient.gameAssetReference.findMany({ where: { gameId }, select: { assetId: true } }),
+      prismaClient.gameCharacterReference.findMany({ where: { gameId }, select: { characterId: true } }),
+    ]);
+
+    const assetIds = Array.from(new Set(assetRows.map((r) => r.assetId)));
+    const characterIds = Array.from(new Set(characterRows.map((r) => r.characterId)));
+
+    const [assets, characters] = await Promise.all([
+      assetIds.length > 0
+        ? prismaClient.asset.findMany({
+            where: { id: { in: assetIds } },
+            select: {
+              id: true,
+              title: true,
+              ownerId: true,
+              ownerDisplayNameSnapshot: true,
+              usageTerms: true,
+              creditRequired: true,
+            },
+          })
+        : Promise.resolve([]),
+      characterIds.length > 0
+        ? prismaClient.character.findMany({
+            where: { id: { in: characterIds } },
+            select: {
+              id: true,
+              displayName: true,
+              name: true,
+              ownerId: true,
+              ownerDisplayNameSnapshot: true,
+              usageTerms: true,
+              creditRequired: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const assetById = new Map(assets.map((item) => [item.id, item]));
+    const characterById = new Map(characters.map((item) => [item.id, item]));
+
+    const ownerIds = [
+      ...assets.map((a) => a.ownerId).filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ...characters
+        .map((c) => c.ownerId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    ];
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(ownerIds, prismaClient);
+
+    const sortedAssetIds = [...assetIds].sort((a, b) => {
+      const nameA = this.normalizeGameCreditName(assetById.get(a)?.title, '不明な素材');
+      const nameB = this.normalizeGameCreditName(assetById.get(b)?.title, '不明な素材');
+      const byName = nameA.localeCompare(nameB);
+      if (byName !== 0) return byName;
+      return a.localeCompare(b);
+    });
+
+    const sortedCharacterIds = [...characterIds].sort((a, b) => {
+      const charA = characterById.get(a);
+      const charB = characterById.get(b);
+      const nameA = this.normalizeGameCreditName(charA?.displayName ?? charA?.name, '不明なキャラクター');
+      const nameB = this.normalizeGameCreditName(charB?.displayName ?? charB?.name, '不明なキャラクター');
+      const byName = nameA.localeCompare(nameB);
+      if (byName !== 0) return byName;
+      return a.localeCompare(b);
+    });
+
+    const assetCredits: SyncedGameCreditItem[] = sortedAssetIds.map((assetId, index) => {
+      const asset = assetById.get(assetId);
+      const label = this.normalizeGameCreditName(asset?.title, '不明な素材');
+      const ownerUserId = asset?.ownerId ?? null;
+      return {
+        kind: GameCreditKind.ASSET,
+        assetId,
+        characterId: null,
+        label,
+        ownerUserId,
+        ownerDisplayNameSnapshot: this.resolveOwnerDisplayName(
+          ownerUserId,
+          asset?.ownerDisplayNameSnapshot ?? null,
+          ownerDisplayNameMap,
+        ),
+        sourceNameSnapshot: label,
+        usageTermsSnapshot: asset?.usageTerms ?? null,
+        creditRequiredSnapshot:
+          typeof asset?.creditRequired === 'boolean' ? asset.creditRequired : null,
+        sortOrder: index,
+      };
+    });
+
+    const characterCredits: SyncedGameCreditItem[] = sortedCharacterIds.map((characterId, index) => {
+      const character = characterById.get(characterId);
+      const label = this.normalizeGameCreditName(
+        character?.displayName ?? character?.name,
+        '不明なキャラクター',
+      );
+      const ownerUserId = character?.ownerId ?? null;
+      return {
+        kind: GameCreditKind.CHARACTER,
+        assetId: null,
+        characterId,
+        label,
+        ownerUserId,
+        ownerDisplayNameSnapshot: this.resolveOwnerDisplayName(
+          ownerUserId,
+          character?.ownerDisplayNameSnapshot ?? null,
+          ownerDisplayNameMap,
+        ),
+        sourceNameSnapshot: label,
+        usageTermsSnapshot: character?.usageTerms ?? null,
+        creditRequiredSnapshot:
+          typeof character?.creditRequired === 'boolean' ? character.creditRequired : null,
+        sortOrder: sortedAssetIds.length + index,
+      };
+    });
+
+    return [...assetCredits, ...characterCredits];
+  }
+
+  public async syncGameCredits(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const data = await this.buildSyncedGameCredits(gameId, prismaClient);
+    await prismaClient.gameCredit.deleteMany({ where: { gameId } });
+    if (data.length > 0) {
+      await prismaClient.gameCredit.createMany({
+        data: data.map((item) => ({
+          gameId,
+          kind: item.kind,
+          assetId: item.assetId,
+          characterId: item.characterId,
+          label: item.label,
+          ownerUserId: item.ownerUserId,
+          ownerDisplayNameSnapshot: item.ownerDisplayNameSnapshot,
+          sourceNameSnapshot: item.sourceNameSnapshot,
+          usageTermsSnapshot: item.usageTermsSnapshot,
+          creditRequiredSnapshot: item.creditRequiredSnapshot,
+          sortOrder: item.sortOrder,
+        })),
+      });
+    }
   }
 
   public async checkGameReferences(gameId: string): Promise<{
@@ -397,6 +566,62 @@ export class GamesService {
     const extraAssetIds = Array.from(dbAssetIds).filter((id) => !expectedAssetIds.has(id));
     const missingCharacterIds = Array.from(expectedCharacterIds).filter((id) => !dbCharacterIds.has(id));
     const extraCharacterIds = Array.from(dbCharacterIds).filter((id) => !expectedCharacterIds.has(id));
+
+    const ok =
+      missingAssetIds.length === 0 &&
+      extraAssetIds.length === 0 &&
+      missingCharacterIds.length === 0 &&
+      extraCharacterIds.length === 0;
+
+    return { gameId, ok, missingAssetIds, extraAssetIds, missingCharacterIds, extraCharacterIds };
+  }
+
+  public async checkGameCredits(gameId: string): Promise<{
+    gameId: string;
+    ok: boolean;
+    missingAssetIds: string[];
+    extraAssetIds: string[];
+    missingCharacterIds: string[];
+    extraCharacterIds: string[];
+  }> {
+    const game = await this.getGameForReferenceCollection(gameId);
+    if (!game || game.deletedAt) {
+      throw new NotFoundException('game not found');
+    }
+
+    const { assetUsageById, characterUsageById } = await this.loadGameReferenceUsageFromTable(gameId);
+    const [assetCredits, characterCredits] = await Promise.all([
+      this.prisma.gameCredit.findMany({
+        where: { gameId, kind: GameCreditKind.ASSET },
+        select: { assetId: true },
+      }),
+      this.prisma.gameCredit.findMany({
+        where: { gameId, kind: GameCreditKind.CHARACTER },
+        select: { characterId: true },
+      }),
+    ]);
+
+    const expectedAssetIds = new Set(assetUsageById.keys());
+    const expectedCharacterIds = new Set(characterUsageById.keys());
+    const dbAssetIds = new Set(
+      assetCredits
+        .map((row) => row.assetId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
+    const dbCharacterIds = new Set(
+      characterCredits
+        .map((row) => row.characterId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
+
+    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !dbAssetIds.has(id));
+    const extraAssetIds = Array.from(dbAssetIds).filter((id) => !expectedAssetIds.has(id));
+    const missingCharacterIds = Array.from(expectedCharacterIds).filter(
+      (id) => !dbCharacterIds.has(id),
+    );
+    const extraCharacterIds = Array.from(dbCharacterIds).filter(
+      (id) => !expectedCharacterIds.has(id),
+    );
 
     const ok =
       missingAssetIds.length === 0 &&
@@ -764,6 +989,7 @@ export class GamesService {
 
   private async getOwnerDisplayNameMap(
     ownerIds: Array<string | null | undefined>,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
   ): Promise<Map<string, string>> {
     const ids = [
       ...new Set(
@@ -773,7 +999,7 @@ export class GamesService {
       ),
     ];
     if (ids.length === 0) return new Map();
-    const profiles = await this.prisma.creatorProfile.findMany({
+    const profiles = await prismaClient.creatorProfile.findMany({
       where: { userId: { in: ids } },
       select: { userId: true, displayName: true },
     });
@@ -1223,8 +1449,43 @@ export class GamesService {
       ({ assetUsageById, characterUsageById } = await this.collectGameReferenceUsageFromGame(game));
     }
 
-    const assetIds = Array.from(assetUsageById.keys());
-    const characterIds = Array.from(characterUsageById.keys());
+    const gameCredits = await this.prisma.gameCredit.findMany({
+      where: {
+        gameId: id,
+        kind: {
+          in: [GameCreditKind.ASSET, GameCreditKind.CHARACTER],
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    const hasGameCredits = gameCredits.length > 0;
+
+    const orderedAssetIdsFromCredits: string[] = [];
+    const orderedCharacterIdsFromCredits: string[] = [];
+    const creditByAssetId = new Map<string, (typeof gameCredits)[number]>();
+    const creditByCharacterId = new Map<string, (typeof gameCredits)[number]>();
+    if (hasGameCredits) {
+      for (const credit of gameCredits) {
+        if (credit.kind === GameCreditKind.ASSET && credit.assetId) {
+          if (!creditByAssetId.has(credit.assetId)) {
+            creditByAssetId.set(credit.assetId, credit);
+            orderedAssetIdsFromCredits.push(credit.assetId);
+          }
+          continue;
+        }
+        if (credit.kind === GameCreditKind.CHARACTER && credit.characterId) {
+          if (!creditByCharacterId.has(credit.characterId)) {
+            creditByCharacterId.set(credit.characterId, credit);
+            orderedCharacterIdsFromCredits.push(credit.characterId);
+          }
+        }
+      }
+    }
+
+    const assetIds = hasGameCredits ? orderedAssetIdsFromCredits : Array.from(assetUsageById.keys());
+    const characterIds = hasGameCredits
+      ? orderedCharacterIdsFromCredits
+      : Array.from(characterUsageById.keys());
 
     const [assets, characters] = await Promise.all([
       assetIds.length > 0
@@ -1274,143 +1535,185 @@ export class GamesService {
     const assetCredits: GameAssetCreditItem[] = assetIds.map((assetId) => {
       const usage = assetUsageById.get(assetId)!;
       const asset = assetById.get(assetId);
+      const credit = creditByAssetId.get(assetId);
 
-      const fields = Array.from(usage.fields.entries()).map(([field, count]) => ({
+      const fields = Array.from((usage?.fields ?? new Map()).entries()).map(([field, count]) => ({
         field,
         label: GAME_CREDIT_ASSET_FIELD_LABELS[field],
         count,
       }));
+      const usageCount = usage?.usageCount ?? 0;
 
       if (!asset) {
         return {
           assetId,
-          title: '不明な素材',
+          title: this.normalizeGameCreditName(credit?.sourceNameSnapshot ?? credit?.label, '不明な素材'),
           ownerId: null,
-          ownerDisplayName: null,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
           contentType: null,
           primaryTag: null,
-          usageCount: usage.usageCount,
+          usageCount,
           fields,
           status: 'missing',
           linkable: false,
-          usageTerms: null,
-          creditRequired: true,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
         };
       }
 
       if (asset.deletedAt) {
         return {
           assetId,
-          title: '削除済み素材',
+          title: this.normalizeGameCreditName(credit?.sourceNameSnapshot ?? credit?.label, '削除済み素材'),
           ownerId: null,
-          ownerDisplayName: null,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
           contentType: null,
           primaryTag: null,
-          usageCount: usage.usageCount,
+          usageCount,
           fields,
           status: 'deleted',
           linkable: false,
-          usageTerms: null,
-          creditRequired: true,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
         };
       }
 
       const normalizedTitle =
-        typeof asset.title === 'string' && asset.title.trim().length > 0 ? asset.title : '無題素材';
+        this.normalizeGameCreditName(
+          credit?.sourceNameSnapshot ?? credit?.label ?? asset.title,
+          '無題素材',
+        );
       return {
         assetId,
         title: normalizedTitle,
         ownerId: asset.ownerId ?? null,
-        ownerDisplayName: this.resolveOwnerDisplayName(
-          asset.ownerId,
-          asset.ownerDisplayNameSnapshot,
-          ownerDisplayNameMap,
-        ),
+        ownerDisplayName:
+          credit?.ownerDisplayNameSnapshot ??
+          this.resolveOwnerDisplayName(asset.ownerId, asset.ownerDisplayNameSnapshot, ownerDisplayNameMap),
         contentType: asset.contentType ?? null,
         primaryTag: asset.primaryTag ?? null,
-        usageCount: usage.usageCount,
+        usageCount,
         fields,
         status: 'active',
         linkable: true,
-        usageTerms: asset.usageTerms ?? null,
-        creditRequired: asset.creditRequired,
+        usageTerms: credit?.usageTermsSnapshot ?? asset.usageTerms ?? null,
+        creditRequired:
+          typeof credit?.creditRequiredSnapshot === 'boolean'
+            ? credit.creditRequiredSnapshot
+            : asset.creditRequired,
       };
     });
 
     const characterCredits: GameCharacterCreditItem[] = characterIds.map((characterId) => {
       const usage = characterUsageById.get(characterId)!;
       const character = characterById.get(characterId);
+      const credit = creditByCharacterId.get(characterId);
 
-      const fields = Array.from(usage.fields.entries()).map(([field, count]) => ({
+      const fields = Array.from((usage?.fields ?? new Map()).entries()).map(([field, count]) => ({
         field,
         label: GAME_CREDIT_CHARACTER_FIELD_LABELS[field],
         count,
       }));
+      const usageCount = usage?.usageCount ?? 0;
 
       if (!character) {
         return {
           characterId,
-          displayName: '不明なキャラクター',
-          name: '不明なキャラクター',
+          displayName: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '不明なキャラクター',
+          ),
+          name: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '不明なキャラクター',
+          ),
           ownerId: null,
-          ownerDisplayName: null,
-          usageCount: usage.usageCount,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
+          usageCount,
           fields,
           status: 'missing',
           linkable: false,
-          usageTerms: null,
-          creditRequired: true,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
         };
       }
 
       if (character.deletedAt) {
         return {
           characterId,
-          displayName: '削除済みキャラクター',
-          name: '削除済みキャラクター',
+          displayName: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '削除済みキャラクター',
+          ),
+          name: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '削除済みキャラクター',
+          ),
           ownerId: null,
-          ownerDisplayName: null,
-          usageCount: usage.usageCount,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
+          usageCount,
           fields,
           status: 'deleted',
           linkable: false,
-          usageTerms: null,
-          creditRequired: true,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
         };
       }
 
       if (!character.isPublic) {
         return {
           characterId,
-          displayName: '非公開キャラクター',
-          name: '非公開キャラクター',
+          displayName: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '非公開キャラクター',
+          ),
+          name: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '非公開キャラクター',
+          ),
           ownerId: null,
-          ownerDisplayName: null,
-          usageCount: usage.usageCount,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
+          usageCount,
           fields,
           status: 'private',
           linkable: false,
-          usageTerms: null,
-          creditRequired: true,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
         };
       }
 
       return {
         characterId,
-        displayName: character.displayName,
-        name: character.name,
-        ownerId: character.ownerId ?? null,
-        ownerDisplayName: this.resolveOwnerDisplayName(
-          character.ownerId,
-          character.ownerDisplayNameSnapshot,
-          ownerDisplayNameMap,
+        displayName: this.normalizeGameCreditName(
+          credit?.sourceNameSnapshot ?? credit?.label ?? character.displayName,
+          character.displayName,
         ),
-        usageCount: usage.usageCount,
+        name: this.normalizeGameCreditName(
+          credit?.sourceNameSnapshot ?? credit?.label ?? character.name,
+          character.name,
+        ),
+        ownerId: character.ownerId ?? null,
+        ownerDisplayName:
+          credit?.ownerDisplayNameSnapshot ??
+          this.resolveOwnerDisplayName(
+            character.ownerId,
+            character.ownerDisplayNameSnapshot,
+            ownerDisplayNameMap,
+          ),
+        usageCount,
         fields,
         status: 'active',
         linkable: true,
-        usageTerms: character.usageTerms ?? null,
-        creditRequired: character.creditRequired,
+        usageTerms: credit?.usageTermsSnapshot ?? character.usageTerms ?? null,
+        creditRequired:
+          typeof credit?.creditRequiredSnapshot === 'boolean'
+            ? credit.creditRequiredSnapshot
+            : character.creditRequired,
       };
     });
 
@@ -1422,8 +1725,10 @@ export class GamesService {
       return String(a.title ?? a.displayName ?? '').localeCompare(String(b.title ?? b.displayName ?? ''));
     };
 
-    assetCredits.sort(sortByUsageAndTitle);
-    characterCredits.sort(sortByUsageAndTitle);
+    if (!hasGameCredits) {
+      assetCredits.sort(sortByUsageAndTitle);
+      characterCredits.sort(sortByUsageAndTitle);
+    }
 
     return {
       gameId: game.id,

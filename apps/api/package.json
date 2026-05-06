@@ -13,7 +13,9 @@
     "prisma:studio": "prisma studio",
     "diag:assets": "ts-node ./scripts/diag-print-assets.ts",
     "db:sync-game-references": "ts-node ./scripts/sync-game-references.ts",
-    "db:check-game-references": "ts-node ./scripts/check-game-references.ts"
+    "db:check-game-references": "ts-node ./scripts/check-game-references.ts",
+    "db:sync-game-credits": "ts-node ./scripts/sync-game-credits.ts",
+    "db:check-game-credits": "ts-node ./scripts/check-game-credits.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",

@@ -130,8 +130,9 @@
   - クレジット取得: `GET /games/:id/credits`
     - 認可は公開詳細と同様（公開ゲームは未ログイン可、非公開ゲームは owner のみ）
     - 非存在 / `deletedAt != null` / 権限なしは `NotFoundException('game not found')`
-    - `GameAssetReference` / `GameCharacterReference` テーブルを優先利用して集計（`GameCredit` テーブルは未導入）
-    - 互換安全策として、参照テーブルが空のときのみ `GameProject` / `GameScene` / `GameNode` 参照の動的集計にフォールバック
+    - `GameCredit` テーブルが存在する場合は `GameCredit` を優先して返却情報（表示名/作者表示名/利用条件/クレジット必須）を構成する
+    - 参照回数・参照フィールド内訳（`usageCount`, `fields`）は `GameAssetReference` / `GameCharacterReference` から取得し、空の場合は `0` / 空配列
+    - `GameCredit` が空の場合は、従来どおり `GameAssetReference` / `GameCharacterReference` 優先 + 参照テーブル空時に `GameProject` / `GameScene` / `GameNode` 動的集計へフォールバック（互換維持）
     - 集計対象
       - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
       - characters: `speakerCharacterId`, `portraits[*].characterId`, `portraits[*].imageId`（`CharacterImage.id` から逆引き）
@@ -258,6 +259,19 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - `GameCredit` テーブルの完全分離は未実装（将来課題）。
 - 公開時点の利用条件・作者名・素材名の完全スナップショット固定は未実装（将来課題）。
 - 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
+
+## GameCredit DB分離MVP（2026-05-06）
+
+- `GameCredit` テーブル（`game_credits`）を追加し、ゲームクレジット表示向けレコードをDB分離。
+- `GameCredit` は手動編集せず、`GameAssetReference` / `GameCharacterReference` から自動同期する。
+- 同期項目（MVP）
+  - `kind`（`ASSET | CHARACTER | MANUAL`。`MANUAL` は予約のみで運用未実装）
+  - `label`, `sourceNameSnapshot`, `ownerUserId`, `ownerDisplayNameSnapshot`
+  - `usageTermsSnapshot`, `creditRequiredSnapshot`, `sortOrder`
+- `ownerDisplayNameSnapshot` は同期時点で `Asset/Character.ownerDisplayNameSnapshot` を優先し、未設定時は `CreatorProfile.displayName` を参照して保存。
+- `usageTermsSnapshot` / `creditRequiredSnapshot` / `ownerDisplayNameSnapshot` は「同期時点の値」であり、公開時点で完全固定する仕様は未実装。
+- `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
+- 手動クレジットUI/API、スタッフロールUI、公開時点完全固定、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は本MVP対象外。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`

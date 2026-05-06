@@ -19,7 +19,9 @@
     "db:status": "pnpm -C apps/api exec prisma migrate status",
     "db:migrate": "pnpm -C apps/api prisma:migrate",
     "db:sync-game-references": "pnpm -C apps/api db:sync-game-references",
-    "db:check-game-references": "pnpm -C apps/api db:check-game-references"
+    "db:check-game-references": "pnpm -C apps/api db:check-game-references",
+    "db:sync-game-credits": "pnpm -C apps/api db:sync-game-credits",
+    "db:check-game-credits": "pnpm -C apps/api db:check-game-credits"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
