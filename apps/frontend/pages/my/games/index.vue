@@ -354,6 +354,7 @@ const applyStatus = async () => {
 watch(
   () => route.query,
   async () => {
+    if (import.meta.server) return
     const rawQ = firstQuery(route.query.q) || ''
     const normalizedQ = rawQ.trim()
     const rawSort = firstQuery(route.query.sort)
