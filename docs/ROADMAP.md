@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-06（GameCredit DB分離MVP）
+> 最終更新: 2026-05-06（公開時点クレジット/利用条件スナップショット固定MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -11,6 +11,7 @@
 ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。
 
 **実装済み（主要）**
+- 公開時点クレジット/利用条件スナップショット固定MVP（`GameCredit.snapshotLockedAt` 追加。公開遷移で `lockGameCreditsSnapshot` 実行。`syncGameCredits` は locked snapshot を上書き・削除しない。backfill 用に `db:lock-game-credit-snapshots`、検証用に `db:check-game-credit-snapshots` を追加）
 - GameCredit DB分離MVP（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後にGameCreditも同期。`GET /games/:id/credits` は GameCredit 優先、空時は既存方式へfallback。`db:check-game-credits` を追加）
 - GameCredit実レスポンス確認・互換ガードMVP（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性をsmoke test。`db:check-game-credits`（DB整合）と`smoke:game-credits`（APIレスポンス互換）で役割分離）
 - ゲーム使用素材・キャラクター参照DB分離MVP（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時fallbackでレスポンス互換を維持）

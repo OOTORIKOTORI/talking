@@ -270,7 +270,14 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `label`, `sourceNameSnapshot`, `ownerUserId`, `ownerDisplayNameSnapshot`
   - `usageTermsSnapshot`, `creditRequiredSnapshot`, `sortOrder`
 - `ownerDisplayNameSnapshot` は同期時点で `Asset/Character.ownerDisplayNameSnapshot` を優先し、未設定時は `CreatorProfile.displayName` を参照して保存。
-- `usageTermsSnapshot` / `creditRequiredSnapshot` / `ownerDisplayNameSnapshot` は「同期時点の値」であり、公開時点で完全固定する仕様は未実装。
+- `usageTermsSnapshot` / `creditRequiredSnapshot` / `ownerDisplayNameSnapshot` は、公開前は同期時点の値として更新される。
+- 公開時点スナップショット固定MVP（2026-05-06 追加）
+  - `GameCredit.snapshotLockedAt DateTime?` を導入。
+  - `snapshotLockedAt = null` は通常同期対象、`snapshotLockedAt != null` は公開時点固定済み。
+  - 公開遷移（`PATCH /games/:id` で `isPublic: false -> true`）時に `lockGameCreditsSnapshot` を実行し、参照同期 -> クレジット同期 -> 未ロック行の `snapshotLockedAt` 設定を行う。
+  - `syncGameCredits` は locked 行の snapshot 表示値（`sourceNameSnapshot`, `ownerDisplayNameSnapshot`, `usageTermsSnapshot`, `creditRequiredSnapshot`）を上書きしない。
+  - locked 行は通常同期で削除しない（公開時点クレジット記録を保持）。
+  - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
 - `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
 - 手動クレジットUI/API、スタッフロールUI、公開時点完全固定、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は本MVP対象外。
 - 表示対象

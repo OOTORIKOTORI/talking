@@ -16,6 +16,8 @@
     "db:check-game-references": "ts-node ./scripts/check-game-references.ts",
     "db:sync-game-credits": "ts-node ./scripts/sync-game-credits.ts",
     "db:check-game-credits": "ts-node ./scripts/check-game-credits.ts",
+    "db:lock-game-credit-snapshots": "ts-node ./scripts/lock-game-credit-snapshots.ts",
+    "db:check-game-credit-snapshots": "ts-node ./scripts/check-game-credit-snapshots.ts",
     "smoke:game-credits": "ts-node ./scripts/smoke-game-credits.ts"
   },
   "dependencies": {

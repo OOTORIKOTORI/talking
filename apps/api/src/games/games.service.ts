@@ -518,10 +518,27 @@ export class GamesService {
     prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     const data = await this.buildSyncedGameCredits(gameId, prismaClient);
-    await prismaClient.gameCredit.deleteMany({ where: { gameId } });
-    if (data.length > 0) {
+    const lockedCredits = await prismaClient.gameCredit.findMany({
+      where: { gameId, snapshotLockedAt: { not: null } },
+      select: { kind: true, assetId: true, characterId: true },
+    });
+
+    const lockedKeys = new Set(
+      lockedCredits.map((c) =>
+        c.assetId ? `${c.kind}:${c.assetId}` : `${c.kind}:${c.characterId}`,
+      ),
+    );
+
+    await prismaClient.gameCredit.deleteMany({ where: { gameId, snapshotLockedAt: null } });
+
+    const dataToCreate = data.filter((item) => {
+      const key = item.assetId ? `${item.kind}:${item.assetId}` : `${item.kind}:${item.characterId}`;
+      return !lockedKeys.has(key);
+    });
+
+    if (dataToCreate.length > 0) {
       await prismaClient.gameCredit.createMany({
-        data: data.map((item) => ({
+        data: dataToCreate.map((item) => ({
           gameId,
           kind: item.kind,
           assetId: item.assetId,
@@ -536,6 +553,19 @@ export class GamesService {
         })),
       });
     }
+  }
+
+  public async lockGameCreditsSnapshot(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await this.syncGameReferences(gameId, prismaClient);
+    await this.syncGameCredits(gameId, prismaClient);
+
+    await prismaClient.gameCredit.updateMany({
+      where: { gameId, snapshotLockedAt: null },
+      data: { snapshotLockedAt: new Date() },
+    });
   }
 
   public async checkGameReferences(gameId: string): Promise<{
@@ -1834,10 +1864,23 @@ export class GamesService {
     }
     if (Object.keys(allowed).length === 0) return g;
 
+    const isBeingPublished = allowed.isPublic === true && g.isPublic === false;
+
     if (Object.prototype.hasOwnProperty.call(allowed, 'coverAssetId')) {
       return this.prisma.$transaction(async (tx) => {
         const updated = await tx.gameProject.update({ where: { id }, data: allowed });
         await this.syncGameReferences(id, tx);
+        if (isBeingPublished) {
+          await this.lockGameCreditsSnapshot(id, tx);
+        }
+        return updated;
+      });
+    }
+
+    if (isBeingPublished) {
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.gameProject.update({ where: { id }, data: allowed });
+        await this.lockGameCreditsSnapshot(id, tx);
         return updated;
       });
     }

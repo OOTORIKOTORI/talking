@@ -22,6 +22,8 @@
     "db:check-game-references": "pnpm -C apps/api db:check-game-references",
     "db:sync-game-credits": "pnpm -C apps/api db:sync-game-credits",
     "db:check-game-credits": "pnpm -C apps/api db:check-game-credits",
+    "db:lock-game-credit-snapshots": "pnpm -C apps/api db:lock-game-credit-snapshots",
+    "db:check-game-credit-snapshots": "pnpm -C apps/api db:check-game-credit-snapshots",
     "smoke:game-credits": "pnpm -C apps/api smoke:game-credits"
   },
   "devDependencies": {
