@@ -12,6 +12,7 @@
 
 **実装済み（主要）**
 - GameCredit DB分離MVP（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後にGameCreditも同期。`GET /games/:id/credits` は GameCredit 優先、空時は既存方式へfallback。`db:check-game-credits` を追加）
+- GameCredit実レスポンス確認・互換ガードMVP（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性をsmoke test。`db:check-game-credits`（DB整合）と`smoke:game-credits`（APIレスポンス互換）で役割分離）
 - ゲーム使用素材・キャラクター参照DB分離MVP（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時fallbackでレスポンス互換を維持）
 - 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一。クレジットDB分離や公開時点の完全スナップショットは将来課題として維持）
 - 作者プロフィール公開コンテンツ一覧MVP（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）

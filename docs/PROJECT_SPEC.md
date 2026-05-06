@@ -279,6 +279,18 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - 削除済み/非公開/不明の素材・キャラクターは詳細情報を出しすぎず、フォールバック名と非リンク表示にする。
 - 作者表示は `ownerDisplayName` を優先し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする。
 
+### GameCredit実レスポンス確認・互換ガード（2026-05-06）
+
+- `smoke:game-credits` スクリプトを追加し、APIレスポンス互換をsmoke test する。
+- `pnpm smoke:game-credits` / `pnpm -C apps/api smoke:game-credits` で実行可能。
+- 対象フィールド
+  - `assetCredits` / `characterCredits` / `counts` / `checkedAt` の存在確認
+  - 各 credit item の必須フィールド（`id` / `assetId` / `characterId`, `title` / `displayName`, `ownerId`, `ownerDisplayName`, `status`, `linkable`, `usageCount`, `fields`, `usageTerms`, `creditRequired` など）の確認
+- GameCredit 優先経路とfallback経路の両方が壊れていないことを確認。
+- DB整合チェック（`db:check-game-credits`）とAPIレスポンス互換チェック（`smoke:game-credits`）の役割を分離
+  - `db:check-game-credits`: GameCredit テーブル行と GameAssetReference / GameCharacterReference の整合確認
+  - `smoke:game-credits`: `/games/:id/credits` APIレスポンス構造の互換性確認
+
 ## Game 参照テーブル同期MVP（2026-05-06）
 
 - 追加モデル
