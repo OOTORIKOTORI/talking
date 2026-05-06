@@ -660,7 +660,7 @@ GET /games/:id/reference-diagnostics
 - 正規採用ルートを便利にして、再アップロードするより公式利用の方が得になる設計に寄せる（→「正規採用ルート（UX設計方針）」参照）
 
 #### 将来の対策案
-- `GameAssetReference` / `AssetUsage` による採用関係の明示記録
+- 導入済みの `GameAssetReference` を活用し、将来的に `AssetUsage` などで採用実績表示を強化する
   - ゲームがどの素材を実際に採用しているかを明示的に記録する
   - アセット作者に採用数/使用数として実績が返る基盤
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡

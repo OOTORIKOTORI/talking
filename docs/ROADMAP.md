@@ -88,7 +88,7 @@
 コード実装の段階案:
 1. 文言整理MVP（お気に入りを素材棚寄りにするか検討）
 2. Like / Shelf DB分離（`AssetLike` / `AssetShelfItem` 導入）
-3. `GameAssetReference` / `GameCharacterReference` 導入（採用関係の明示記録）
+3. 導入済みの `GameAssetReference` / `GameCharacterReference` を前提に、`GameCredit` 分離へ進む
 4. クレジット表示MVP（公開ゲームページへの素材クレジット表示）
 5. 派生元追跡 / 重複検出 / ライセンス整理
 
