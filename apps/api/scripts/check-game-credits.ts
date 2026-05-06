@@ -34,12 +34,18 @@ async function main() {
 
   let totalOk = 0;
   let totalNg = 0;
+  let totalMissing = 0;
+  let totalExtraUnlocked = 0;
+  let totalLockedIgnored = 0;
   const results: Array<Awaited<ReturnType<typeof games.checkGameCredits>>> = [];
 
   for (const row of rows) {
     try {
       const result = await games.checkGameCredits(row.id);
       results.push(result);
+      totalMissing += result.missingAssetIds.length + result.missingCharacterIds.length;
+      totalExtraUnlocked += result.extraUnlockedCount;
+      totalLockedIgnored += result.lockedIgnoredCount;
       if (result.ok) {
         totalOk += 1;
       } else {
@@ -53,7 +59,23 @@ async function main() {
   }
 
   if (opts.json) {
-    console.log(JSON.stringify({ results, summary: { ok: totalOk, ng: totalNg, total: rows.length } }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          results,
+          summary: {
+            checkedGames: rows.length,
+            ok: totalOk,
+            ng: totalNg,
+            missing: totalMissing,
+            extraUnlocked: totalExtraUnlocked,
+            lockedIgnored: totalLockedIgnored,
+          },
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     for (const r of results) {
       if (r.ok) continue;
@@ -62,16 +84,21 @@ async function main() {
         console.log(`  missing asset credits   : ${r.missingAssetIds.join(', ')}`);
       }
       if (r.extraAssetIds.length > 0) {
-        console.log(`  extra asset credits     : ${r.extraAssetIds.join(', ')}`);
+        console.log(`  extra unlocked asset credits     : ${r.extraAssetIds.join(', ')}`);
       }
       if (r.missingCharacterIds.length > 0) {
         console.log(`  missing character credits: ${r.missingCharacterIds.join(', ')}`);
       }
       if (r.extraCharacterIds.length > 0) {
-        console.log(`  extra character credits  : ${r.extraCharacterIds.join(', ')}`);
+        console.log(`  extra unlocked character credits  : ${r.extraCharacterIds.join(', ')}`);
+      }
+      if (r.lockedIgnoredCount > 0) {
+        console.log(`  locked ignored           : ${r.lockedIgnoredCount}`);
       }
     }
-    console.log(`\n[check-game-credits] ok=${totalOk} ng=${totalNg} total=${rows.length}`);
+    console.log(
+      `\n[check-game-credits] checkedGames=${rows.length} missing=${totalMissing} extraUnlocked=${totalExtraUnlocked} lockedIgnored=${totalLockedIgnored} ok=${totalOk} ng=${totalNg}`,
+    );
   }
 
   if (totalNg > 0) {

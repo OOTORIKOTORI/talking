@@ -15,7 +15,7 @@
 - GameCredit DB分離MVP（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後にGameCreditも同期。`GET /games/:id/credits` は GameCredit 優先、空時は既存方式へfallback。`db:check-game-credits` を追加）
 - GameCredit実レスポンス確認・互換ガードMVP（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性をsmoke test。`db:check-game-credits`（DB整合）と`smoke:game-credits`（APIレスポンス互換）で役割分離）
 - ゲーム使用素材・キャラクター参照DB分離MVP（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時fallbackでレスポンス互換を維持）
-- 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一。クレジットDB分離や公開時点の完全スナップショットは将来課題として維持）
+- 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一）
 - 作者プロフィール公開コンテンツ一覧MVP（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
 - キャラクター作者プロフィールリンクMVP（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
 - プロフィール/クリエイター名MVP（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮ownerIdフォールバック）
@@ -103,10 +103,12 @@
 - 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
 - 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
-- クレジット情報の公開時点固定（公開時固定化、利用条件/作者名/素材名）
+- 公開前クレジット確認画面
 - 手動クレジットUI/API（manual credit運用）
+- GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
+- 公開後の参照追加・削除の厳密運用
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
-- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: 公開時点クレジットスナップショット、ライセンス体系化など）
+- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
 
 **将来課題: asset visibility / usage relation / derivative tracking**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
@@ -115,7 +117,7 @@
   - `db:check-game-references` … 読み取り専用の同期ズレ検出（実装済み 2026-05-06）
   - `db:sync-game-references` … ズレを修復する backfill / 修復用スクリプト（実装済み）
 - `GameCredit` 運用ガード強化（`db:check-game-credits` の差分詳細化、公開前確認フロー連携）
-- 公開時点クレジット/利用条件のスナップショット保存
+- 公開後の参照追加・削除を含む運用ガードの厳密化
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）
 - ライセンス/利用条件/クレジット表示方針の整理

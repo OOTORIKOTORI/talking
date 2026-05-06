@@ -613,6 +613,9 @@ export class GamesService {
     extraAssetIds: string[];
     missingCharacterIds: string[];
     extraCharacterIds: string[];
+    checkedCreditsCount: number;
+    extraUnlockedCount: number;
+    lockedIgnoredCount: number;
   }> {
     const game = await this.getGameForReferenceCollection(gameId);
     if (!game || game.deletedAt) {
@@ -620,38 +623,65 @@ export class GamesService {
     }
 
     const { assetUsageById, characterUsageById } = await this.loadGameReferenceUsageFromTable(gameId);
-    const [assetCredits, characterCredits] = await Promise.all([
+    const [unlockedAssetCredits, unlockedCharacterCredits, lockedAssetCredits, lockedCharacterCredits] =
+      await Promise.all([
       this.prisma.gameCredit.findMany({
-        where: { gameId, kind: GameCreditKind.ASSET },
+        where: { gameId, kind: GameCreditKind.ASSET, snapshotLockedAt: null },
         select: { assetId: true },
       }),
       this.prisma.gameCredit.findMany({
-        where: { gameId, kind: GameCreditKind.CHARACTER },
+        where: { gameId, kind: GameCreditKind.CHARACTER, snapshotLockedAt: null },
+        select: { characterId: true },
+      }),
+      this.prisma.gameCredit.findMany({
+        where: { gameId, kind: GameCreditKind.ASSET, snapshotLockedAt: { not: null } },
+        select: { assetId: true },
+      }),
+      this.prisma.gameCredit.findMany({
+        where: { gameId, kind: GameCreditKind.CHARACTER, snapshotLockedAt: { not: null } },
         select: { characterId: true },
       }),
     ]);
 
     const expectedAssetIds = new Set(assetUsageById.keys());
     const expectedCharacterIds = new Set(characterUsageById.keys());
-    const dbAssetIds = new Set(
-      assetCredits
+    const unlockedAssetIds = new Set(
+      unlockedAssetCredits
         .map((row) => row.assetId)
         .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
-    const dbCharacterIds = new Set(
-      characterCredits
+    const unlockedCharacterIds = new Set(
+      unlockedCharacterCredits
         .map((row) => row.characterId)
         .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
 
-    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !dbAssetIds.has(id));
-    const extraAssetIds = Array.from(dbAssetIds).filter((id) => !expectedAssetIds.has(id));
-    const missingCharacterIds = Array.from(expectedCharacterIds).filter(
-      (id) => !dbCharacterIds.has(id),
+    const lockedAssetIds = new Set(
+      lockedAssetCredits
+        .map((row) => row.assetId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
     );
-    const extraCharacterIds = Array.from(dbCharacterIds).filter(
+    const lockedCharacterIds = new Set(
+      lockedCharacterCredits
+        .map((row) => row.characterId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    );
+
+    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !unlockedAssetIds.has(id));
+    const extraAssetIds = Array.from(unlockedAssetIds).filter((id) => !expectedAssetIds.has(id));
+    const missingCharacterIds = Array.from(expectedCharacterIds).filter(
+      (id) => !unlockedCharacterIds.has(id),
+    );
+    const extraCharacterIds = Array.from(unlockedCharacterIds).filter(
       (id) => !expectedCharacterIds.has(id),
     );
+    const lockedIgnoredAssetIds = Array.from(lockedAssetIds).filter((id) => !expectedAssetIds.has(id));
+    const lockedIgnoredCharacterIds = Array.from(lockedCharacterIds).filter(
+      (id) => !expectedCharacterIds.has(id),
+    );
+    const checkedCreditsCount = unlockedAssetIds.size + unlockedCharacterIds.size;
+    const extraUnlockedCount = extraAssetIds.length + extraCharacterIds.length;
+    const lockedIgnoredCount = lockedIgnoredAssetIds.length + lockedIgnoredCharacterIds.length;
 
     const ok =
       missingAssetIds.length === 0 &&
@@ -659,7 +689,17 @@ export class GamesService {
       missingCharacterIds.length === 0 &&
       extraCharacterIds.length === 0;
 
-    return { gameId, ok, missingAssetIds, extraAssetIds, missingCharacterIds, extraCharacterIds };
+    return {
+      gameId,
+      ok,
+      missingAssetIds,
+      extraAssetIds,
+      missingCharacterIds,
+      extraCharacterIds,
+      checkedCreditsCount,
+      extraUnlockedCount,
+      lockedIgnoredCount,
+    };
   }
 
   private async loadGameReferenceUsageFromTable(gameId: string): Promise<CollectedGameReferences> {

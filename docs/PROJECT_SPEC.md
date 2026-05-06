@@ -258,7 +258,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - `GameAssetReference` / `GameCharacterReference` を導入し、ゲームの現在参照を同期保存する。
 - `/games/:id/credits` は参照テーブルを優先利用し、参照テーブルが空の場合のみ既存動的集計にフォールバックする。
 - 2026-05-05 時点では `GameCredit` 分離は未実装だったが、2026-05-06 の GameCredit DB分離MVPで実装済み。
-- 公開時点の利用条件・作者名・素材名の完全スナップショット固定は未実装（将来課題）。
+- 公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入、公開遷移で lock）。
 - 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
 
 ## GameCredit DB分離MVP（2026-05-06）
@@ -276,10 +276,12 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `snapshotLockedAt = null` は通常同期対象、`snapshotLockedAt != null` は公開時点固定済み。
   - 公開遷移（`PATCH /games/:id` で `isPublic: false -> true`）時に `lockGameCreditsSnapshot` を実行し、参照同期 -> クレジット同期 -> 未ロック行の `snapshotLockedAt` 設定を行う。
   - `syncGameCredits` は locked 行の snapshot 表示値（`sourceNameSnapshot`, `ownerDisplayNameSnapshot`, `usageTermsSnapshot`, `creditRequiredSnapshot`）を上書きしない。
-  - locked 行は通常同期で削除しない（公開時点クレジット記録を保持）。
+  - `snapshotLockedAt != null` の行は通常同期で削除・上書きしない（公開時点クレジット記録を保持）。
+  - `snapshotLockedAt = null` の行は現在参照に追従して同期される。
+  - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
   - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
 - `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
-- 手動クレジットUI/API、スタッフロールUI、公開時点完全固定、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は本MVP対象外。
+- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、`Asset.visibility` / `Asset.isPublic`、公開後の参照追加・削除の厳密運用、公開前クレジット確認画面は本MVP対象外。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
@@ -294,8 +296,9 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `assetCredits` / `characterCredits` / `counts` / `checkedAt` の存在確認
   - 各 credit item の必須フィールド（`id` / `assetId` / `characterId`, `title` / `displayName`, `ownerId`, `ownerDisplayName`, `status`, `linkable`, `usageCount`, `fields`, `usageTerms`, `creditRequired` など）の確認
 - GameCredit 優先経路とfallback経路の両方が壊れていないことを確認。
-- DB整合チェック（`db:check-game-credits`）とAPIレスポンス互換チェック（`smoke:game-credits`）の役割を分離
-  - `db:check-game-credits`: GameCredit テーブル行と GameAssetReference / GameCharacterReference の整合確認
+- DB整合チェック（`db:check-game-credits`）とsnapshot lockチェック（`db:check-game-credit-snapshots`）とAPIレスポンス互換チェック（`smoke:game-credits`）の役割を分離
+  - `db:check-game-credits`: GameAssetReference / GameCharacterReference と未lock（`snapshotLockedAt = null`）GameCredit の整合確認。locked GameCredit は公開時点履歴として扱い、現在参照との差分 extra 判定から除外。
+  - `db:check-game-credit-snapshots`: 公開済みゲームの locked snapshot 状態を検査（公開済みで unlocked が残っていないか、`snapshotLockedAt` と snapshot表示値の妥当性）。
   - `smoke:game-credits`: `/games/:id/credits` APIレスポンス構造の互換性確認
 
 ## Game 参照テーブル同期MVP（2026-05-06）
@@ -329,8 +332,9 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - プロフィール/クリエイター名MVPにより `ownerDisplayName` 優先表示（未設定時は短縮 `ownerId`）へ対応済み。
 
 将来課題:
-- 公開時点のクレジット/利用条件の完全固定スナップショット保存
+- 公開前クレジット確認画面
 - 手動追記/スタッフロール
+- 公開後の参照追加・削除の厳密運用
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
 #### ライセンス/利用条件表示 MVP（2026-05-05）
