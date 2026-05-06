@@ -12,7 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "diag:assets": "ts-node ./scripts/diag-print-assets.ts",
-    "db:sync-game-references": "ts-node ./scripts/sync-game-references.ts"
+    "db:sync-game-references": "ts-node ./scripts/sync-game-references.ts",
+    "db:check-game-references": "ts-node ./scripts/check-game-references.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",

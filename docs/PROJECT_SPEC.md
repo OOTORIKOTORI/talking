@@ -280,6 +280,10 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 対象ゲームIDの既存参照を `deleteMany`
   - 現在参照を collector で再集計して `createMany`
   - 参照0件なら delete のみ
+- 同期ズレ検出スクリプト（2026-05-06追加）
+  - `db:check-game-references` … 読み取り専用。期待される参照とDB上の参照を比較し、ズレがあれば exit 1。CI / 開発確認向け。
+  - `db:sync-game-references` … ズレがある場合にDB上の参照を同期・修復する。backfill / 修復向け。DBを書き換える。
+  - `getCredits` は参照テーブルが空の場合のみ旧来のノード走査にフォールバックする互換を維持。
 
 #### クレジット欄UI polish（2026-05-05）
 

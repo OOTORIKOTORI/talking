@@ -18,7 +18,8 @@
     "fix:asset:urls": "node apps/api/scripts/fix-asset-urls.mjs",
     "db:status": "pnpm -C apps/api exec prisma migrate status",
     "db:migrate": "pnpm -C apps/api prisma:migrate",
-    "db:sync-game-references": "pnpm -C apps/api db:sync-game-references"
+    "db:sync-game-references": "pnpm -C apps/api db:sync-game-references",
+    "db:check-game-references": "pnpm -C apps/api db:check-game-references"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

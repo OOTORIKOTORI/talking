@@ -369,6 +369,44 @@ export class GamesService {
     }
   }
 
+  public async checkGameReferences(gameId: string): Promise<{
+    gameId: string;
+    ok: boolean;
+    missingAssetIds: string[];
+    extraAssetIds: string[];
+    missingCharacterIds: string[];
+    extraCharacterIds: string[];
+  }> {
+    const game = await this.getGameForReferenceCollection(gameId);
+    if (!game || game.deletedAt) {
+      throw new NotFoundException('game not found');
+    }
+    const expected = await this.collectGameReferenceUsageFromGame(game);
+
+    const [assetRows, characterRows] = await Promise.all([
+      this.prisma.gameAssetReference.findMany({ where: { gameId }, select: { assetId: true } }),
+      this.prisma.gameCharacterReference.findMany({ where: { gameId }, select: { characterId: true } }),
+    ]);
+
+    const dbAssetIds = new Set(assetRows.map((r) => r.assetId));
+    const dbCharacterIds = new Set(characterRows.map((r) => r.characterId));
+    const expectedAssetIds = new Set(expected.assetUsageById.keys());
+    const expectedCharacterIds = new Set(expected.characterUsageById.keys());
+
+    const missingAssetIds = Array.from(expectedAssetIds).filter((id) => !dbAssetIds.has(id));
+    const extraAssetIds = Array.from(dbAssetIds).filter((id) => !expectedAssetIds.has(id));
+    const missingCharacterIds = Array.from(expectedCharacterIds).filter((id) => !dbCharacterIds.has(id));
+    const extraCharacterIds = Array.from(dbCharacterIds).filter((id) => !expectedCharacterIds.has(id));
+
+    const ok =
+      missingAssetIds.length === 0 &&
+      extraAssetIds.length === 0 &&
+      missingCharacterIds.length === 0 &&
+      extraCharacterIds.length === 0;
+
+    return { gameId, ok, missingAssetIds, extraAssetIds, missingCharacterIds, extraCharacterIds };
+  }
+
   private async loadGameReferenceUsageFromTable(gameId: string): Promise<CollectedGameReferences> {
     const [assetRows, characterRows] = await Promise.all([
       this.prisma.gameAssetReference.findMany({ where: { gameId } }),

@@ -109,6 +109,8 @@
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
 - 非公開化時の影響表示（削除時影響表示APIと接続する形で実装予定）
 - `GameAssetReference` / `GameCharacterReference` 運用後の改善（参照整合性監視、欠落データ補修、診断UX強化）
+  - `db:check-game-references` … 読み取り専用の同期ズレ検出（実装済み 2026-05-06）
+  - `db:sync-game-references` … ズレを修復する backfill / 修復用スクリプト（実装済み）
 - `GameCredit` テーブル導入（クレジット表示専用の分離）
 - 公開時点クレジット/利用条件のスナップショット保存
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
