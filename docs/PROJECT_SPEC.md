@@ -85,9 +85,15 @@
           - 名前、作者（`ownerDisplayName` → 短縮 `ownerId`）
           - クレジット必須/任意バッジ
           - 利用条件（`usageTerms`） → 無い場合は「個別条件なし」と表示
-          - status（`active` / `deleted` / `missing` / `private`） → 異常時は警告表示
+          - status（`active` / `deleted` / `missing` / `private`） → 異常時は警告表示（`private` は現状キャラクター参照のみ。素材側は `Asset.visibility` / `Asset.isPublic` 未実装のため将来課題）
           - 使用箇所（各フィールドの使用数）
         - 件数表示：素材 X 件 / キャラクター Y 件
+        - 編集導線ボタン（警告ありの場合）
+          - 警告サマリーの「編集画面で参照警告を確認」ボタン：`focusScenarioCheck=1&scenarioCheckFilter=warning` を付けて `/my/games/{id}/edit` へ遷移
+          - 素材別カードの「素材参照を編集画面で確認」ボタン：`scenarioCheckCategory=asset-reference` を付けて遷移
+          - キャラクター別カードの「キャラクター参照を編集画面で確認」ボタン：`scenarioCheckCategory=character-reference` を付けて遷移
+          - 遷移後、編集画面側の既存「対象へ移動」で該当ノードへ移動可能
+          - 直接ノード/フィールド単位ジャンプは未実装（将来課題）
         - キャンセルボタン（公開しない）
         - 「確認して公開」ボタン（クレジット確認後に公開処理実行）
       - キャンセルで非公開のまま
