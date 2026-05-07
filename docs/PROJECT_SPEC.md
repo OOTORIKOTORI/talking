@@ -432,10 +432,12 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 
 実装済み:
 - ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）**（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked `GameCredit` を即lock）
+- ~~公開前確認画面からの編集導線強化 MVP~~ → **実装済み（2026-05-07）** — クレジット確認モーダルから編集画面の公開前チェックへ移動できる導線を追加。警告サマリーの「編集画面で参照警告を確認」ボタン、素材/キャラクター別カードの「素材参照を編集画面で確認」「キャラクター参照を編集画面で確認」ボタンを実装。クリックで `/my/games/{id}/edit?focusScenarioCheck=1&scenarioCheckFilter=warning&scenarioCheckCategory={category}` へ遷移。
 
 将来課題:
 - 手動追記/スタッフロール
-- 公開前確認画面からの編集導線強化
+- より精密なノード/フィールド単位ジャンプ（現在はカテゴリフィルタ単位）
+- クレジット確認画面内での詳細な修正候補表示
 - 公開中編集時の再確認UX
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
@@ -454,7 +456,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化・公開中編集時の再確認UXは将来課題。
+- `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化MVPは2026-05-07に実装済み（クレジット確認モーダルから公開前チェックへの遷移ボタン追加）。公開中編集時の再確認UXは将来課題。
 
 #### クレジット作者表示の将来改善
 
@@ -469,7 +471,8 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
     - 本格的な作者別作品一覧（全件表示、ページネーション、タブUI、検索/絞り込み機能）。MVP の公開コンテンツ一覧は実装済み。
     - プロフィール画像・SNSリンク
   - **クレジット運用系**
-    - 公開前確認画面からの編集導線強化
+    - より精密なノード/フィールド単位ジャンプ（クレジット確認モーダルから特定ノードへの直接ジャンプ）
+    - クレジット確認画面内での詳細な修正候補表示
     - 公開中編集時の再確認UX
     - 手動クレジットUI/API
     - スタッフロールUI

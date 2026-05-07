@@ -873,6 +873,7 @@ function selectScenarioCheckFilter(filter: ScenarioCheckFilter) {
 function applyScenarioCheckQueryHint() {
   const requestedFilter = route.query.scenarioCheckFilter
   const requestedFocus = route.query.focusScenarioCheck
+  const requestedCategory = route.query.scenarioCheckCategory
 
   if (requestedFocus === '1' || requestedFocus === 'true') {
     sectionOpen.scenarioCheck = true
@@ -888,6 +889,16 @@ function applyScenarioCheckQueryHint() {
     if (requestedFilter !== 'all') {
       sectionOpen.scenarioCheck = true
     }
+  }
+
+  if (
+    requestedCategory === 'asset-reference'
+    || requestedCategory === 'character-reference'
+    || requestedCategory === 'structure'
+    || requestedCategory === 'all'
+  ) {
+    scenarioCategoryFilter.value = requestedCategory === 'all' ? 'all' : requestedCategory
+    sectionOpen.scenarioCheck = true
   }
 }
 

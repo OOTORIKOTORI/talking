@@ -95,7 +95,7 @@
 1. 文言整理MVP（お気に入りを素材棚寄りにするか検討）
 2. Like / Shelf DB分離（`AssetLike` / `AssetShelfItem` 導入）
 3. ~~公開時点のクレジット/利用条件スナップショット固定を設計・実装~~ → **実装済み（2026-05-06）**（`GameCredit` DB分離・`snapshotLockedAt` 導入・公開前クレジット確認画面MVP）
-4. 手動クレジットUI/API・公開前確認画面からの編集導線強化・スタッフロールUIなど運用ガードを強化
+4. 手動クレジットUI/API・~~公開前確認画面からの編集導線強化~~（**実装済み 2026-05-07**）・スタッフロールUIなど運用ガードを強化
 5. 構造化ライセンス / `Asset.visibility` / `Asset.isPublic` / 派生元追跡を段階実装
 
 関連: スタッフロール/クレジット表示（`docs/PROJECT_SPEC.md` 内 スタッフロール/クレジット表示（将来課題）も参照）
@@ -110,7 +110,7 @@
 - 手動クレジットUI/API（manual credit運用）
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
 - ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）** — 公開済みゲームで `syncGameReferences` が走った後、`lockUnlockedGameCreditsIfPublished` により未lock `GameCredit` を即lock。削除された参照の locked credit は履歴として保持。
-- 公開前確認画面からの編集導線強化
+- ~~公開前確認画面からの編集導線強化~~ → **実装済み（2026-05-07）** — クレジット確認モーダルに「編集画面で参照警告を確認」ボタン追加。素材/キャラクター別カテゴリフィルタ付きで `/my/games/{id}/edit` へ遷移。将来課題: ノード/フィールド単位ジャンプ・公開中編集時の再確認UX・クレジット確認画面内修正候補表示
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
 - クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
 

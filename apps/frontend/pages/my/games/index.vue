@@ -188,6 +188,7 @@
       @cancel="onCreditConfirmCancel"
       @confirm="onCreditConfirmConfirm"
       @retry="onCreditConfirmRetry"
+      @edit-reference-issues="onCreditConfirmEditReferenceIssues"
     />
   </div>
 </template>
@@ -546,6 +547,28 @@ async function showCreditConfirmModal(gameId: string) {
   } finally {
     creditConfirmLoading.value = false
   }
+}
+
+type ReferenceIssueCategory = 'all' | 'asset-reference' | 'character-reference' | 'structure'
+
+async function onCreditConfirmEditReferenceIssues(category: ReferenceIssueCategory = 'all') {
+  const gameId = creditConfirmPendingGameId.value
+  if (!gameId || creditConfirmPublishing.value) return
+
+  creditConfirmModalOpen.value = false
+  creditConfirmPendingGameId.value = null
+  creditConfirmData.value = null
+  creditConfirmError.value = null
+  setToggling(gameId, false)
+
+  await navigateTo({
+    path: `/my/games/${gameId}/edit`,
+    query: {
+      focusScenarioCheck: '1',
+      scenarioCheckFilter: 'warning',
+      ...(category !== 'all' ? { scenarioCheckCategory: category } : {}),
+    },
+  })
 }
 
 async function onCreditConfirmCancel() {
