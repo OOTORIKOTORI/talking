@@ -75,6 +75,10 @@
 // スマホメニューの開閉状態
 const menuOpen = ref(false)
 
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') menuOpen.value = false
+}
+
 // Supabase のユーザー情報を取得（$supabase 直接参照）
 const user = ref<any>(null)
 onMounted(async () => {
@@ -90,11 +94,11 @@ onMounted(async () => {
   } catch {}
 
   // Escapeキーでメニューを閉じる
-  const handleKeydown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') menuOpen.value = false
-  }
   window.addEventListener('keydown', handleKeydown)
-  onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 // ルート変更でメニューを閉じる

@@ -118,12 +118,6 @@
                       >
                         ⚠ 見つかりません
                       </span>
-                      <span
-                        v-else-if="asset.status === 'private'"
-                        class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-800"
-                      >
-                        ⚠ 非公開
-                      </span>
                     </div>
                   </div>
 
@@ -143,6 +137,14 @@
                   <div v-if="asset.fields.length > 0" class="text-xs text-gray-600">
                     <span class="font-medium">使用箇所:</span>
                     {{ asset.fields.map((f) => `${f.label}(${f.count})`).join(' / ') }}
+                  </div>
+
+                  <div
+                    v-if="getAssetFixHint(asset.status)"
+                    class="mt-2 rounded border px-2 py-1.5 text-xs"
+                    :class="getFixHintClass(asset.status)"
+                  >
+                    {{ getAssetFixHint(asset.status) }}
                   </div>
 
                   <!-- Edit navigation for non-active assets -->
@@ -237,6 +239,14 @@
                     {{ character.fields.map((f) => `${f.label}(${f.count})`).join(' / ') }}
                   </div>
 
+                  <div
+                    v-if="getCharacterFixHint(character.status)"
+                    class="mt-2 rounded border px-2 py-1.5 text-xs"
+                    :class="getFixHintClass(character.status)"
+                  >
+                    {{ getCharacterFixHint(character.status) }}
+                  </div>
+
                   <!-- Edit navigation for non-active characters -->
                   <div v-if="character.status !== 'active'" class="mt-2">
                     <button
@@ -283,6 +293,10 @@
 import type { GameCreditsResult } from '@talking/types'
 import { formatCreatorLabel } from '@/utils/creatorDisplay'
 
+type AssetCreditStatus = GameCreditsResult['assetCredits'][number]['status']
+type CharacterCreditStatus = GameCreditsResult['characterCredits'][number]['status']
+type CreditStatus = AssetCreditStatus | CharacterCreditStatus
+
 interface Props {
   open: boolean
   loading?: boolean
@@ -310,6 +324,42 @@ const hasStatusWarnings = computed(() => {
     props.data.characterCredits.some((c) => badStatuses.has(c.status ?? ''))
   )
 })
+
+function getAssetFixHint(status: AssetCreditStatus): string | null {
+  if (status === 'missing') {
+    return '参照先の素材が見つかりません。該当ノードの背景/BGM/SE/立ち絵画像などを別素材に差し替えてください。'
+  }
+  if (status === 'deleted') {
+    return 'この素材は削除済みです。別の素材に差し替えてください。'
+  }
+  if (status !== 'active') {
+    return 'この素材は現在利用できない状態です。別の素材に差し替えてください。'
+  }
+  return null
+}
+
+function getCharacterFixHint(status: CharacterCreditStatus): string | null {
+  if (status === 'missing') {
+    return '参照先のキャラクターが見つかりません。スピーカーまたは立ち絵設定を見直してください。'
+  }
+  if (status === 'deleted') {
+    return 'このキャラクターは削除済みです。別のキャラクターに差し替えてください。'
+  }
+  if (status === 'private') {
+    return 'このキャラクターは非公開です。公開キャラクターに差し替えるか、作者側の公開状態を確認してください。'
+  }
+  if (status !== 'active') {
+    return 'このキャラクターは現在利用できない状態です。別のキャラクターに差し替えてください。'
+  }
+  return null
+}
+
+function getFixHintClass(status: CreditStatus): string {
+  if (status === 'deleted' || status === 'missing') {
+    return 'border-red-200 bg-red-50 text-red-700'
+  }
+  return 'border-amber-200 bg-amber-50 text-amber-800'
+}
 
 function onEscape() {
   if (!props.loading && !props.publishing) {
