@@ -72,6 +72,15 @@ const copyOpts = reactive({
 
 const RIGHT_PANE_SECTIONS_STORAGE_KEY = 'talking.editor.rightPaneSections.v1'
 const LAST_SELECTION_STORAGE_KEY_PREFIX = 'talking.editor.lastSelection.v1:'
+const PUBLISHED_EDIT_BANNER_COLLAPSED_STORAGE_KEY = 'talking.editor.publishedEditBannerCollapsed.v1'
+
+const publishedEditBannerCollapsed = ref(false)
+
+function setPublishedEditBannerCollapsed(next: boolean) {
+  publishedEditBannerCollapsed.value = next
+  if (!process.client) return
+  localStorage.setItem(PUBLISHED_EDIT_BANNER_COLLAPSED_STORAGE_KEY, String(next))
+}
 
 type LastSelectionState = {
   sceneId: string | null
@@ -1176,7 +1185,10 @@ onMounted(async () => {
 
   restoreSectionOpen()
   applyScenarioCheckQueryHint()
-  
+
+  // 公開中編集バナーの折りたたみ状態を復元
+  publishedEditBannerCollapsed.value = localStorage.getItem(PUBLISHED_EDIT_BANNER_COLLAPSED_STORAGE_KEY) === 'true'
+
   // グローバルキーボードイベントリスナー
   window.addEventListener('keydown', onGlobalKeydown)
 })
@@ -1788,17 +1800,41 @@ function onUp() {
         </button>
       </div>
 
+      <!-- 公開中編集バナー（全文表示） -->
       <div
-        v-if="isPublishedGame"
+        v-if="isPublishedGame && !publishedEditBannerCollapsed"
         class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
       >
-        <div class="font-semibold">このゲームは公開中です</div>
-        <p class="mt-1 text-amber-800">
-          保存した変更は公開版にも反映されます。新しく追加された素材・キャラクターのクレジットは、保存時に公開時点の情報として固定されます。
-        </p>
-        <p class="mt-1 text-amber-700 text-xs">
-          大きく作り直す場合は、必要に応じてゲーム一覧から非公開にしてから編集してください。
-        </p>
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold">このゲームは公開中です</div>
+            <p class="mt-1 text-amber-800">
+              保存した変更は公開版にも反映されます。新しく追加された素材・キャラクターのクレジットは、保存時に公開時点の情報として固定されます。
+            </p>
+            <p class="mt-1 text-amber-700 text-xs">
+              大きく作り直す場合は、必要に応じてゲーム一覧から非公開にしてから編集してください。
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-expanded="true"
+            class="shrink-0 text-xs text-amber-700 border border-amber-300 rounded px-2 py-1 hover:bg-amber-100 transition-colors"
+            @click="setPublishedEditBannerCollapsed(true)"
+          >小さく表示</button>
+        </div>
+      </div>
+      <!-- 公開中編集バナー（省スペース表示） -->
+      <div
+        v-else-if="isPublishedGame && publishedEditBannerCollapsed"
+        class="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex flex-wrap items-center justify-between gap-2"
+      >
+        <span>公開中: 保存した変更は公開版に反映されます。</span>
+        <button
+          type="button"
+          aria-expanded="false"
+          class="shrink-0 text-xs text-amber-700 border border-amber-300 rounded px-2 py-1 hover:bg-amber-100 transition-colors"
+          @click="setPublishedEditBannerCollapsed(false)"
+        >詳細を表示</button>
       </div>
 
       <div
