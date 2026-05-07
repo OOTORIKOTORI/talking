@@ -381,10 +381,13 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - API / DB / Prisma schema は変更しない。表示UIのみの改善。
 - プロフィール/クリエイター名MVPにより `ownerDisplayName` 優先表示（未設定時は短縮 `ownerId`）へ対応済み。
 
+実装済み:
+- ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）**（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked `GameCredit` を即lock）
+
 将来課題:
 - 手動追記/スタッフロール
-- 公開後の参照追加・削除の厳密運用
 - 公開前確認画面からの編集導線強化
+- 公開中編集時の再確認UX
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
 #### ライセンス/利用条件表示 MVP（2026-05-05）
@@ -402,7 +405,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用・公開前確認画面からの編集導線強化は将来課題。
+  - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化・公開中編集時の再確認UXは将来課題。
 
 #### クレジット作者表示の将来改善
 
@@ -415,7 +418,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 作者プロフィールの slug 対応。
   - 本格的な作者別作品一覧（全件表示、ページネーション、タブUI、検索/絞り込み機能）。MVP の公開コンテンツ一覧は実装済み。
   - プロフィール画像・SNSリンク。
-    - 公開前確認画面からの編集導線強化と、公開後の参照追加・削除の厳密運用を整理する。
+    - 公開前確認画面からの編集導線強化（将来課題）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み。
   - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理する。
 
   ## プロフィール/クリエイター名MVP（2026-05-05）
