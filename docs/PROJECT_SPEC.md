@@ -182,7 +182,7 @@
     - 同一IDはクレジット上で1件に集約し、`usageCount` と `fields[*].count` を返却
     - 公開詳細ページでは「使用素材・キャラクター」欄として表示
     - 削除済み/非公開/不明の素材・キャラクターは詳細を出しすぎない（フォールバック名で表示、`linkable: false`）
-    - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
+  - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
   - 公開プレイ開始カウント: `POST /games/:id/play`
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
     - セーブ/ロード、ノード進行では増やさない
@@ -294,7 +294,44 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 | UI文言候補 | `使用素材` / `素材クレジット` / `このゲームで使われている素材` / `クレジットに表示` |
 | 現行DB（MVP） | `GameCredit`（`GameAssetReference` / `GameCharacterReference` から自動同期） |
 | 将来拡張候補 | `GameAssetCredit`、`GameCharacterCredit` など用途別分離 |
-| 注意 | MVPでは自動生成方針でよい。手動編集・任意追記は将来課題。削除済み/非公開素材の表示名をどう残すかは将来課題。表示名・作者名のスナップショット保存が必要になる可能性がある |
+| 注意 | MVPでは自動生成方針でよい。公開時点のクレジット/利用条件スナップショット固定MVPは実装済み（`GameCredit.snapshotLockedAt` により公開時点固定）。公開後参照追加・削除の厳密運用MVPも実装済み（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked GameCredit を即lock）。手動編集・スタッフロール・構造化ライセンスは将来課題。 |
+
+## 共通ヘッダーのスマホ対応MVP（2026-05-07）
+
+- 実装箇所: `apps/frontend/app.vue`
+- PC幅では従来の横並び nav を表示
+- スマホ幅では hamburger button（`☰`）を表示し、クリックでメニューを展開
+- 展開メニューの閉じ方
+  - メニュー内リンククリック
+  - ルート変更（`useRouter()` navigation）
+  - Escapeキー
+- ログイン済み時のメールアドレス表示は `break-all` で横はみ出しを防ぐ
+- Supabaseセッション取得は `onMounted` 内で行い、SSRでは `$supabase` に触らない（SSRでのセッション取得による遅延を回避）
+
+## 公開前クレジット確認画面 UI polish（2026-05-07）
+
+- ステータス警告サマリー: 異常（deleted / missing / private）なクレジット項目は視覚的に警告表示
+- 0件空表示: 素材 / キャラクターが0件の場合は控えめな「使用していません」表示
+- 長い `usageTerms` の折り返し/スクロール: 改行・長文に対応したUI
+- a11y属性: aria ラベル・role の適切設定
+- 公開処理中の二重実行防止: ボタン disabled 状態管理
+
+## SSR フォールバック規約（2026-05-07）
+
+- `apps/frontend/composables/useApi.ts`
+  - **クライアント側**: `api-auth.client.ts` の `$api` を返す（認証付き）
+  - **SSR側**: `$api` が無い場合、`$fetch.create({ baseURL: config.public.apiBase })` へフォールバック
+  - このフォールバックは公開ページ・認証不要の SSR fetch 向け
+- 認証必須ページ（例: `/my/games`）では、SSR側で protected API を呼ばない
+  - `onMounted` / watcher 冒頭に `if (import.meta.server) return` を置く
+  - `useApi()` の戻り値が server側で未初期化状態で使用されるのを防ぐ
+
+## /my/games の SSR 由来エラー修正（2026-05-07）
+
+- 問題: SSR タイミングで `$api` が存在せず、`api is not a function` エラーが発生
+- 解決方法
+  - `useApi.ts` に SSR fallback 実装（上記参照）
+  - 認証必須ページは `onMounted` 内でのみ API を呼び出す
 
 ## クレジット表示MVP（2026-05-05）
 
@@ -415,11 +452,19 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `ownerDisplayName` 未設定時は短縮UUID（現行の表示）へフォールバックする。
   - 用途バッジ化・行表示改善も実施済み。
 - 将来課題:
-  - 作者プロフィールの slug 対応。
-  - 本格的な作者別作品一覧（全件表示、ページネーション、タブUI、検索/絞り込み機能）。MVP の公開コンテンツ一覧は実装済み。
-  - プロフィール画像・SNSリンク。
-    - 公開前確認画面からの編集導線強化（将来課題）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み。
-  - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理する。
+  - **作者プロフィール系**
+    - slug 対応
+    - 本格的な作者別作品一覧（全件表示、ページネーション、タブUI、検索/絞り込み機能）。MVP の公開コンテンツ一覧は実装済み。
+    - プロフィール画像・SNSリンク
+  - **クレジット運用系**
+    - 公開前確認画面からの編集導線強化
+    - 公開中編集時の再確認UX
+    - 手動クレジットUI/API
+    - スタッフロールUI
+  - **その他**
+    - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理
+    - 構造化ライセンス
+    - `Asset.visibility` / `Asset.isPublic`
 
   ## プロフィール/クリエイター名MVP（2026-05-05）
 

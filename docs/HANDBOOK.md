@@ -45,7 +45,9 @@
 ## コーディング規約
 
 - API 呼び出しは `$api` を経由する
-  - 認証ヘッダ付与と 401 時の自動リフレッシュ/再試行を行う。
+  - クライアント側: `api-auth.client.ts` の `$api` を使用し、認証ヘッダ付与と 401 時の自動リフレッシュ/再試行を行う
+  - SSR側: `$api` が無い場合、`useApi.ts` が `$fetch.create({ baseURL: config.public.apiBase })` へフォールバック（認証不要のSSR fetch向け）
+  - 認証必須ページは `onMounted` / watcher 冒頭に `if (import.meta.server) return` を置き、SSR側では protected API を呼ばない
   - 根拠: `apps/frontend/plugins/api-auth.client.ts`, `apps/frontend/composables/useApi.ts`
 - 署名URLは JSON を経由
   - 署名GETは `GET /uploads/signed-get?key=...` が JSON `{ url }` を返す。得られた URL を `<img src>` に適用する。

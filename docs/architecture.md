@@ -3,21 +3,27 @@
 ## ドメイン
 
 ### アセット（画像/音声）
-- モデル: `Asset { id, ownerId, key, url, thumbKey, title, description, contentType, primaryTag, tags[], size, createdAt, ... }`
+- モデル: `Asset { id, ownerId, ownerDisplayNameSnapshot?, ownerDisplayName?, key, thumbKeyWebp?, thumbKeyAvif?, title, description, contentType, primaryTag, tags[], size, createdAt, deletedAt?, usageTerms?, creditRequired, isFavorite?, favoriteCount?, ... }`
 - 画像URLは **署名付き GET `/uploads/signed-get?key=...` の JSON `{ url }` を取得してから `<img src>` に適用** する（直リンク禁止）
 - 検索: Meilisearch（facets: `contentType`, `primaryTag`, `tags`）
+- `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
+- `thumbKeyWebp` / `thumbKeyAvif` は WebP/AVIF フォーマットのサムネイル
 
 ### キャラクター
 - モデル:
-  - `Character { id, ownerId, name, displayName, description, tags[], isPublic, createdAt, ... }`
-  - `CharacterImage { id, characterId, key, thumbKey, emotion, emotionLabel, pattern, sortOrder, ... }`
+  - `Character { id, ownerId, ownerDisplayNameSnapshot?, ownerDisplayName?, name, displayName, description, tags[], isPublic, createdAt, updatedAt, deletedAt?, usageTerms?, creditRequired, images[], isFavorite?, ... }`
+  - `CharacterImage { id, characterId, key, thumbKey, emotion, emotionLabel, pattern, sortOrder, createdAt, updatedAt, ... }`
 - 立ち絵画像は **複数** 管理でき、各画像に **感情**、**パターン**、**表示ラベル**、**並び順（sortOrder, 小さいほど先頭）** を付与
 - 編集UIでは画像クリックで **拡大プレビュー**、並び替え結果は `sortOrder` 更新で保存
+- `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
 
 ### ゲーム（β）
-- モデル: `GameProject`, `GameScene`, `GameNode`, `GameChoice`, `GameSave`
+- モデル: `GameProject { id, ownerId, ownerDisplayNameSnapshot?, title, summary, coverAssetId?, isPublic, viewCount, playCount, startSceneId?, messageTheme?, gameUiTheme?, backlogTheme?, createdAt, updatedAt, deletedAt? }`, `GameScene`, `GameNode`, `GameChoice`, `GameSave`
+- 関連モデル: `GameCredit`（公開ゲームの素材/キャラクター作者表示用、`snapshotLockedAt` で公開時点固定）, `GameAssetReference`, `GameCharacterReference`
 - シーン/ノード編集、背景・BGM・立ち絵配置、カメラ演出、メッセージテーマ、セーブスロットを提供
 - プレイ画面は音声同意オーバーレイ付きで動作
+- `coverAssetId` でゲームカバー画像設定、`viewCount` / `playCount` で閲覧/プレイ数カウント
+- `ownerDisplayNameSnapshot` は作成時点のクリエイター名スナップショット
 
 ## お気に入り
 
@@ -39,6 +45,9 @@
 
 ## API / クライアント規約
 - すべての HTTP は `$api` 経由（Authorization 自動付与）。**直 fetch 禁止**
+  - クライアント側: `api-auth.client.ts` の `$api` を使用（認証ヘッダ自動付与、401時自動リフレッシュ）
+  - SSR側: `$api` がない場合は `useApi.ts` で `$fetch.create()` へフォールバック（認証不要ページ向け）
+  - 認証必須ページ（`/my/games` など）は `onMounted` / watcher 冒頭に `if (import.meta.server) return` を置き、SSRで protected API を呼ばない
 - 画像URLは **必ず署名GETの JSON `{ url }` を解釈** してから適用
 - CI は `--frozen-lockfile` 前提。依存追加/削除時は **lockfile をコミット**
 
@@ -104,7 +113,8 @@ talking/
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
 | `/my/favorites` | お気に入りアセット | **必須** | 公開ギャラリー準拠UI |
 | `/my/favorites/characters` | お気に入りキャラクター | **必須** | キャラクター専用お気に入り一覧 |
-| `/games` | ゲーム一覧（β・設計上） | 不要 | 現状の主要導線は `/my/games` と `/games/[id]/play` |
+| `/games` | 公開ゲーム一覧 | 不要 | 検索・並び替え対応。公開ゲームのみ表示 |
+| `/games/[id]` | 公開ゲーム詳細 | 不要 | クレジット表示、viewCount/playCount 表示 |
 | `/games/[id]/play` | ゲームプレイ / テストプレイ | 不要 | 音声同意オーバーレイ付き |
 | `/my/games` | ゲーム管理（β） | **必須** | 自作ゲームの一覧 |
 | `/my/games/[id]/edit` | ゲームエディタ（β） | **必須** | シーン/ノード編集 |
@@ -122,11 +132,17 @@ talking/
 #### 公開（認証不要）
 - `GET /assets` — 公開ギャラリー一覧
 - `GET /assets/:id` — アセット詳細
+- `GET /search/assets` — 公開ギャラリー検索（Meilisearch）
 - `GET /uploads/signed-get` — 署名付き GET URL 取得
 - `GET /characters` — キャラクター公開一覧
 - `GET /characters/:id` — キャラクター詳細
-- `GET /characters/:id/images` — 公開キャラクター画像一覧
+- `GET /games` — 公開ゲーム一覧（検索・並び替え対応）
 - `GET /games/:id` — 公開ゲーム詳細 / プレイ用データ取得
+- `GET /games/:id/credits` — 公開ゲームのクレジット取得（未ログイン可）
+- `POST /games/:id/view` — ゲーム閲覧数カウント
+- `POST /games/:id/play` — ゲームプレイ数カウント
+- `GET /profiles/:userId` — プロフィール公開ページ
+- `GET /profiles/:userId/contents` — プロフィール公開コンテンツ一覧
 
 #### 要ログイン
 - `POST /uploads/signed-url` — 署名付き PUT URL 取得（アップロード開始）
@@ -134,6 +150,8 @@ talking/
 - `GET /assets/mine` — 本人のアセット一覧
 - `PATCH /assets/:id` — アセット更新（オーナー照合）
 - `DELETE /assets/:id` — アセット削除（オーナー照合）
+- `GET /my/profile` — 自分のプロフィール
+- `PATCH /my/profile` — プロフィール更新
 - `GET /my/characters` — 自分のキャラクター一覧
 - `POST /my/characters` — キャラクター作成
 - `GET /my/characters/:id` — 自分のキャラクター詳細
@@ -147,7 +165,10 @@ talking/
 - `POST /characters/:id/favorite` / `DELETE /characters/:id/favorite` — キャラクターお気に入り
 - `GET /favorites` — お気に入りアセット一覧
 - `GET /my/favorites/characters` — お気に入りキャラクター一覧
-- `GET /games/my` — 自分のゲーム一覧
+- `GET /games` — 自分のゲーム一覧（`/my/games`）
+- `GET /games/:id/edit` — ゲーム編集用データ取得
+- `GET /games/:id/reference-diagnostics` — ゲーム参照診断
+- `POST /games/:id/duplicate` — ゲーム複製
 - `POST /games` / `PATCH /games/:id` / `DELETE /games/:id` — ゲーム作成・更新・削除
 
 ### オーナー制御

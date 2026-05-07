@@ -86,7 +86,7 @@ apps/frontend/components/
 
 ```text
 apps/frontend/composables/
-├── useApi.ts                                # Nuxt から提供される API クライアントを取り出す最小ラッパー
+├── useApi.ts                                # API クライアント取得。クライアント側は api-auth.client の $api、SSR側は $fetch.create() へフォールバック
 ├── useAssetMeta.ts                          # アセットIDからメタ情報や署名済みURLを取得
 ├── useAssets.ts                             # アセット API 呼び出しをまとめたコンポーザブル
 ├── useAudioConsent.ts                       # 音声再生の同意状態を localStorage と同期
