@@ -372,6 +372,7 @@ const defaultThemeV2 = {
 }
 
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
+const isPublishedGame = computed(() => game.value?.isPublic === true)
 
 // StageCanvas はテーマをそのまま渡す（内部で v2 解決される）
 const stageTheme = computed(() => previewTheme.value)
@@ -1785,6 +1786,19 @@ function onUp() {
         >
           テストプレイ
         </button>
+      </div>
+
+      <div
+        v-if="isPublishedGame"
+        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      >
+        <div class="font-semibold">このゲームは公開中です</div>
+        <p class="mt-1 text-amber-800">
+          保存した変更は公開版にも反映されます。新しく追加された素材・キャラクターのクレジットは、保存時に公開時点の情報として固定されます。
+        </p>
+        <p class="mt-1 text-amber-700 text-xs">
+          大きく作り直す場合は、必要に応じてゲーム一覧から非公開にしてから編集してください。
+        </p>
       </div>
 
       <div
