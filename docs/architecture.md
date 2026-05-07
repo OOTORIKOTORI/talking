@@ -165,8 +165,8 @@ talking/
 - `POST /characters/:id/favorite` / `DELETE /characters/:id/favorite` — キャラクターお気に入り
 - `GET /favorites` — お気に入りアセット一覧
 - `GET /my/favorites/characters` — お気に入りキャラクター一覧
-- `GET /games` — 自分のゲーム一覧（`/my/games`）
-- `GET /games/:id/edit` — ゲーム編集用データ取得
+- `GET /games/my` — 自分のゲーム一覧
+- `GET /games/:id` — ゲーム編集用データ取得
 - `GET /games/:id/reference-diagnostics` — ゲーム参照診断
 - `POST /games/:id/duplicate` — ゲーム複製
 - `POST /games` / `PATCH /games/:id` / `DELETE /games/:id` — ゲーム作成・更新・削除
