@@ -128,7 +128,7 @@
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用、手動クレジットUI/API、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX、`Asset.visibility` / `Asset.isPublic` は将来課題。
 - 署名URL（GET/PUT）
   - GET（閲覧用）: `GET /uploads/signed-get?key=...&ttl=...` → JSON `{ url }`
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedGetUrl`
@@ -302,6 +302,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - `/games/:id/credits` は参照テーブルを優先利用し、参照テーブルが空の場合のみ既存動的集計にフォールバックする。
 - 2026-05-05 時点では `GameCredit` 分離は未実装だったが、2026-05-06 の GameCredit DB分離MVPで実装済み。
 - 公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入、公開遷移で lock）。
+- 公開後参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`syncGameReferences` 後に `lockUnlockedGameCreditsIfPublished` を呼び出し、公開済みゲームで unlocked `GameCredit` を即lock）。
 - 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
 
 ## GameCredit DB分離MVP（2026-05-06）
@@ -324,7 +325,13 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
   - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
 - `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
-- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、`Asset.visibility` / `Asset.isPublic`、公開後の参照追加・削除の厳密運用は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。
+- 公開後参照追加・削除の厳密運用MVP（2026-05-07 追加）
+  - 公開済みゲームで `syncGameReferences`（cover / node / scene 変更）が走った際、`lockUnlockedGameCreditsIfPublished` を末尾で呼び出す。
+  - `isPublic = true` のゲームのみ対象。`snapshotLockedAt = null` の `GameCredit` に即座に `snapshotLockedAt` を設定する。
+  - 参照削除時の locked 行は削除しない。履歴クレジットとして `/games/:id/credits` に残る（`usageCount: 0`, `fields: []`）。
+  - `lockGameCreditsSnapshot`（公開遷移時）は `syncGameReferences` 呼び出し後に念のため最終 `updateMany` を維持する。
+  - `syncGameCredits` の二重呼び出しは `lockGameCreditsSnapshot` 内で除去した。
+- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`

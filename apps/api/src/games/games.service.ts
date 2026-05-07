@@ -388,6 +388,7 @@ export class GamesService {
     }
 
     await this.syncGameCredits(gameId, prismaClient);
+    await this.lockUnlockedGameCreditsIfPublished(gameId, prismaClient);
   }
 
   private async buildSyncedGameCredits(
@@ -555,13 +556,29 @@ export class GamesService {
     }
   }
 
+  private async lockUnlockedGameCreditsIfPublished(
+    gameId: string,
+    prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const game = await prismaClient.gameProject.findUnique({
+      where: { id: gameId },
+      select: { id: true, isPublic: true, deletedAt: true },
+    });
+    if (!game || game.deletedAt) return;
+    if (!game.isPublic) return;
+    await prismaClient.gameCredit.updateMany({
+      where: { gameId, snapshotLockedAt: null },
+      data: { snapshotLockedAt: new Date() },
+    });
+  }
+
   public async lockGameCreditsSnapshot(
     gameId: string,
     prismaClient: PrismaService | Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     await this.syncGameReferences(gameId, prismaClient);
-    await this.syncGameCredits(gameId, prismaClient);
-
+    // syncGameReferences は syncGameCredits + lockUnlockedGameCreditsIfPublished を済ませているが、
+    // 公開遷移直後の安全性を保つため unlocked credit を念のため lock する。
     await prismaClient.gameCredit.updateMany({
       where: { gameId, snapshotLockedAt: null },
       data: { snapshotLockedAt: new Date() },

@@ -107,7 +107,7 @@
 - ~~公開前クレジット確認画面~~ → **実装済み（2026-05-06）** — `/my/games` 公開ボタン押下後にクレジット確認モーダルを表示。詳細は PROJECT_SPEC.md 参照。UI polish済み（2026-05-07）: status警告サマリー・空表示・usageTerms折り返し・a11y・公開処理中二重防止を追加。
 - 手動クレジットUI/API（manual credit運用）
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
-- 公開後の参照追加・削除の厳密運用
+- ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）** — 公開済みゲームで `syncGameReferences` が走った後、`lockUnlockedGameCreditsIfPublished` により未lock `GameCredit` を即lock。削除された参照の locked credit は履歴として保持。
 - 公開前確認画面からの編集導線強化
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
 - クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
@@ -119,7 +119,7 @@
   - `db:check-game-references` … 読み取り専用の同期ズレ検出（実装済み 2026-05-06）
   - `db:sync-game-references` … ズレを修復する backfill / 修復用スクリプト（実装済み）
 - `GameCredit` 運用ガード強化（`db:check-game-credits` の差分詳細化、公開前確認フロー連携）
-- 公開後の参照追加・削除を含む運用ガードの厳密化
+- ~~公開後の参照追加・削除を含む運用ガードの厳密化~~ → **実装済み（2026-05-07）**（`lockUnlockedGameCreditsIfPublished` helper 追加、`syncGameReferences` 末尾で公開済みなら即lock）
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）
 - ライセンス/利用条件/クレジット表示方針の整理
