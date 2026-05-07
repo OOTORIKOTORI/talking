@@ -166,7 +166,7 @@ talking/
 - `GET /favorites` — お気に入りアセット一覧
 - `GET /my/favorites/characters` — お気に入りキャラクター一覧
 - `GET /games/my` — 自分のゲーム一覧
-- `GET /games/:id` — ゲーム編集用データ取得
+- `GET /games/:id/edit` — ゲーム編集用データ取得（オーナーのみ）
 - `GET /games/:id/reference-diagnostics` — ゲーム参照診断
 - `POST /games/:id/duplicate` — ゲーム複製
 - `POST /games` / `PATCH /games/:id` / `DELETE /games/:id` — ゲーム作成・更新・削除
@@ -285,9 +285,11 @@ talking/
 #### `DELETE /my/characters/:id/images/:imageId` — 立ち絵削除
 
 ### ゲーム関連 API（β）
+- `GET /games`（認証不要）: 公開ゲーム一覧
+- `GET /games/:id`（任意認証）: 公開ゲーム詳細 / プレイ用データ取得
+- `GET /games/:id/edit`（要ログイン・オーナーのみ）: ゲーム編集用データ取得
 - `GET /games/my`（要ログイン）: 自分のゲーム一覧
 - `POST /games`（要ログイン）: ゲーム作成
-- `GET /games/:id`（公開/権限付き）: ゲーム詳細取得
 - `PATCH /games/:id`（要ログイン）: ゲーム更新
 - `DELETE /games/:id`（要ログイン）: ゲーム削除
 - `GET /games/:id/scenes` / `POST /games/:id/scenes` — シーン一覧 / 追加・更新
