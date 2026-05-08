@@ -8,146 +8,209 @@
 
 ## 📍 現在地サマリ（2026-05-08）
 
-ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。公開時点のクレジット/利用条件スナップショット固定、公開後参照追加・削除の厳密運用を実装。公開前クレジット確認画面 UI polish・編集導線強化MVP・確認画面内の修正候補表示MVP、/my/games の SSR 由来エラー修正、共通ヘッダーのスマホ対応MVPを完成。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。公開中編集時の注意バナーMVP（折りたたみ機能含む）を追加。公開前確認画面からの編集導線強化MVP（クレジット確認モーダルから編集画面の公開前チェックへ遷移）を追加。公開前確認モーダルに削除済み・古い参照が混入する問題を修正（非公開ゲームの公開前確認では現在ゲーム内容から参照を収集する方式に変更）。公開中編集時の保存前再確認UX MVP（公開ゲーム保存時のみ confirm、キャンセル時は保存中断）を追加。
+最新コミット: `eab745b2be740f6cb2d9ea47e87fa7fc30ba0923`
 
-**実装済み（主要）**
-- 公開前確認の最新参照反映・履歴クレジット混入防止（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中のIDのみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
-- 公開前確認画面内の修正候補表示MVP（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
-- 公開前確認画面からの編集導線強化MVP（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
-- 公開中編集時の保存前再確認UX MVP（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
-- 公開中編集バナー折りたたみMVP（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
-- 公開中編集時の注意バナーMVP（`isPublic === true` のゲームを編集中、タイトル行直下に注意バナーを表示。保存時の即時公開反映と新規追加クレジットの即lockを明示。挙動変更・自動非公開化なし。`apps/frontend/pages/my/games/[id]/edit.vue`）
-- 公開時点クレジット/利用条件スナップショット固定MVP（`GameCredit.snapshotLockedAt` 追加。公開遷移で `lockGameCreditsSnapshot` 実行。`syncGameCredits` は locked snapshot を上書き・削除しない。backfill 用に `db:lock-game-credit-snapshots`、検証用に `db:check-game-credit-snapshots` を追加）
-- GameCredit DB分離MVP（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後にGameCreditも同期。`GET /games/:id/credits` は公開済みゲーム詳細で GameCredit 優先、空時は既存方式へfallback。非公開ゲームのオーナー公開前確認は現在参照優先の例外あり（詳細は `docs/PROJECT_SPEC.md` 参照）。`db:check-game-credits` を追加）
-- GameCredit実レスポンス確認・互換ガードMVP（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性をsmoke test。`db:check-game-credits`（DB整合）と`smoke:game-credits`（APIレスポンス互換）で役割分離）
-- ゲーム使用素材・キャラクター参照DB分離MVP（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時fallbackでレスポンス互換を維持）
-- 表示名スナップショット保存MVP（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在profile -> null` で解決するよう統一）
-- 作者プロフィール公開コンテンツ一覧MVP（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
-- キャラクター作者プロフィールリンクMVP（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
-- プロフィール/クリエイター名MVP（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮ownerIdフォールバック）
-- 作者プロフィールページリンクMVP（フロント `/profiles/[userId]` 公開ページ追加、公開ゲーム一覧/詳細/クレジット欄の作者表示から `/profiles/:userId` へ遷移、`linkable === false` クレジット項目は非リンク維持）
-- アセット作者プロフィールリンクMVP（公開アセット一覧 `/assets` と公開アセット詳細 `/assets/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。アセット系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮ownerIdフォールバック）
-- キャラクター削除時の利用影響表示MVP（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
-- アセット削除時の利用影響表示MVP（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
-- 公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
-- 公開前クレジット確認画面MVP（2026-05-06 実装）（`/my/games` の公開ボタンをクリック時、既存シナリオチェック＋参照診断の後、「公開前にクレジットを確認」モーダル表示。`GET /games/:id/credits` で素材・キャラクタークレジット取得、素材とキャラクターを分けて表示。各項目に作者名・クレジット必須/任意・利用条件・status警告を表示。キャンセルボタンで公開しない、「確認して公開」ボタンで既存公開処理を実行。非公開化やすでに公開済みゲームの保存では確認モーダルを表示しない。手動クレジット編集・スタッフロール・構造化ライセンス・`Asset.visibility` / `Asset.isPublic` は本MVP対象外）
-- クレジット欄UI polish（ownerId短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
-- いいね / 素材棚 / 採用 / 引用・クレジット の4概念分離設計を docs に明文化（`docs/PROJECT_SPEC.md` 「いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）」、コード実装は将来段階的に実施）
-- ゲーム内参照アセット権限ルールの棚卸しMVP（自分+お気に入り方針の明文化、UI/API現状差分の記録）
-- アセットお気に入り数表示MVP（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
-- ゲーム制作・公開・共有フローMVP（公開一覧・API・公開切替・UI導線）
-- ノード/シーン/ゲーム 削除MVP（削除前確認・参照解除・導線）
-- NodePicker「シーン → ノード」二段階選択UI（キーボード操作・stale state修正・詳細プレビュー）
-- シナリオチェックMVP（整合性チェック一覧・error/warning/info分類・対象ジャンプ）
-- シナリオチェック追加MVP（空本文/空ラベル/表示可能選択肢0件/開始シーン以外のstartNodeId壊れ → warning）
-- ゲーム参照診断API MVP（素材/キャラクター/キャラクター画像の参照エラー検査、11種類の警告コード、warning表示、save/publish をブロックしない）
-- エディタ画面への参照診断統合（シナリオチェック画面にマージ表示、localIssues + referenceIssues、重大度順ソート、ノード/シーン操作時に動的リフレッシュ）
-- ゲーム公開前チェックMVP（フロント事前チェック + API最終防衛線。error時は公開ブロック・warning時は確認）
-- 公開前チェックUIカテゴリ分けMVP（「公開前チェック」改称、件数表示付きカテゴリフィルタ、issueカードへのカテゴリラベル表示、公開切替時カテゴリ別warning確認）
-- 公開ゲーム一覧 `/games` 検索・並び替えMVP（`q` + `sort` + URL同期 + API側検索/ソート）
-- 自作ゲーム管理 `/my/games` 検索・並び替え・公開状態フィルタMVP（`q` + `sort` + `status` + URL同期 + API側検索/ソート/フィルタ）
-- 自作ゲーム管理 `/my/games` ゲーム複製MVP（owner限定、確認ダイアログ、複製後編集画面遷移）
-- ゲーム基本情報編集MVP（`/my/games/:id/edit` で `title` / `summary` 編集、保存状態表示、複製後タイトル変更導線）
-- ゲームカバー画像選択UI MVP（ゲーム全体設定 > 基本情報タブで `coverAssetId` 選択/解除、公開一覧/詳細・自作一覧への反映）
-- Node保存時の背景/BGM/SE参照アセット共通バリデーション MVP（`bgAssetId`=`image/*`・`musicAssetId`/`sfxAssetId`=`audio/*`・本人所有 or お気に入り済み・削除済み拒否。`GamesService.assertGameAssetUsable` 共通化。カバー画像チェックも同関数に委譲。）
-- 公開ゲーム閲覧数/プレイ数 集計MVP（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
-- 開始地点設定導線の拡張（ノード側に加えてシーン側から開始シーン設定）
-- ゲームプレイ画面キーボード操作MVP（Enter/Space・↑/↓/Enter・数字キー・Esc）
-- ゲームプレイ画面 BGMフェードMVP（停止フェードアウト・切替時直列フェード・同一BGM継続）
-- 公開ギャラリー検索（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
-- 未ログイン公開ギャラリーで `/favorites` を呼ばない修正、公開ゲームのセーブ/ローUX補正
-- シーンラベル・シーン管理性改善MVP（シーン名編集UI・一覧改善・NodePicker連携）
-- ゲームエディタ edit画面の情報設計v2（右ペインセクション化MVP）
+以下の MVP が一区切り済みです。
+
+**公開・クレジットまわり**
+- 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
+- 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
+- GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
+- 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
+- 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
+
+**プロフィール/作者表示まわり**
+- CreatorProfile / ownerDisplayName / ownerDisplayNameSnapshot
+- 作者プロフィールページ・公開コンテンツ一覧（各最大6件）
+
+**ゲーム制作/編集基盤まわり**
+- ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
+- 右ペインセクション化・localStorage 保存・作業位置復元
+
+**共通インフラ**
+- 共通ヘッダースマホ対応・`/my/games` SSR 由来エラー修正
+
+次にやることは「[🎯 次にやる候補](#-次にやる候補)」を参照。
+
+---
+
+## ✅ 実装済み（主要）
+
+### 公開・クレジットまわり
+
+- **公開前確認での最新参照反映・履歴クレジット混入防止**（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中の ID のみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
+- **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開中編集時の保存前再確認UX MVP**（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
+- **公開中編集バナー折りたたみMVP**（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
+- **公開中編集時の注意バナーMVP**（`isPublic === true` のゲームを編集中、タイトル行直下に注意バナーを表示。保存時の即時公開反映と新規追加クレジットの即 lock を明示。挙動変更・自動非公開化なし。`apps/frontend/pages/my/games/[id]/edit.vue`）
+- **公開時点クレジット/利用条件スナップショット固定MVP**（`GameCredit.snapshotLockedAt` 追加。公開遷移で `lockGameCreditsSnapshot` 実行。`syncGameCredits` は locked snapshot を上書き・削除しない。backfill 用に `db:lock-game-credit-snapshots`、検証用に `db:check-game-credit-snapshots` を追加）
+- **公開後参照追加・削除の厳密運用**（公開済みゲームで `syncGameReferences` が走った後、`lockUnlockedGameCreditsIfPublished` により未 lock `GameCredit` を即 lock。削除された参照の locked credit は履歴として保持。2026-05-07 実装済み）
+- **GameCredit DB 分離MVP**（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後に GameCredit も同期。`GET /games/:id/credits` は公開済みゲーム詳細で GameCredit 優先、空時は既存方式へ fallback。非公開ゲームのオーナー公開前確認は現在参照優先の例外あり（詳細は `docs/PROJECT_SPEC.md` 参照）。`db:check-game-credits` を追加）
+- **GameCredit 実レスポンス確認・互換ガードMVP**（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性を smoke test。`db:check-game-credits`（DB 整合）と `smoke:game-credits`（APIレスポンス互換）で役割分離）
+- **ゲーム使用素材・キャラクター参照DB分離MVP**（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時 fallback でレスポンス互換を維持）
+- **公開前クレジット確認画面MVP**（2026-05-06 実装）（`/my/games` の公開ボタンをクリック時、既存シナリオチェック＋参照診断の後、「公開前にクレジットを確認」モーダル表示。各項目に作者名・クレジット必須/任意・利用条件・status 警告を表示。キャンセルボタンで公開しない、「確認して公開」ボタンで既存公開処理を実行。手動クレジット編集・スタッフロール・構造化ライセンス・`Asset.visibility` / `Asset.isPublic` は本MVP対象外）
+- **クレジット欄UI polish**（ownerId 短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
+- **ライセンス/利用条件表示MVP**（`usageTerms`（自由入力）+ `creditRequired`（boolean）を Asset/Character に追加。2026-05-05 実装済み。詳細は `docs/PROJECT_SPEC.md` 参照）
+- **公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP**（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
+
+### プロフィール/作者表示まわり
+
+- **表示名スナップショット保存MVP**（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在 profile -> null` で解決するよう統一）
+- **作者プロフィール公開コンテンツ一覧MVP**（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
+- **キャラクター作者プロフィールリンクMVP**（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮 ownerId フォールバック）
+- **プロフィール/クリエイター名MVP**（`CreatorProfile` テーブル追加、`PATCH /my/profile` / `GET /my/profile` / `GET /profiles/:userId` API 追加、公開ゲーム一覧/詳細/クレジット欄に `ownerDisplayName` を追加、フロント `/my/profile` ページ追加・ヘッダーにリンク追加、未設定時は短縮 ownerId フォールバック）
+- **作者プロフィールページリンクMVP**（フロント `/profiles/[userId]` 公開ページ追加、公開ゲーム一覧/詳細/クレジット欄の作者表示から `/profiles/:userId` へ遷移、`linkable === false` クレジット項目は非リンク維持）
+- **アセット作者プロフィールリンクMVP**（公開アセット一覧 `/assets` と公開アセット詳細 `/assets/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。アセット系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮 ownerId フォールバック）
+
+### ゲーム制作/編集基盤まわり
+
+- **ゲームエディタ edit 画面の情報設計v2**（右ペインセクション化MVP）
 	- 通常表示・ノード全画面表示の両方に反映済み
 	- セクション見出しと折りたたみ範囲を一致化
 	- 危険操作を独立セクション化
 	- 分類整理: キャラクター配置は「表示・素材」、カメラ/カメラ演出/ビジュアルエフェクト/カラーフィルターは「演出」
-- 右ペインセクション開閉状態の localStorage 保存
-	- キー: `talking.editor.rightPaneSections.v1`（現状は全ゲーム共通）
-	- 通常表示/全画面表示で同じ開閉状態を共有
-	- 保存値破損時は既定値にフォールバック、未定義キーは既定値で補完
-- edit画面の最後の選択位置（シーン/ノード）の localStorage 保存・復元MVP
-	- キー: `talking.editor.lastSelection.v1:${gameId}`（ゲームごとに分離）
-	- シーン選択/ノード選択時に `sceneId` / `nodeId` を更新し、再訪時に復元
-	- 保存済み scene/node が削除済み・不正な場合は安全にフォールバック
-	- 右ペイン開閉状態保存（`talking.editor.rightPaneSections.v1`）とは別キーで共存
+- **右ペインセクション開閉状態の localStorage 保存**（キー: `talking.editor.rightPaneSections.v1`。通常表示/全画面表示で共有。保存値破損時は既定値にフォールバック、未定義キーは既定値で補完）
+- **edit 画面の最後の選択位置（シーン/ノード）の localStorage 保存・復元MVP**（キー: `talking.editor.lastSelection.v1:${gameId}`（ゲームごとに分離）。保存済み scene/node が削除済み・不正な場合は安全にフォールバック）
+- **ゲーム参照診断API MVP**（素材/キャラクター/キャラクター画像の参照エラー検査、11種類の警告コード、warning 表示、save/publish をブロックしない）
+- **エディタ画面への参照診断統合**（シナリオチェック画面にマージ表示、localIssues + referenceIssues、重大度順ソート、ノード/シーン操作時に動的リフレッシュ）
+- **ゲーム公開前チェックMVP**（フロント事前チェック + API 最終防衛線。error 時は公開ブロック・warning 時は確認）
+- **公開前チェックUIカテゴリ分けMVP**（「公開前チェック」改称、件数表示付きカテゴリフィルタ、issue カードへのカテゴリラベル表示、公開切替時カテゴリ別 warning 確認）
+- **シナリオチェックMVP**（整合性チェック一覧・error/warning/info 分類・対象ジャンプ）
+- **シナリオチェック追加MVP**（空本文/空ラベル/表示可能選択肢0件/開始シーン以外の startNodeId 壊れ → warning）
+- **NodePicker「シーン → ノード」二段階選択UI**（キーボード操作・stale state 修正・詳細プレビュー）
+- **シーンラベル・シーン管理性改善MVP**（シーン名編集UI・一覧改善・NodePicker 連携）
+- **自作ゲーム管理 `/my/games` ゲーム複製MVP**（owner 限定、確認ダイアログ、複製後編集画面遷移）
+- **ゲーム基本情報編集MVP**（`/my/games/:id/edit` で `title` / `summary` 編集、保存状態表示、複製後タイトル変更導線）
+- **ゲームカバー画像選択UI MVP**（ゲーム全体設定 > 基本情報タブで `coverAssetId` 選択/解除、公開一覧/詳細・自作一覧への反映）
+- **Node 保存時の背景/BGM/SE 参照アセット共通バリデーション MVP**（`bgAssetId`=`image/*`・`musicAssetId`/`sfxAssetId`=`audio/*`・本人所有 or お気に入り済み・削除済み拒否。`GamesService.assertGameAssetUsable` 共通化。カバー画像チェックも同関数に委譲。）
+- **開始地点設定導線の拡張**（ノード側に加えてシーン側から開始シーン設定）
+- **ゲームプレイ画面キーボード操作MVP**（Enter/Space・↑/↓/Enter・数字キー・Esc）
+- **ゲームプレイ画面 BGMフェードMVP**（停止フェードアウト・切替時直列フェード・同一BGM継続）
 
-**将来課題**
+### 公開ゲーム・ギャラリーまわり
 
-現在 `favorites` がいいねと制作素材棚を兼任している。将来的に以下の4概念・DB分離を検討すること。設計方針は `docs/PROJECT_SPEC.md` の「いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）」に詳細を明文化済み（2026-05-04）。
+- **ゲーム制作・公開・共有フローMVP**（公開一覧・API・公開切替・UI 導線）
+- **ノード/シーン/ゲーム 削除MVP**（削除前確認・参照解除・導線）
+- **公開ゲーム一覧 `/games` 検索・並び替えMVP**（`q` + `sort` + URL 同期 + API 側検索/ソート）
+- **自作ゲーム管理 `/my/games` 検索・並び替え・公開状態フィルタMVP**（`q` + `sort` + `status` + URL 同期 + API 側検索/ソート/フィルタ）
+- **公開ゲーム閲覧数/プレイ数 集計MVP**（`viewCount` / `playCount` + 明示カウントAPI + 一覧/詳細表示）
+- **公開ギャラリー検索**（/search/assets 接続、Meilisearch 障害時 Prisma fallback）
+- **未ログイン公開ギャラリーで `/favorites` を呼ばない修正**、公開ゲームのセーブ/ロードUX 補正
 
-- **いいね / Like**（`AssetLike` / `CharacterLike`）
-  - 純粋な好き/応援/評価指標
-  - ランキング・おすすめへの活用
-- **素材棚 / Shelf**（`AssetShelfItem` / `CharacterShelfItem`）
-  - 制作用に保存したアセット/キャラクター
-  - `AssetPicker` / `CharacterPicker` の素材候補として表示
-- **採用 / Adoption**（`GameAssetReference` / `GameCharacterReference`）
-  - 実際にゲーム内ノード/シーンで参照されているアセット/キャラクター
-  - 使用数/採用数集計・作者への実績返還の基盤
-- **引用・クレジット / Credit**（`GameCredit` / `GameAssetCredit` → または `GameAssetReference` から自動生成）
-  - 公開ゲームページやスタッフロールでの素材作者/キャラクター作者表示
-  - MVPでは採用関係から自動生成方針
+### アセット・キャラクター管理まわり
 
-指標分離案:
-- いいね数（人気/評価）
-- 素材棚追加数（制作者が使いたいと思った数）
-- 採用数/使用数（実際にゲーム内で使われた数）
-- 閲覧数（見られた数）
+- **キャラクター削除時の利用影響表示MVP**（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
+- **アセット削除時の利用影響表示MVP**（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
+- **アセットお気に入り数表示MVP**（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
+- **ゲーム内参照アセット権限ルールの棚卸しMVP**（自分+お気に入り方針の明文化、UI/API 現状差分の記録）
 
-コード実装の段階案:
-1. 文言整理MVP（お気に入りを素材棚寄りにするか検討）
-2. Like / Shelf DB分離（`AssetLike` / `AssetShelfItem` 導入）
-3. ~~公開時点のクレジット/利用条件スナップショット固定を設計・実装~~ → **実装済み（2026-05-06）**（`GameCredit` DB分離・`snapshotLockedAt` 導入・公開前クレジット確認画面MVP）
-4. 手動クレジットUI/API・~~公開前確認画面からの編集導線強化~~（**実装済み 2026-05-07**）・スタッフロールUIなど運用ガードを強化
-5. 構造化ライセンス / `Asset.visibility` / `Asset.isPublic` / 派生元追跡を段階実装
+### 概念整理・インフラ
 
-関連: スタッフロール/クレジット表示（`docs/PROJECT_SPEC.md` 内 スタッフロール/クレジット表示（将来課題）も参照）
+- **いいね / 素材棚 / 採用 / 引用・クレジット の4概念分離設計**を docs に明文化（`docs/PROJECT_SPEC.md` 「いいね / 素材棚 / 採用 / 引用・クレジット — 概念整理（設計方針）」、コード実装は将来段階的に実施）
+- **共通ヘッダーのスマホ対応MVP**（2026-05-07）
+- **SSRフォールバック規約整備**・`/my/games` SSR 由来エラー修正（2026-05-07）
 
 ---
 
-**直近の残課題（優先順）**
-- 公開前チェックUIカテゴリ分けMVPは実装済み（2026-05-04）。今後の残り: 自動修復/一括差し替え/クレジット未設定チェックなど
-- 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化、展開部の重大度フィルタ削除）
-- 非公開化時の影響表示（`Asset.visibility` / `Asset.isPublic` 設計後に接続予定。未実装）
-- ~~公開前クレジット確認画面~~ → **実装済み（2026-05-06）** — `/my/games` 公開ボタン押下後にクレジット確認モーダルを表示。詳細は PROJECT_SPEC.md 参照。UI polish済み（2026-05-07）: status警告サマリー・空表示・usageTerms折り返し・a11y・公開処理中二重防止を追加。
-- 手動クレジットUI/API（manual credit運用）
-- GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
-- ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）** — 公開済みゲームで `syncGameReferences` が走った後、`lockUnlockedGameCreditsIfPublished` により未lock `GameCredit` を即lock。削除された参照の locked credit は履歴として保持。
-- ~~公開前確認画面からの編集導線強化~~ → **実装済み（2026-05-07）** — クレジット確認モーダルに「編集画面で参照警告を確認」ボタン追加。素材/キャラクター別カテゴリフィルタ付きで `/my/games/{id}/edit` へ遷移。将来課題: ノード/フィールド単位ジャンプ
-- 公開中編集時の保存前再確認UXはMVP実装済み（2026-05-08）。将来課題: 差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離
-- ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
-- クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
+## 🔧 公開・クレジットまわりの現在仕様
 
-**将来課題: asset visibility / usage relation / derivative tracking**
+### GET /games/:id/credits
+
+- **公開済みゲームの通常公開詳細**: `GameCredit` を優先して返却。locked `GameCredit` は公開時点クレジット履歴として保持。
+- **非公開ゲームのオーナー公開前確認** (`!game.isPublic && game.ownerId === userId`):
+	- 現在の `GameProject` / `GameScene` / `GameNode` 内容を走査（`collectGameReferenceUsageFromGame`）して収集した参照 ID のみを表示対象にする。
+	- `GameCredit` の locked snapshot は名前・作者表示名・利用条件・`creditRequired` の**補完用途**のみ。
+	- 現在参照されていない locked credit は公開前確認の修正対象として表示しない。
+- `GameCredit` が空のゲームは既存方式（`GameAssetReference` / `GameCharacterReference` → 動的集計）へフォールバック（互換維持）。
+- 詳細仕様: `docs/PROJECT_SPEC.md` 参照。
+
+### 公開前確認モーダル（/my/games）
+
+- `/my/games` の非公開→公開フローで表示（シナリオチェック + 参照診断後）。
+- 素材/キャラクター別のクレジット確認（名前・作者・creditRequired/usageTerms・status・使用箇所）。
+- `deleted` / `missing` / `private`（キャラクター）status に修正候補文を表示。
+- 警告ありの場合、編集画面への遷移ボタンを表示:
+	- 全体警告ボタン: `focusScenarioCheck=1&scenarioCheckFilter=warning`
+	- 素材別カード: `scenarioCheckCategory=asset-reference`
+	- キャラクター別カード: `scenarioCheckCategory=character-reference`
+- 素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため現行UIでは扱わない。
+- 詳細仕様: `docs/PROJECT_SPEC.md` 参照。
+
+### 公開中編集（/my/games/:id/edit）
+
+- 公開済みゲームでも編集可能（自動で非公開にはしない）。
+- 保存した変更は公開版にも即反映される。
+- タイトル行直下に注意バナーを表示。折りたたみ状態は `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存。
+- 公開中ゲームで「保存」「保存して次のノードへ」を押したとき**のみ** `window.confirm` で再確認。キャンセル時は保存しない。
+- 非公開ゲームでは確認なし。
+- **将来課題**: ノード追加・シーン追加・削除系 confirm 拡張、差分検出、独自モーダル、公開版/下書き版分離。
+
+---
+
+## 🎯 次にやる候補
+
+優先順（現時点のおすすめ順）:
+
+1. **手動クレジットUI/API MVP** — `GameCredit` の manual entry UI と API。スタッフロール前段として。
+2. **スタッフロールUI** — 公開ゲーム詳細でのスタッフロール/クレジット表示UI。関連: `docs/PROJECT_SPEC.md` 内「スタッフロール/クレジット表示（将来課題）」。
+3. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
+4. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
+5. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
+
+---
+
+## 🔮 後回しにする大きめ課題
+
+**クレジット・ライセンス**
+- GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
+- ノード/フィールド単位の直接ジャンプ（クレジット確認からの精密ジャンプ、現状はカテゴリフィルタ単位）
+- 構造化ライセンス（CC ライセンス等）
+- 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）
+- 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化等）
+
+**アセット/キャラクター visibility**
 - `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
-- 非公開化時の影響表示（削除時影響表示APIと接続する形で実装予定）
-- `GameAssetReference` / `GameCharacterReference` 運用後の改善（参照整合性監視、欠落データ補修、診断UX強化）
-  - `db:check-game-references` … 読み取り専用の同期ズレ検出（実装済み 2026-05-06）
-  - `db:sync-game-references` … ズレを修復する backfill / 修復用スクリプト（実装済み）
-- `GameCredit` 運用ガード強化（`db:check-game-credits` の差分詳細化、公開前確認フロー連携）
-- ~~公開後の参照追加・削除を含む運用ガードの厳密化~~ → **実装済み（2026-05-07）**（`lockUnlockedGameCreditsIfPublished` helper 追加、`syncGameReferences` 末尾で公開済みなら即lock）
+- 非公開化時の利用中ゲームへの影響表示（`Asset.visibility` 設計後に接続予定）
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）
-- ライセンス/利用条件/クレジット表示方針の整理
-- キャラクター配置全体の参照検証のUI改善（参照切れ表示 / リンク切れ警告）
-- 公開前warning強化 / UI改善（参照切れ warning はAPI実装済み、フロント表示の改善が残り）
-- 非公開化時の利用中ゲームへの影響表示（`Asset.visibility` 設計後に接続予定）
-- いいね/素材棚/採用/クレジットのDB・UI分離（段階的実施、設計は docs 明文化済み（2026-05-04））
-- アセット閲覧数 `viewCount` のMVP導入（`/assets/:id` のみカウント、一覧/管理画面は非対象）
+
+**いいね / 素材棚 DB・UI 分離**（設計は `docs/PROJECT_SPEC.md` に明文化済み）
+- 現在 `favorites` がいいねと制作素材棚を兼任。将来的に以下の4概念・DB分離を検討:
+	- **いいね / Like**（`AssetLike` / `CharacterLike`）— 純粋な好き/応援/評価指標。ランキング・おすすめへの活用
+	- **素材棚 / Shelf**（`AssetShelfItem` / `CharacterShelfItem`）— 制作用に保存したアセット/キャラクター。`AssetPicker` / `CharacterPicker` の素材候補として表示
+	- **採用 / Adoption**（`GameAssetReference` / `GameCharacterReference`）— 実際にゲーム内ノード/シーンで参照されているアセット/キャラクター（基盤は実装済み）
+	- **引用・クレジット / Credit**（`GameCredit`）— 公開ゲームページやスタッフロールでの素材作者/キャラクター作者表示（MVP 実装済み）
+- 段階案: 文言整理MVP → `AssetLike` / `AssetShelfItem` 導入 → 構造化ライセンス
+
+**指標・分析**
+- アセット閲覧数 `viewCount` MVP（`/assets/:id` のみカウント、一覧/管理画面は非対象）
 - アセット使用数 `usedInGameCount` の定義と集計方針（公開/非公開、削除時扱い）
 - アセット指標ソート・ランキング（お気に入り順/閲覧数順/使用数順/人気順）
-- アセット指標の検索連携（タグ検索との複合、Meilisearch連携）
+- アセット指標の検索連携（タグ検索との複合、Meilisearch 連携）
 - 指標基盤強化（`favoriteCount` カラム化、ユニーク閲覧、イベントログ、作者ダッシュボード）
-- NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
-- edit画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）
+
+**ゲーム編集体験**
+- edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）
 - 右ペインセクションの要約表示（閉じた状態での情報把握）の強化
-- edit画面全体の本格的な情報設計v2
+- edit 画面全体の本格的な情報設計v2
 - スマホ/タブレット向け編集体験の再設計
 - 3ペイン構造そのものの再設計
-- キーコンフィグ・AUTO/Skip高度化・プレイヤーごとのセーブデータ設計
 - 作業位置保存のリセット導線（例: 「最後の選択位置をリセット」）
+- NodePicker シーン一覧（左ペイン）のキーボード操作・フォーカス設計・スクロール保持
+
+**プレイヤー体験**
+- キーコンフィグ・AUTO/Skip 高度化・プレイヤーごとのセーブデータ設計
+
+**ゲーム一覧・プロフィール**
 - 公開ゲーム一覧の拡張（ページネーション / 無限スクロール / 人気順・プレイ数順 / タグ検索 / 作者検索）
+- プロフィール拡張（slug / プロフィール画像 / SNSリンク / 本格的な作者別作品一覧）
+- タグ/ジャンル編集
+
+**シナリオ・制作ツール**
+- 変数条件の厳密評価（condition/alternateCondition）
+- フローチャート可視化
+- シナリオ Import/Export（JSON → AI 向け Markdown/DSL）
 
 ---
 
@@ -188,6 +251,12 @@
 | 2026-05-04 | ✅ exit 0 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/frontend test` は 4 files / 31 tests passed |
 | 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api build` は `prisma:generate` で EPERM（DLLロック） |
 | 2026-05-04 | ❌ exit 1 | ゲームカバー画像選択UI MVP後。`pnpm -C apps/api run test` は `ERR_PNPM_NO_SCRIPT`（test script未定義） |
+
+---
+
+## 📚 履歴ログ
+
+> 以下は作業単位ごとの確認メモです。最新の進捗・仕様は上部セクションを参照してください。
 
 ---
 
