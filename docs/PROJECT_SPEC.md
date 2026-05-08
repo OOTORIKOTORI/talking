@@ -148,6 +148,11 @@
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
   - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX、`Asset.visibility` / `Asset.isPublic` は将来課題。
+- 公開前クレジット確認の表示基準（2026-05-08）
+  - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
+  - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
+  - 公開済みゲームの詳細表示 / 履歴保持では、従来通り `GameCredit` テーブルを優先した表示を維持する。
+  - locked `GameCredit` は公開済みゲームの表示・履歴保持用であり、非公開ゲームの公開前確認における修正対象としては扱わない。
 - 署名URL（GET/PUT）
   - GET（閲覧用）: `GET /uploads/signed-get?key=...&ttl=...` → JSON `{ url }`
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedGetUrl`

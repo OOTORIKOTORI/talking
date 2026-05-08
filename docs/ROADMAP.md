@@ -1,17 +1,17 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-07（公開後参照追加・削除の厳密運用MVP、公開前確認画面からの編集導線強化MVP、公開前確認画面内の修正候補表示MVP、共通ヘッダースマホ対応MVP、公開中編集時の注意バナーMVP、公開中編集バナー折りたたみMVP）
+> 最終更新: 2026-05-08（公開前確認の最新参照反映・履歴クレジット混入防止）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-07）
+## 📍 現在地サマリ（2026-05-08）
 
-ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。公開時点のクレジット/利用条件スナップショット固定、公開後参照追加・削除の厳密運用を実装。公開前クレジット確認画面 UI polish・編集導線強化MVP・確認画面内の修正候補表示MVP、/my/games の SSR 由来エラー修正、共通ヘッダーのスマホ対応MVPを完成。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。公開中編集時の注意バナーMVP（折りたたみ機能含む）を追加。公開前確認画面からの編集導線強化MVP（クレジット確認モーダルから編集画面の公開前チェックへ遷移）を追加。
+ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。公開時点のクレジット/利用条件スナップショット固定、公開後参照追加・削除の厳密運用を実装。公開前クレジット確認画面 UI polish・編集導線強化MVP・確認画面内の修正候補表示MVP、/my/games の SSR 由来エラー修正、共通ヘッダーのスマホ対応MVPを完成。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。公開中編集時の注意バナーMVP（折りたたみ機能含む）を追加。公開前確認画面からの編集導線強化MVP（クレジット確認モーダルから編集画面の公開前チェックへ遷移）を追加。公開前確認モーダルに削除済み・古い参照が混入する問題を修正（非公開ゲームの公開前確認では現在ゲーム内容から参照を収集する方式に変更）。
 
 **実装済み（主要）**
-- 公開前確認画面内の修正候補表示MVP（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- 公開前確認の最新参照反映・履歴クレジット混入防止（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中のIDのみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - 公開前確認画面からの編集導線強化MVP（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - 公開中編集バナー折りたたみMVP（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - 公開中編集時の注意バナーMVP（`isPublic === true` のゲームを編集中、タイトル行直下に注意バナーを表示。保存時の即時公開反映と新規追加クレジットの即lockを明示。挙動変更・自動非公開化なし。`apps/frontend/pages/my/games/[id]/edit.vue`）

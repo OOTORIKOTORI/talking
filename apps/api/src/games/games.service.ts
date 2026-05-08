@@ -1534,8 +1534,15 @@ export class GamesService {
     if (!game || game.deletedAt) throw new NotFoundException('game not found');
     if (!game.isPublic && game.ownerId !== userId) throw new NotFoundException('game not found');
 
-    let { assetUsageById, characterUsageById } = await this.loadGameReferenceUsageFromTable(id);
-    if (assetUsageById.size === 0 && characterUsageById.size === 0) {
+    // 非公開ゲームのオーナーが公開前確認として呼ぶケース:
+    // GameCredit 履歴ではなく現在のゲーム内容から参照を収集する
+    const isOwnerPrivatePreview = !game.isPublic && game.ownerId === userId;
+
+    let { assetUsageById, characterUsageById } = isOwnerPrivatePreview
+      ? await this.collectGameReferenceUsageFromGame(game)
+      : await this.loadGameReferenceUsageFromTable(id);
+
+    if (!isOwnerPrivatePreview && assetUsageById.size === 0 && characterUsageById.size === 0) {
       ({ assetUsageById, characterUsageById } = await this.collectGameReferenceUsageFromGame(game));
     }
 
@@ -1572,10 +1579,18 @@ export class GamesService {
       }
     }
 
-    const assetIds = hasGameCredits ? orderedAssetIdsFromCredits : Array.from(assetUsageById.keys());
-    const characterIds = hasGameCredits
-      ? orderedCharacterIdsFromCredits
-      : Array.from(characterUsageById.keys());
+    // 公開前確認 (isOwnerPrivatePreview) では現在参照中のIDのみを対象にする。
+    // GameCredit 履歴は名前/利用条件などの補完のみに使用し、表示対象の選定には使わない。
+    const assetIds = isOwnerPrivatePreview
+      ? Array.from(assetUsageById.keys())
+      : hasGameCredits
+        ? orderedAssetIdsFromCredits
+        : Array.from(assetUsageById.keys());
+    const characterIds = isOwnerPrivatePreview
+      ? Array.from(characterUsageById.keys())
+      : hasGameCredits
+        ? orderedCharacterIdsFromCredits
+        : Array.from(characterUsageById.keys());
 
     const [assets, characters] = await Promise.all([
       assetIds.length > 0
