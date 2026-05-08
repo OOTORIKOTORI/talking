@@ -228,7 +228,10 @@
     - `label` は必須（trim後1文字以上、100文字以内）
     - `manualRole`（任意、50文字以内）/ `manualNote`（任意、2000文字以内）/ `manualUrl`（任意、http(s)のみ）
     - `sortOrder` 未指定時は末尾に追加
-    - 公開中ゲームで POST/PATCH した `MANUAL` 行は `snapshotLockedAt` を即時更新し、公開版へ反映する
+    - **公開中ゲームでの手動クレジット変更**
+      - 公開中ゲームで POST/PATCH/DELETE した手動クレジット変更は、`snapshotLockedAt` を即時更新し、公開版にも即反映される。
+      - フロントUIでは公開中ゲーム対象の追加/編集/削除実行前に確認ダイアログ（`window.confirm`）を表示する。
+      - 削除時の確認は「削除確認」と「公開版反映注意」を1つの confirm に統合済み（文言例: 「このゲームは公開中です。手動クレジット「XX」を削除すると公開版にも反映されます。削除しますか？」）。
   - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
   - 公開プレイ開始カウント: `POST /games/:id/play`
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
@@ -403,10 +406,15 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `GameCredit.snapshotLockedAt DateTime?` を導入。
   - `snapshotLockedAt = null` は通常同期対象、`snapshotLockedAt != null` は公開時点固定済み。
   - 公開遷移（`PATCH /games/:id` で `isPublic: false -> true`）時に `lockGameCreditsSnapshot` を実行し、参照同期 -> クレジット同期 -> 未ロック行の `snapshotLockedAt` 設定を行う。
-  - `syncGameCredits` は locked 行の snapshot 表示値（`sourceNameSnapshot`, `ownerDisplayNameSnapshot`, `usageTermsSnapshot`, `creditRequiredSnapshot`）を上書きしない。
-  - `syncGameCredits` の delete/recreate 対象は `ASSET` / `CHARACTER` の unlocked 行のみ。`MANUAL` は unlocked でも削除しない。
-  - `snapshotLockedAt != null` の行は通常同期で削除・上書きしない（公開時点クレジット記録を保持）。
-  - `snapshotLockedAt = null` の行は現在参照に追従して同期される。
+  - **ASSET / CHARACTER の同期と lock**
+    - `syncGameCredits` は locked 行の snapshot 表示値（`sourceNameSnapshot`, `ownerDisplayNameSnapshot`, `usageTermsSnapshot`, `creditRequiredSnapshot`）を上書きしない。
+    - `syncGameCredits` の delete/recreate 対象は `ASSET` / `CHARACTER` の unlocked 行のみ。
+    - `snapshotLockedAt = null` の ASSET/CHARACTER 行は現在参照に追従して `syncGameCredits` で同期される。
+    - `snapshotLockedAt != null` の行は通常同期で削除・上書きしない（公開時点クレジット記録を保持）。
+  - **MANUAL は手動管理、自動同期対象外**
+    - `MANUAL` は `snapshotLockedAt` の値に関わらず、`syncGameCredits` の delete/recreate 対象外（削除しない）。
+    - `MANUAL` は手動入力・編集・削除により手動管理される。
+    - `MANUAL` は公開時または公開中編集時に `snapshotLockedAt` が設定される。非公開時は通常 `null`。
   - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
   - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
 - `GET /games/:id/credits` は、公開済みゲームの通常公開詳細表示では `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持する。非公開ゲームのオーナーによる公開前確認は、現在参照（`collectGameReferenceUsageFromGame`）を表示対象基準にする。
@@ -510,7 +518,6 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
     - より精密なノード/フィールド単位ジャンプ（クレジット確認モーダルから特定ノードへの直接ジャンプ）
     - クレジット確認画面内の修正候補表示の拡張（ノード/フィールド単位の具体ガイド、一括修正候補、自動差し替え提案）
     - 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）
-    - 手動クレジットUI/API
     - スタッフロールUI
   - **その他**
     - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理

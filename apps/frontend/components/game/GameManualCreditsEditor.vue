@@ -217,11 +217,11 @@ function confirmForPublicChange() {
 
 function confirmForDelete(label: string) {
   if (!process.client) return true
-  
+
   if (!props.isPublic) {
     return window.confirm(`手動クレジット「${label}」を削除しますか？`)
   }
-  
+
   return window.confirm(
     `このゲームは公開中です。手動クレジット「${label}」を削除すると公開版にも反映されます。削除しますか？`,
   )
