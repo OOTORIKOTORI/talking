@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-08（公開前確認の最新参照反映・履歴クレジット混入防止）
+> 最終更新: 2026-05-08（公開中編集時の保存前再確認UX MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -8,11 +8,12 @@
 
 ## 📍 現在地サマリ（2026-05-08）
 
-ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。公開時点のクレジット/利用条件スナップショット固定、公開後参照追加・削除の厳密運用を実装。公開前クレジット確認画面 UI polish・編集導線強化MVP・確認画面内の修正候補表示MVP、/my/games の SSR 由来エラー修正、共通ヘッダーのスマホ対応MVPを完成。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。公開中編集時の注意バナーMVP（折りたたみ機能含む）を追加。公開前確認画面からの編集導線強化MVP（クレジット確認モーダルから編集画面の公開前チェックへ遷移）を追加。公開前確認モーダルに削除済み・古い参照が混入する問題を修正（非公開ゲームの公開前確認では現在ゲーム内容から参照を収集する方式に変更）。
+ゲーム制作機能の基盤が整い、MVP級の編集・公開・プレイが一通り動く状態。公開時点のクレジット/利用条件スナップショット固定、公開後参照追加・削除の厳密運用を実装。公開前クレジット確認画面 UI polish・編集導線強化MVP・確認画面内の修正候補表示MVP、/my/games の SSR 由来エラー修正、共通ヘッダーのスマホ対応MVPを完成。参照診断API（エディタ検証）を追加。アセット/キャラクター削除前の影響警告表示を追加。いいね / 素材棚 / 採用 / 引用・クレジットの4概念分離設計を docs に明文化。公開中編集時の注意バナーMVP（折りたたみ機能含む）を追加。公開前確認画面からの編集導線強化MVP（クレジット確認モーダルから編集画面の公開前チェックへ遷移）を追加。公開前確認モーダルに削除済み・古い参照が混入する問題を修正（非公開ゲームの公開前確認では現在ゲーム内容から参照を収集する方式に変更）。公開中編集時の保存前再確認UX MVP（公開ゲーム保存時のみ confirm、キャンセル時は保存中断）を追加。
 
 **実装済み（主要）**
 - 公開前確認の最新参照反映・履歴クレジット混入防止（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中のIDのみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - 公開前確認画面からの編集導線強化MVP（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- 公開中編集時の保存前再確認UX MVP（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - 公開中編集バナー折りたたみMVP（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - 公開中編集時の注意バナーMVP（`isPublic === true` のゲームを編集中、タイトル行直下に注意バナーを表示。保存時の即時公開反映と新規追加クレジットの即lockを明示。挙動変更・自動非公開化なし。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - 公開時点クレジット/利用条件スナップショット固定MVP（`GameCredit.snapshotLockedAt` 追加。公開遷移で `lockGameCreditsSnapshot` 実行。`syncGameCredits` は locked snapshot を上書き・削除しない。backfill 用に `db:lock-game-credit-snapshots`、検証用に `db:check-game-credit-snapshots` を追加）
@@ -112,7 +113,8 @@
 - 手動クレジットUI/API（manual credit運用）
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
 - ~~公開後の参照追加・削除の厳密運用~~ → **実装済み（2026-05-07）** — 公開済みゲームで `syncGameReferences` が走った後、`lockUnlockedGameCreditsIfPublished` により未lock `GameCredit` を即lock。削除された参照の locked credit は履歴として保持。
-- ~~公開前確認画面からの編集導線強化~~ → **実装済み（2026-05-07）** — クレジット確認モーダルに「編集画面で参照警告を確認」ボタン追加。素材/キャラクター別カテゴリフィルタ付きで `/my/games/{id}/edit` へ遷移。将来課題: ノード/フィールド単位ジャンプ・公開中編集時の再確認UX
+- ~~公開前確認画面からの編集導線強化~~ → **実装済み（2026-05-07）** — クレジット確認モーダルに「編集画面で参照警告を確認」ボタン追加。素材/キャラクター別カテゴリフィルタ付きで `/my/games/{id}/edit` へ遷移。将来課題: ノード/フィールド単位ジャンプ
+- 公開中編集時の保存前再確認UXはMVP実装済み（2026-05-08）。将来課題: 差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離
 - ~~ライセンス/利用条件表示の導入~~ → **MVP実装済み（2026-05-05）** — `usageTerms`（自由入力）+ `creditRequired`（boolean）をAsset/Characterに追加。詳細は PROJECT_SPEC.md 参照。
 - クレジット作者表示の改善（`ownerDisplayName` 優先表示・作者プロフィールページリンク・表示名スナップショット保存MVPは実装済み。残: ライセンス体系化など）
 

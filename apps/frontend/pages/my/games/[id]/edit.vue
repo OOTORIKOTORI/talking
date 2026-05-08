@@ -383,6 +383,18 @@ const defaultThemeV2 = {
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
 const isPublishedGame = computed(() => game.value?.isPublic === true)
 
+function confirmSavePublishedGame() {
+  if (!isPublishedGame.value) return true
+  if (!process.client) return true
+
+  return window.confirm([
+    'このゲームは公開中です。',
+    '保存した変更は公開版にも反映されます。',
+    '新しく追加された素材・キャラクターのクレジットは保存時点の情報として固定されます。',
+    '保存を続行しますか？',
+  ].join('\n'))
+}
+
 // StageCanvas はテーマをそのまま渡す（内部で v2 解決される）
 const stageTheme = computed(() => previewTheme.value)
 
@@ -1514,6 +1526,7 @@ async function addNode() {
 
 async function saveNode() {
   if (!scene.value || !node.value) return
+  if (!confirmSavePublishedGame()) return
   saving.value = true
   try {
     // 署名URLはDBに保存しない(TTL切れ防止)
@@ -1557,6 +1570,7 @@ async function saveNode() {
 // 保存して次のノードへ（連結して新規ノードを作成）
 async function saveAndCreateNext() {
   if (!scene.value || !node.value) return
+  if (!confirmSavePublishedGame()) return
   saving.value = true
   try {
     // 1) 現在ノードを保存
