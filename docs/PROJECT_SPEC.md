@@ -390,7 +390,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - 2026-05-05 時点では `GameCredit` 分離は未実装だったが、2026-05-06 の GameCredit DB分離MVPで実装済み。
 - 公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入、公開遷移で lock）。
 - 公開後参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`syncGameReferences` 後に `lockUnlockedGameCreditsIfPublished` を呼び出し、公開済みゲームで unlocked `GameCredit` を即lock）。
-- 公開ゲーム詳細ページ `/games/:id` に「使用素材・キャラクター」欄を表示する。
+- 公開ゲーム詳細ページ `/games/:id` に「クレジット」欄を表示し、現在は素材・キャラクター・手動クレジットを区分表示する。
 
 ## GameCredit DB分離MVP（2026-05-06）
 
