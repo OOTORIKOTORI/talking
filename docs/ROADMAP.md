@@ -1,18 +1,19 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-08（公開中編集時の保存前再確認UX MVP）
+> 最終更新: 2026-05-09（手動クレジットUI/API MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-08）
+## 📍 現在地サマリ（2026-05-09）
 
 最新コミット: `eab745b2be740f6cb2d9ea47e87fa7fc30ba0923`
 
 以下の MVP が一区切り済みです。
 
 **公開・クレジットまわり**
+- 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`、owner向けCRUD、公開中即反映）
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
@@ -38,6 +39,8 @@
 
 ### 公開・クレジットまわり
 
+- **手動クレジットUI/API MVP**（2026-05-09 実装）（`GameCredit.kind = MANUAL` をゲーム単位の手動クレジットとして運用。`GET/POST/PATCH/DELETE /games/:id/manual-credits` を追加。公開中ゲームでの追加/編集は `snapshotLockedAt` を即時更新。`GET /games/:id/credits` に `manualCredits` と `counts.manual` を追加し、`counts.total` を `assets + characters + manual` に拡張。`syncGameCredits` の delete/recreate 対象を `ASSET/CHARACTER` unlocked のみに限定し、`MANUAL` を削除しないよう修正。）
+
 - **公開前確認での最新参照反映・履歴クレジット混入防止**（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中の ID のみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
 - **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
@@ -49,7 +52,7 @@
 - **GameCredit DB 分離MVP**（`GameCredit` テーブル追加。`GameAssetReference` / `GameCharacterReference` から自動同期。`db:sync-game-references` 後に GameCredit も同期。`GET /games/:id/credits` は公開済みゲーム詳細で GameCredit 優先、空時は既存方式へ fallback。非公開ゲームのオーナー公開前確認は現在参照優先の例外あり（詳細は `docs/PROJECT_SPEC.md` 参照）。`db:check-game-credits` を追加）
 - **GameCredit 実レスポンス確認・互換ガードMVP**（`smoke:game-credits` スクリプト追加。APIレスポンス構造互換性を smoke test。`db:check-game-credits`（DB 整合）と `smoke:game-credits`（APIレスポンス互換）で役割分離）
 - **ゲーム使用素材・キャラクター参照DB分離MVP**（`GameAssetReference` / `GameCharacterReference` を追加。`create` / `coverAssetId` 更新 / `upsertNode` / `deleteNode` / `deleteScene` / `duplicate` で同期。`GET /games/:id/credits` は参照テーブル優先＋空時 fallback でレスポンス互換を維持）
-- **公開前クレジット確認画面MVP**（2026-05-06 実装）（`/my/games` の公開ボタンをクリック時、既存シナリオチェック＋参照診断の後、「公開前にクレジットを確認」モーダル表示。各項目に作者名・クレジット必須/任意・利用条件・status 警告を表示。キャンセルボタンで公開しない、「確認して公開」ボタンで既存公開処理を実行。手動クレジット編集・スタッフロール・構造化ライセンス・`Asset.visibility` / `Asset.isPublic` は本MVP対象外）
+- **公開前クレジット確認画面MVP**（2026-05-06 実装）（`/my/games` の公開ボタンをクリック時、既存シナリオチェック＋参照診断の後、「公開前にクレジットを確認」モーダル表示。各項目に作者名・クレジット必須/任意・利用条件・status 警告を表示。キャンセルボタンで公開しない、「確認して公開」ボタンで既存公開処理を実行。当時は手動クレジットUI/APIは対象外だったが、2026-05-09に別MVPとして実装済み）
 - **クレジット欄UI polish**（ownerId 短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
 - **ライセンス/利用条件表示MVP**（`usageTerms`（自由入力）+ `creditRequired`（boolean）を Asset/Character に追加。2026-05-05 実装済み。詳細は `docs/PROJECT_SPEC.md` 参照）
 - **公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP**（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
@@ -152,11 +155,10 @@
 
 優先順（現時点のおすすめ順）:
 
-1. **手動クレジットUI/API MVP** — `GameCredit` の manual entry UI と API。スタッフロール前段として。
-2. **スタッフロールUI** — 公開ゲーム詳細でのスタッフロール/クレジット表示UI。関連: `docs/PROJECT_SPEC.md` 内「スタッフロール/クレジット表示（将来課題）」。
-3. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
-4. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
-5. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
+1. **スタッフロールUI** — 公開ゲーム詳細でのスタッフロール/クレジット表示UI。関連: `docs/PROJECT_SPEC.md` 内「スタッフロール/クレジット表示（将来課題）」。
+2. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
+3. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
+4. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
 
 ---
 

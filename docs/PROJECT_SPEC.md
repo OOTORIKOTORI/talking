@@ -131,7 +131,8 @@
     - `gameId`: ゲームID
     - `assetCredits`: 素材クレジット配列
     - `characterCredits`: キャラクタークレジット配列
-    - `counts`: `{ assets: number, characters: number, total: number }`
+    - `manualCredits`: 手動クレジット配列
+    - `counts`: `{ assets: number, characters: number, manual: number, total: number }`
     - `checkedAt`: 確認時刻（ISO8601）
   - 各素材クレジット（`GameAssetCreditItem`）フィールド：
     - `assetId`, `title`, `ownerId`, `ownerDisplayName`, `contentType`, `primaryTag`
@@ -144,15 +145,18 @@
     - `usageCount`, `fields`
     - `status` (`active` / `deleted` / `missing` / `private`)
     - `linkable`, `usageTerms`, `creditRequired`
+  - 各手動クレジット（`GameManualCreditItem`）フィールド：
+    - `id`, `label`, `manualRole`, `manualNote`, `manualUrl`, `sortOrder`
+    - `snapshotLockedAt`, `locked`
   - クレジット取得失敗時：エラー表示＋再試行ボタン
-  - 手動クレジット編集、手動追加・削除、スタッフロール、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は本MVP対象外
+  - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。スタッフロール、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は対象外。
 - 作者表示名スナップショット（2026-05-06 MVP）
   - `Asset` / `Character` / `GameProject` は作成時点の `ownerDisplayNameSnapshot` を保持する。
   - API の `ownerDisplayName` は `ownerDisplayNameSnapshot` → 現在の `CreatorProfile.displayName` → `null` の順で解決する。
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API MVPも実装済み（`GameCredit.kind = MANUAL`）。スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
 - 公開前クレジット確認の表示基準（2026-05-08）
   - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
@@ -211,8 +215,20 @@
       - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
       - characters: `speakerCharacterId`, `portraits[*].characterId`, `portraits[*].imageId`（`CharacterImage.id` から逆引き）
     - 同一IDはクレジット上で1件に集約し、`usageCount` と `fields[*].count` を返却
-    - 公開詳細ページでは「使用素材・キャラクター」欄として表示
+    - `manualCredits` は `GameCredit.kind = MANUAL` から返し、現在参照ベースの対象には含めない
+    - `manualCredits` は status warning（deleted/missing/private）判定の対象外
+    - `counts.total` は `assets + characters + manual` で計算する
+    - 公開詳細ページでは「クレジット」欄として表示
     - 削除済み/非公開/不明の素材・キャラクターは詳細を出しすぎない（フォールバック名で表示、`linkable: false`）
+  - 手動クレジット管理（ownerのみ）
+    - `GET /games/:id/manual-credits`
+    - `POST /games/:id/manual-credits`
+    - `PATCH /games/:id/manual-credits/:creditId`
+    - `DELETE /games/:id/manual-credits/:creditId`
+    - `label` は必須（trim後1文字以上、100文字以内）
+    - `manualRole`（任意、50文字以内）/ `manualNote`（任意、2000文字以内）/ `manualUrl`（任意、http(s)のみ）
+    - `sortOrder` 未指定時は末尾に追加
+    - 公開中ゲームで POST/PATCH した `MANUAL` 行は `snapshotLockedAt` を即時更新し、公開版へ反映する
   - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
   - 公開プレイ開始カウント: `POST /games/:id/play`
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
@@ -376,9 +392,9 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 ## GameCredit DB分離MVP（2026-05-06）
 
 - `GameCredit` テーブル（`game_credits`）を追加し、ゲームクレジット表示向けレコードをDB分離。
-- `GameCredit` は手動編集せず、`GameAssetReference` / `GameCharacterReference` から自動同期する。
-- 同期項目（MVP）
-  - `kind`（`ASSET | CHARACTER | MANUAL`。`MANUAL` は予約のみで運用未実装）
+- `GameCredit` は自動同期（`ASSET` / `CHARACTER`）と手動入力（`MANUAL`）を併用する。
+- 同期項目（自動同期MVP）
+  - `kind`（`ASSET | CHARACTER`）
   - `label`, `sourceNameSnapshot`, `ownerUserId`, `ownerDisplayNameSnapshot`
   - `usageTermsSnapshot`, `creditRequiredSnapshot`, `sortOrder`
 - `ownerDisplayNameSnapshot` は同期時点で `Asset/Character.ownerDisplayNameSnapshot` を優先し、未設定時は `CreatorProfile.displayName` を参照して保存。
@@ -388,6 +404,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `snapshotLockedAt = null` は通常同期対象、`snapshotLockedAt != null` は公開時点固定済み。
   - 公開遷移（`PATCH /games/:id` で `isPublic: false -> true`）時に `lockGameCreditsSnapshot` を実行し、参照同期 -> クレジット同期 -> 未ロック行の `snapshotLockedAt` 設定を行う。
   - `syncGameCredits` は locked 行の snapshot 表示値（`sourceNameSnapshot`, `ownerDisplayNameSnapshot`, `usageTermsSnapshot`, `creditRequiredSnapshot`）を上書きしない。
+  - `syncGameCredits` の delete/recreate 対象は `ASSET` / `CHARACTER` の unlocked 行のみ。`MANUAL` は unlocked でも削除しない。
   - `snapshotLockedAt != null` の行は通常同期で削除・上書きしない（公開時点クレジット記録を保持）。
   - `snapshotLockedAt = null` の行は現在参照に追従して同期される。
   - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
@@ -399,7 +416,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 参照削除時の locked 行は削除しない。履歴クレジットとして `/games/:id/credits` に残る（`usageCount: 0`, `fields: []`）。
   - `lockGameCreditsSnapshot`（公開遷移時）は `syncGameReferences` 呼び出し後に念のため最終 `updateMany` を維持する。
   - `syncGameCredits` の二重呼び出しは `lockGameCreditsSnapshot` 内で除去した。
-- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。
+- スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。手動クレジットUI/API MVPは2026-05-09に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`

@@ -7,6 +7,7 @@ import CharacterPicker from '@/components/pickers/CharacterPicker.vue'
 import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
 import MiniStage from '@/components/game/MiniStage.vue'
 import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
+import GameManualCreditsEditor from '@/components/game/GameManualCreditsEditor.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -2100,6 +2101,12 @@ function onUp() {
               </div>
             </div>
           </div>
+
+          <GameManualCreditsEditor
+            v-if="game?.id"
+            :game-id="game.id"
+            :is-public="game.isPublic === true"
+          />
 
           <!-- ミニプレビュー -->
           <!-- 全画面は 2 カラムに分割：左=ステージ / 右=フォーム -->

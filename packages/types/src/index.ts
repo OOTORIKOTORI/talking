@@ -395,13 +395,26 @@ export interface GameCharacterCreditItem {
   creditRequired: boolean
 }
 
+export interface GameManualCreditItem {
+  id: string
+  label: string
+  manualRole: string | null
+  manualNote: string | null
+  manualUrl: string | null
+  sortOrder: number
+  snapshotLockedAt: string | null
+  locked: boolean
+}
+
 export interface GameCreditsResult {
   gameId: string
   assetCredits: GameAssetCreditItem[]
   characterCredits: GameCharacterCreditItem[]
+  manualCredits: GameManualCreditItem[]
   counts: {
     assets: number
     characters: number
+    manual: number
     total: number
   }
   checkedAt: string

@@ -190,6 +190,9 @@ model GameCredit {
   assetId                  String?
   characterId              String?
   label                    String
+  manualRole               String?
+  manualUrl                String?
+  manualNote               String?        @db.Text
   ownerUserId              String?
   ownerDisplayNameSnapshot String?
   sourceNameSnapshot       String?

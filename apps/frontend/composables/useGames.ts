@@ -11,6 +11,12 @@ export function useGamesApi() {
     countView: (id: string) => api(`/games/${id}/view`, { method: 'POST' }),
     countPlay: (id: string) => api(`/games/${id}/play`, { method: 'POST' }),
     getCredits: (id: string) => api(`/games/${id}/credits`),
+    getManualCredits: (id: string) => api(`/games/${id}/manual-credits`),
+    createManualCredit: (id: string, b: any) => api(`/games/${id}/manual-credits`, { method: 'POST', body: b }),
+    updateManualCredit: (id: string, creditId: string, b: any) =>
+      api(`/games/${id}/manual-credits/${creditId}`, { method: 'PATCH', body: b }),
+    deleteManualCredit: (id: string, creditId: string) =>
+      api(`/games/${id}/manual-credits/${creditId}`, { method: 'DELETE' }),
     getEdit: (id: string) => api(`/games/${id}/edit`),
     getReferenceDiagnostics: (id: string) => api(`/games/${id}/reference-diagnostics`),
     my: (q?: { q?: string; sort?: MyGamesSort; status?: MyGamesStatus }) => api('/games/my', { query: q }),

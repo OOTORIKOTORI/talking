@@ -15,7 +15,7 @@
         <div class="border-b border-gray-200 px-6 py-4">
           <h2 id="credit-confirm-title" class="text-xl font-bold text-gray-900">公開前にクレジットを確認</h2>
           <p class="text-sm text-gray-600 mt-1">
-            このゲームで使用している素材・キャラクターのクレジットと利用条件を確認してください。<br />
+            このゲームで使用している素材・キャラクター・手動クレジットの内容を確認してください。<br />
             公開すると、現在のクレジット情報が公開時点の記録として固定されます。
           </p>
         </div>
@@ -68,7 +68,7 @@
               v-if="data.counts.total === 0"
               class="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 text-center"
             >
-              参照中の素材・キャラクターはありません。
+              参照中の素材・キャラクター、手動クレジットはありません。
             </div>
 
             <!-- Asset Credits Section -->
@@ -261,6 +261,47 @@
                 </div>
               </div>
             </section>
+
+            <!-- Manual Credits Section -->
+            <section class="mt-6">
+              <h3 class="font-semibold text-gray-900 mb-3">
+                手動クレジット
+                <span class="text-sm text-gray-600 font-normal ml-2">{{ data.counts.manual }}件</span>
+              </h3>
+
+              <div v-if="data.manualCredits.length === 0" class="text-sm text-gray-500 italic">
+                手動クレジットはありません。
+              </div>
+
+              <div v-else class="space-y-3">
+                <div
+                  v-for="manual in data.manualCredits"
+                  :key="manual.id"
+                  class="border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow"
+                >
+                  <p class="font-medium text-gray-900 break-words">{{ manual.label }}</p>
+                  <p v-if="manual.manualRole" class="mt-1 text-sm text-gray-600">種別/役割: {{ manual.manualRole }}</p>
+                  <p
+                    v-if="manual.manualNote"
+                    class="mt-2 whitespace-pre-wrap break-words rounded bg-slate-50 px-2 py-1 text-sm text-gray-700"
+                  >
+                    {{ manual.manualNote }}
+                  </p>
+                  <p v-if="manual.manualUrl" class="mt-2 text-sm">
+                    <a
+                      v-if="isHttpUrl(manual.manualUrl)"
+                      :href="manual.manualUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 hover:underline"
+                    >
+                      {{ manual.manualUrl }}
+                    </a>
+                    <span v-else class="text-gray-600">{{ manual.manualUrl }}</span>
+                  </p>
+                </div>
+              </div>
+            </section>
           </template>
         </div>
 
@@ -359,6 +400,11 @@ function getFixHintClass(status: CreditStatus): string {
     return 'border-red-200 bg-red-50 text-red-700'
   }
   return 'border-amber-200 bg-amber-50 text-amber-800'
+}
+
+function isHttpUrl(value: string | null | undefined): boolean {
+  if (!value) return false
+  return /^https?:\/\//i.test(value)
 }
 
 function onEscape() {

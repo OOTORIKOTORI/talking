@@ -36,6 +36,9 @@ type MyGamesSort = 'updated' | 'created' | 'title' | 'public';
 type MyGamesStatus = 'all' | 'public' | 'private';
 const GAME_TITLE_MAX_LENGTH = 120;
 const GAME_SUMMARY_MAX_LENGTH = 500;
+const GAME_MANUAL_CREDIT_LABEL_MAX_LENGTH = 100;
+const GAME_MANUAL_CREDIT_ROLE_MAX_LENGTH = 50;
+const GAME_MANUAL_CREDIT_NOTE_MAX_LENGTH = 2000;
 
 // Reference diagnostics types
 type GameReferenceDiagnosticCode =
@@ -123,12 +126,25 @@ type GameCreditsResult = {
   gameId: string;
   assetCredits: GameAssetCreditItem[];
   characterCredits: GameCharacterCreditItem[];
+  manualCredits: GameManualCreditItem[];
   counts: {
     assets: number;
     characters: number;
+    manual: number;
     total: number;
   };
   checkedAt: string;
+};
+
+type GameManualCreditItem = {
+  id: string;
+  label: string;
+  manualRole: string | null;
+  manualNote: string | null;
+  manualUrl: string | null;
+  sortOrder: number;
+  snapshotLockedAt: string | null;
+  locked: boolean;
 };
 
 type GameReferenceUsage<TField extends string> = {
@@ -175,6 +191,65 @@ export class GamesService {
     if (typeof value !== 'string') return fallback;
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : fallback;
+  }
+
+  private normalizeManualCreditRequiredLabel(value: unknown, fieldName = 'label'): string {
+    if (typeof value !== 'string') {
+      throw new BadRequestException(`${fieldName} must be a string`);
+    }
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      throw new BadRequestException(`${fieldName} must not be empty`);
+    }
+    if (trimmed.length > GAME_MANUAL_CREDIT_LABEL_MAX_LENGTH) {
+      throw new BadRequestException(
+        `${fieldName} must be at most ${GAME_MANUAL_CREDIT_LABEL_MAX_LENGTH} characters`,
+      );
+    }
+    return trimmed;
+  }
+
+  private normalizeManualCreditOptionalText(
+    value: unknown,
+    fieldName: string,
+    maxLength: number,
+  ): string | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value !== 'string') {
+      throw new BadRequestException(`${fieldName} must be a string or null`);
+    }
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    if (trimmed.length > maxLength) {
+      throw new BadRequestException(`${fieldName} must be at most ${maxLength} characters`);
+    }
+    return trimmed;
+  }
+
+  private normalizeManualCreditUrl(value: unknown): string | null | undefined {
+    const normalized = this.normalizeManualCreditOptionalText(value, 'manualUrl', 2048);
+    if (normalized === undefined || normalized === null) return normalized;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      throw new BadRequestException('manualUrl must be a valid URL');
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new BadRequestException('manualUrl must start with http:// or https://');
+    }
+    return parsed.toString();
+  }
+
+  private normalizeManualCreditSortOrder(value: unknown): number | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new BadRequestException('sortOrder must be a number');
+    }
+    return Math.floor(value);
   }
 
   private normalizeReferenceFields<TField extends string>(
@@ -520,7 +595,11 @@ export class GamesService {
   ): Promise<void> {
     const data = await this.buildSyncedGameCredits(gameId, prismaClient);
     const lockedCredits = await prismaClient.gameCredit.findMany({
-      where: { gameId, snapshotLockedAt: { not: null } },
+      where: {
+        gameId,
+        snapshotLockedAt: { not: null },
+        kind: { in: [GameCreditKind.ASSET, GameCreditKind.CHARACTER] },
+      },
       select: { kind: true, assetId: true, characterId: true },
     });
 
@@ -530,7 +609,13 @@ export class GamesService {
       ),
     );
 
-    await prismaClient.gameCredit.deleteMany({ where: { gameId, snapshotLockedAt: null } });
+    await prismaClient.gameCredit.deleteMany({
+      where: {
+        gameId,
+        snapshotLockedAt: null,
+        kind: { in: [GameCreditKind.ASSET, GameCreditKind.CHARACTER] },
+      },
+    });
 
     const dataToCreate = data.filter((item) => {
       const key = item.assetId ? `${item.kind}:${item.assetId}` : `${item.kind}:${item.characterId}`;
@@ -1555,6 +1640,22 @@ export class GamesService {
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
+    const manualCreditRows = await this.prisma.gameCredit.findMany({
+      where: {
+        gameId: id,
+        kind: GameCreditKind.MANUAL,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        label: true,
+        manualRole: true,
+        manualNote: true,
+        manualUrl: true,
+        sortOrder: true,
+        snapshotLockedAt: true,
+      },
+    });
     const hasGameCredits = gameCredits.length > 0;
 
     const orderedAssetIdsFromCredits: string[] = [];
@@ -1835,17 +1936,224 @@ export class GamesService {
       characterCredits.sort(sortByUsageAndTitle);
     }
 
+    const manualCredits: GameManualCreditItem[] = manualCreditRows.map((credit) => ({
+      id: credit.id,
+      label: credit.label,
+      manualRole: credit.manualRole ?? null,
+      manualNote: credit.manualNote ?? null,
+      manualUrl: credit.manualUrl ?? null,
+      sortOrder: credit.sortOrder,
+      snapshotLockedAt: credit.snapshotLockedAt ? credit.snapshotLockedAt.toISOString() : null,
+      locked: credit.snapshotLockedAt !== null,
+    }));
+
     return {
       gameId: game.id,
       assetCredits,
       characterCredits,
+      manualCredits,
       counts: {
         assets: assetCredits.length,
         characters: characterCredits.length,
-        total: assetCredits.length + characterCredits.length,
+        manual: manualCredits.length,
+        total: assetCredits.length + characterCredits.length + manualCredits.length,
       },
       checkedAt: new Date().toISOString(),
     };
+  }
+
+  async getManualCredits(userId: string, gameId: string): Promise<GameManualCreditItem[]> {
+    await this.assertGameOwner(userId, gameId);
+
+    const rows = await this.prisma.gameCredit.findMany({
+      where: {
+        gameId,
+        kind: GameCreditKind.MANUAL,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        label: true,
+        manualRole: true,
+        manualNote: true,
+        manualUrl: true,
+        sortOrder: true,
+        snapshotLockedAt: true,
+      },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      label: row.label,
+      manualRole: row.manualRole ?? null,
+      manualNote: row.manualNote ?? null,
+      manualUrl: row.manualUrl ?? null,
+      sortOrder: row.sortOrder,
+      snapshotLockedAt: row.snapshotLockedAt ? row.snapshotLockedAt.toISOString() : null,
+      locked: row.snapshotLockedAt !== null,
+    }));
+  }
+
+  async createManualCredit(userId: string, gameId: string, body: any): Promise<GameManualCreditItem> {
+    const game = await this.assertGameOwner(userId, gameId);
+    const label = this.normalizeManualCreditRequiredLabel(body?.label, 'label');
+    const manualRole = this.normalizeManualCreditOptionalText(
+      body?.manualRole,
+      'manualRole',
+      GAME_MANUAL_CREDIT_ROLE_MAX_LENGTH,
+    );
+    const manualNote = this.normalizeManualCreditOptionalText(
+      body?.manualNote,
+      'manualNote',
+      GAME_MANUAL_CREDIT_NOTE_MAX_LENGTH,
+    );
+    const manualUrl = this.normalizeManualCreditUrl(body?.manualUrl);
+    const providedSortOrder = this.normalizeManualCreditSortOrder(body?.sortOrder);
+
+    const maxOrder = await this.prisma.gameCredit.aggregate({
+      where: { gameId, kind: GameCreditKind.MANUAL },
+      _max: { sortOrder: true },
+    });
+    const sortOrder = providedSortOrder ?? ((maxOrder._max.sortOrder ?? -1) + 1);
+    const lockAt = game.isPublic ? new Date() : null;
+
+    const created = await this.prisma.gameCredit.create({
+      data: {
+        gameId,
+        kind: GameCreditKind.MANUAL,
+        label,
+        manualRole: manualRole ?? null,
+        manualNote: manualNote ?? null,
+        manualUrl: manualUrl ?? null,
+        ownerUserId: userId,
+        ownerDisplayNameSnapshot: game.ownerDisplayNameSnapshot ?? null,
+        sourceNameSnapshot: label,
+        usageTermsSnapshot: manualNote ?? null,
+        sortOrder,
+        snapshotLockedAt: lockAt,
+      },
+      select: {
+        id: true,
+        label: true,
+        manualRole: true,
+        manualNote: true,
+        manualUrl: true,
+        sortOrder: true,
+        snapshotLockedAt: true,
+      },
+    });
+
+    return {
+      id: created.id,
+      label: created.label,
+      manualRole: created.manualRole ?? null,
+      manualNote: created.manualNote ?? null,
+      manualUrl: created.manualUrl ?? null,
+      sortOrder: created.sortOrder,
+      snapshotLockedAt: created.snapshotLockedAt ? created.snapshotLockedAt.toISOString() : null,
+      locked: created.snapshotLockedAt !== null,
+    };
+  }
+
+  async updateManualCredit(
+    userId: string,
+    gameId: string,
+    creditId: string,
+    body: any,
+  ): Promise<GameManualCreditItem> {
+    const game = await this.assertGameOwner(userId, gameId);
+    const existing = await this.prisma.gameCredit.findFirst({
+      where: {
+        id: creditId,
+        gameId,
+        kind: GameCreditKind.MANUAL,
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException('manual credit not found');
+    }
+
+    const updateData: Prisma.GameCreditUpdateInput = {};
+    if (Object.prototype.hasOwnProperty.call(body ?? {}, 'label')) {
+      const label = this.normalizeManualCreditRequiredLabel(body?.label, 'label');
+      updateData.label = label;
+      updateData.sourceNameSnapshot = label;
+    }
+    if (Object.prototype.hasOwnProperty.call(body ?? {}, 'manualRole')) {
+      updateData.manualRole =
+        this.normalizeManualCreditOptionalText(
+          body?.manualRole,
+          'manualRole',
+          GAME_MANUAL_CREDIT_ROLE_MAX_LENGTH,
+        ) ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(body ?? {}, 'manualNote')) {
+      const manualNote = this.normalizeManualCreditOptionalText(
+        body?.manualNote,
+        'manualNote',
+        GAME_MANUAL_CREDIT_NOTE_MAX_LENGTH,
+      );
+      updateData.manualNote = manualNote ?? null;
+      updateData.usageTermsSnapshot = manualNote ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(body ?? {}, 'manualUrl')) {
+      updateData.manualUrl = this.normalizeManualCreditUrl(body?.manualUrl) ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(body ?? {}, 'sortOrder')) {
+      const sortOrder = this.normalizeManualCreditSortOrder(body?.sortOrder);
+      if (sortOrder === undefined) {
+        throw new BadRequestException('sortOrder must be a number');
+      }
+      updateData.sortOrder = sortOrder;
+    }
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException('no updatable fields provided');
+    }
+    if (game.isPublic) {
+      updateData.snapshotLockedAt = new Date();
+    }
+
+    const updated = await this.prisma.gameCredit.update({
+      where: { id: creditId },
+      data: updateData,
+      select: {
+        id: true,
+        label: true,
+        manualRole: true,
+        manualNote: true,
+        manualUrl: true,
+        sortOrder: true,
+        snapshotLockedAt: true,
+      },
+    });
+
+    return {
+      id: updated.id,
+      label: updated.label,
+      manualRole: updated.manualRole ?? null,
+      manualNote: updated.manualNote ?? null,
+      manualUrl: updated.manualUrl ?? null,
+      sortOrder: updated.sortOrder,
+      snapshotLockedAt: updated.snapshotLockedAt ? updated.snapshotLockedAt.toISOString() : null,
+      locked: updated.snapshotLockedAt !== null,
+    };
+  }
+
+  async deleteManualCredit(userId: string, gameId: string, creditId: string): Promise<{ ok: true }> {
+    await this.assertGameOwner(userId, gameId);
+    const existing = await this.prisma.gameCredit.findFirst({
+      where: {
+        id: creditId,
+        gameId,
+        kind: GameCreditKind.MANUAL,
+      },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('manual credit not found');
+    }
+    await this.prisma.gameCredit.delete({ where: { id: creditId } });
+    return { ok: true };
   }
 
   async countPublicView(id: string) {

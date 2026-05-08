@@ -71,6 +71,35 @@ export class GamesController {
     return this.games.getCredits(req.user?.userId, id);
   }
 
+  @Get(':id/manual-credits')
+  @UseGuards(SupabaseAuthGuard)
+  getManualCredits(@Req() req: any, @Param('id') id: string) {
+    return this.games.getManualCredits(req.user.userId, id);
+  }
+
+  @Post(':id/manual-credits')
+  @UseGuards(SupabaseAuthGuard)
+  createManualCredit(@Req() req: any, @Param('id') id: string, @Body() b: any) {
+    return this.games.createManualCredit(req.user.userId, id, b);
+  }
+
+  @Patch(':id/manual-credits/:creditId')
+  @UseGuards(SupabaseAuthGuard)
+  updateManualCredit(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('creditId') creditId: string,
+    @Body() b: any,
+  ) {
+    return this.games.updateManualCredit(req.user.userId, id, creditId, b);
+  }
+
+  @Delete(':id/manual-credits/:creditId')
+  @UseGuards(SupabaseAuthGuard)
+  deleteManualCredit(@Req() req: any, @Param('id') id: string, @Param('creditId') creditId: string) {
+    return this.games.deleteManualCredit(req.user.userId, id, creditId);
+  }
+
   @UseGuards(OptionalSupabaseAuthGuard)
   @Get(':id')
   get(@Req() req: any, @Param('id') id: string) {

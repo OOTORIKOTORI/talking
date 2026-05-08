@@ -45,7 +45,7 @@
             v-if="hasCredits"
             class="rounded-lg border border-gray-200 bg-gray-50/70 p-4 space-y-3"
           >
-            <h2 class="text-sm font-semibold tracking-wide text-gray-700">使用素材・キャラクター</h2>
+            <h2 class="text-sm font-semibold tracking-wide text-gray-700">クレジット</h2>
 
             <div v-if="credits?.assetCredits?.length" class="space-y-2">
               <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">素材</h3>
@@ -146,6 +146,33 @@
                 </li>
               </ul>
             </div>
+
+            <div v-if="credits?.manualCredits?.length" class="space-y-2">
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">手動クレジット</h3>
+              <ul class="space-y-1.5">
+                <li
+                  v-for="item in credits.manualCredits"
+                  :key="`manual-${item.id}`"
+                  class="rounded border border-gray-200 bg-white px-3 py-2"
+                >
+                  <p class="font-medium text-sm text-gray-900 break-words">{{ item.label }}</p>
+                  <p v-if="item.manualRole" class="mt-1 text-xs text-gray-600">種別/役割: {{ item.manualRole }}</p>
+                  <p v-if="item.manualNote" class="mt-1.5 text-xs text-gray-700 whitespace-pre-wrap">{{ item.manualNote }}</p>
+                  <p v-if="item.manualUrl" class="mt-1.5 text-xs">
+                    <a
+                      v-if="isHttpUrl(item.manualUrl)"
+                      :href="item.manualUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 hover:underline"
+                    >
+                      {{ item.manualUrl }}
+                    </a>
+                    <span v-else class="text-gray-500">{{ item.manualUrl }}</span>
+                  </p>
+                </li>
+              </ul>
+            </div>
           </section>
 
           <div class="pt-2 flex flex-wrap gap-2">
@@ -228,9 +255,20 @@ type GameCreditsResult = {
     usageTerms?: string | null
     creditRequired?: boolean
   }>
+  manualCredits: Array<{
+    id: string
+    label: string
+    manualRole: string | null
+    manualNote: string | null
+    manualUrl: string | null
+    sortOrder: number
+    snapshotLockedAt: string | null
+    locked: boolean
+  }>
   counts: {
     assets: number
     characters: number
+    manual: number
     total: number
   }
   checkedAt: string
@@ -249,6 +287,7 @@ const credits = ref<GameCreditsResult | null>(null)
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
 const creditFieldBadges = (fields: Array<{ label: string; count: number }>): string[] =>
   fields.map((field) => `${field.label} ${field.count}箇所`)
+const isHttpUrl = (value: string | null | undefined): boolean => /^https?:\/\//i.test(String(value || ''))
 
 const hasCredits = computed(() => Number(credits.value?.counts?.total || 0) > 0)
 
