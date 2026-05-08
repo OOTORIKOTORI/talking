@@ -215,6 +215,18 @@ function confirmForPublicChange() {
   )
 }
 
+function confirmForDelete(label: string) {
+  if (!process.client) return true
+  
+  if (!props.isPublic) {
+    return window.confirm(`手動クレジット「${label}」を削除しますか？`)
+  }
+  
+  return window.confirm(
+    `このゲームは公開中です。手動クレジット「${label}」を削除すると公開版にも反映されます。削除しますか？`,
+  )
+}
+
 async function load() {
   if (!props.gameId) return
   loading.value = true
@@ -280,10 +292,7 @@ async function submit() {
 }
 
 async function remove(item: GameManualCreditItem) {
-  if (!process.client) return
-  const ok = window.confirm(`手動クレジット「${item.label}」を削除しますか？`)
-  if (!ok) return
-  if (!confirmForPublicChange()) return
+  if (!confirmForDelete(item.label)) return
 
   deletingId.value = item.id
   try {
