@@ -152,7 +152,7 @@
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
 - 公開前クレジット確認の表示基準（2026-05-08）
   - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
@@ -202,7 +202,9 @@
   - クレジット取得: `GET /games/:id/credits`
     - 認可は公開詳細と同様（公開ゲームは未ログイン可、非公開ゲームは owner のみ）
     - 非存在 / `deletedAt != null` / 権限なしは `NotFoundException('game not found')`
-    - `GameCredit` テーブルが存在する場合は `GameCredit` を優先して返却情報（表示名/作者表示名/利用条件/クレジット必須）を構成する
+    - **公開済みゲームの通常公開詳細表示**では、`GameCredit` を優先して返却情報（表示名/作者表示名/利用条件/クレジット必須）を構成し、locked `GameCredit` を履歴として保持する
+    - **非公開ゲームのオーナーによる公開前確認**では、`GameProject` / `GameScene` / `GameNode` の現在内容から収集した参照を表示対象IDの基準とし、現在参照中のIDのみを表示対象にする
+    - 公開前確認ケースの `GameCredit` は、名前・作者表示名・利用条件・`creditRequired` の補完用途としてのみ使い、現在参照されていない locked `GameCredit` を修正対象として表示しない
     - 参照回数・参照フィールド内訳（`usageCount`, `fields`）は `GameAssetReference` / `GameCharacterReference` から取得し、空の場合は `0` / 空配列
     - `GameCredit` が空の場合は、従来どおり `GameAssetReference` / `GameCharacterReference` 優先 + 参照テーブル空時に `GameProject` / `GameScene` / `GameNode` 動的集計へフォールバック（互換維持）
     - 集計対象
@@ -390,14 +392,14 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - `snapshotLockedAt = null` の行は現在参照に追従して同期される。
   - 公開後に現在参照から消えても locked 行は公開時点記録として残す。
   - 既存公開ゲーム向け backfill は `db:lock-game-credit-snapshots` で実施する。
-- `GET /games/:id/credits` は `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持。
+- `GET /games/:id/credits` は、公開済みゲームの通常公開詳細表示では `GameCredit` 優先で返却し、`GameCredit` が空のゲームは既存方式へフォールバックしてレスポンス互換を維持する。非公開ゲームのオーナーによる公開前確認は、現在参照（`collectGameReferenceUsageFromGame`）を表示対象基準にする。
 - 公開後参照追加・削除の厳密運用MVP（2026-05-07 追加）
   - 公開済みゲームで `syncGameReferences`（cover / node / scene 変更）が走った際、`lockUnlockedGameCreditsIfPublished` を末尾で呼び出す。
   - `isPublic = true` のゲームのみ対象。`snapshotLockedAt = null` の `GameCredit` に即座に `snapshotLockedAt` を設定する。
   - 参照削除時の locked 行は削除しない。履歴クレジットとして `/games/:id/credits` に残る（`usageCount: 0`, `fields: []`）。
   - `lockGameCreditsSnapshot`（公開遷移時）は `syncGameReferences` 呼び出し後に念のため最終 `updateMany` を維持する。
   - `syncGameCredits` の二重呼び出しは `lockGameCreditsSnapshot` 内で除去した。
-- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。
+- 手動クレジットUI/API、スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
@@ -411,7 +413,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - 対象フィールド
   - `assetCredits` / `characterCredits` / `counts` / `checkedAt` の存在確認
   - 各 credit item の必須フィールド（`id` / `assetId` / `characterId`, `title` / `displayName`, `ownerId`, `ownerDisplayName`, `status`, `linkable`, `usageCount`, `fields`, `usageTerms`, `creditRequired` など）の確認
-- GameCredit 優先経路とfallback経路の両方が壊れていないことを確認。
+- 公開済みゲーム向け GameCredit 優先経路、非公開ゲーム公開前確認向け現在参照優先経路、fallback経路の互換が壊れていないことを確認。
 - DB整合チェック（`db:check-game-credits`）とsnapshot lockチェック（`db:check-game-credit-snapshots`）とAPIレスポンス互換チェック（`smoke:game-credits`）の役割を分離
   - `db:check-game-credits`: GameAssetReference / GameCharacterReference と GameCredit の整合確認。missing 判定は「現在参照が未lock（`snapshotLockedAt = null`）またはlocked（`snapshotLockedAt != null`）のどちらかで covered されているか」を見る。extra 判定は未lock GameCredit のみを対象にし、locked GameCredit は公開時点履歴として扱って NG にしない。
   - `db:check-game-credit-snapshots`: 公開済みゲームの locked snapshot 状態を検査（公開済みで unlocked が残っていないか、`snapshotLockedAt` と snapshot表示値の妥当性）。
@@ -455,7 +457,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 将来課題:
 - 手動追記/スタッフロール
 - より精密なノード/フィールド単位ジャンプ（現在はカテゴリフィルタ単位）
-- 公開中編集時の再確認UX
+- 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）
 - ライセンス/利用条件の本格体系化（CC ライセンス等）
 
 #### ライセンス/利用条件表示 MVP（2026-05-05）
@@ -473,7 +475,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
   - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
-- `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化MVPは2026-05-07に実装済み（クレジット確認モーダルから公開前チェックへの遷移ボタン追加）。公開中編集時の再確認UXは将来課題。
+- `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化MVPは2026-05-07に実装済み（クレジット確認モーダルから公開前チェックへの遷移ボタン追加）。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）は将来課題。
 
 #### クレジット作者表示の将来改善
 
@@ -490,7 +492,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - **クレジット運用系**
     - より精密なノード/フィールド単位ジャンプ（クレジット確認モーダルから特定ノードへの直接ジャンプ）
     - クレジット確認画面内の修正候補表示の拡張（ノード/フィールド単位の具体ガイド、一括修正候補、自動差し替え提案）
-    - 公開中編集時の再確認UX
+    - 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）
     - 手動クレジットUI/API
     - スタッフロールUI
   - **その他**
