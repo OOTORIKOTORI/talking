@@ -1029,14 +1029,21 @@ GET /games/:id/reference-diagnostics
   - プレイ終了画面（通常表示/フルスクリーン）に「スタッフロール」導線を追加。
   - 公開ゲーム詳細ページのクレジット欄に「スタッフロールで見る」導線を追加。
   - 表示内容は `GET /games/:id/credits` の既存レスポンス（手動クレジット・使用素材・使用キャラクター）をそのまま使用。
+  - クレジット本文の自動スクロール（初期ON、最下部到達で自動停止）。
+  - 停止/再開、先頭へ戻る、手動操作（wheel/touchstart/pointerdown）での自動停止。
+  - スクロールバーを目立たせないスタッフロール風表示（自動再生中に非表示化）。
+  - 上下フェード、再生状態表示、中央上映寄りレイアウトの軽い演出。
   - `manualUrl` は http(s) のみリンク表示。
   - `counts.total === 0` は空表示。
   - 取得失敗時はエラー表示 + 再読み込み導線を表示。
   - DB変更・migration追加・API追加なし。
 - 将来課題
-  - 自動スクロール演出
-  - スキップ演出/速度設定
-  - エンディングノード連動の細かな設定
+  - 速度設定
+  - 表示順カスタマイズ
+  - エンディング後の自動表示
+  - カテゴリ別アニメーション
+  - BGM/SE連動
+  - より凝った演出
 
 ### ドメイン / モデル(Prisma 正)
 - `GameProject { id, ownerId, title, summary?, viewCount Int, playCount Int, startSceneId String?, messageTheme Json?, deletedAt? ... }`
