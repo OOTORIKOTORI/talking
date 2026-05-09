@@ -28,6 +28,52 @@
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
         <div v-if="!fullscreen" class="absolute inset-0 pointer-events-none">
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
+          <div
+            v-if="isTestPlay"
+            class="absolute left-3 top-3 z-30 w-[min(340px,80vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
+          >
+            <div class="flex items-center justify-between gap-2 border-b border-emerald-200/20 px-2 py-1.5">
+              <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+              <div class="flex items-center gap-1">
+                <button
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                >
+                  {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                </button>
+                <NuxtLink
+                  :to="returnToEditorTo"
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                >
+                  編集へ戻る
+                </NuxtLink>
+              </div>
+            </div>
+            <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
+              <p>現在シーン: {{ testPlayCurrentSceneLabel }}</p>
+              <p>現在ノード: {{ testPlayCurrentNodeLabel }}</p>
+              <p>次ノード: {{ testPlayNextNodeLabel }}</p>
+              <p>選択肢数: {{ choices.length }}</p>
+              <div>
+                <p class="opacity-80">選択肢遷移先:</p>
+                <p v-if="testPlayChoiceTransitions.length === 0" class="opacity-70">なし</p>
+                <p
+                  v-for="line in testPlayChoiceTransitions"
+                  :key="line"
+                  class="opacity-90"
+                >
+                  {{ line }}
+                </p>
+              </div>
+              <div>
+                <p class="opacity-80">使用素材:</p>
+                <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
+                <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
+                <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
+                <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
+              </div>
+            </div>
+          </div>
           
           <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
           <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50 pointer-events-auto">
@@ -159,6 +205,53 @@
       
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
       <div class="absolute inset-0 pointer-events-none">
+        <div
+          v-if="isTestPlay"
+          class="absolute left-4 top-4 z-[60] w-[min(360px,84vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
+        >
+          <div class="flex items-center justify-between gap-2 border-b border-emerald-200/20 px-2 py-1.5">
+            <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+            <div class="flex items-center gap-1">
+              <button
+                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+              >
+                {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+              </button>
+              <NuxtLink
+                :to="returnToEditorTo"
+                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+              >
+                編集へ戻る
+              </NuxtLink>
+            </div>
+          </div>
+          <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
+            <p>現在シーン: {{ testPlayCurrentSceneLabel }}</p>
+            <p>現在ノード: {{ testPlayCurrentNodeLabel }}</p>
+            <p>次ノード: {{ testPlayNextNodeLabel }}</p>
+            <p>選択肢数: {{ choices.length }}</p>
+            <div>
+              <p class="opacity-80">選択肢遷移先:</p>
+              <p v-if="testPlayChoiceTransitions.length === 0" class="opacity-70">なし</p>
+              <p
+                v-for="line in testPlayChoiceTransitions"
+                :key="line"
+                class="opacity-90"
+              >
+                {{ line }}
+              </p>
+            </div>
+            <div>
+              <p class="opacity-80">使用素材:</p>
+              <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
+              <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
+              <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
+              <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- スタートオーバーレイ（showStartScreen が true のときのみ表示） -->
         <div v-if="showStartScreen" class="absolute inset-0 z-20 text-white flex items-center justify-center bg-black bg-opacity-50 pointer-events-auto">
           <div class="text-center">
@@ -701,6 +794,59 @@ const hasAudioConsentOverlay = computed(() => !soundOk.value && !!(bgmUrl.value 
 function qStr(v: unknown) {
   if (Array.isArray(v)) return v[0] as string | undefined
   return v as string | undefined
+}
+
+const isTestPlay = computed(() => qStr(route.query.testPlay) === '1')
+const testPlayPanelCollapsed = ref(false)
+
+function shortNodeId(value: string | null | undefined) {
+  if (!value) return '未設定'
+  if (value.length <= 10) return value
+  return `${value.slice(0, 4)}...${value.slice(-4)}`
+}
+
+function findNodeSceneContext(nodeId: string | null | undefined) {
+  if (!nodeId) {
+    return {
+      sceneId: null,
+      sceneName: '',
+      sceneIndex: null,
+      nodeIndex: null,
+      nodeId: null,
+    }
+  }
+
+  const sceneList = Array.isArray(game.value?.scenes) ? game.value.scenes : []
+  for (let si = 0; si < sceneList.length; si++) {
+    const sceneItem = sceneList[si]
+    const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []
+    const ni = sceneNodes.findIndex((nodeItem: any) => nodeItem?.id === nodeId)
+    if (ni >= 0) {
+      return {
+        sceneId: sceneItem.id ?? null,
+        sceneName: String(sceneItem.name ?? ''),
+        sceneIndex: si + 1,
+        nodeIndex: ni + 1,
+        nodeId,
+      }
+    }
+  }
+
+  return {
+    sceneId: null,
+    sceneName: '',
+    sceneIndex: null,
+    nodeIndex: null,
+    nodeId,
+  }
+}
+
+function formatNodeTarget(targetNodeId: string | null | undefined) {
+  const context = findNodeSceneContext(targetNodeId)
+  if (context.nodeIndex != null && context.sceneIndex != null) {
+    return `Node #${context.nodeIndex} (Scene #${context.sceneIndex})`
+  }
+  return `Node ${shortNodeId(targetNodeId ?? null)}`
 }
 
 function slotLabel(slotType: SaveSlotType, slotIndex: number) {
@@ -1975,6 +2121,72 @@ watch(
 const choices = computed(() => {
   if (!current.value) return []
   return filterVisibleChoices(current.value.choices || [], gameState.value as any)
+})
+
+const currentNodeContext = computed(() => {
+  return findNodeSceneContext(current.value?.id)
+})
+
+const nextNodeContext = computed(() => {
+  return findNodeSceneContext(nextNodeId.value)
+})
+
+const testPlayCurrentSceneLabel = computed(() => {
+  const context = currentNodeContext.value
+  if (context.sceneIndex == null) return '不明'
+  if (context.sceneName) return `Scene #${context.sceneIndex} ${context.sceneName}`
+  return `Scene #${context.sceneIndex}`
+})
+
+const testPlayCurrentNodeLabel = computed(() => {
+  const context = currentNodeContext.value
+  if (context.nodeIndex != null) return `Node #${context.nodeIndex}`
+  return `Node ${shortNodeId(current.value?.id ?? null)}`
+})
+
+const testPlayNextNodeLabel = computed(() => {
+  if (!nextNodeId.value) return 'なし'
+  const context = nextNodeContext.value
+  if (context.nodeIndex != null && context.sceneIndex != null) {
+    return `Node #${context.nodeIndex} (Scene #${context.sceneIndex})`
+  }
+  return `Node ${shortNodeId(nextNodeId.value)}`
+})
+
+const testPlayChoiceTransitions = computed(() => {
+  return choices.value.map((choice: any, index: number) => {
+    const primary = formatNodeTarget(choice?.targetNodeId ?? null)
+    const alternateId = qStr(choice?.alternateTargetNodeId)
+    const alternate = alternateId ? ` / 条件分岐 ${formatNodeTarget(alternateId)}` : ''
+    return `選択肢${index + 1} → ${primary}${alternate}`
+  })
+})
+
+const testPlayMaterialSummary = computed(() => {
+  const nodeItem = current.value ?? {}
+  const portraits = Array.isArray(nodeItem.portraits) ? nodeItem.portraits : []
+  return {
+    bgAssetId: qStr(nodeItem.bgAssetId) ?? 'なし',
+    musicAssetId: qStr(nodeItem.musicAssetId) ?? 'なし',
+    sfxAssetId: qStr(nodeItem.sfxAssetId) ?? 'なし',
+    characterCount: portraits.length,
+  }
+})
+
+const returnToEditorTo = computed(() => {
+  const context = currentNodeContext.value
+  const query: Record<string, string> = {}
+  if (context.sceneId) {
+    query.sceneId = context.sceneId
+  }
+  if (context.nodeId) {
+    query.nodeId = context.nodeId
+  }
+
+  return {
+    path: `/my/games/${route.params.id as string}/edit`,
+    query,
+  }
 })
 
 watch(choices, (nextChoices) => {

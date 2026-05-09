@@ -343,17 +343,39 @@ function previewVisualEffect() {
 
 // テストプレイを新しいタブで開く
 function openTestPlay() {
-  if (!scene.value || !game.value) return
+  if (!game.value?.id) return
 
+  const selectedSceneId = normalizeNodeId(scene.value?.id)
+  const selectedNodeId = normalizeNodeId(node.value?.id)
   const projectStartSceneId = normalizeNodeId(game.value.startSceneId)
-  const startScene = nodePickerScenes.value.find((sceneItem: any) => sceneItem.id === projectStartSceneId) ?? scene.value
-  // 開始ノードを決定（優先順: scene.startNodeId → 先頭ノード）
-  const startId = startScene?.startNodeId || startScene?.nodes?.[0]?.id || (startScene?.id === scene.value.id ? nodes.value?.[0]?.id : null)
 
-  // URLを構築
-  const url = `/games/${game.value.id}/play?sceneId=${startScene.id}` +
-    (startId ? `&nodeId=${startId}` : '')
+  const scenesForPicker = nodePickerScenes.value
+  const fallbackScene = scenesForPicker.find((sceneItem: any) => sceneItem.id === projectStartSceneId) ?? scenesForPicker[0] ?? null
+  const activeScene = selectedSceneId
+    ? scenesForPicker.find((sceneItem: any) => sceneItem.id === selectedSceneId) ?? null
+    : null
+  const startScene = activeScene ?? fallbackScene
 
+  let startNodeId: string | null = null
+  if (selectedNodeId && activeScene?.id) {
+    startNodeId = selectedNodeId
+  } else if (activeScene) {
+    startNodeId = normalizeNodeId(activeScene.startNodeId)
+      ?? normalizeNodeId(activeScene.nodes?.[0]?.id)
+  } else {
+    startNodeId = normalizeNodeId(startScene?.startNodeId)
+      ?? normalizeNodeId(startScene?.nodes?.[0]?.id)
+  }
+
+  const query = new URLSearchParams({ testPlay: '1' })
+  if (startScene?.id) {
+    query.set('sceneId', startScene.id)
+  }
+  if (startNodeId) {
+    query.set('nodeId', startNodeId)
+  }
+
+  const url = `/games/${game.value.id}/play?${query.toString()}`
   window.open(url, '_blank')
 }
 
@@ -1912,13 +1934,16 @@ function onUp() {
     <div v-else-if="game" class="space-y-4">
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">{{ game.title }}</h1>
-        <button
-          v-if="game?.id"
-          @click="openTestPlay"
-          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-        >
-          テストプレイ
-        </button>
+        <div class="flex flex-col items-end gap-1">
+          <button
+            v-if="game?.id"
+            @click="openTestPlay"
+            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          >
+            テストプレイ
+          </button>
+          <p class="text-[11px] text-gray-500">保存済み内容で再生</p>
+        </div>
       </div>
 
       <!-- 公開中編集バナー（全文表示） -->
