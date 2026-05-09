@@ -1430,6 +1430,7 @@ async function deleteCurrentScene() {
 
 async function setSceneStartNode(id: string) {
   if (!scene.value) return
+  if (scene.value?.startNodeId === id) return
   if (!confirmPublishedStructureChange([
     'このゲームは公開中です。',
     '開始ノードを変更すると、公開版の開始位置が変わります。',
