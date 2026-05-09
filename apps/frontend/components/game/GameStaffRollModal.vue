@@ -27,9 +27,35 @@
               閉じる
             </button>
           </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="rounded border border-white/20 px-3 py-1.5 text-xs text-slate-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              :aria-pressed="isAutoScrolling"
+              :disabled="!canAutoScroll"
+              @click="toggleAutoScroll"
+            >
+              {{ isAutoScrolling ? '自動スクロール停止' : '自動スクロール再開' }}
+            </button>
+            <button
+              type="button"
+              class="rounded border border-white/20 px-3 py-1.5 text-xs text-slate-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!canAutoScroll"
+              @click="scrollToTop"
+            >
+              先頭へ
+            </button>
+          </div>
         </header>
 
-        <div class="max-h-[calc(88vh-86px)] overflow-y-auto px-5 py-5">
+        <div
+          ref="scrollContainerRef"
+          class="max-h-[calc(88vh-130px)] overflow-y-auto px-5 py-5"
+          @wheel.passive="onManualScrollIntent"
+          @touchstart.passive="onManualScrollIntent"
+          @pointerdown="onManualScrollIntent"
+        >
           <div v-if="loading" class="rounded-lg border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
             スタッフロールを読み込み中...
           </div>
@@ -51,13 +77,13 @@
 
           <div v-else-if="credits" class="space-y-8 pb-2">
             <section class="space-y-3">
-              <h3 class="text-sm font-semibold tracking-wider text-slate-300">手動クレジット</h3>
+              <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">手動クレジット</h3>
               <p v-if="credits.manualCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
               <ul v-else class="space-y-3">
                 <li
                   v-for="item in credits.manualCredits"
                   :key="item.id"
-                  class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3"
+                  class="border-b border-white/10 px-1 pb-3"
                 >
                   <p class="text-sm font-medium text-slate-100 break-words">{{ item.label }}</p>
                   <p v-if="item.manualRole" class="mt-1 text-xs text-slate-300">{{ item.manualRole }}</p>
@@ -79,13 +105,13 @@
             </section>
 
             <section class="space-y-3">
-              <h3 class="text-sm font-semibold tracking-wider text-slate-300">使用素材</h3>
+              <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用素材</h3>
               <p v-if="credits.assetCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
               <ul v-else class="space-y-3">
                 <li
                   v-for="item in credits.assetCredits"
                   :key="item.assetId"
-                  class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3"
+                  class="border-b border-white/10 px-1 pb-3"
                 >
                   <div class="flex flex-wrap items-center gap-2">
                     <p class="text-sm font-medium text-slate-100 break-words">{{ item.title }}</p>
@@ -106,13 +132,13 @@
             </section>
 
             <section class="space-y-3">
-              <h3 class="text-sm font-semibold tracking-wider text-slate-300">使用キャラクター</h3>
+              <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用キャラクター</h3>
               <p v-if="credits.characterCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
               <ul v-else class="space-y-3">
                 <li
                   v-for="item in credits.characterCredits"
                   :key="item.characterId"
-                  class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3"
+                  class="border-b border-white/10 px-1 pb-3"
                 >
                   <div class="flex flex-wrap items-center gap-2">
                     <p class="text-sm font-medium text-slate-100 break-words">{{ item.displayName || item.name }}</p>
@@ -160,6 +186,22 @@ const emit = defineEmits<{
   retry: []
 }>()
 
+const AUTO_SCROLL_SPEED_PX_PER_SEC = 22
+
+const scrollContainerRef = ref<HTMLElement | null>(null)
+const isAutoScrolling = ref(false)
+const shouldResetScrollOnReady = ref(false)
+
+let animationFrameId: number | null = null
+let lastFrameTime = 0
+
+const canAutoScroll = computed(() => {
+  if (!props.isOpen) return false
+  if (props.loading) return false
+  if (props.error) return false
+  return Boolean(props.credits && props.credits.counts.total > 0)
+})
+
 function emitClose() {
   emit('close')
 }
@@ -167,6 +209,93 @@ function emitClose() {
 function isHttpUrl(value: string | null | undefined): boolean {
   if (!value) return false
   return /^https?:\/\//i.test(value)
+}
+
+function cleanupAnimationFrame() {
+  if (animationFrameId === null) return
+  cancelAnimationFrame(animationFrameId)
+  animationFrameId = null
+}
+
+function stopAutoScroll() {
+  cleanupAnimationFrame()
+  isAutoScrolling.value = false
+  lastFrameTime = 0
+}
+
+function runAutoScrollFrame(timestamp: number) {
+  if (!isAutoScrolling.value) return
+
+  const container = scrollContainerRef.value
+  if (!container) {
+    stopAutoScroll()
+    return
+  }
+
+  if (lastFrameTime === 0) {
+    lastFrameTime = timestamp
+  }
+
+  const deltaSeconds = (timestamp - lastFrameTime) / 1000
+  lastFrameTime = timestamp
+
+  const maxScrollTop = container.scrollHeight - container.clientHeight
+  if (maxScrollTop <= 0) {
+    stopAutoScroll()
+    return
+  }
+
+  const nextScrollTop = Math.min(
+    container.scrollTop + AUTO_SCROLL_SPEED_PX_PER_SEC * deltaSeconds,
+    maxScrollTop,
+  )
+  container.scrollTop = nextScrollTop
+
+  if (nextScrollTop >= maxScrollTop - 0.5) {
+    stopAutoScroll()
+    return
+  }
+
+  animationFrameId = requestAnimationFrame(runAutoScrollFrame)
+}
+
+function startAutoScroll() {
+  if (!canAutoScroll.value) return
+  if (isAutoScrolling.value) return
+
+  cleanupAnimationFrame()
+  isAutoScrolling.value = true
+  lastFrameTime = 0
+  animationFrameId = requestAnimationFrame(runAutoScrollFrame)
+}
+
+function scrollToTop() {
+  const container = scrollContainerRef.value
+  if (!container) return
+  container.scrollTop = 0
+  startAutoScroll()
+}
+
+function toggleAutoScroll() {
+  if (isAutoScrolling.value) {
+    stopAutoScroll()
+    return
+  }
+  startAutoScroll()
+}
+
+function onManualScrollIntent() {
+  if (!isAutoScrolling.value) return
+  stopAutoScroll()
+}
+
+async function resetAndStartAutoScroll() {
+  if (!canAutoScroll.value) return
+  await nextTick()
+  const container = scrollContainerRef.value
+  if (!container) return
+  container.scrollTop = 0
+  startAutoScroll()
 }
 
 function onWindowKeydown(e: KeyboardEvent) {
@@ -179,10 +308,32 @@ watch(
   (open) => {
     if (!process.client) return
     if (open) {
+      shouldResetScrollOnReady.value = true
       window.addEventListener('keydown', onWindowKeydown)
+      if (canAutoScroll.value) {
+        shouldResetScrollOnReady.value = false
+        void resetAndStartAutoScroll()
+      }
       return
     }
     window.removeEventListener('keydown', onWindowKeydown)
+    shouldResetScrollOnReady.value = false
+    stopAutoScroll()
+  },
+  { immediate: true },
+)
+
+watch(
+  canAutoScroll,
+  (ready) => {
+    if (!ready) {
+      stopAutoScroll()
+      return
+    }
+    if (!props.isOpen) return
+    if (!shouldResetScrollOnReady.value) return
+    shouldResetScrollOnReady.value = false
+    void resetAndStartAutoScroll()
   },
   { immediate: true },
 )
@@ -190,5 +341,6 @@ watch(
 onBeforeUnmount(() => {
   if (!process.client) return
   window.removeEventListener('keydown', onWindowKeydown)
+  stopAutoScroll()
 })
 </script>

@@ -167,7 +167,17 @@
   - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。
   - スタッフロールUI MVP（2026-05-09）を実装済み。`GET /games/:id/credits` を既存仕様のまま利用し、DB変更・migration追加・API追加なしでフロントUIのみ追加。
   - プレイ終了画面（通常表示/フルスクリーン）と公開ゲーム詳細ページからスタッフロールを開ける。
-  - 自動スクロール・スキップ演出・エンディング連動の細かな設定は将来課題。
+  - スタッフロール演出強化MVP（2026-05-09）を実装済み。
+    - クレジット本文の自動スクロール（初期ON、最下部到達で自動停止）
+    - 操作UI（自動スクロール停止/再開、先頭へ戻る）
+    - ユーザーの手動操作（wheel/touchstart/pointerdown）時の自動スクロール停止
+  - 以下は将来課題のまま。
+    - 速度設定
+    - 表示順カスタマイズ
+    - エンディング後の自動表示
+    - より凝った演出
+    - カテゴリ別アニメーション
+    - BGM/SE連動
 - 作者表示名スナップショット（2026-05-06 MVP）
   - `Asset` / `Character` / `GameProject` は作成時点の `ownerDisplayNameSnapshot` を保持する。
   - API の `ownerDisplayName` は `ownerDisplayNameSnapshot` → 現在の `CreatorProfile.displayName` → `null` の順で解決する。
