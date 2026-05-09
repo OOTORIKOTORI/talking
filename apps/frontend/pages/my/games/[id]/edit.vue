@@ -1275,13 +1275,34 @@ function buildNodeDeleteConfirmMessage(summary: any | null) {
   ].join('\n')
 }
 
-function confirmNodeDeletion(summary: any | null) {
-  if (isEditingPublishedGame()) {
-    return confirmPublishedStructureChange([
+function buildPublishedNodeDeleteConfirmMessage(summary: any | null) {
+  if (!summary) {
+    return [
       'このゲームは公開中です。',
       'このノードを削除すると、公開版の進行や選択肢が壊れる可能性があります。',
+      '',
+      '削除時に、開始ノードや遷移先として参照されている設定は自動で解除されます。',
       '削除しますか？',
-    ].join('\n'))
+    ].join('\n')
+  }
+
+  return [
+    'このゲームは公開中です。',
+    'このノードを削除すると、公開版の進行や選択肢が壊れる可能性があります。',
+    '',
+    `開始ノード参照: ${summary.startNodeRefCount}件`,
+    `nextNode参照: ${summary.nextNodeRefCount}件`,
+    `choice遷移先参照: ${summary.choiceTargetRefCount}件`,
+    `choice分岐遷移先参照: ${summary.choiceAlternateRefCount}件`,
+    '',
+    'これらの参照は削除時に自動で解除されます。',
+    '削除しますか？',
+  ].join('\n')
+}
+
+function confirmNodeDeletion(summary: any | null) {
+  if (isEditingPublishedGame()) {
+    return confirmPublishedStructureChange(buildPublishedNodeDeleteConfirmMessage(summary))
   }
 
   return confirm(buildNodeDeleteConfirmMessage(summary))
@@ -1310,13 +1331,36 @@ function buildSceneDeleteConfirmMessage(summary: any | null) {
   ].join('\n')
 }
 
-function confirmSceneDeletion(summary: any | null) {
-  if (isEditingPublishedGame()) {
-    return confirmPublishedStructureChange([
+function buildPublishedSceneDeleteConfirmMessage(summary: any | null) {
+  if (!summary) {
+    return [
       'このゲームは公開中です。',
       'このシーンを削除すると、公開版の進行に影響する可能性があります。',
+      '',
+      'シーン内ノードも削除され、外部参照は自動で解除されます。',
       '削除しますか？',
-    ].join('\n'))
+    ].join('\n')
+  }
+
+  return [
+    'このゲームは公開中です。',
+    'このシーンを削除すると、公開版の進行に影響する可能性があります。',
+    '',
+    `削除されるノード数: ${summary.nodeCount}件`,
+    `このシーンへの開始シーン参照: ${summary.startSceneRefCount}件`,
+    `シーン内ノードへの開始ノード参照: ${summary.startNodeRefCount}件`,
+    `シーン外ノードからのnextNode参照: ${summary.externalNextNodeRefCount}件`,
+    `シーン外choiceからの遷移先参照: ${summary.externalChoiceTargetRefCount}件`,
+    `シーン外choiceからの分岐遷移先参照: ${summary.externalChoiceAlternateRefCount}件`,
+    '',
+    'これらの参照は削除時に自動で解除されます。',
+    '削除しますか？',
+  ].join('\n')
+}
+
+function confirmSceneDeletion(summary: any | null) {
+  if (isEditingPublishedGame()) {
+    return confirmPublishedStructureChange(buildPublishedSceneDeleteConfirmMessage(summary))
   }
 
   return confirm(buildSceneDeleteConfirmMessage(summary))
