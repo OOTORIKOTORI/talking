@@ -120,12 +120,20 @@
           <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
           <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
             <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-            <button
-              @click="restart(); ensureBgm()"
-              class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-            >
-              最初から
-            </button>
+            <div class="flex items-center justify-center gap-2">
+              <button
+                @click="openStaffRoll()"
+                class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
+              >
+                スタッフロール
+              </button>
+              <button
+                @click="restart(); ensureBgm()"
+                class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+              >
+                最初から
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -242,12 +250,20 @@
         <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
         <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
           <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-          <button
-            @click="restart(); ensureBgm()"
-            class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-          >
-            最初から
-          </button>
+          <div class="flex items-center justify-center gap-2">
+            <button
+              @click="openStaffRoll()"
+              class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
+            >
+              スタッフロール
+            </button>
+            <button
+              @click="restart(); ensureBgm()"
+              class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
+            >
+              最初から
+            </button>
+          </div>
         </div>
       </div>
       
@@ -351,6 +367,16 @@
         </div>
       </div>
 
+      <GameStaffRollModal
+        :is-open="staffRollOpen"
+        :game-title="game?.title"
+        :credits="staffRollCredits"
+        :loading="staffRollLoading"
+        :error="staffRollError"
+        @close="closeStaffRoll"
+        @retry="retryStaffRoll"
+      />
+
       <BacklogModal
         :is-open="backlog.isOpen.value"
         :entries="backlog.entries.value"
@@ -401,8 +427,10 @@ function closeFs(){ fullscreen.value = false; document.documentElement.classList
 import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import BacklogModal from '@/components/game/BacklogModal.vue'
+import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { DEFAULT_BACKLOG_THEME } from '@talking/types'
+import type { GameCreditsResult } from '@talking/types'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
@@ -600,6 +628,10 @@ const saveLoadOpen = ref(false)
 const modalMode = ref<ModalMode>('save')
 const activeSlotType = ref<SaveSlotType>('MANUAL')
 const selectedSlotKey = ref<string>('MANUAL-1')
+const staffRollOpen = ref(false)
+const staffRollCredits = ref<GameCreditsResult | null>(null)
+const staffRollLoading = ref(false)
+const staffRollError = ref<string | null>(null)
 const saveListData = ref<any[]>([])
 const saveLimits = ref({ manual: 100, auto: 5, quick: 1, total: 106 })
 const savingOrLoading = ref(false)
@@ -691,6 +723,42 @@ function closeSaveLoadModal() {
   saveLoadOpen.value = false
 }
 
+async function loadStaffRollCredits(opts?: { force?: boolean }) {
+  const gameId = String(game.value?.id || '')
+  if (!gameId) return
+  if (!opts?.force && staffRollCredits.value) {
+    staffRollError.value = null
+    return
+  }
+
+  staffRollLoading.value = true
+  staffRollError.value = null
+  try {
+    const res = await api.getCredits(gameId)
+    staffRollCredits.value = res as GameCreditsResult
+  } catch (e: any) {
+    staffRollError.value = e?.data?.message || e?.message || 'スタッフロールの取得に失敗しました。'
+  } finally {
+    staffRollLoading.value = false
+  }
+}
+
+async function openStaffRoll() {
+  stopAutoSkipModes()
+  staffRollOpen.value = true
+  if (!staffRollCredits.value) {
+    await loadStaffRollCredits()
+  }
+}
+
+function closeStaffRoll() {
+  staffRollOpen.value = false
+}
+
+async function retryStaffRoll() {
+  await loadStaffRollCredits({ force: true })
+}
+
 function openBacklog() {
   stopAutoSkipModes()
   backlog.open()
@@ -776,6 +844,7 @@ function toggleSkipMode() {
 function shouldStopAutomation() {
   if (!current.value) return true
   if (showStartScreen.value) return true
+  if (staffRollOpen.value) return true
   if (saveLoadOpen.value || backlog.isOpen.value) return true
   if (hasAudioConsentOverlay.value) return true
   if (showChoices.value) return true
@@ -852,7 +921,7 @@ function onAdvanceInteraction(source: 'manual' | 'auto' | 'skip' = 'manual') {
     return
   }
 
-  if (saveLoadOpen.value || backlog.isOpen.value) return
+  if (staffRollOpen.value || saveLoadOpen.value || backlog.isOpen.value) return
   if (!current.value || showEndScreen.value) return
 
   if (showChoices.value) {
@@ -883,6 +952,10 @@ function shouldIgnorePlayShortcut(e: KeyboardEvent) {
 }
 
 function handleEscPriority() {
+  if (staffRollOpen.value) {
+    closeStaffRoll()
+    return true
+  }
   if (saveLoadOpen.value) {
     closeSaveLoadModal()
     return true
@@ -909,7 +982,7 @@ const onGameKeyDown = (e: KeyboardEvent) => {
   if (shouldIgnorePlayShortcut(e)) return
 
   // モーダル表示中は Esc 以外でゲーム進行しない
-  if (saveLoadOpen.value || backlog.isOpen.value) return
+  if (staffRollOpen.value || saveLoadOpen.value || backlog.isOpen.value) return
 
   if (e.key === 'ArrowUp') {
     if (!showChoices.value) return
@@ -1771,6 +1844,7 @@ function start() {
 function restart() {
   stopAutoSkipModes()
   backlog.reset()
+  closeStaffRoll()
   accumulatedText.value = ''
   gameState.value = {}
   messageTypingComplete.value = true

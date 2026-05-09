@@ -45,7 +45,16 @@
             v-if="hasCredits"
             class="rounded-lg border border-gray-200 bg-gray-50/70 p-4 space-y-3"
           >
-            <h2 class="text-sm font-semibold tracking-wide text-gray-700">クレジット</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-sm font-semibold tracking-wide text-gray-700">クレジット</h2>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-100 transition-colors"
+                @click="openStaffRoll()"
+              >
+                スタッフロールで見る
+              </button>
+            </div>
 
             <div v-if="credits?.assetCredits?.length" class="space-y-2">
               <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">素材</h3>
@@ -196,11 +205,23 @@
           </div>
         </div>
       </article>
+
+      <GameStaffRollModal
+        :is-open="staffRollOpen"
+        :game-title="game?.title"
+        :credits="credits"
+        :loading="staffRollLoading"
+        :error="staffRollError"
+        @close="closeStaffRoll"
+        @retry="retryStaffRoll"
+      />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { GameCreditsResult } from '@talking/types'
+import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
 import { formatCreatorLabel } from '~/utils/creatorDisplay'
 
 type GameScene = {
@@ -223,57 +244,6 @@ type GameDetail = {
   scenes: GameScene[]
 }
 
-type GameCreditAssetField = 'coverAssetId' | 'bgAssetId' | 'musicAssetId' | 'sfxAssetId' | 'portraitAssetId'
-type GameCreditCharacterField = 'speakerCharacterId' | 'portraits'
-
-type GameCreditsResult = {
-  gameId: string
-  assetCredits: Array<{
-    assetId: string
-    title: string
-    ownerId: string | null
-    ownerDisplayName?: string | null
-    contentType: string | null
-    primaryTag: string | null
-    usageCount: number
-    fields: Array<{ field: GameCreditAssetField; label: string; count: number }>
-    status: 'active' | 'deleted' | 'missing'
-    linkable: boolean
-    usageTerms?: string | null
-    creditRequired?: boolean
-  }>
-  characterCredits: Array<{
-    characterId: string
-    displayName: string
-    name: string
-    ownerId: string | null
-    ownerDisplayName?: string | null
-    usageCount: number
-    fields: Array<{ field: GameCreditCharacterField; label: string; count: number }>
-    status: 'active' | 'deleted' | 'missing' | 'private'
-    linkable: boolean
-    usageTerms?: string | null
-    creditRequired?: boolean
-  }>
-  manualCredits: Array<{
-    id: string
-    label: string
-    manualRole: string | null
-    manualNote: string | null
-    manualUrl: string | null
-    sortOrder: number
-    snapshotLockedAt: string | null
-    locked: boolean
-  }>
-  counts: {
-    assets: number
-    characters: number
-    manual: number
-    total: number
-  }
-  checkedAt: string
-}
-
 const route = useRoute()
 const api = useGamesApi()
 const { signedFromId } = useAssetMeta()
@@ -283,6 +253,9 @@ const error = ref<string | null>(null)
 const game = ref<GameDetail | null>(null)
 const coverUrl = ref<string | null>(null)
 const credits = ref<GameCreditsResult | null>(null)
+const staffRollOpen = ref(false)
+const staffRollLoading = ref(false)
+const staffRollError = ref<string | null>(null)
 
 const formatDate = (value: string) => new Date(value).toLocaleDateString('ja-JP')
 const creditFieldBadges = (fields: Array<{ label: string; count: number }>): string[] =>
@@ -290,6 +263,41 @@ const creditFieldBadges = (fields: Array<{ label: string; count: number }>): str
 const isHttpUrl = (value: string | null | undefined): boolean => /^https?:\/\//i.test(String(value || ''))
 
 const hasCredits = computed(() => Number(credits.value?.counts?.total || 0) > 0)
+
+async function loadStaffRollCredits(opts?: { force?: boolean }) {
+  const id = String(route.params.id || '')
+  if (!id) return
+  if (!opts?.force && credits.value) {
+    staffRollError.value = null
+    return
+  }
+
+  staffRollLoading.value = true
+  staffRollError.value = null
+  try {
+    const creditsRes = await api.getCredits(id)
+    credits.value = creditsRes as GameCreditsResult
+  } catch (e: any) {
+    staffRollError.value = e?.data?.message || e?.message || 'クレジットの取得に失敗しました。'
+  } finally {
+    staffRollLoading.value = false
+  }
+}
+
+async function openStaffRoll() {
+  staffRollOpen.value = true
+  if (!credits.value) {
+    await loadStaffRollCredits()
+  }
+}
+
+function closeStaffRoll() {
+  staffRollOpen.value = false
+}
+
+async function retryStaffRoll() {
+  await loadStaffRollCredits({ force: true })
+}
 
 const resolvedStartScene = computed(() => {
   if (!game.value) return null
@@ -326,6 +334,7 @@ onMounted(async () => {
       try {
         const creditsRes = await api.getCredits(id)
         credits.value = creditsRes as GameCreditsResult
+        staffRollError.value = null
       } catch (creditsFetchError) {
         console.warn('failed to fetch game credits', creditsFetchError)
       }

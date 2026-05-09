@@ -149,14 +149,17 @@
     - `id`, `label`, `manualRole`, `manualNote`, `manualUrl`, `sortOrder`
     - `snapshotLockedAt`, `locked`
   - クレジット取得失敗時：エラー表示＋再試行ボタン
-  - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。スタッフロール、構造化ライセンス、`Asset.visibility` / `Asset.isPublic` は対象外。
+  - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。
+  - スタッフロールUI MVP（2026-05-09）を実装済み。`GET /games/:id/credits` を既存仕様のまま利用し、DB変更・migration追加・API追加なしでフロントUIのみ追加。
+  - プレイ終了画面（通常表示/フルスクリーン）と公開ゲーム詳細ページからスタッフロールを開ける。
+  - 自動スクロール・スキップ演出・エンディング連動の細かな設定は将来課題。
 - 作者表示名スナップショット（2026-05-06 MVP）
   - `Asset` / `Character` / `GameProject` は作成時点の `ownerDisplayNameSnapshot` を保持する。
   - API の `ownerDisplayName` は `ownerDisplayNameSnapshot` → 現在の `CreatorProfile.displayName` → `null` の順で解決する。
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API MVPも実装済み（`GameCredit.kind = MANUAL`）。スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPも実装済み。構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
 - 公開前クレジット確認の表示基準（2026-05-08）
   - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
@@ -424,7 +427,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 参照削除時の locked 行は削除しない。履歴クレジットとして `/games/:id/credits` に残る（`usageCount: 0`, `fields: []`）。
   - `lockGameCreditsSnapshot`（公開遷移時）は `syncGameReferences` 呼び出し後に念のため最終 `updateMany` を維持する。
   - `syncGameCredits` の二重呼び出しは `lockGameCreditsSnapshot` 内で除去した。
-- スタッフロールUI、構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。手動クレジットUI/API MVPは2026-05-09に実装済み。
+- 構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離、ノード追加・シーン追加・削除系への公開中confirm拡張）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPは2026-05-09に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
@@ -995,20 +998,20 @@ GET /games/:id/reference-diagnostics
 - クリック長押し / キー長押しによる一時 Skip
 - AUTO 中の選択肢自動選択
 
-#### スタッフロール / クレジット表示（将来課題）
+#### スタッフロール / クレジット表示（MVP実装 + 将来課題）
 
-- ゲーム終了時にスタッフロールやクレジットを表示する
-- ゲーム作者の表示
-- 使用アセットの作者表示（背景・BGM・SE・キャラクター素材など分類）
-- Special Thanks などの自由記述欄
-- エンディングノード到達時にスタッフロールへ自動遷移する機構の検討
-- 設計上の考慣事項:
-  - ユーザー表示名機能が必要
-  - アセット作者表示が必要
-  - 使用アセット一覧をゲームから集計できる必要がある
-  - 削除済み/非公開アセットのクレジット表示方針が必要
-  - クレジット表示許諾や表示名の扱いを検討する
-- 実装優先度: 主要な制作・公開・プレイ機能が安定した後（P3 以降）
+- MVP実装（2026-05-09）
+  - プレイ終了画面（通常表示/フルスクリーン）に「スタッフロール」導線を追加。
+  - 公開ゲーム詳細ページのクレジット欄に「スタッフロールで見る」導線を追加。
+  - 表示内容は `GET /games/:id/credits` の既存レスポンス（手動クレジット・使用素材・使用キャラクター）をそのまま使用。
+  - `manualUrl` は http(s) のみリンク表示。
+  - `counts.total === 0` は空表示。
+  - 取得失敗時はエラー表示 + 再読み込み導線を表示。
+  - DB変更・migration追加・API追加なし。
+- 将来課題
+  - 自動スクロール演出
+  - スキップ演出/速度設定
+  - エンディングノード連動の細かな設定
 
 ### ドメイン / モデル(Prisma 正)
 - `GameProject { id, ownerId, title, summary?, viewCount Int, playCount Int, startSceneId String?, messageTheme Json?, deletedAt? ... }`

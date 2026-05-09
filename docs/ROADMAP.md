@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-09（手動クレジットUI/API MVP）
+> 最終更新: 2026-05-09（スタッフロールUI MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -13,6 +13,7 @@
 以下の MVP が一区切り済みです。
 
 **公開・クレジットまわり**
+- スタッフロールUI MVP（プレイ終了画面 + 公開ゲーム詳細から表示、既存 `GET /games/:id/credits` を再利用）
 - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`、owner向けCRUD、公開中即反映）
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
@@ -38,6 +39,8 @@
 ## ✅ 実装済み（主要）
 
 ### 公開・クレジットまわり
+
+- **スタッフロールUI MVP**（2026-05-09 実装）（`apps/frontend/components/game/GameStaffRollModal.vue` を追加。`GET /games/:id/credits` の既存レスポンスをそのまま表示。プレイ終了画面（通常/フルスクリーン）と公開ゲーム詳細ページに導線を追加。DB変更・migration追加・API追加なし。自動スクロール等の演出は将来課題。）
 
 - **手動クレジットUI/API MVP**（2026-05-09 実装）（`GameCredit.kind = MANUAL` をゲーム単位の手動クレジットとして運用。`GET/POST/PATCH/DELETE /games/:id/manual-credits` を追加。公開中ゲームでの追加/編集は `snapshotLockedAt` を即時更新。`GET /games/:id/credits` に `manualCredits` と `counts.manual` を追加し、`counts.total` を `assets + characters + manual` に拡張。`syncGameCredits` の delete/recreate 対象を `ASSET/CHARACTER` unlocked のみに限定し、`MANUAL` を削除しないよう修正。）
 
@@ -155,10 +158,9 @@
 
 優先順（現時点のおすすめ順）:
 
-1. **スタッフロールUI** — 公開ゲーム詳細でのスタッフロール/クレジット表示UI。関連: `docs/PROJECT_SPEC.md` 内「スタッフロール/クレジット表示（将来課題）」。
-2. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
-3. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
-4. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
+1. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
+2. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
+3. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
 
 ---
 
@@ -167,6 +169,7 @@
 **クレジット・ライセンス**
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
 - ノード/フィールド単位の直接ジャンプ（クレジット確認からの精密ジャンプ、現状はカテゴリフィルタ単位）
+- スタッフロール演出強化（自動スクロール / スキップ導線 / エンディング連動の細かな設定）
 - 構造化ライセンス（CC ライセンス等）
 - 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化等）
