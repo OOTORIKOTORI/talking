@@ -161,7 +161,7 @@
               :text="displayedText"
               :accumulatedPrefix="prefixText"
               :theme="theme"
-              :animate="true"
+              :animate="shouldAnimateMessage"
               :show-backlog-button="true"
               :backlog-button-label="labelBacklog"
               @backlog="openBacklog()"
@@ -376,7 +376,7 @@
             :text="displayedText"
             :accumulatedPrefix="prefixText"
             :theme="theme"
-            :animate="true"
+            :animate="shouldAnimateMessage"
             :show-backlog-button="true"
             :backlog-button-label="labelBacklog"
             @backlog="openBacklog()"
@@ -878,6 +878,7 @@ const testPlayRequested = computed(() => qStr(route.query.testPlay) === '1')
 const isTestPlay = computed(() => testPlayRequested.value && isGameOwner.value)
 const testPlayPanelCollapsed = ref(false)
 const testPlayFastConfirmMode = ref(false)
+const shouldAnimateMessage = computed(() => !(isTestPlay.value && testPlayFastConfirmMode.value))
 
 type TestPlayTransitionKind = 'start' | 'next' | 'choice' | 'end' | 'missing'
 
