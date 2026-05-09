@@ -72,6 +72,27 @@
                 <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
                 <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
               </div>
+              <div>
+                <div class="mb-1 flex items-center justify-between gap-2">
+                  <p class="opacity-80">遷移ログ:</p>
+                  <button
+                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                    @click="clearTestPlayTransitionLogs()"
+                  >
+                    ログをクリア
+                  </button>
+                </div>
+                <p v-if="testPlayTransitionLogs.length === 0" class="opacity-70">まだ遷移はありません</p>
+                <ul v-else class="max-h-28 space-y-1 overflow-y-auto pr-1">
+                  <li
+                    v-for="log in testPlayTransitionLogs"
+                    :key="`tp-log-normal-${log.seq}`"
+                    class="leading-tight"
+                  >
+                    <p :title="log.toNodeId || undefined" class="opacity-95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
           
@@ -248,6 +269,27 @@
               <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
               <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
               <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
+            </div>
+            <div>
+              <div class="mb-1 flex items-center justify-between gap-2">
+                <p class="opacity-80">遷移ログ:</p>
+                <button
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  @click="clearTestPlayTransitionLogs()"
+                >
+                  ログをクリア
+                </button>
+              </div>
+              <p v-if="testPlayTransitionLogs.length === 0" class="opacity-70">まだ遷移はありません</p>
+              <ul v-else class="max-h-32 space-y-1 overflow-y-auto pr-1">
+                <li
+                  v-for="log in testPlayTransitionLogs"
+                  :key="`tp-log-full-${log.seq}`"
+                  class="leading-tight"
+                >
+                  <p :title="log.toNodeId || undefined" class="opacity-95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -802,6 +844,31 @@ const testPlayRequested = computed(() => qStr(route.query.testPlay) === '1')
 const isTestPlay = computed(() => testPlayRequested.value && isGameOwner.value)
 const testPlayPanelCollapsed = ref(false)
 
+type TestPlayTransitionKind = 'start' | 'next' | 'choice' | 'end' | 'missing'
+
+type TestPlayTransitionMeta = {
+  kind: TestPlayTransitionKind
+  fromNodeId?: string | null
+  choiceIndex?: number
+  choiceText?: string
+}
+
+type TestPlayTransitionLogEntry = {
+  seq: number
+  kind: TestPlayTransitionKind
+  fromNodeId: string | null
+  toNodeId: string | null
+  fromLabel: string
+  toLabel: string
+  choiceIndex?: number
+  choicePreview?: string
+  occurredAt: number
+}
+
+const TEST_PLAY_TRANSITION_LOG_LIMIT = 30
+const testPlayTransitionSeq = ref(0)
+const testPlayTransitionLogs = ref<TestPlayTransitionLogEntry[]>([])
+
 function shortNodeId(value: string | null | undefined) {
   if (!value) return '未設定'
   if (value.length <= 10) return value
@@ -850,6 +917,79 @@ function formatNodeTarget(targetNodeId: string | null | undefined) {
     return `Node #${context.nodeIndex} (Scene #${context.sceneIndex})`
   }
   return `Node ${shortNodeId(targetNodeId ?? null)}`
+}
+
+function formatSceneNodeLabel(nodeId: string | null | undefined) {
+  if (!nodeId) return 'なし'
+  const context = findNodeSceneContext(nodeId)
+  if (context.sceneIndex != null && context.nodeIndex != null) {
+    return `Scene #${context.sceneIndex} / Node #${context.nodeIndex}`
+  }
+  if (context.nodeIndex != null) {
+    return `Node #${context.nodeIndex}`
+  }
+  return `Node ${shortNodeId(nodeId)}`
+}
+
+function toChoicePreview(text: string | null | undefined) {
+  if (!text) return ''
+  const compact = String(text).replace(/\s+/g, ' ').trim()
+  if (!compact) return ''
+  return compact.length > 26 ? `${compact.slice(0, 26)}…` : compact
+}
+
+function clearTestPlayTransitionLogs() {
+  testPlayTransitionLogs.value = []
+  testPlayTransitionSeq.value = 0
+}
+
+function pushTestPlayTransitionLog(meta: TestPlayTransitionMeta & { toNodeId?: string | null }) {
+  if (!isTestPlay.value) return
+
+  const fromNodeId = meta.fromNodeId ?? null
+  const toNodeId = meta.toNodeId ?? null
+  const entry: TestPlayTransitionLogEntry = {
+    seq: ++testPlayTransitionSeq.value,
+    kind: meta.kind,
+    fromNodeId,
+    toNodeId,
+    fromLabel: formatSceneNodeLabel(fromNodeId),
+    toLabel: meta.kind === 'end' ? 'END' : formatSceneNodeLabel(toNodeId),
+    choiceIndex: meta.choiceIndex,
+    choicePreview: toChoicePreview(meta.choiceText),
+    occurredAt: Date.now(),
+  }
+
+  const nextLogs = [...testPlayTransitionLogs.value, entry]
+  if (nextLogs.length > TEST_PLAY_TRANSITION_LOG_LIMIT) {
+    nextLogs.splice(0, nextLogs.length - TEST_PLAY_TRANSITION_LOG_LIMIT)
+  }
+  testPlayTransitionLogs.value = nextLogs
+}
+
+function resetTestPlayTransitionLog(startNodeId: string | null | undefined) {
+  clearTestPlayTransitionLogs()
+  if (!isTestPlay.value) return
+  if (!startNodeId) return
+  pushTestPlayTransitionLog({ kind: 'start', fromNodeId: null, toNodeId: startNodeId })
+}
+
+function formatTestPlayTransitionLogLine(log: TestPlayTransitionLogEntry) {
+  if (log.kind === 'start') {
+    return `開始: ${log.toLabel}`
+  }
+  if (log.kind === 'choice') {
+    const idxLabel = log.choiceIndex ? `${log.choiceIndex}` : '?'
+    const choiceLabel = log.choicePreview || '選択肢'
+    return `選択肢${idxLabel}「${choiceLabel}」: ${log.fromLabel} → ${log.toLabel}`
+  }
+  if (log.kind === 'end') {
+    return `${log.fromLabel} → END`
+  }
+  if (log.kind === 'missing') {
+    return `${log.fromLabel} → 不明な遷移先 ${shortNodeId(log.toNodeId)}`
+  }
+  return `${log.fromLabel} → ${log.toLabel}`
 }
 
 function slotLabel(slotType: SaveSlotType, slotIndex: number) {
@@ -1372,6 +1512,7 @@ function resolveStart(gameData: any) {
 function applyStart() {
   const { scene, node } = resolveStart(game.value)
   if (node) {
+    resetTestPlayTransitionLog(node.id)
     accumulatedText.value = ''
     current.value = node
 
@@ -2012,17 +2153,25 @@ function restart() {
 
 function selectChoice(choice: any) {
   stopAutoSkipModes()
+  const fromNodeId = current.value?.id ?? null
+  const choiceIndex = choices.value.findIndex((item: any) => item?.id === choice?.id)
   pushCurrentToBacklog()
   const nextState = applyChoiceEffects(gameState.value as any, choice?.effects)
   gameState.value = nextState
   showChoices.value = false
   highlightedChoiceIndex.value = 0
   showEndScreen.value = false
-  go(resolveChoiceTarget(choice, nextState))
+  const targetNodeId = resolveChoiceTarget(choice, nextState)
+  go(targetNodeId, {
+    kind: 'choice',
+    fromNodeId,
+    choiceIndex: choiceIndex >= 0 ? choiceIndex + 1 : undefined,
+    choiceText: String(choice?.label ?? choice?.text ?? ''),
+  })
   ensureBgm()
 }
 
-function go(targetNodeId: string | null) {
+function go(targetNodeId: string | null, meta?: TestPlayTransitionMeta) {
   clearProgressTimer()
   if (!targetNodeId) {
     current.value = null
@@ -2035,6 +2184,7 @@ function go(targetNodeId: string | null) {
 
   const nextNode = map.get(targetNodeId)
   if (nextNode) {
+    const fromNodeId = meta?.fromNodeId ?? current.value?.id ?? null
     const prevNode = current.value
 
     // 次のノードが前のテキストを継続する場合、現在のテキストを累積に追加
@@ -2059,8 +2209,25 @@ function go(targetNodeId: string | null) {
 
     // 遷移先ノードの効果音を再生
     void playSfxForCurrentNode()
+
+    if (meta?.kind && meta.kind !== 'missing') {
+      pushTestPlayTransitionLog({
+        kind: meta.kind,
+        fromNodeId,
+        toNodeId: targetNodeId,
+        choiceIndex: meta.choiceIndex,
+        choiceText: meta.choiceText,
+      })
+    }
   } else {
     console.warn('Node not found:', targetNodeId)
+    pushTestPlayTransitionLog({
+      kind: 'missing',
+      fromNodeId: meta?.fromNodeId ?? current.value?.id ?? null,
+      toNodeId: targetNodeId,
+      choiceIndex: meta?.choiceIndex,
+      choiceText: meta?.choiceText,
+    })
     current.value = null
   }
 }
@@ -2078,11 +2245,19 @@ function advanceWithinNodeOrNext() {
   
   // nextNodeIdがある場合はそれに従う
   if (current.value?.nextNodeId) {
-    go(current.value.nextNodeId)
+    go(current.value.nextNodeId, {
+      kind: 'next',
+      fromNodeId: current.value?.id ?? null,
+    })
     return
   }
   
   // nextNodeIdも選択肢も無い場合は終了画面を表示
+  pushTestPlayTransitionLog({
+    kind: 'end',
+    fromNodeId: current.value?.id ?? null,
+    toNodeId: null,
+  })
   showEndScreen.value = true
 }
 
@@ -2212,6 +2387,11 @@ watch(choices, (nextChoices) => {
 watch(showChoices, (isOpen) => {
   if (!isOpen) return
   highlightedChoiceIndex.value = 0
+})
+
+watch(isTestPlay, (enabled) => {
+  if (enabled) return
+  clearTestPlayTransitionLogs()
 })
 
 const hasChoices = computed(() => choices.value.length > 0)
