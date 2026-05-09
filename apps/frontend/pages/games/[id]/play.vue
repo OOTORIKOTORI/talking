@@ -32,21 +32,38 @@
             v-if="isTestPlay"
             class="absolute left-3 top-3 z-30 w-[min(340px,80vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
           >
-            <div class="flex items-center justify-between gap-2 border-b border-emerald-200/20 px-2 py-1.5">
-              <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
-              <div class="flex items-center gap-1">
+            <div class="flex flex-col gap-1 border-b border-emerald-200/20 px-2 py-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+                <div class="flex items-center gap-1">
+                  <button
+                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                    @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                  >
+                    {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                  </button>
+                  <NuxtLink
+                    :to="returnToEditorTo"
+                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  >
+                    編集へ戻る
+                  </NuxtLink>
+                </div>
+              </div>
+              <div v-if="!testPlayPanelCollapsed" class="flex flex-wrap gap-1">
                 <button
                   class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                  @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                  @click="revealCurrentTextImmediately()"
                 >
-                  {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                  全文表示
                 </button>
-                <NuxtLink
-                  :to="returnToEditorTo"
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                <button
+                  :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
+                  class="rounded border px-1.5 py-0.5 text-[10px]"
+                  @click="toggleTestPlayFastConfirmMode()"
                 >
-                  編集へ戻る
-                </NuxtLink>
+                  {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
+                </button>
               </div>
             </div>
             <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
@@ -230,21 +247,38 @@
           v-if="isTestPlay"
           class="absolute left-4 top-4 z-[60] w-[min(360px,84vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
         >
-          <div class="flex items-center justify-between gap-2 border-b border-emerald-200/20 px-2 py-1.5">
-            <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
-            <div class="flex items-center gap-1">
+          <div class="flex flex-col gap-1 border-b border-emerald-200/20 px-2 py-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+              <div class="flex items-center gap-1">
+                <button
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                >
+                  {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                </button>
+                <NuxtLink
+                  :to="returnToEditorTo"
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                >
+                  編集へ戻る
+                </NuxtLink>
+              </div>
+            </div>
+            <div v-if="!testPlayPanelCollapsed" class="flex flex-wrap gap-1">
               <button
                 class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                @click="revealCurrentTextImmediately()"
               >
-                {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                全文表示
               </button>
-              <NuxtLink
-                :to="returnToEditorTo"
-                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+              <button
+                :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
+                class="rounded border px-1.5 py-0.5 text-[10px]"
+                @click="toggleTestPlayFastConfirmMode()"
               >
-                編集へ戻る
-              </NuxtLink>
+                {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
+              </button>
             </div>
           </div>
           <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
@@ -843,6 +877,7 @@ function qStr(v: unknown) {
 const testPlayRequested = computed(() => qStr(route.query.testPlay) === '1')
 const isTestPlay = computed(() => testPlayRequested.value && isGameOwner.value)
 const testPlayPanelCollapsed = ref(false)
+const testPlayFastConfirmMode = ref(false)
 
 type TestPlayTransitionKind = 'start' | 'next' | 'choice' | 'end' | 'missing'
 
@@ -1064,6 +1099,37 @@ function skipMessageTypingIfNeeded() {
   msg?.skip?.()
   messageTypingComplete.value = true
   return true
+}
+
+// テストプレイ用: 現在ノードのテキストを即座に全文表示
+function revealCurrentTextImmediately() {
+  if (!isTestPlay.value) return
+  const msg = messageWindowRef.value
+  if (msg && !msg.isComplete?.()) {
+    msg.skip?.()
+    messageTypingComplete.value = true
+  }
+}
+
+// テストプレイ用: 高速確認モードをONにする
+function enableTestPlayFastConfirmMode() {
+  testPlayFastConfirmMode.value = true
+  // 現在表示中のテキストも即座に全文表示
+  revealCurrentTextImmediately()
+}
+
+// テストプレイ用: 高速確認モードをOFFにする
+function disableTestPlayFastConfirmMode() {
+  testPlayFastConfirmMode.value = false
+}
+
+// テストプレイ用: 高速確認モードをトグル
+function toggleTestPlayFastConfirmMode() {
+  if (testPlayFastConfirmMode.value) {
+    disableTestPlayFastConfirmMode()
+  } else {
+    enableTestPlayFastConfirmMode()
+  }
 }
 
 function clearProgressTimer() {
@@ -2295,6 +2361,10 @@ watch(
   () => {
     clearProgressTimer()
     messageTypingComplete.value = !displayedText.value
+    // テストプレイ時に高速確認モードが ON なら、新ノード開始時に即座に全文表示
+    if (testPlayFastConfirmMode.value && displayedText.value) {
+      revealCurrentTextImmediately()
+    }
   },
   { immediate: true }
 )
