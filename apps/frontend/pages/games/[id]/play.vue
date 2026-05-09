@@ -58,6 +58,12 @@
                   全文表示
                 </button>
                 <button
+                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  @click="skipToNextChoiceForTestPlay()"
+                >
+                  選択肢までスキップ
+                </button>
+                <button
                   :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
                   class="rounded border px-1.5 py-0.5 text-[10px]"
                   @click="toggleTestPlayFastConfirmMode()"
@@ -271,6 +277,12 @@
                 @click="revealCurrentTextImmediately()"
               >
                 全文表示
+              </button>
+              <button
+                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                @click="skipToNextChoiceForTestPlay()"
+              >
+                選択肢までスキップ
               </button>
               <button
                 :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
@@ -774,6 +786,7 @@ const skipMode = ref(false)
 const AUTO_ADVANCE_DELAY_MS = 1500
 const SKIP_ADVANCE_DELAY_MS = 80
 const SKIP_LOOP_GUARD_LIMIT = 100
+const TEST_PLAY_SKIP_TO_CHOICE_GUARD_LIMIT = 100
 
 let progressTimer: ReturnType<typeof setTimeout> | null = null
 let skipAdvanceCount = 0
@@ -1110,6 +1123,60 @@ function revealCurrentTextImmediately() {
     msg.skip?.()
     messageTypingComplete.value = true
   }
+}
+
+function skipToNextChoiceForTestPlay() {
+  if (!isTestPlay.value) return
+  if (!current.value) return
+  if (showStartScreen.value || showEndScreen.value) return
+  if (staffRollOpen.value || saveLoadOpen.value || backlog.isOpen.value) return
+
+  stopAutoSkipModes()
+  revealCurrentTextImmediately()
+
+  if (showChoices.value) return
+  if (hasChoices.value) {
+    openChoices()
+    return
+  }
+
+  for (let step = 0; step < TEST_PLAY_SKIP_TO_CHOICE_GUARD_LIMIT; step++) {
+    const fromNodeId = current.value?.id ?? null
+    if (!fromNodeId) return
+
+    const targetNodeId = qStr(current.value?.nextNodeId) ?? null
+    if (!targetNodeId) {
+      pushTestPlayTransitionLog({
+        kind: 'end',
+        fromNodeId,
+        toNodeId: null,
+      })
+      showEndScreen.value = true
+      return
+    }
+
+    pushCurrentToBacklog()
+    go(targetNodeId, {
+      kind: 'next',
+      fromNodeId,
+    })
+
+    if (!current.value) {
+      return
+    }
+
+    if (hasChoices.value) {
+      openChoices()
+      return
+    }
+  }
+
+  const warnMessage = '選択肢までスキップを停止しました。ループしている可能性があります。'
+  toast.warning(warnMessage)
+  console.warn('[play.vue] skipToNextChoiceForTestPlay guard reached', {
+    guardLimit: TEST_PLAY_SKIP_TO_CHOICE_GUARD_LIMIT,
+    currentNodeId: current.value?.id ?? null,
+  })
 }
 
 // テストプレイ用: 高速確認モードをONにする
