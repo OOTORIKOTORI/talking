@@ -270,6 +270,8 @@
   - 作者表示は `ownerDisplayNameSnapshot` 優先で解決した `ownerDisplayName` を返し、未設定時のみ短縮 `ownerId`（`by d7ef...f292` 形式）にフォールバックする
   - 公開プレイ開始カウント: `POST /games/:id/play`
     - プレイ画面の初期表示で呼び、公開ゲームのみ `playCount` を +1 する
+    - 作者本人のテストプレイ（`testPlay=1` かつ `game.ownerId === currentUserId`）はカウント対象外
+    - 非作者/未ログインが URL に `testPlay=1` を付けても通常プレイとしてカウントする
     - セーブ/ロード、ノード進行では増やさない
     - 出典: `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
   - 自作一覧（管理）: `GET /games/my`
@@ -520,7 +522,8 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 想定項目: 自動再生ON/OFF、スクロール速度（遅い/標準/速い）、終了時挙動（停止/ループ/タイトルやゲーム詳細へ戻る）、BGMソース選択（なし/アップロード/既存音声素材）、BGM音量、エンディング後の自動表示。
   - BGM関連は音声素材・権利・クレジット・公開前チェックの整合を前提に設計する。
 - 作者向けテストプレイ支援（MVP実装済み、作者専用UI）
-  - 公開プレイヤー向け本番UIとは分離し、`testPlay=1` のときだけ作者向け確認UIを表示する。
+  - 公開プレイヤー向け本番UIとは分離し、`testPlay=1` かつ作者本人（`game.ownerId === currentUserId`）のときだけ作者向け確認UIを表示する。
+  - 非作者/未ログインが `testPlay=1` を付けても作者向けUIは表示しない。
   - 実装済み（MVP）:
     - 編集画面の選択中シーン/ノードからテストプレイ開始（`/games/:id/play?sceneId=...&nodeId=...&testPlay=1`）。
     - テストプレイ中の簡易デバッグ表示（現在シーン/現在ノード/次ノード/選択肢数/選択肢遷移先概要/使用素材ID/キャラクター数）。

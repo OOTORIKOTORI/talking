@@ -552,11 +552,13 @@ const currentUserId = ref<string | null>(null)
 const SAVE_LOAD_LOGIN_REQUIRED_MESSAGE = 'セーブ・ロードにはログインが必要です。'
 const SAVE_LOAD_OWNER_ONLY_MESSAGE = 'このゲームのセーブ・ロードは現在、作者本人のみ利用できます。'
 
-const isSaveLoadOwner = computed(() => {
+const isGameOwner = computed(() => {
   const ownerId = String(game.value?.ownerId ?? '')
   const userId = String(currentUserId.value ?? '')
   return !!ownerId && !!userId && ownerId === userId
 })
+
+const isSaveLoadOwner = computed(() => isGameOwner.value)
 
 function getSaveLoadDeniedMessage() {
   if (!currentUserId.value) return SAVE_LOAD_LOGIN_REQUIRED_MESSAGE
@@ -796,7 +798,8 @@ function qStr(v: unknown) {
   return v as string | undefined
 }
 
-const isTestPlay = computed(() => qStr(route.query.testPlay) === '1')
+const testPlayRequested = computed(() => qStr(route.query.testPlay) === '1')
+const isTestPlay = computed(() => testPlayRequested.value && isGameOwner.value)
 const testPlayPanelCollapsed = ref(false)
 
 function shortNodeId(value: string | null | undefined) {
@@ -1917,10 +1920,13 @@ onMounted(async () => {
     currentUserId.value = sessionRes?.data?.session?.user?.id ?? null
     game.value = gameRes
 
-    try {
-      await api.countPlay(String(route.params.id))
-    } catch {
-      // 非公開/削除済みや通信失敗時はカウントのみスキップ
+    const shouldSkipCountPlay = testPlayRequested.value && isGameOwner.value
+    if (!shouldSkipCountPlay) {
+      try {
+        await api.countPlay(String(route.params.id))
+      } catch {
+        // 非公開/削除済みや通信失敗時はカウントのみスキップ
+      }
     }
     
     // ノードマップを構築
