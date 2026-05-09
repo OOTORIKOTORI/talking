@@ -890,7 +890,12 @@ const testPlayRequested = computed(() => qStr(route.query.testPlay) === '1')
 const isTestPlay = computed(() => testPlayRequested.value && isGameOwner.value)
 const testPlayPanelCollapsed = ref(false)
 const testPlayFastConfirmMode = ref(false)
-const shouldAnimateMessage = computed(() => !(isTestPlay.value && testPlayFastConfirmMode.value))
+const testPlayInstantRevealNodeId = ref<string | null>(null)
+const shouldAnimateMessage = computed(() => {
+  const currentNodeId = current.value?.id ?? null
+  const isInstantRevealTarget = !!currentNodeId && testPlayInstantRevealNodeId.value === currentNodeId
+  return !(isTestPlay.value && (testPlayFastConfirmMode.value || isInstantRevealTarget))
+})
 
 type TestPlayTransitionKind = 'start' | 'next' | 'choice' | 'end' | 'missing'
 
@@ -1135,8 +1140,8 @@ function skipToNextChoiceForTestPlay() {
 
   if (showChoices.value) return
   if (hasChoices.value) {
-    // Ensure the destination node's text is fully revealed before showing choices
-    revealCurrentTextImmediately()
+    testPlayInstantRevealNodeId.value = current.value.id
+    messageTypingComplete.value = true
     openChoices()
     return
   }
@@ -1167,8 +1172,8 @@ function skipToNextChoiceForTestPlay() {
     }
 
     if (hasChoices.value) {
-      // Ensure the destination node's text is fully revealed before showing choices
-      revealCurrentTextImmediately()
+      testPlayInstantRevealNodeId.value = current.value.id
+      messageTypingComplete.value = true
       openChoices()
       return
     }
@@ -2429,9 +2434,16 @@ const displayedText = computed(() => {
 
 watch(
   () => [current.value?.id, displayedText.value],
-  () => {
+  ([nodeId]) => {
     clearProgressTimer()
-    messageTypingComplete.value = !displayedText.value
+    const currentNodeId = nodeId ?? null
+    if (testPlayInstantRevealNodeId.value && testPlayInstantRevealNodeId.value !== currentNodeId) {
+      testPlayInstantRevealNodeId.value = null
+    }
+
+    const isInstantRevealTarget = !!currentNodeId && testPlayInstantRevealNodeId.value === currentNodeId
+    messageTypingComplete.value = isInstantRevealTarget || !displayedText.value
+
     // テストプレイ時に高速確認モードが ON なら、新ノード開始時に即座に全文表示
     if (testPlayFastConfirmMode.value && displayedText.value) {
       revealCurrentTextImmediately()
