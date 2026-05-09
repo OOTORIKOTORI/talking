@@ -341,42 +341,84 @@ function previewVisualEffect() {
   }
 }
 
-// テストプレイを新しいタブで開く
-function openTestPlay() {
-  if (!game.value?.id) return
-
-  const selectedSceneId = normalizeNodeId(scene.value?.id)
-  const selectedNodeId = normalizeNodeId(node.value?.id)
-  const projectStartSceneId = normalizeNodeId(game.value.startSceneId)
-
-  const scenesForPicker = nodePickerScenes.value
-  const fallbackScene = scenesForPicker.find((sceneItem: any) => sceneItem.id === projectStartSceneId) ?? scenesForPicker[0] ?? null
-  const activeScene = selectedSceneId
-    ? scenesForPicker.find((sceneItem: any) => sceneItem.id === selectedSceneId) ?? null
-    : null
-  const startScene = activeScene ?? fallbackScene
-
-  let startNodeId: string | null = null
-  if (selectedNodeId && activeScene?.id) {
-    startNodeId = selectedNodeId
-  } else if (activeScene) {
-    startNodeId = normalizeNodeId(activeScene.startNodeId)
-      ?? normalizeNodeId(activeScene.nodes?.[0]?.id)
-  } else {
-    startNodeId = normalizeNodeId(startScene?.startNodeId)
-      ?? normalizeNodeId(startScene?.nodes?.[0]?.id)
-  }
+function buildTestPlayUrl(sceneId?: string | null, nodeId?: string | null): string | null {
+  const gameId = normalizeNodeId(game.value?.id)
+  if (!gameId) return null
 
   const query = new URLSearchParams({ testPlay: '1' })
-  if (startScene?.id) {
-    query.set('sceneId', startScene.id)
+  const normalizedSceneId = normalizeNodeId(sceneId)
+  const normalizedNodeId = normalizeNodeId(nodeId)
+
+  if (normalizedSceneId) {
+    query.set('sceneId', normalizedSceneId)
   }
-  if (startNodeId) {
-    query.set('nodeId', startNodeId)
+  if (normalizedNodeId) {
+    query.set('nodeId', normalizedNodeId)
   }
 
-  const url = `/games/${game.value.id}/play?${query.toString()}`
+  return `/games/${gameId}/play?${query.toString()}`
+}
+
+function openTestPlayUrl(sceneId?: string | null, nodeId?: string | null) {
+  const url = buildTestPlayUrl(sceneId, nodeId)
+  if (!url) return
   window.open(url, '_blank')
+}
+
+function resolveGameStartForTest() {
+  const scenesForPicker = nodePickerScenes.value
+  const projectStartSceneId = normalizeNodeId(game.value?.startSceneId)
+  const startScene = projectStartSceneId
+    ? scenesForPicker.find((sceneItem: any) => sceneItem.id === projectStartSceneId) ?? scenesForPicker[0] ?? null
+    : scenesForPicker[0] ?? null
+
+  if (!startScene) {
+    return {
+      sceneId: null,
+      nodeId: null,
+    }
+  }
+
+  const startNodeId = resolveFallbackNodeId(startScene, startScene.nodes ?? [])
+  return {
+    sceneId: normalizeNodeId(startScene.id),
+    nodeId: normalizeNodeId(startNodeId),
+  }
+}
+
+function resolveSelectedTestStart() {
+  const selectedSceneId = normalizeNodeId(scene.value?.id)
+  const selectedNodeId = normalizeNodeId(node.value?.id)
+
+  if (selectedSceneId && selectedNodeId) {
+    return {
+      sceneId: selectedSceneId,
+      nodeId: selectedNodeId,
+    }
+  }
+
+  if (selectedSceneId) {
+    const activeScene = nodePickerScenes.value.find((sceneItem: any) => sceneItem.id === selectedSceneId) ?? null
+    if (activeScene) {
+      return {
+        sceneId: selectedSceneId,
+        nodeId: normalizeNodeId(resolveFallbackNodeId(activeScene, activeScene.nodes ?? [])),
+      }
+    }
+  }
+
+  return resolveGameStartForTest()
+}
+
+// テストプレイを新しいタブで開く
+function openSelectedTestPlay() {
+  const start = resolveSelectedTestStart()
+  openTestPlayUrl(start.sceneId, start.nodeId)
+}
+
+function openGameStartTestPlay() {
+  const start = resolveGameStartForTest()
+  openTestPlayUrl(start.sceneId, start.nodeId)
 }
 
 const openThemeModal = ref(false)
@@ -1935,14 +1977,21 @@ function onUp() {
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">{{ game.title }}</h1>
         <div class="flex flex-col items-end gap-1">
-          <button
-            v-if="game?.id"
-            @click="openTestPlay"
-            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-          >
-            テストプレイ
-          </button>
-          <p class="text-[11px] text-gray-500">保存済み内容で再生</p>
+          <div v-if="game?.id" class="flex flex-wrap justify-end gap-2">
+            <button
+              @click="openSelectedTestPlay"
+              class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+              選択中からテスト
+            </button>
+            <button
+              @click="openGameStartTestPlay"
+              class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors"
+            >
+              最初からテスト
+            </button>
+          </div>
+          <p class="text-[11px] text-gray-500">保存済み内容で再生（未保存の変更は反映されません）</p>
         </div>
       </div>
 
