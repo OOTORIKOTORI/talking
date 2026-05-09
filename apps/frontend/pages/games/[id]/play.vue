@@ -30,92 +30,130 @@
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
           <div
             v-if="isTestPlay"
-            class="absolute left-3 top-3 z-30 w-[min(340px,80vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
+            class="absolute left-3 top-3 z-30 w-[min(420px,88vw)] overflow-hidden rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
           >
-            <div class="flex flex-col gap-1 border-b border-emerald-200/20 px-2 py-1.5">
-              <div class="flex items-center justify-between gap-2">
-                <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
-                <div class="flex items-center gap-1">
+            <div class="flex items-start justify-between gap-3 border-b border-emerald-200/15 px-3 py-2.5">
+              <div class="space-y-1">
+                <span class="inline-flex items-center rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+                <p class="text-[10px] text-emerald-100/70">作者本人の testPlay=1 のみ表示</p>
+              </div>
+              <button
+                class="rounded border border-emerald-200/30 px-2 py-1 text-[10px] hover:bg-emerald-500/20"
+                @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+              >
+                {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+              </button>
+            </div>
+            <div v-if="!testPlayPanelCollapsed" class="space-y-2.5 px-3 py-3">
+              <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+                <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">現在地</h4>
+                <dl class="mt-2 grid gap-2 sm:grid-cols-3">
+                  <div class="rounded-md bg-white/5 px-2 py-1.5">
+                    <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">現在シーン</dt>
+                    <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayCurrentSceneLabel }}</dd>
+                  </div>
+                  <div class="rounded-md bg-white/5 px-2 py-1.5">
+                    <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">現在ノード</dt>
+                    <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayCurrentNodeLabel }}</dd>
+                  </div>
+                  <div class="rounded-md bg-white/5 px-2 py-1.5">
+                    <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">次ノード</dt>
+                    <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayNextNodeLabel }}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+                <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">操作</h4>
+                <div class="mt-2 flex flex-wrap gap-2">
                   <button
-                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                    @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                    class="min-w-0 flex-1 rounded-lg border border-emerald-200/35 bg-emerald-400/20 px-2.5 py-2 text-[10px] font-semibold text-emerald-50 transition-colors hover:bg-emerald-400/28 sm:flex-none"
+                    @click="skipToNextChoiceForTestPlay()"
                   >
-                    {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                    選択肢までスキップ
+                  </button>
+                  <button
+                    :class="testPlayFastConfirmMode ? 'border-amber-200/60 bg-amber-300/20 text-amber-50' : 'border-amber-200/25 bg-amber-300/10 text-amber-50 hover:bg-amber-300/16'"
+                    class="min-w-0 flex-1 rounded-lg border px-2.5 py-2 text-[10px] font-semibold transition-colors sm:flex-none"
+                    @click="toggleTestPlayFastConfirmMode()"
+                  >
+                    {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
+                  </button>
+                  <button
+                    class="min-w-0 flex-1 rounded-lg border border-cyan-200/25 bg-cyan-300/10 px-2.5 py-2 text-[10px] font-semibold text-cyan-50 transition-colors hover:bg-cyan-300/16 sm:flex-none"
+                    @click="revealCurrentTextImmediately()"
+                  >
+                    全文表示
                   </button>
                   <NuxtLink
                     :to="returnToEditorTo"
-                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                    class="min-w-0 flex-1 rounded-lg border border-slate-200/20 bg-white/5 px-2.5 py-2 text-center text-[10px] font-semibold text-emerald-50 transition-colors hover:bg-white/10 sm:flex-none"
                   >
                     編集へ戻る
                   </NuxtLink>
                 </div>
-              </div>
-              <div v-if="!testPlayPanelCollapsed" class="flex flex-wrap gap-1">
-                <button
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                  @click="revealCurrentTextImmediately()"
-                >
-                  全文表示
-                </button>
-                <button
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                  @click="skipToNextChoiceForTestPlay()"
-                >
-                  選択肢までスキップ
-                </button>
-                <button
-                  :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
-                  class="rounded border px-1.5 py-0.5 text-[10px]"
-                  @click="toggleTestPlayFastConfirmMode()"
-                >
-                  {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
-                </button>
-              </div>
-            </div>
-            <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
-              <p>現在シーン: {{ testPlayCurrentSceneLabel }}</p>
-              <p>現在ノード: {{ testPlayCurrentNodeLabel }}</p>
-              <p>次ノード: {{ testPlayNextNodeLabel }}</p>
-              <p>選択肢数: {{ choices.length }}</p>
-              <div>
-                <p class="opacity-80">選択肢遷移先:</p>
-                <p v-if="testPlayChoiceTransitions.length === 0" class="opacity-70">なし</p>
-                <p
-                  v-for="line in testPlayChoiceTransitions"
-                  :key="line"
-                  class="opacity-90"
-                >
-                  {{ line }}
-                </p>
-              </div>
-              <div>
-                <p class="opacity-80">使用素材:</p>
-                <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
-                <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
-                <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
-                <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
-              </div>
-              <div>
-                <div class="mb-1 flex items-center justify-between gap-2">
-                  <p class="opacity-80">遷移ログ:</p>
+              </section>
+
+              <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+                <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">ノード情報</h4>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div class="rounded-md bg-white/5 px-2 py-1.5">
+                    <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">選択肢数</p>
+                    <p class="mt-1 text-[11px] text-emerald-50/95">{{ choices.length }}</p>
+                  </div>
+                  <div class="rounded-md bg-white/5 px-2 py-1.5">
+                    <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">使用キャラクター</p>
+                    <p class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayMaterialSummary.characterCount }} 人</p>
+                  </div>
+                  <div class="rounded-md bg-white/5 px-2 py-1.5 sm:col-span-2">
+                    <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">選択肢遷移先</p>
+                    <p v-if="testPlayChoiceTransitions.length === 0" class="mt-1 text-[11px] text-emerald-50/65">なし</p>
+                    <ul v-else class="mt-1 space-y-1">
+                      <li
+                        v-for="line in testPlayChoiceTransitions"
+                        :key="line"
+                        class="rounded-md border border-emerald-200/10 bg-black/20 px-2 py-1.5 text-[11px] text-emerald-50/92"
+                      >
+                        {{ line }}
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="rounded-md bg-white/5 px-2 py-1.5 sm:col-span-2">
+                    <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">使用素材</p>
+                    <div class="mt-1 grid gap-1 text-[11px] text-emerald-50/92 sm:grid-cols-3">
+                      <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
+                      <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
+                      <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">遷移ログ</h4>
                   <button
-                    class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                    class="rounded border border-emerald-200/25 px-2 py-1 text-[10px] text-emerald-50/90 transition-colors hover:bg-emerald-500/20"
                     @click="clearTestPlayTransitionLogs()"
                   >
-                    ログをクリア
+                    ログクリア
                   </button>
                 </div>
-                <p v-if="testPlayTransitionLogs.length === 0" class="opacity-70">まだ遷移はありません</p>
-                <ul v-else class="max-h-28 space-y-1 overflow-y-auto pr-1">
+                <p class="mt-2 text-[10px] text-emerald-100/60">最大30件をメモリ保持。最新ログは下に追加されます。</p>
+                <p v-if="testPlayTransitionLogs.length === 0" class="mt-2 rounded-md border border-dashed border-emerald-200/15 bg-black/15 px-2 py-2 text-[11px] text-emerald-50/65">まだ遷移はありません</p>
+                <ul v-else class="mt-2 max-h-[clamp(9rem,18vh,14rem)] space-y-1 overflow-y-auto pr-1">
                   <li
                     v-for="log in testPlayTransitionLogs"
                     :key="`tp-log-normal-${log.seq}`"
-                    class="leading-tight"
+                    class="rounded-md border border-emerald-200/10 bg-black/25 px-2.5 py-2"
                   >
-                    <p :title="log.toNodeId || undefined" class="opacity-95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                    <div class="flex items-start gap-2">
+                      <span class="inline-flex shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-50/80">{{ log.kind }}</span>
+                      <p :title="log.toNodeId || undefined" class="min-w-0 flex-1 leading-tight text-emerald-50/95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                    </div>
                   </li>
                 </ul>
-              </div>
+              </section>
             </div>
           </div>
           
@@ -251,92 +289,130 @@
       <div class="absolute inset-0 pointer-events-none">
         <div
           v-if="isTestPlay"
-          class="absolute left-4 top-4 z-[60] w-[min(360px,84vw)] rounded-md border border-emerald-300/40 bg-black/60 text-[11px] text-emerald-100 shadow-lg pointer-events-auto"
+          class="absolute left-4 top-4 z-[60] w-[min(440px,86vw)] overflow-hidden rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
         >
-          <div class="flex flex-col gap-1 border-b border-emerald-200/20 px-2 py-1.5">
-            <div class="flex items-center justify-between gap-2">
-              <span class="inline-flex items-center rounded bg-emerald-400/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
-              <div class="flex items-center gap-1">
+          <div class="flex items-start justify-between gap-3 border-b border-emerald-200/15 px-3 py-2.5">
+            <div class="space-y-1">
+              <span class="inline-flex items-center rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">テストプレイ</span>
+              <p class="text-[10px] text-emerald-100/70">作者本人の testPlay=1 のみ表示</p>
+            </div>
+            <button
+              class="rounded border border-emerald-200/30 px-2 py-1 text-[10px] hover:bg-emerald-500/20"
+              @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+            >
+              {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+            </button>
+          </div>
+          <div v-if="!testPlayPanelCollapsed" class="space-y-2.5 px-3 py-3">
+            <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+              <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">現在地</h4>
+              <dl class="mt-2 grid gap-2 sm:grid-cols-3">
+                <div class="rounded-md bg-white/5 px-2 py-1.5">
+                  <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">現在シーン</dt>
+                  <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayCurrentSceneLabel }}</dd>
+                </div>
+                <div class="rounded-md bg-white/5 px-2 py-1.5">
+                  <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">現在ノード</dt>
+                  <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayCurrentNodeLabel }}</dd>
+                </div>
+                <div class="rounded-md bg-white/5 px-2 py-1.5">
+                  <dt class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">次ノード</dt>
+                  <dd class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayNextNodeLabel }}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+              <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">操作</h4>
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                  @click="testPlayPanelCollapsed = !testPlayPanelCollapsed"
+                  class="min-w-0 flex-1 rounded-lg border border-emerald-200/35 bg-emerald-400/20 px-2.5 py-2 text-[10px] font-semibold text-emerald-50 transition-colors hover:bg-emerald-400/28 sm:flex-none"
+                  @click="skipToNextChoiceForTestPlay()"
                 >
-                  {{ testPlayPanelCollapsed ? '展開' : '折りたたみ' }}
+                  選択肢までスキップ
+                </button>
+                <button
+                  :class="testPlayFastConfirmMode ? 'border-amber-200/60 bg-amber-300/20 text-amber-50' : 'border-amber-200/25 bg-amber-300/10 text-amber-50 hover:bg-amber-300/16'"
+                  class="min-w-0 flex-1 rounded-lg border px-2.5 py-2 text-[10px] font-semibold transition-colors sm:flex-none"
+                  @click="toggleTestPlayFastConfirmMode()"
+                >
+                  {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
+                </button>
+                <button
+                  class="min-w-0 flex-1 rounded-lg border border-cyan-200/25 bg-cyan-300/10 px-2.5 py-2 text-[10px] font-semibold text-cyan-50 transition-colors hover:bg-cyan-300/16 sm:flex-none"
+                  @click="revealCurrentTextImmediately()"
+                >
+                  全文表示
                 </button>
                 <NuxtLink
                   :to="returnToEditorTo"
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  class="min-w-0 flex-1 rounded-lg border border-slate-200/20 bg-white/5 px-2.5 py-2 text-center text-[10px] font-semibold text-emerald-50 transition-colors hover:bg-white/10 sm:flex-none"
                 >
                   編集へ戻る
                 </NuxtLink>
               </div>
-            </div>
-            <div v-if="!testPlayPanelCollapsed" class="flex flex-wrap gap-1">
-              <button
-                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                @click="revealCurrentTextImmediately()"
-              >
-                全文表示
-              </button>
-              <button
-                class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
-                @click="skipToNextChoiceForTestPlay()"
-              >
-                選択肢までスキップ
-              </button>
-              <button
-                :class="testPlayFastConfirmMode ? 'bg-emerald-500/30 border-emerald-300/60' : 'border-emerald-200/30 hover:bg-emerald-500/20'"
-                class="rounded border px-1.5 py-0.5 text-[10px]"
-                @click="toggleTestPlayFastConfirmMode()"
-              >
-                {{ testPlayFastConfirmMode ? '高速確認中' : '高速確認 ON' }}
-              </button>
-            </div>
-          </div>
-          <div v-if="!testPlayPanelCollapsed" class="space-y-1.5 px-2 py-2">
-            <p>現在シーン: {{ testPlayCurrentSceneLabel }}</p>
-            <p>現在ノード: {{ testPlayCurrentNodeLabel }}</p>
-            <p>次ノード: {{ testPlayNextNodeLabel }}</p>
-            <p>選択肢数: {{ choices.length }}</p>
-            <div>
-              <p class="opacity-80">選択肢遷移先:</p>
-              <p v-if="testPlayChoiceTransitions.length === 0" class="opacity-70">なし</p>
-              <p
-                v-for="line in testPlayChoiceTransitions"
-                :key="line"
-                class="opacity-90"
-              >
-                {{ line }}
-              </p>
-            </div>
-            <div>
-              <p class="opacity-80">使用素材:</p>
-              <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
-              <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
-              <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
-              <p>キャラクター数: {{ testPlayMaterialSummary.characterCount }}</p>
-            </div>
-            <div>
-              <div class="mb-1 flex items-center justify-between gap-2">
-                <p class="opacity-80">遷移ログ:</p>
+            </section>
+
+            <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+              <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">ノード情報</h4>
+              <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                <div class="rounded-md bg-white/5 px-2 py-1.5">
+                  <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">選択肢数</p>
+                  <p class="mt-1 text-[11px] text-emerald-50/95">{{ choices.length }}</p>
+                </div>
+                <div class="rounded-md bg-white/5 px-2 py-1.5">
+                  <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">使用キャラクター</p>
+                  <p class="mt-1 text-[11px] text-emerald-50/95">{{ testPlayMaterialSummary.characterCount }} 人</p>
+                </div>
+                <div class="rounded-md bg-white/5 px-2 py-1.5 sm:col-span-2">
+                  <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">選択肢遷移先</p>
+                  <p v-if="testPlayChoiceTransitions.length === 0" class="mt-1 text-[11px] text-emerald-50/65">なし</p>
+                  <ul v-else class="mt-1 space-y-1">
+                    <li
+                      v-for="line in testPlayChoiceTransitions"
+                      :key="line"
+                      class="rounded-md border border-emerald-200/10 bg-black/20 px-2 py-1.5 text-[11px] text-emerald-50/92"
+                    >
+                      {{ line }}
+                    </li>
+                  </ul>
+                </div>
+                <div class="rounded-md bg-white/5 px-2 py-1.5 sm:col-span-2">
+                  <p class="text-[10px] uppercase tracking-[0.12em] text-emerald-100/55">使用素材</p>
+                  <div class="mt-1 grid gap-1 text-[11px] text-emerald-50/92 sm:grid-cols-3">
+                    <p>BG: {{ testPlayMaterialSummary.bgAssetId }}</p>
+                    <p>BGM: {{ testPlayMaterialSummary.musicAssetId }}</p>
+                    <p>SFX: {{ testPlayMaterialSummary.sfxAssetId }}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-lg border border-emerald-200/15 bg-black/20 p-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">遷移ログ</h4>
                 <button
-                  class="rounded border border-emerald-200/30 px-1.5 py-0.5 text-[10px] hover:bg-emerald-500/20"
+                  class="rounded border border-emerald-200/25 px-2 py-1 text-[10px] text-emerald-50/90 transition-colors hover:bg-emerald-500/20"
                   @click="clearTestPlayTransitionLogs()"
                 >
-                  ログをクリア
+                  ログクリア
                 </button>
               </div>
-              <p v-if="testPlayTransitionLogs.length === 0" class="opacity-70">まだ遷移はありません</p>
-              <ul v-else class="max-h-32 space-y-1 overflow-y-auto pr-1">
+              <p class="mt-2 text-[10px] text-emerald-100/60">最大30件をメモリ保持。最新ログは下に追加されます。</p>
+              <p v-if="testPlayTransitionLogs.length === 0" class="mt-2 rounded-md border border-dashed border-emerald-200/15 bg-black/15 px-2 py-2 text-[11px] text-emerald-50/65">まだ遷移はありません</p>
+              <ul v-else class="mt-2 max-h-[clamp(9rem,18vh,14rem)] space-y-1 overflow-y-auto pr-1">
                 <li
                   v-for="log in testPlayTransitionLogs"
                   :key="`tp-log-full-${log.seq}`"
-                  class="leading-tight"
+                  class="rounded-md border border-emerald-200/10 bg-black/25 px-2.5 py-2"
                 >
-                  <p :title="log.toNodeId || undefined" class="opacity-95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                  <div class="flex items-start gap-2">
+                    <span class="inline-flex shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-50/80">{{ log.kind }}</span>
+                    <p :title="log.toNodeId || undefined" class="min-w-0 flex-1 leading-tight text-emerald-50/95">{{ formatTestPlayTransitionLogLine(log) }}</p>
+                  </div>
                 </li>
               </ul>
-            </div>
+            </section>
           </div>
         </div>
 
@@ -610,7 +686,7 @@ import MessageWindow from '@/components/game/MessageWindow.vue'
 import BacklogModal from '@/components/game/BacklogModal.vue'
 import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
 import { computed, ref, watch, onMounted } from 'vue'
-import { DEFAULT_BACKLOG_THEME } from '@talking/types'
+import { DEFAULT_BACKLOG_THEME, type GameCreditsResult } from '@talking/types'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
