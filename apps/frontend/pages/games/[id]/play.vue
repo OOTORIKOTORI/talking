@@ -30,7 +30,7 @@
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
           <div
             v-if="isTestPlay"
-            class="absolute left-3 top-3 z-30 w-[min(340px,80vw)] max-h-[50vh] overflow-y-auto rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
+            class="test-play-scrollbar absolute left-3 top-3 z-30 w-[min(340px,80vw)] max-h-[50vh] overflow-y-auto rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
           >
             <div class="flex items-start justify-between gap-3 border-b border-emerald-200/15 px-2.5 py-2">
               <div class="space-y-1">
@@ -141,7 +141,7 @@
                 </div>
                 <p class="mt-1.5 text-[10px] text-emerald-100/60">最大30件をメモリ保持。最新ログは下に追加されます。</p>
                 <p v-if="testPlayTransitionLogs.length === 0" class="mt-1.5 rounded-md border border-dashed border-emerald-200/15 bg-black/15 px-1.5 py-1.5 text-[11px] text-emerald-50/65">まだ遷移はありません</p>
-                <ul v-else class="mt-1.5 max-h-[clamp(7rem,15vh,11rem)] space-y-1 overflow-y-auto pr-1">
+                <ul v-else class="test-play-scrollbar mt-1.5 max-h-[clamp(7rem,15vh,11rem)] space-y-1 overflow-y-auto pr-1">
                   <li
                     v-for="log in testPlayTransitionLogs"
                     :key="`tp-log-normal-${log.seq}`"
@@ -289,7 +289,7 @@
       <div class="absolute inset-0 pointer-events-none">
         <div
           v-if="isTestPlay"
-          class="absolute left-4 top-4 z-[60] w-[min(400px,92vw)] max-h-[70vh] overflow-y-auto rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
+          class="test-play-scrollbar absolute left-4 top-4 z-[60] w-[min(400px,92vw)] max-h-[70vh] overflow-y-auto rounded-xl border border-emerald-300/35 bg-slate-950/80 text-[11px] text-emerald-50 shadow-2xl backdrop-blur-sm pointer-events-auto"
         >
           <div class="flex items-start justify-between gap-3 border-b border-emerald-200/15 px-3 py-2.5">
             <div class="space-y-1">
@@ -400,7 +400,7 @@
               </div>
               <p class="mt-2 text-[10px] text-emerald-100/60">最大30件をメモリ保持。最新ログは下に追加されます。</p>
               <p v-if="testPlayTransitionLogs.length === 0" class="mt-2 rounded-md border border-dashed border-emerald-200/15 bg-black/15 px-2 py-2 text-[11px] text-emerald-50/65">まだ遷移はありません</p>
-              <ul v-else class="mt-2 max-h-[clamp(9rem,18vh,14rem)] space-y-1 overflow-y-auto pr-1">
+              <ul v-else class="test-play-scrollbar mt-2 max-h-[clamp(9rem,18vh,14rem)] space-y-1 overflow-y-auto pr-1">
                 <li
                   v-for="log in testPlayTransitionLogs"
                   :key="`tp-log-full-${log.seq}`"
@@ -2676,3 +2676,32 @@ watch(
 // プレイヤにカメラを反映（エディタと共通のカメラ座標系）
 const camera = computed(() => (current.value?.camera ?? { zoom: 100, cx: 50, cy: 50 }))
 </script>
+
+<style scoped>
+.test-play-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 212, 191, 0.42) rgba(15, 23, 42, 0.22);
+}
+
+.test-play-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.test-play-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.2);
+  border-radius: 9999px;
+}
+
+.test-play-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.38);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+.test-play-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.58);
+  background-clip: padding-box;
+}
+</style>
