@@ -611,7 +611,6 @@ import BacklogModal from '@/components/game/BacklogModal.vue'
 import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { DEFAULT_BACKLOG_THEME } from '@talking/types'
-import type { GameCreditsResult } from '@talking/types'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
@@ -1136,6 +1135,8 @@ function skipToNextChoiceForTestPlay() {
 
   if (showChoices.value) return
   if (hasChoices.value) {
+    // Ensure the destination node's text is fully revealed before showing choices
+    revealCurrentTextImmediately()
     openChoices()
     return
   }
@@ -1166,6 +1167,8 @@ function skipToNextChoiceForTestPlay() {
     }
 
     if (hasChoices.value) {
+      // Ensure the destination node's text is fully revealed before showing choices
+      revealCurrentTextImmediately()
       openChoices()
       return
     }
