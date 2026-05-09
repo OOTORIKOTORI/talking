@@ -118,6 +118,20 @@
         - 確認文言で「公開版にも即反映されること」「新規追加の素材/キャラクターのクレジットが保存時点で固定されること」を再通知
         - キャンセル時は保存処理を実行しない（保存成功表示なし、保存中状態にも遷移しない）
         - 非公開ゲームでは確認を表示せず従来どおり保存
+      - 公開中ゲームの構造変更confirm拡張 MVP（2026-05-09）
+        - 公開中ゲーム（`isPublic === true`）で、公開版の進行導線に大きく影響する即時操作の直前に `window.confirm` を表示
+        - 対象操作
+          - ノード削除
+          - シーン削除
+          - 開始シーン変更
+          - 開始ノード変更
+        - 削除操作は confirm 地獄を避けるため、公開中では通常削除confirmを公開中向け文言に置き換えて1回のみ表示（非公開では従来の削除confirmを維持）
+        - キャンセル時は DELETE/PATCH 更新を実行しない
+        - 対象外
+          - ノード追加
+          - シーン追加
+          - 選択肢追加
+        - `nextNode` / 選択肢遷移変更は編集ドラフトで保持され、保存ボタンで確定される限り既存の保存前confirmで扱う（即時API保存の対象外）
       - 公開版/下書き版分離、差分検出、重要変更のみ確認、独自モーダル化は将来課題
       - 出典: `apps/frontend/pages/my/games/[id]/edit.vue`
 
@@ -159,7 +173,7 @@
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）も実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPも実装済み。構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）と、公開中ゲームの構造変更confirm拡張MVP（ノード削除・シーン削除・開始シーン変更・開始ノード変更で公開中のみconfirm、削除系は1回confirm化）も実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPも実装済み。構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
 - 公開前クレジット確認の表示基準（2026-05-08）
   - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。

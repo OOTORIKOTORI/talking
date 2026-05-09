@@ -384,6 +384,16 @@ const defaultThemeV2 = {
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
 const isPublishedGame = computed(() => game.value?.isPublic === true)
 
+function isEditingPublishedGame() {
+  return isPublishedGame.value
+}
+
+function confirmPublishedStructureChange(message: string) {
+  if (!isEditingPublishedGame()) return true
+  if (!process.client) return true
+  return window.confirm(message)
+}
+
 function confirmSavePublishedGame() {
   if (!isPublishedGame.value) return true
   if (!process.client) return true
@@ -1265,6 +1275,18 @@ function buildNodeDeleteConfirmMessage(summary: any | null) {
   ].join('\n')
 }
 
+function confirmNodeDeletion(summary: any | null) {
+  if (isEditingPublishedGame()) {
+    return confirmPublishedStructureChange([
+      'このゲームは公開中です。',
+      'このノードを削除すると、公開版の進行や選択肢が壊れる可能性があります。',
+      '削除しますか？',
+    ].join('\n'))
+  }
+
+  return confirm(buildNodeDeleteConfirmMessage(summary))
+}
+
 function buildSceneDeleteConfirmMessage(summary: any | null) {
   if (!summary) {
     return [
@@ -1286,6 +1308,18 @@ function buildSceneDeleteConfirmMessage(summary: any | null) {
     '',
     'これらの参照は削除時に自動で解除されます。',
   ].join('\n')
+}
+
+function confirmSceneDeletion(summary: any | null) {
+  if (isEditingPublishedGame()) {
+    return confirmPublishedStructureChange([
+      'このゲームは公開中です。',
+      'このシーンを削除すると、公開版の進行に影響する可能性があります。',
+      '削除しますか？',
+    ].join('\n'))
+  }
+
+  return confirm(buildSceneDeleteConfirmMessage(summary))
 }
 
 async function addScene() {
@@ -1318,7 +1352,7 @@ async function deleteCurrentScene() {
     console.warn('Failed to fetch scene delete summary:', error)
   }
 
-  if (!confirm(buildSceneDeleteConfirmMessage(summary))) return
+  if (!confirmSceneDeletion(summary)) return
 
   try {
     await api.delScene(deletingSceneId)
@@ -1352,6 +1386,14 @@ async function deleteCurrentScene() {
 
 async function setSceneStartNode(id: string) {
   if (!scene.value) return
+  if (!confirmPublishedStructureChange([
+    'このゲームは公開中です。',
+    '開始ノードを変更すると、公開版の開始位置が変わります。',
+    '変更しますか？',
+  ].join('\n'))) {
+    return
+  }
+
   await $api(`/games/scenes/${scene.value.id}`, {
     method: 'PATCH',
     body: { startNodeId: id },
@@ -1405,6 +1447,14 @@ function syncSceneNodes(sceneId: string, sceneNodes: any[]) {
 
 async function setStartSceneFromScene(targetScene: any) {
   if (!game.value || !targetScene?.id) return
+
+  if (!confirmPublishedStructureChange([
+    'このゲームは公開中です。',
+    '開始シーンを変更すると、公開版の開始位置が変わります。',
+    '変更しますか？',
+  ].join('\n'))) {
+    return
+  }
 
   const toast = useToast()
   const targetSceneId = targetScene.id as string
@@ -1658,7 +1708,7 @@ async function deleteCurrentNode() {
     console.warn('Failed to fetch node delete summary:', error)
   }
 
-  if (!confirm(buildNodeDeleteConfirmMessage(summary))) return
+  if (!confirmNodeDeletion(summary)) return
 
   try {
     await api.delNode(deletingNodeId)

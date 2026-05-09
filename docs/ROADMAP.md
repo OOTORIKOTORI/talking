@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-09（スタッフロールUI MVP）
+> 最終更新: 2026-05-09（公開中ゲームの構造変更confirm拡張 MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -20,6 +20,7 @@
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
 - 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
 - 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
+- 公開中ゲームの構造変更confirm拡張（ノード削除/シーン削除/開始シーン変更/開始ノード変更）
 
 **プロフィール/作者表示まわり**
 - CreatorProfile / ownerDisplayName / ownerDisplayNameSnapshot
@@ -48,6 +49,7 @@
 - **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開中編集時の保存前再確認UX MVP**（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
+- **公開中ゲームの構造変更confirm拡張 MVP**（2026-05-09 実装）（公開中ゲームのみ、ノード削除・シーン削除・開始シーン変更・開始ノード変更の直前に `window.confirm` を表示。削除系は通常削除confirmを公開中向け文言へ置き換えて1回表示に統一し、二重confirmを回避。非公開ゲームは従来挙動を維持。`nextNode`/選択肢遷移変更は保存ボタン確定フローのため既存保存confirmで扱う。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中編集バナー折りたたみMVP**（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中編集時の注意バナーMVP**（`isPublic === true` のゲームを編集中、タイトル行直下に注意バナーを表示。保存時の即時公開反映と新規追加クレジットの即 lock を明示。挙動変更・自動非公開化なし。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開時点クレジット/利用条件スナップショット固定MVP**（`GameCredit.snapshotLockedAt` 追加。公開遷移で `lockGameCreditsSnapshot` 実行。`syncGameCredits` は locked snapshot を上書き・削除しない。backfill 用に `db:lock-game-credit-snapshots`、検証用に `db:check-game-credit-snapshots` を追加）
@@ -149,8 +151,10 @@
 - 保存した変更は公開版にも即反映される。
 - タイトル行直下に注意バナーを表示。折りたたみ状態は `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存。
 - 公開中ゲームで「保存」「保存して次のノードへ」を押したとき**のみ** `window.confirm` で再確認。キャンセル時は保存しない。
+- 公開中ゲームで、ノード削除・シーン削除・開始シーン変更・開始ノード変更の実行前に `window.confirm` で再確認。
+- 削除系は公開中のみ確認文言を差し替え、1回表示に統一（通常削除confirmとの二重表示を回避）。
 - 非公開ゲームでは確認なし。
-- **将来課題**: ノード追加・シーン追加・削除系 confirm 拡張、差分検出、独自モーダル、公開版/下書き版分離。
+- **将来課題**: ノード追加・シーン追加へのconfirm拡張、差分検出、独自モーダル、公開版/下書き版分離。
 
 ---
 
@@ -158,9 +162,10 @@
 
 優先順（現時点のおすすめ順）:
 
-1. **公開中ゲームの構造変更 confirm 拡張** — ノード追加・削除・シーン追加にも公開中 confirm を広げる。差分検出・独自モーダルは後回し課題へ。
-2. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
-3. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
+1. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
+2. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
+3. **スタッフロール演出強化** — 自動スクロール、スキップ導線、エンディング連動など表示演出を段階追加。
+4. **公開版/下書き版分離** — 公開中編集の安全性向上の本命施策（反映タイミング分離）。
 
 ---
 
@@ -171,7 +176,9 @@
 - ノード/フィールド単位の直接ジャンプ（クレジット確認からの精密ジャンプ、現状はカテゴリフィルタ単位）
 - スタッフロール演出強化（自動スクロール / スキップ導線 / エンディング連動の細かな設定）
 - 構造化ライセンス（CC ライセンス等）
-- 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）
+- 公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線）
+- 公開中編集の差分検出基盤（公開版影響の自動判定）
+- 公開版/下書き版分離（編集反映タイミング制御）
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化等）
 
 **アセット/キャラクター visibility**
