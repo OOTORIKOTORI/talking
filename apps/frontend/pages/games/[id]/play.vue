@@ -1685,8 +1685,13 @@ async function ensureStartQuery() {
   const scenes = game.value.scenes
   if (!scenes?.length) return
 
-  // 開始シーンを決定
-  const scene = scenes.find((s: any) => s.id === sceneIdQ) ?? scenes[0]
+  // 開始シーンを決定（優先順: sceneIdクエリ → startSceneId → 先頭シーン）
+  const startSceneId = game.value.startSceneId as string | undefined | null
+  const scene = (
+    scenes.find((s: any) => s.id === sceneIdQ) ??
+    (startSceneId ? scenes.find((s: any) => s.id === startSceneId) : undefined) ??
+    scenes[0]
+  )
   if (!scene) return
 
   // 開始ノードを決定(優先順: scene.startNodeId → 先頭ノード)
@@ -1711,8 +1716,13 @@ function resolveStart(gameData: any) {
   const sceneIdQ = qStr(route.query.sceneId)
   const nodeIdQ  = qStr(route.query.nodeId)
 
-  // 1. どのシーンから始めるか
-  let scene = gameData.scenes.find((s: any) => s.id === sceneIdQ) ?? gameData.scenes[0]
+  // 1. どのシーンから始めるか（優先順: sceneIdクエリ → startSceneId → 先頭シーン）
+  const startSceneId = gameData.startSceneId as string | undefined | null
+  let scene = (
+    gameData.scenes.find((s: any) => s.id === sceneIdQ) ??
+    (startSceneId ? gameData.scenes.find((s: any) => s.id === startSceneId) : undefined) ??
+    gameData.scenes[0]
+  )
 
   // 2. どのノードから始めるか (優先順: nodeId → scene.startNodeId → 先頭ノード)
   let node = scene?.nodes?.find((n: any) => n.id === nodeIdQ)
