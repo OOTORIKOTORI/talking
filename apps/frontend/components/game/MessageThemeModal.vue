@@ -911,15 +911,19 @@
               </label>
             </section>
 
+            <!-- 保存方式の説明 -->
+            <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+              <p class="text-xs text-blue-800">
+                <strong>💡 保存方式について:</strong> スタッフロール導線の変更は、右下の「全体設定を保存」で反映されます。
+              </p>
+            </div>
+
             <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
               <h4 class="font-semibold text-md flex items-center gap-2">
                 <span class="text-violet-600">🧾</span> 手動クレジット
               </h4>
               <p class="text-sm text-gray-600">
                 手動クレジットは、ノード単位ではなくゲーム単位で表示されるクレジットです。
-              </p>
-              <p class="text-xs text-gray-500">
-                手動クレジットは、この欄の追加・編集操作ごとに保存されます。
               </p>
               <GameManualCreditsEditor
                 :game-id="gameId"
@@ -946,7 +950,7 @@
               リセット
             </button>
             <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving || !!metaValidationMessage">
-              {{ saving ? '保存中...' : '保存' }}
+              {{ saving ? '保存中...' : '全体設定を保存' }}
             </button>
           </div>
         </div>

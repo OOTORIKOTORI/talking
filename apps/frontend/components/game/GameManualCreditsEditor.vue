@@ -2,7 +2,10 @@
   <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50">
     <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
       <div>
-        <div class="font-semibold text-sm">手動クレジット</div>
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-sm">手動クレジット</span>
+          <span class="rounded border border-gray-400 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">個別保存</span>
+        </div>
         <div class="text-[11px] text-gray-500">
           素材サイト、BGM、効果音、協力者など、自動検出できないクレジットをゲーム単位で追加できます。
         </div>
@@ -87,7 +90,10 @@
             :disabled="saving"
             @click="submit"
           >
-            {{ saving ? '保存中...' : '保存' }}
+            {{ saving
+              ? (editing.mode === 'create' ? '追加中...' : '保存中...')
+              : (editing.mode === 'create' ? 'クレジットを追加' : '変更を保存')
+            }}
           </button>
           <button
             type="button"
