@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-10（スタッフロール設定MVP・右ペイン軽量化MVP・作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
+> 最終更新: 2026-05-10（スタッフロール設定MVP・右ペイン軽量化MVP・クレジット/導線タブ保存導線polish・公開中ゲームの全体設定保存confirm統一MVP・作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -8,7 +8,7 @@
 
 ## 📍 現在地サマリ（2026-05-10）
 
-最新仕様確認コミット: `c08b948ef2b5fc88944dff3f1e0ee23c56e57f3d`
+最新仕様確認コミット: `120d33a82a9f6fcf8648613befeefebf0a8e46a6`
 
 以下の MVP が一区切り済みです。
 
@@ -16,12 +16,18 @@
 - スタッフロールUI MVP（プレイ終了画面 + 公開ゲーム詳細から表示、既存 `GET /games/:id/credits` を再利用）
 - スタッフロール設定MVP（ゲーム単位ON/OFF、default ON。OFF時は導線のみ非表示で通常クレジット表示と `GET /games/:id/credits` は維持）
 - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`、owner向けCRUD、公開中即反映）
-- 右ペイン軽量化MVP（スタッフロール設定・手動クレジットを編集画面右ペインから「ゲーム全体設定 > クレジット/導線」へ移設）
+- 右ペイン軽量化MVP（スタッフロール設定・手動クレジットを編集画面右ペインから「ゲーム全体設定 > クレジット/導線」へ移設済み）
+- スタッフロール導線は「クレジット/導線」タブ内で設定し、右下の「全体設定を保存」で反映
+- 手動クレジットは同タブに表示するが、追加/編集/削除は個別保存
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
 - 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
 - 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
+- 公開中ゲームでは、全体設定モーダル内の公開版に影響する変更を保存する時に共通confirmを表示
+- 全体設定で変更なし保存時はconfirmを出さない
+- 非公開ゲームの全体設定保存ではconfirmを出さない
+- 手動クレジットの個別保存confirmは全体設定保存confirmとは別管理
 - 公開中ゲームの構造変更confirm拡張（ノード削除/シーン削除/開始シーン変更/開始ノード変更）
 
 **プロフィール/作者表示まわり**
@@ -49,7 +55,7 @@
 
 - **スタッフロール設定MVP**（2026-05-10 実装）（`GameProject.staffRollEnabled` を追加し、ゲーム編集画面で導線表示ON/OFFを保存可能化。defaultは `true` で既存ゲーム挙動を維持。OFF時は公開詳細の「スタッフロールで見る」とプレイ終了画面（通常/フルスクリーン）の「スタッフロール」ボタンのみ非表示にし、通常クレジット表示と `GET /games/:id/credits` は変更しない。`GameCredit` / 手動クレジット / snapshot lock の仕様変更なし。）
 
-- **右ペイン軽量化MVP**（2026-05-10 実装）（編集画面右ペインから「スタッフロール設定」カードと `GameManualCreditsEditor` を撤去し、`MessageThemeModal.vue` の `クレジット/導線` タブへ移設。スタッフロール設定は即時保存ではなくモーダルの「保存」で反映。公開中ゲームで `staffRollEnabled` 変更時は保存前 confirm を表示。`GET /games/:id/credits`、通常クレジット表示、`GameCredit` / 手動クレジット / snapshot lock の仕様は維持。）
+- **右ペイン軽量化MVP**（2026-05-10 実装）（編集画面右ペインから「スタッフロール設定」カードと `GameManualCreditsEditor` を撤去し、`MessageThemeModal.vue` の `クレジット/導線` タブへ移設。スタッフロール導線設定は即時保存ではなく右下の「全体設定を保存」で反映し、手動クレジットは同タブ内で個別保存を維持。公開中ゲームでは、`staffRollEnabled` に限らず全体設定モーダル内の公開版に影響する設定変更を保存する時に共通confirmを表示し、変更なし保存や非公開ゲームではconfirmを出さない。手動クレジットの個別保存confirmは別管理。`GET /games/:id/credits`、通常クレジット表示、`GameCredit` / 手動クレジット / snapshot lock の仕様は維持。）
 
 - **手動クレジットUI/API MVP**（2026-05-09 実装）（`GameCredit.kind = MANUAL` をゲーム単位の手動クレジットとして運用。`GET/POST/PATCH/DELETE /games/:id/manual-credits` を追加。公開中ゲームでの追加/編集は `snapshotLockedAt` を即時更新。`GET /games/:id/credits` に `manualCredits` と `counts.manual` を追加し、`counts.total` を `assets + characters + manual` に拡張。`syncGameCredits` の delete/recreate 対象を `ASSET/CHARACTER` unlocked のみに限定し、`MANUAL` を削除しないよう修正。）
 
