@@ -48,6 +48,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <h2 class="text-sm font-semibold tracking-wide text-gray-700">クレジット</h2>
               <button
+                v-if="game?.staffRollEnabled !== false"
                 type="button"
                 class="px-3 py-1.5 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-100 transition-colors"
                 @click="openStaffRoll()"
@@ -237,6 +238,7 @@ type GameDetail = {
   title: string
   summary: string | null
   coverAssetId: string | null
+  staffRollEnabled?: boolean | null
   viewCount?: number
   playCount?: number
   startSceneId: string | null
@@ -285,6 +287,7 @@ async function loadStaffRollCredits(opts?: { force?: boolean }) {
 }
 
 async function openStaffRoll() {
+  if (game.value?.staffRollEnabled === false) return
   staffRollOpen.value = true
   if (!credits.value) {
     await loadStaffRollCredits()

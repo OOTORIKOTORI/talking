@@ -447,6 +447,8 @@ const defaultThemeV2 = {
 
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
 const isPublishedGame = computed(() => game.value?.isPublic === true)
+const staffRollSettingSaving = ref(false)
+const isStaffRollEnabledChecked = computed(() => game.value?.staffRollEnabled !== false)
 
 function isEditingPublishedGame() {
   return isPublishedGame.value
@@ -468,6 +470,38 @@ function confirmSavePublishedGame() {
     '新しく追加された素材・キャラクターのクレジットは保存時点の情報として固定されます。',
     '保存を続行しますか？',
   ].join('\n'))
+}
+
+async function onToggleStaffRollEnabled(event: Event) {
+  const target = event.target as HTMLInputElement | null
+  if (!target || !game.value || staffRollSettingSaving.value) return
+
+  const previous = game.value.staffRollEnabled !== false
+  const next = target.checked
+  if (next === previous) return
+
+  if (isPublishedGame.value && process.client) {
+    const confirmed = window.confirm(
+      'このゲームは公開中です。スタッフロール導線の表示設定を変更すると、公開版にも反映されます。続行しますか？'
+    )
+    if (!confirmed) {
+      target.checked = previous
+      return
+    }
+  }
+
+  staffRollSettingSaving.value = true
+  try {
+    await api.update(game.value.id, { staffRollEnabled: next })
+    game.value.staffRollEnabled = next
+  } catch (error) {
+    console.error('Failed to update staffRollEnabled:', error)
+    game.value.staffRollEnabled = previous
+    target.checked = previous
+    alert('スタッフロール設定の保存に失敗しました')
+  } finally {
+    staffRollSettingSaving.value = false
+  }
 }
 
 // StageCanvas はテーマをそのまま渡す（内部で v2 解決される）
@@ -2270,6 +2304,27 @@ function onUp() {
               </div>
             </div>
           </div>
+
+          <section
+            v-if="game?.id"
+            class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+          >
+            <h3 class="text-sm font-semibold text-gray-900">スタッフロール設定</h3>
+            <p class="mt-1 text-xs text-gray-600">
+              ゲーム終了後や公開ページにスタッフロール導線を表示するかを設定します。
+            </p>
+            <label class="mt-3 inline-flex items-center gap-2 text-sm text-gray-800">
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                :checked="isStaffRollEnabledChecked"
+                :disabled="staffRollSettingSaving"
+                @change="onToggleStaffRollEnabled"
+              />
+              <span>スタッフロールを表示する</span>
+            </label>
+            <p v-if="staffRollSettingSaving" class="mt-2 text-xs text-gray-500">保存中...</p>
+          </section>
 
           <GameManualCreditsEditor
             v-if="game?.id"

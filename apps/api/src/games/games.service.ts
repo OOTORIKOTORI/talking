@@ -1438,6 +1438,7 @@ export class GamesService {
           summary: source.summary,
           coverAssetId: source.coverAssetId,
           isPublic: false,
+          staffRollEnabled: source.staffRollEnabled,
           viewCount: 0,
           playCount: 0,
           startSceneId: null,
@@ -2214,6 +2215,9 @@ export class GamesService {
       }
     }
     if (typeof data?.isPublic === 'boolean') allowed.isPublic = data.isPublic;
+    if (typeof data?.staffRollEnabled === 'boolean') {
+      allowed.staffRollEnabled = data.staffRollEnabled;
+    }
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
       allowed.startSceneId = data.startSceneId ?? null;
     }

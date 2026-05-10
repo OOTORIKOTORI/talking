@@ -142,6 +142,7 @@
             <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
             <div class="flex items-center justify-center gap-2">
               <button
+                v-if="game?.staffRollEnabled !== false"
                 @click="openStaffRoll()"
                 class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
               >
@@ -293,6 +294,7 @@
           <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
           <div class="flex items-center justify-center gap-2">
             <button
+              v-if="game?.staffRollEnabled !== false"
               @click="openStaffRoll()"
               class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
             >
@@ -947,6 +949,7 @@ async function loadStaffRollCredits(opts?: { force?: boolean }) {
 }
 
 async function openStaffRoll() {
+  if (game.value?.staffRollEnabled === false) return
   stopAutoSkipModes()
   staffRollOpen.value = true
   if (!staffRollCredits.value) {

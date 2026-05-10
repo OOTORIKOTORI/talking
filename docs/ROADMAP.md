@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-10（作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
+> 最終更新: 2026-05-10（スタッフロール設定MVP・作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -14,6 +14,7 @@
 
 **公開・クレジットまわり**
 - スタッフロールUI MVP（プレイ終了画面 + 公開ゲーム詳細から表示、既存 `GET /games/:id/credits` を再利用）
+- スタッフロール設定MVP（ゲーム単位ON/OFF、default ON。OFF時は導線のみ非表示で通常クレジット表示と `GET /games/:id/credits` は維持）
 - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`、owner向けCRUD、公開中即反映）
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
@@ -44,6 +45,8 @@
 ### 公開・クレジットまわり
 
 - **スタッフロールUI MVP**（2026-05-09 実装）（`apps/frontend/components/game/GameStaffRollModal.vue` を追加。`GET /games/:id/credits` の既存レスポンスをそのまま表示。プレイ終了画面（通常/フルスクリーン）と公開ゲーム詳細ページに導線を追加。DB変更・migration追加・API追加なし。演出強化MVPとして自動スクロール（初期ON・最下部停止）、停止/再開、先頭へ戻る、手動操作時の自動停止、スクロールバーを目立たせない表示、上下フェード/再生状態表示/中央上映寄りレイアウトを実装。速度設定・表示順カスタマイズ・エンディング後の自動表示・より凝った演出・カテゴリ別アニメーション・BGM/SE連動は将来課題。）
+
+- **スタッフロール設定MVP**（2026-05-10 実装）（`GameProject.staffRollEnabled` を追加し、ゲーム編集画面で導線表示ON/OFFを保存可能化。defaultは `true` で既存ゲーム挙動を維持。OFF時は公開詳細の「スタッフロールで見る」とプレイ終了画面（通常/フルスクリーン）の「スタッフロール」ボタンのみ非表示にし、通常クレジット表示と `GET /games/:id/credits` は変更しない。`GameCredit` / 手動クレジット / snapshot lock の仕様変更なし。）
 
 - **手動クレジットUI/API MVP**（2026-05-09 実装）（`GameCredit.kind = MANUAL` をゲーム単位の手動クレジットとして運用。`GET/POST/PATCH/DELETE /games/:id/manual-credits` を追加。公開中ゲームでの追加/編集は `snapshotLockedAt` を即時更新。`GET /games/:id/credits` に `manualCredits` と `counts.manual` を追加し、`counts.total` を `assets + characters + manual` に拡張。`syncGameCredits` の delete/recreate 対象を `ASSET/CHARACTER` unlocked のみに限定し、`MANUAL` を削除しないよう修正。）
 
@@ -167,7 +170,7 @@
 
 1. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
 2. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
-3. **スタッフロール設定 / BGM（P2〜P3）** — 現スタッフロールMVPの拡張。音声素材/クレジット設計と絡むため慎重に扱う。
+3. **スタッフロール拡張 / BGM（P2〜P3）** — 現スタッフロールMVPの拡張（速度設定、表示順カスタマイズ、自動表示、BGM）。音声素材/クレジット設計と絡むため慎重に扱う。
 4. **公開版/下書き版分離** — 公開中編集の安全性向上の本命施策（反映タイミング分離）。
 
 ---

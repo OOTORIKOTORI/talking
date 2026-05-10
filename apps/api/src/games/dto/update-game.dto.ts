@@ -21,6 +21,10 @@ export class UpdateGameDto {
   isPublic?: boolean
 
   @IsOptional()
+  @IsBoolean()
+  staffRollEnabled?: boolean
+
+  @IsOptional()
   @IsString()
   startSceneId?: string | null
 
