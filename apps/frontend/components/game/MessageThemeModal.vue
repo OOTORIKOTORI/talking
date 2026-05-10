@@ -1825,6 +1825,62 @@ function reset() {
 const toast = useToast()
 const saving = ref(false)
 
+function serializeMessageThemeForSave(theme: MessageThemeV2) {
+  const serialized = JSON.parse(JSON.stringify(theme))
+
+  if (serialized.frameBg && typeof serialized.frameBg === 'object') {
+    serialized.frameBg = rgbaToCss(serialized.frameBg)
+  }
+  if (serialized.frameBorder && typeof serialized.frameBorder === 'object') {
+    serialized.frameBorder = rgbaToCss(serialized.frameBorder)
+  }
+  if (serialized.nameBg && typeof serialized.nameBg === 'object') {
+    serialized.nameBg = rgbaToCss(serialized.nameBg)
+  }
+  if (serialized.textColor && typeof serialized.textColor === 'object') {
+    serialized.textColor = rgbaToCss(serialized.textColor)
+  }
+
+  return serialized
+}
+
+function buildSavePayload() {
+  return {
+    title: normalizedMetaTitle.value,
+    summary: normalizedMetaSummary.value,
+    coverAssetId: normalizedMetaCoverAssetId.value,
+    messageTheme: serializeMessageThemeForSave(draft.value),
+    gameUiTheme: uiDraft.value,
+    backlogTheme: backlogDraft.value,
+    staffRollEnabled: staffRollEnabledDraft.value,
+  }
+}
+
+function hasPublicSettingsChanges() {
+  const currentPayload = buildSavePayload()
+  const initialPayload = {
+    title: (props.initialTitle ?? '').trim(),
+    summary: (props.initialSummary ?? '').trim(),
+    coverAssetId: typeof props.initialCoverAssetId === 'string' && props.initialCoverAssetId.trim().length > 0
+      ? props.initialCoverAssetId.trim()
+      : null,
+    messageTheme: serializeMessageThemeForSave(migrateToV2(props.initial ?? defaultThemeV2)),
+    gameUiTheme: props.initialUi ?? defaultUiTheme,
+    backlogTheme: props.initialBacklog ?? DEFAULT_BACKLOG_THEME,
+    staffRollEnabled: staffRollEnabledInitialValue.value,
+  }
+
+  return (
+    currentPayload.title !== initialPayload.title
+    || currentPayload.summary !== initialPayload.summary
+    || currentPayload.coverAssetId !== initialPayload.coverAssetId
+    || JSON.stringify(currentPayload.messageTheme) !== JSON.stringify(initialPayload.messageTheme)
+    || JSON.stringify(currentPayload.gameUiTheme) !== JSON.stringify(initialPayload.gameUiTheme)
+    || JSON.stringify(currentPayload.backlogTheme) !== JSON.stringify(initialPayload.backlogTheme)
+    || currentPayload.staffRollEnabled !== initialPayload.staffRollEnabled
+  )
+}
+
 async function save() {
   if (metaValidationMessage.value) {
     toast.error(metaValidationMessage.value)
@@ -1832,10 +1888,9 @@ async function save() {
     return
   }
 
-  const hasStaffRollChanged = staffRollEnabledDraft.value !== staffRollEnabledInitialValue.value
-  if (props.isPublic === true && hasStaffRollChanged && process.client) {
+  if (props.isPublic === true && hasPublicSettingsChanges() && process.client) {
     const confirmed = window.confirm(
-      'このゲームは公開中です。スタッフロール導線の表示設定を変更すると、公開版にも反映されます。続行しますか？'
+      'このゲームは公開中です。全体設定の変更は公開版にも反映されます。続行しますか？'
     )
     if (!confirmed) return
   }
@@ -1843,52 +1898,24 @@ async function save() {
   saving.value = true
   try {
     const { $api } = useNuxtApp() // 関数内で取得してSSR問題を回避
-    
-    // 色をRGBAオブジェクトから文字列へ変換してからシリアライズ
-    const v = JSON.parse(JSON.stringify(draft.value))
-    
-    // RGBAオブジェクトをCSS文字列に変換
-    if (v.frameBg && typeof v.frameBg === 'object') {
-      v.frameBg = rgbaToCss(v.frameBg)
-    }
-    if (v.frameBorder && typeof v.frameBorder === 'object') {
-      v.frameBorder = rgbaToCss(v.frameBorder)
-    }
-    if (v.nameBg && typeof v.nameBg === 'object') {
-      v.nameBg = rgbaToCss(v.nameBg)
-    }
-    if (v.textColor && typeof v.textColor === 'object') {
-      v.textColor = rgbaToCss(v.textColor)
-    }
-    
-    const titleForSave = normalizedMetaTitle.value
-    const summaryForSave = normalizedMetaSummary.value
-    const coverAssetIdForSave = normalizedMetaCoverAssetId.value
+    const payload = buildSavePayload()
 
     const result: any = await $api(`/games/${props.gameId}`, {
       method: 'PATCH',
-      body: {
-        title: titleForSave,
-        summary: summaryForSave,
-        coverAssetId: coverAssetIdForSave,
-        messageTheme: v,
-        gameUiTheme: uiDraft.value,
-        backlogTheme: backlogDraft.value,
-        staffRollEnabled: staffRollEnabledDraft.value,
-      }
+      body: payload,
     })
     
     // 親へ通知（即時反映させる）
     emit('saved', {
-      title: typeof result?.title === 'string' ? result.title : titleForSave,
-      summary: typeof result?.summary === 'string' ? result.summary : summaryForSave,
-      coverAssetId: 'coverAssetId' in (result ?? {}) ? (result?.coverAssetId ?? null) : coverAssetIdForSave,
-      messageTheme: result?.messageTheme ?? v,
-      gameUiTheme: result?.gameUiTheme ?? uiDraft.value,
-      backlogTheme: result?.backlogTheme ?? backlogDraft.value,
+      title: typeof result?.title === 'string' ? result.title : payload.title,
+      summary: typeof result?.summary === 'string' ? result.summary : payload.summary,
+      coverAssetId: 'coverAssetId' in (result ?? {}) ? (result?.coverAssetId ?? null) : payload.coverAssetId,
+      messageTheme: result?.messageTheme ?? payload.messageTheme,
+      gameUiTheme: result?.gameUiTheme ?? payload.gameUiTheme,
+      backlogTheme: result?.backlogTheme ?? payload.backlogTheme,
       staffRollEnabled: 'staffRollEnabled' in (result ?? {})
         ? result?.staffRollEnabled !== false
-        : staffRollEnabledDraft.value,
+        : payload.staffRollEnabled,
     })
     toast.success('全体設定を保存しました')
     emit('close')
