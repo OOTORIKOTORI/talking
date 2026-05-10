@@ -3361,9 +3361,10 @@ function onUp() {
         :initial-ui="game?.gameUiTheme"
         :initial-backlog="game?.backlogTheme"
         :initial-staff-roll-enabled="game?.staffRollEnabled"
+        :initial-staff-roll-speed-preset="game?.staffRollSpeedPreset"
         :is-public="game?.isPublic === true"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.coverAssetId = ('coverAssetId' in (v ?? {})) ? (v.coverAssetId ?? null) : (game.coverAssetId ?? null); game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme; if ('staffRollEnabled' in (v ?? {})) { game.staffRollEnabled = v.staffRollEnabled !== false } } }"
+        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.coverAssetId = ('coverAssetId' in (v ?? {})) ? (v.coverAssetId ?? null) : (game.coverAssetId ?? null); game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme; if ('staffRollEnabled' in (v ?? {})) { game.staffRollEnabled = v.staffRollEnabled !== false } if ('staffRollSpeedPreset' in (v ?? {})) { game.staffRollSpeedPreset = v.staffRollSpeedPreset ?? 'normal' } } }"
       />
     </div>
   </div>

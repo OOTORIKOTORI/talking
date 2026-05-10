@@ -207,6 +207,7 @@ interface Props {
   credits: GameCreditsResult | null
   loading?: boolean
   error?: string | null
+  speedPreset?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -221,6 +222,17 @@ const emit = defineEmits<{
 }>()
 
 const AUTO_SCROLL_SPEED_PX_PER_SEC = 42
+
+type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
+function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
+  return value === 'slow' || value === 'fast' || value === 'normal' ? value : 'normal'
+}
+const autoScrollSpeedPxPerSec = computed(() => {
+  const preset = normalizeStaffRollSpeedPreset(props.speedPreset)
+  if (preset === 'slow') return 28
+  if (preset === 'fast') return 64
+  return 42
+})
 
 type PlaybackStatus = 'paused' | 'ended'
 
@@ -325,7 +337,7 @@ function runAutoScrollFrame(timestamp: number) {
   }
 
   autoScrollOffset.value = Math.min(
-    autoScrollOffset.value + AUTO_SCROLL_SPEED_PX_PER_SEC * deltaSeconds,
+    autoScrollOffset.value + autoScrollSpeedPxPerSec.value * deltaSeconds,
     maxOffset,
   )
 

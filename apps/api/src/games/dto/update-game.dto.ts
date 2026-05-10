@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
+import { IsBoolean, IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
 
 export class UpdateGameDto {
   @IsOptional()
@@ -23,6 +23,11 @@ export class UpdateGameDto {
   @IsOptional()
   @IsBoolean()
   staffRollEnabled?: boolean
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['slow', 'normal', 'fast'])
+  staffRollSpeedPreset?: string
 
   @IsOptional()
   @IsString()

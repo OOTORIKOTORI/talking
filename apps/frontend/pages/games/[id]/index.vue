@@ -213,6 +213,7 @@
         :credits="credits"
         :loading="staffRollLoading"
         :error="staffRollError"
+        :speed-preset="game?.staffRollSpeedPreset"
         @close="closeStaffRoll"
         @retry="retryStaffRoll"
       />

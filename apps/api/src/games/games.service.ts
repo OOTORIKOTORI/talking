@@ -1439,6 +1439,7 @@ export class GamesService {
           coverAssetId: source.coverAssetId,
           isPublic: false,
           staffRollEnabled: source.staffRollEnabled,
+          staffRollSpeedPreset: source.staffRollSpeedPreset,
           viewCount: 0,
           playCount: 0,
           startSceneId: null,
@@ -2217,6 +2218,9 @@ export class GamesService {
     if (typeof data?.isPublic === 'boolean') allowed.isPublic = data.isPublic;
     if (typeof data?.staffRollEnabled === 'boolean') {
       allowed.staffRollEnabled = data.staffRollEnabled;
+    }
+    if (typeof data?.staffRollSpeedPreset === 'string' && ['slow', 'normal', 'fast'].includes(data.staffRollSpeedPreset)) {
+      allowed.staffRollSpeedPreset = data.staffRollSpeedPreset;
     }
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
       allowed.startSceneId = data.startSceneId ?? null;

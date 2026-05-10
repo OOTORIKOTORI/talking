@@ -909,12 +909,36 @@
                   スタッフロールを表示する
                 </span>
               </label>
+
+              <!-- スクロール速度 -->
+              <div class="mt-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">スクロール速度</p>
+                <div class="flex gap-2">
+                  <label
+                    v-for="opt in staffRollSpeedOptions"
+                    :key="opt.value"
+                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
+                    :class="staffRollSpeedPresetDraft === opt.value
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
+                  >
+                    <input
+                      type="radio"
+                      name="staffRollSpeed"
+                      :value="opt.value"
+                      v-model="staffRollSpeedPresetDraft"
+                      class="sr-only"
+                    />
+                    {{ opt.label }}
+                  </label>
+                </div>
+              </div>
             </section>
 
             <!-- 保存方式の説明 -->
             <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
               <p class="text-xs text-blue-800">
-                <strong>💡 保存方式について:</strong> スタッフロール導線の変更は、右下の「全体設定を保存」で反映されます。
+                <strong>💡 保存方式について:</strong> スタッフロール導線・スクロール速度の変更は、右下の「全体設定を保存」で反映されます。
               </p>
             </div>
 
@@ -984,6 +1008,7 @@ const props = defineProps<{
   initialUi?: GameUiTheme
   initialBacklog?: BacklogTheme
   initialStaffRollEnabled?: boolean | null
+  initialStaffRollSpeedPreset?: string | null
   isPublic?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
@@ -1003,6 +1028,18 @@ const modalTabs: { key: ModalTabKey; label: string }[] = [
 
 const staffRollEnabledInitialValue = computed(() => props.initialStaffRollEnabled !== false)
 const staffRollEnabledDraft = ref(staffRollEnabledInitialValue.value)
+
+type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
+function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
+  return value === 'slow' || value === 'fast' || value === 'normal' ? value : 'normal'
+}
+const staffRollSpeedOptions = [
+  { value: 'slow', label: 'ゆっくり' },
+  { value: 'normal', label: '標準' },
+  { value: 'fast', label: '速い' },
+]
+const staffRollSpeedPresetInitialValue = computed(() => normalizeStaffRollSpeedPreset(props.initialStaffRollSpeedPreset))
+const staffRollSpeedPresetDraft = ref<StaffRollSpeedPreset>(staffRollSpeedPresetInitialValue.value)
 
 const GAME_TITLE_MAX_LENGTH = 120
 const GAME_SUMMARY_MAX_LENGTH = 500
@@ -1819,6 +1856,7 @@ function reset() {
     coverAssetId: props.initialCoverAssetId ?? null,
   }
   staffRollEnabledDraft.value = staffRollEnabledInitialValue.value
+  staffRollSpeedPresetDraft.value = staffRollSpeedPresetInitialValue.value
 }
 
 // 保存
@@ -1853,6 +1891,7 @@ function buildSavePayload() {
     gameUiTheme: uiDraft.value,
     backlogTheme: backlogDraft.value,
     staffRollEnabled: staffRollEnabledDraft.value,
+    staffRollSpeedPreset: staffRollSpeedPresetDraft.value,
   }
 }
 
@@ -1868,6 +1907,7 @@ function hasPublicSettingsChanges() {
     gameUiTheme: props.initialUi ?? defaultUiTheme,
     backlogTheme: props.initialBacklog ?? DEFAULT_BACKLOG_THEME,
     staffRollEnabled: staffRollEnabledInitialValue.value,
+    staffRollSpeedPreset: staffRollSpeedPresetInitialValue.value,
   }
 
   return (
@@ -1878,6 +1918,7 @@ function hasPublicSettingsChanges() {
     || JSON.stringify(currentPayload.gameUiTheme) !== JSON.stringify(initialPayload.gameUiTheme)
     || JSON.stringify(currentPayload.backlogTheme) !== JSON.stringify(initialPayload.backlogTheme)
     || currentPayload.staffRollEnabled !== initialPayload.staffRollEnabled
+    || currentPayload.staffRollSpeedPreset !== initialPayload.staffRollSpeedPreset
   )
 }
 
@@ -1916,6 +1957,9 @@ async function save() {
       staffRollEnabled: 'staffRollEnabled' in (result ?? {})
         ? result?.staffRollEnabled !== false
         : payload.staffRollEnabled,
+      staffRollSpeedPreset: 'staffRollSpeedPreset' in (result ?? {})
+        ? normalizeStaffRollSpeedPreset(result?.staffRollSpeedPreset)
+        : payload.staffRollSpeedPreset,
     })
     toast.success('全体設定を保存しました')
     emit('close')

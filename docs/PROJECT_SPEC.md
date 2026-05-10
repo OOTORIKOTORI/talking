@@ -178,6 +178,15 @@
     - 全体設定で変更なし保存の場合はconfirmを表示しない。
     - 非公開ゲームで全体設定を保存する場合はconfirmを表示しない。
     - 手動クレジットの個別保存confirmは、この全体設定保存confirmとは別管理とする。
+  - スタッフロール速度設定MVP（2026-05-10）を実装済み。ゲーム単位で自動スクロール速度を「ゆっくり / 標準 / 速い」3段階で設定できる。
+    - `GameProject.staffRollSpeedPreset`（TEXT NOT NULL DEFAULT 'normal'）を追加（migration: `20260510130000staffrollspeedpreset`）。
+    - 設定場所は「ゲーム全体設定 > クレジット/導線」タブ内、スタッフロール導線 ON/OFF トグルの下。
+    - 速度設定は「全体設定を保存」で反映される（ON/OFFと同一保存フロー）。
+    - 公開中ゲームで速度変更して保存する場合も、全体設定保存confirm（共通confirm）の対象となる。
+    - 既存ゲームのデフォルトは「標準」（42 px/sec）。slow=28px/sec、fast=64px/sec。
+    - `staffRollEnabled=false` でも速度設定値は保存される。導線は従来通り非表示。
+    - ON/OFF設定・通常クレジット表示・`GET /games/:id/credits` は維持。
+    - BGM・エンディング後自動表示・表示順カスタマイズは将来課題のまま。
   - プレイ終了画面（通常表示/フルスクリーン）と公開ゲーム詳細ページからスタッフロールを開ける。
   - スタッフロール演出強化MVP（2026-05-09）を実装済み。
     - クレジット本文の自動スクロール（初期ON、最下部到達で自動停止）
@@ -1247,7 +1256,7 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
 - `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
 - 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
-- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled` と手動クレジット編集（ゲーム単位）を扱う。
+- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset` と手動クレジット編集（ゲーム単位）を扱う。
 - 基本情報MVPの対象は `title` / `summary` のみ。
 - 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
 
