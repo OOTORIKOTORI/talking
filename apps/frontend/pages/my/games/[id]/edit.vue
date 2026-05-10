@@ -447,6 +447,26 @@ const defaultThemeV2 = {
 const previewTheme = computed(() => game.value?.messageTheme ?? defaultThemeV2)
 const isPublishedGame = computed(() => game.value?.isPublic === true)
 
+function handleThemeSaved(v: any) {
+  if (!game.value) return
+
+  game.value.title = v.title ?? game.value.title
+  game.value.summary = v.summary ?? game.value.summary ?? null
+  game.value.coverAssetId = ('coverAssetId' in (v ?? {}))
+    ? (v.coverAssetId ?? null)
+    : (game.value.coverAssetId ?? null)
+  game.value.messageTheme = v.messageTheme ?? v
+  game.value.gameUiTheme = v.gameUiTheme
+  game.value.backlogTheme = v.backlogTheme
+
+  if ('staffRollEnabled' in (v ?? {})) {
+    game.value.staffRollEnabled = v.staffRollEnabled !== false
+  }
+  if ('staffRollSpeedPreset' in (v ?? {})) {
+    game.value.staffRollSpeedPreset = v.staffRollSpeedPreset ?? 'normal'
+  }
+}
+
 function isEditingPublishedGame() {
   return isPublishedGame.value
 }
@@ -3364,7 +3384,7 @@ function onUp() {
         :initial-staff-roll-speed-preset="game?.staffRollSpeedPreset"
         :is-public="game?.isPublic === true"
         @close="openThemeModal=false"
-        @saved="(v)=>{ if (game) { game.title = v.title ?? game.title; game.summary = v.summary ?? game.summary ?? null; game.coverAssetId = ('coverAssetId' in (v ?? {})) ? (v.coverAssetId ?? null) : (game.coverAssetId ?? null); game.messageTheme=v.messageTheme ?? v; game.gameUiTheme=v.gameUiTheme; game.backlogTheme=v.backlogTheme; if ('staffRollEnabled' in (v ?? {})) { game.staffRollEnabled = v.staffRollEnabled !== false } if ('staffRollSpeedPreset' in (v ?? {})) { game.staffRollSpeedPreset = v.staffRollSpeedPreset ?? 'normal' } } }"
+        @saved="handleThemeSaved"
       />
     </div>
   </div>

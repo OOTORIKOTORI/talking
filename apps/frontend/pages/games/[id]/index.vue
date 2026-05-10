@@ -224,6 +224,7 @@
 <script setup lang="ts">
 import type { GameCreditsResult } from '@talking/types'
 import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
+import { useStaffRollCredits } from '@/composables/useStaffRollCredits'
 import { formatCreatorLabel } from '~/utils/creatorDisplay'
 
 type GameScene = {
@@ -268,25 +269,14 @@ const isHttpUrl = (value: string | null | undefined): boolean => /^https?:\/\//i
 
 const hasCredits = computed(() => Number(credits.value?.counts?.total || 0) > 0)
 
-async function loadStaffRollCredits(opts?: { force?: boolean }) {
-  const id = String(route.params.id || '')
-  if (!id) return
-  if (!opts?.force && credits.value) {
-    staffRollError.value = null
-    return
-  }
-
-  staffRollLoading.value = true
-  staffRollError.value = null
-  try {
-    const creditsRes = await api.getCredits(id)
-    credits.value = creditsRes as GameCreditsResult
-  } catch (e: any) {
-    staffRollError.value = e?.data?.message || e?.message || 'クレジットの取得に失敗しました。'
-  } finally {
-    staffRollLoading.value = false
-  }
-}
+const { loadStaffRollCredits } = useStaffRollCredits({
+  getGameId: () => String(route.params.id || ''),
+  credits,
+  loading: staffRollLoading,
+  error: staffRollError,
+  fetchCredits: async (gameId) => (await api.getCredits(gameId)) as GameCreditsResult,
+  errorMessage: 'クレジットの取得に失敗しました。',
+})
 
 async function openStaffRoll() {
   if (game.value?.staffRollEnabled === false) return

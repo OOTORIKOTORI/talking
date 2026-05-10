@@ -476,6 +476,7 @@ import TestPlayPanel from '@/components/game/TestPlayPanel.vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { DEFAULT_BACKLOG_THEME, type GameCreditsResult } from '@talking/types'
 import { useAssetMeta } from '@/composables/useAssetMeta'
+import { useStaffRollCredits } from '@/composables/useStaffRollCredits'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { initAudioConsent, grantAudioConsent, audioConsent } from '@/composables/useAudioConsent'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -679,6 +680,14 @@ const staffRollOpen = ref(false)
 const staffRollCredits = ref<GameCreditsResult | null>(null)
 const staffRollLoading = ref(false)
 const staffRollError = ref<string | null>(null)
+const { loadStaffRollCredits } = useStaffRollCredits({
+  getGameId: () => String(game.value?.id || ''),
+  credits: staffRollCredits,
+  loading: staffRollLoading,
+  error: staffRollError,
+  fetchCredits: async (gameId) => (await api.getCredits(gameId)) as GameCreditsResult,
+  errorMessage: 'スタッフロールの取得に失敗しました。',
+})
 const saveListData = ref<any[]>([])
 const saveLimits = ref({ manual: 100, auto: 5, quick: 1, total: 106 })
 const savingOrLoading = ref(false)
@@ -927,26 +936,6 @@ function openSaveLoadModal(mode: ModalMode) {
 
 function closeSaveLoadModal() {
   saveLoadOpen.value = false
-}
-
-async function loadStaffRollCredits(opts?: { force?: boolean }) {
-  const gameId = String(game.value?.id || '')
-  if (!gameId) return
-  if (!opts?.force && staffRollCredits.value) {
-    staffRollError.value = null
-    return
-  }
-
-  staffRollLoading.value = true
-  staffRollError.value = null
-  try {
-    const res = await api.getCredits(gameId)
-    staffRollCredits.value = res as GameCreditsResult
-  } catch (e: any) {
-    staffRollError.value = e?.data?.message || e?.message || 'スタッフロールの取得に失敗しました。'
-  } finally {
-    staffRollLoading.value = false
-  }
 }
 
 async function openStaffRoll() {
