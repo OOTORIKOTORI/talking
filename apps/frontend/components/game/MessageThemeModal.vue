@@ -1,40 +1,44 @@
 <template>
   <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-    <div class="flex min-h-screen items-center justify-center p-4 md:p-6">
-      <div class="w-[min(1200px,96vw)] max-h-[calc(100vh-4rem)] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+    <div class="flex min-h-[100dvh] items-center justify-center p-1 sm:p-4 md:p-6">
+      <div class="w-[min(1200px,calc(100vw-0.5rem))] sm:w-[min(1200px,96vw)] max-h-[calc(100dvh-0.5rem)] sm:max-h-[calc(100dvh-4rem)] bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col">
         <!-- ヘッダー（固定） -->
-        <div class="flex items-center justify-between px-5 pt-5 pb-0 border-b">
-          <div class="flex items-end gap-0">
-            <h3 class="font-semibold text-lg mr-6 pb-3">ゲーム全体設定</h3>
-            <button
-              v-for="tab in modalTabs"
-              :key="tab.key"
-              class="px-4 py-3 text-sm border-b-2 transition-colors"
-              :class="activeModalTab === tab.key
-                ? 'border-blue-600 text-blue-700 font-semibold'
-                : 'border-transparent text-gray-500 hover:text-gray-800'"
-              @click="activeModalTab = tab.key"
-            >
-              {{ tab.label }}
-            </button>
+        <div class="border-b px-3 pt-3 sm:px-5 sm:pt-5">
+          <div class="flex items-start justify-between gap-3">
+            <h3 class="font-semibold text-base sm:text-lg sm:pb-3">ゲーム全体設定</h3>
+            <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none" @click="$emit('close')" title="閉じる">✕</button>
           </div>
-          <button class="text-gray-500 hover:text-gray-700 text-2xl leading-none pb-3" @click="$emit('close')" title="閉じる">✕</button>
+          <div class="-mx-3 mt-2 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+            <div class="flex min-w-max items-end gap-0 sm:min-w-0 sm:flex-wrap">
+              <button
+                v-for="tab in modalTabs"
+                :key="tab.key"
+                class="shrink-0 whitespace-nowrap px-3 py-2.5 text-xs sm:px-4 sm:py-3 sm:text-sm border-b-2 transition-colors"
+                :class="activeModalTab === tab.key
+                  ? 'border-blue-600 text-blue-700 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'"
+                @click="activeModalTab = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 全体テーマ一括設定（折り畳み） -->
         <div v-if="activeModalTab !== 'meta'" class="border-b bg-indigo-50/60">
           <button
-            class="w-full flex items-center justify-between px-5 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition"
+            class="w-full flex items-start justify-between gap-2 px-3 py-2.5 sm:px-5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition"
             @click="unifiedOpen = !unifiedOpen"
           >
-            <span class="flex items-center gap-2">
+            <span class="flex min-w-0 items-start gap-2 text-left">
               <span>✨</span>
-              全体テーマを一括設定（メッセージウィンドウ・セーブ・ロード・バックログを統一）
+              <span class="break-words">全体テーマを一括設定（メッセージウィンドウ・セーブ・ロード・バックログを統一）</span>
             </span>
             <span class="text-indigo-400 text-xs">{{ unifiedOpen ? '▲ 閉じる' : '▼ 開く' }}</span>
           </button>
 
-          <div v-if="unifiedOpen" class="px-5 pb-4">
+          <div v-if="unifiedOpen" class="px-3 pb-4 sm:px-5">
             <p class="text-xs text-indigo-600 mb-3">
               クリックするとすべてのタブのテーマが同じ雰囲気に統一されます。各タブで個別に微調整もできます。
             </p>
@@ -55,10 +59,10 @@
         </div>
 
         <!-- スクロール可能なコンテンツ領域 -->
-        <div class="overflow-y-auto flex-1">
+        <div class="overflow-y-auto overflow-x-hidden flex-1">
           <!-- ===== 基本情報 タブ ===== -->
           <template v-if="activeModalTab === 'meta'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section class="space-y-4">
               <h4 class="font-semibold text-md mb-1 flex items-center gap-2">
                 <span class="text-blue-600">📝</span> 基本情報
@@ -140,7 +144,7 @@
           <!-- ===== メッセージウィンドウ タブ ===== -->
           <template v-if="activeModalTab === 'message'">
           <!-- ライブプレビュー -->
-          <div class="p-5 bg-gray-50">
+          <div class="p-3 sm:p-5 bg-gray-50">
             <div class="relative aspect-[16/9] bg-neutral-900 rounded-lg overflow-hidden shadow-lg">
               <img :src="bg" class="absolute inset-0 w-full h-full object-cover opacity-60" alt="preview bg" />
               <div class="absolute inset-x-4 bottom-4 md:inset-x-8 md:bottom-6">
@@ -150,7 +154,7 @@
           </div>
 
           <!-- フォーム -->
-          <div class="px-5 pb-5 space-y-6">
+          <div class="px-3 pb-4 sm:px-5 sm:pb-5 space-y-6">
             <!-- プリセット選択 -->
             <section>
               <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
@@ -455,7 +459,7 @@
 
           <!-- ===== セーブ・ロード画面 タブ ===== -->
           <template v-if="activeModalTab === 'ui'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
 
             <!-- プレビュー -->
             <section>
@@ -607,7 +611,7 @@
 
           <!-- ===== クイックボタン タブ ===== -->
           <template v-if="activeModalTab === 'quickbtn'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
 
             <section>
               <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
@@ -687,7 +691,7 @@
 
           <!-- ===== バックログ タブ ===== -->
           <template v-if="activeModalTab === 'backlog'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section>
               <h4 class="font-semibold text-md mb-3 flex items-center gap-2"><span class="text-violet-600">📜</span> プレビュー</h4>
               <div class="rounded-xl p-4 border" :style="backlogPreviewStyle">
@@ -773,7 +777,7 @@
 
           <!-- ===== 文言設定 タブ ===== -->
           <template v-if="activeModalTab === 'labels'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section>
               <h4 class="font-semibold text-md mb-3 flex items-center gap-2">
                 <span class="text-orange-600">✨</span> 世界観プリセット
@@ -882,15 +886,15 @@
 
           <!-- ===== クレジット/導線 タブ ===== -->
           <template v-if="activeModalTab === 'credits'">
-          <div class="px-5 py-5 space-y-6">
+          <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
               <h4 class="font-semibold text-md flex items-center gap-2">
                 <span class="text-blue-600">🎬</span> スタッフロール導線
               </h4>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-gray-600 break-words leading-relaxed">
                 ゲーム終了後や公開ページにスタッフロール導線を表示するかを設定します。
               </p>
-              <label class="inline-flex items-center gap-3 cursor-pointer select-none">
+              <label class="inline-flex w-full flex-wrap items-center gap-3 cursor-pointer select-none sm:flex-nowrap">
                 <input
                   v-model="staffRollEnabledDraft"
                   type="checkbox"
@@ -905,7 +909,7 @@
                     :class="staffRollEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
                   ></span>
                 </span>
-                <span class="text-sm font-medium text-gray-800">
+                <span class="text-sm font-medium text-gray-800 break-words">
                   スタッフロールを表示する
                 </span>
               </label>
@@ -913,11 +917,11 @@
               <!-- スクロール速度 -->
               <div class="mt-4">
                 <p class="text-sm font-medium text-gray-700 mb-2">スクロール速度</p>
-                <div class="flex gap-2">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <label
                     v-for="opt in staffRollSpeedOptions"
                     :key="opt.value"
-                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
+                    class="flex min-w-0 items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
                     :class="staffRollSpeedPresetDraft === opt.value
                       ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
@@ -936,8 +940,8 @@
             </section>
 
             <!-- 保存方式の説明 -->
-            <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
-              <p class="text-xs text-blue-800">
+            <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 sm:px-4 sm:py-3">
+              <p class="text-xs sm:text-sm text-blue-800 leading-relaxed break-words">
                 <strong>💡 保存方式について:</strong> スタッフロール導線・スクロール速度の変更は、右下の「全体設定を保存」で反映されます。
               </p>
             </div>
@@ -946,7 +950,7 @@
               <h4 class="font-semibold text-md flex items-center gap-2">
                 <span class="text-violet-600">🧾</span> 手動クレジット
               </h4>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-gray-600 break-words leading-relaxed">
                 手動クレジットは、ノード単位ではなくゲーム単位で表示されるクレジットです。
               </p>
               <GameManualCreditsEditor
@@ -960,20 +964,20 @@
         </div>
 
         <!-- フッター（固定） -->
-        <div class="flex flex-wrap gap-2 p-5 border-t justify-between bg-gray-50">
-          <div class="flex gap-2">
-            <button @click="exportTheme" class="px-4 py-2 bg-white border rounded hover:bg-gray-100 text-sm font-medium" title="現在の設定をJSONでダウンロード">
+        <div class="flex flex-col gap-2 p-3 sm:p-5 border-t sm:flex-row sm:flex-wrap sm:justify-between bg-gray-50">
+          <div class="grid grid-cols-2 gap-2 sm:flex">
+            <button @click="exportTheme" class="px-3 sm:px-4 py-2.5 bg-white border rounded hover:bg-gray-100 text-sm font-medium" title="現在の設定をJSONでダウンロード">
               📥 エクスポート
             </button>
-            <button @click="importTheme" class="px-4 py-2 bg-white border rounded hover:bg-gray-100 text-sm font-medium" title="JSONファイルから設定を読み込み">
+            <button @click="importTheme" class="px-3 sm:px-4 py-2.5 bg-white border rounded hover:bg-gray-100 text-sm font-medium" title="JSONファイルから設定を読み込み">
               📤 インポート
             </button>
           </div>
-          <div class="flex gap-2">
-            <button @click="reset" class="px-4 py-2 bg-gray-200 border rounded hover:bg-gray-300 text-sm font-medium" :disabled="saving">
+          <div class="grid grid-cols-2 gap-2 sm:flex">
+            <button @click="reset" class="px-3 sm:px-4 py-2.5 bg-gray-200 border rounded hover:bg-gray-300 text-sm font-medium" :disabled="saving">
               リセット
             </button>
-            <button @click="save" class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving || !!metaValidationMessage">
+            <button @click="save" class="px-4 sm:px-5 py-2.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium shadow disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="saving || !!metaValidationMessage">
               {{ saving ? '保存中...' : '全体設定を保存' }}
             </button>
           </div>

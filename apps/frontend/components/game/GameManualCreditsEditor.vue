@@ -1,18 +1,18 @@
 <template>
-  <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50">
-    <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
-      <div>
+  <div class="mb-3 sm:mb-4 rounded-lg border border-gray-200 bg-gray-50">
+    <div class="flex flex-col gap-2 border-b border-gray-200 px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
         <div class="flex items-center gap-2">
           <span class="font-semibold text-sm">手動クレジット</span>
           <span class="rounded border border-gray-400 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">個別保存</span>
         </div>
-        <div class="text-[11px] text-gray-500">
+        <div class="text-[11px] text-gray-500 break-words leading-relaxed">
           素材サイト、BGM、効果音、協力者など、自動検出できないクレジットをゲーム単位で追加できます。
         </div>
       </div>
       <button
         type="button"
-        class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
+        class="w-full sm:w-auto px-3 py-1.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
         @click="open = !open"
       >
         {{ open ? '折りたたむ' : '展開' }}
@@ -24,7 +24,7 @@
         <span class="rounded border border-gray-300 bg-white px-2 py-1">{{ items.length }}件</span>
         <button
           type="button"
-          class="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100"
+          class="px-3 py-1.5 rounded border border-gray-300 bg-white hover:bg-gray-100"
           :disabled="loading"
           @click="load"
         >
@@ -32,7 +32,7 @@
         </button>
         <button
           type="button"
-          class="px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
+          class="px-3 py-1.5 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
           :disabled="loading"
           @click="startCreate"
         >
@@ -83,10 +83,10 @@
           {{ formError }}
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button
             type="button"
-            class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             :disabled="saving"
             @click="submit"
           >
@@ -97,7 +97,7 @@
           </button>
           <button
             type="button"
-            class="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100"
+            class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100"
             :disabled="saving"
             @click="cancelEdit"
           >
@@ -116,7 +116,7 @@
           :key="item.id"
           class="rounded border border-gray-200 bg-white px-3 py-2"
         >
-          <div class="flex items-start justify-between gap-2">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0 flex-1">
               <div class="font-medium text-sm text-gray-900 break-words">{{ item.label }}</div>
               <div v-if="item.manualRole" class="text-xs text-gray-600 mt-1">役割: {{ item.manualRole }}</div>
@@ -127,18 +127,18 @@
                   :href="item.manualUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-blue-600 hover:underline"
+                  class="text-blue-600 hover:underline break-all"
                 >
                   {{ item.manualUrl }}
                 </a>
-                <span v-else class="text-gray-500">{{ item.manualUrl }}</span>
+                <span v-else class="text-gray-500 break-all">{{ item.manualUrl }}</span>
               </div>
               <div class="mt-1 text-[11px] text-gray-500">sort: {{ item.sortOrder }}</div>
             </div>
-            <div class="flex shrink-0 gap-1">
+            <div class="flex shrink-0 gap-1 self-end sm:self-auto">
               <button
                 type="button"
-                class="px-2 py-1 rounded border border-gray-300 bg-white text-xs hover:bg-gray-100"
+                class="px-3 py-1.5 rounded border border-gray-300 bg-white text-xs hover:bg-gray-100"
                 :disabled="saving"
                 @click="startEdit(item)"
               >
@@ -146,7 +146,7 @@
               </button>
               <button
                 type="button"
-                class="px-2 py-1 rounded border border-red-300 bg-red-50 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                class="px-3 py-1.5 rounded border border-red-300 bg-red-50 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
                 :disabled="deletingId === item.id"
                 @click="remove(item)"
               >
