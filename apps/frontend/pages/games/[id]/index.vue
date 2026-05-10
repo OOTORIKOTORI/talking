@@ -240,6 +240,7 @@ type GameDetail = {
   summary: string | null
   coverAssetId: string | null
   staffRollEnabled?: boolean | null
+  staffRollSpeedPreset?: 'slow' | 'normal' | 'fast' | string | null
   viewCount?: number
   playCount?: number
   startSceneId: string | null

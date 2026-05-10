@@ -221,8 +221,6 @@ const emit = defineEmits<{
   retry: []
 }>()
 
-const AUTO_SCROLL_SPEED_PX_PER_SEC = 42
-
 type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
 function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
   return value === 'slow' || value === 'fast' || value === 'normal' ? value : 'normal'
