@@ -880,6 +880,55 @@
           </div>
           </template>
 
+          <!-- ===== クレジット/導線 タブ ===== -->
+          <template v-if="activeModalTab === 'credits'">
+          <div class="px-5 py-5 space-y-6">
+            <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+              <h4 class="font-semibold text-md flex items-center gap-2">
+                <span class="text-blue-600">🎬</span> スタッフロール導線
+              </h4>
+              <p class="text-sm text-gray-600">
+                ゲーム終了後や公開ページにスタッフロール導線を表示するかを設定します。
+              </p>
+              <label class="inline-flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  v-model="staffRollEnabledDraft"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <span
+                  class="relative h-7 w-12 rounded-full transition-colors"
+                  :class="staffRollEnabledDraft ? 'bg-blue-600' : 'bg-gray-300'"
+                >
+                  <span
+                    class="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform"
+                    :class="staffRollEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
+                  ></span>
+                </span>
+                <span class="text-sm font-medium text-gray-800">
+                  スタッフロールを表示する
+                </span>
+              </label>
+            </section>
+
+            <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+              <h4 class="font-semibold text-md flex items-center gap-2">
+                <span class="text-violet-600">🧾</span> 手動クレジット
+              </h4>
+              <p class="text-sm text-gray-600">
+                手動クレジットは、ノード単位ではなくゲーム単位で表示されるクレジットです。
+              </p>
+              <p class="text-xs text-gray-500">
+                手動クレジットは、この欄の追加・編集操作ごとに保存されます。
+              </p>
+              <GameManualCreditsEditor
+                :game-id="gameId"
+                :is-public="isPublic === true"
+              />
+            </section>
+          </div>
+          </template>
+
         </div>
 
         <!-- フッター（固定） -->
@@ -916,6 +965,7 @@ import { ref, computed } from 'vue'
 import type { MessageThemeV2, RGBA, GameUiTheme, BacklogTheme } from '@talking/types'
 import { FONT_K, PADDING_K, RADIUS_PX, BORDER_PX, TYPE_MS, DEFAULT_BACKLOG_THEME, resolveBacklogPreset } from '@talking/types'
 import MessageWindow from '@/components/game/MessageWindow.vue'
+import GameManualCreditsEditor from '@/components/game/GameManualCreditsEditor.vue'
 import AssetPicker from '@/components/pickers/AssetPicker.vue'
 import ColorField from '@/components/ui/ColorField.vue'
 import { useAssetMeta } from '@/composables/useAssetMeta'
@@ -929,11 +979,13 @@ const props = defineProps<{
   initial?: any
   initialUi?: GameUiTheme
   initialBacklog?: BacklogTheme
+  initialStaffRollEnabled?: boolean | null
+  isPublic?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
 
 // タブ
-type ModalTabKey = 'meta' | 'message' | 'ui' | 'quickbtn' | 'backlog' | 'labels'
+type ModalTabKey = 'meta' | 'message' | 'ui' | 'quickbtn' | 'backlog' | 'labels' | 'credits'
 const activeModalTab = ref<ModalTabKey>('meta')
 const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'meta', label: '基本情報' },
@@ -942,7 +994,11 @@ const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'quickbtn', label: 'クイックボタン' },
   { key: 'backlog', label: 'バックログ' },
   { key: 'labels', label: '文言設定' },
+  { key: 'credits', label: 'クレジット/導線' },
 ]
+
+const staffRollEnabledInitialValue = computed(() => props.initialStaffRollEnabled !== false)
+const staffRollEnabledDraft = ref(staffRollEnabledInitialValue.value)
 
 const GAME_TITLE_MAX_LENGTH = 120
 const GAME_SUMMARY_MAX_LENGTH = 500
@@ -1758,6 +1814,7 @@ function reset() {
     summary: props.initialSummary ?? '',
     coverAssetId: props.initialCoverAssetId ?? null,
   }
+  staffRollEnabledDraft.value = staffRollEnabledInitialValue.value
 }
 
 // 保存
@@ -1769,6 +1826,14 @@ async function save() {
     toast.error(metaValidationMessage.value)
     activeModalTab.value = 'meta'
     return
+  }
+
+  const hasStaffRollChanged = staffRollEnabledDraft.value !== staffRollEnabledInitialValue.value
+  if (props.isPublic === true && hasStaffRollChanged && process.client) {
+    const confirmed = window.confirm(
+      'このゲームは公開中です。スタッフロール導線の表示設定を変更すると、公開版にも反映されます。続行しますか？'
+    )
+    if (!confirmed) return
   }
 
   saving.value = true
@@ -1805,6 +1870,7 @@ async function save() {
         messageTheme: v,
         gameUiTheme: uiDraft.value,
         backlogTheme: backlogDraft.value,
+        staffRollEnabled: staffRollEnabledDraft.value,
       }
     })
     
@@ -1816,6 +1882,9 @@ async function save() {
       messageTheme: result?.messageTheme ?? v,
       gameUiTheme: result?.gameUiTheme ?? uiDraft.value,
       backlogTheme: result?.backlogTheme ?? backlogDraft.value,
+      staffRollEnabled: 'staffRollEnabled' in (result ?? {})
+        ? result?.staffRollEnabled !== false
+        : staffRollEnabledDraft.value,
     })
     toast.success('全体設定を保存しました')
     emit('close')

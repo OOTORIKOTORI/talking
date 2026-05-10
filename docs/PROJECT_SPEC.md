@@ -167,6 +167,8 @@
   - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。
   - スタッフロールUI MVP（2026-05-09）を実装済み。`GET /games/:id/credits` を既存仕様のまま利用し、DB変更・migration追加・API追加なしでフロントUIのみ追加。
   - スタッフロール設定MVP（2026-05-10）を実装済み。`GameProject.staffRollEnabled`（default: `true`）でゲーム単位に導線の表示ON/OFFを切り替える。
+    - 編集画面右ペインの即時切替UIは廃止し、`ゲーム全体設定` モーダルの `クレジット/導線` タブで保存時反映する構成へ移設（MVP）。
+    - 手動クレジット編集UIも同タブへ移設し、ノード編集項目と分離する。
     - OFF時に非表示になるのは「スタッフロールで見る」「終了画面のスタッフロール」など導線のみ。
     - 通常クレジット一覧表示と `GET /games/:id/credits` の返却仕様は維持する。
     - 既存スタッフロールモーダル本体・クレジットデータ（`GameCredit` / 手動クレジット / snapshot lock）には影響を与えない。
@@ -1239,6 +1241,7 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
 - `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
 - 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
+- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled` と手動クレジット編集（ゲーム単位）を扱う。
 - 基本情報MVPの対象は `title` / `summary` のみ。
 - 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
 
