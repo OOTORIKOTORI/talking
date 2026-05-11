@@ -911,6 +911,43 @@
                 </span>
               </label>
 
+              <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p class="text-sm font-medium text-gray-700">表示順</p>
+                <p class="text-xs text-gray-600 break-words leading-relaxed">
+                  手動クレジット / 使用素材 / 使用キャラクター の3区分だけを並び替えます。導線がOFFでも保存されます。
+                </p>
+                <div class="space-y-2">
+                  <div
+                    v-for="row in staffRollSectionRows"
+                    :key="row.sectionId"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
+                  >
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+                      {{ row.index + 1 }}
+                    </span>
+                    <span class="min-w-0 flex-1 text-sm font-medium text-gray-800 break-words">{{ row.label }}</span>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        class="rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        :disabled="!row.canMoveUp"
+                        @click="moveStaffRollSection(row.index, -1)"
+                      >
+                        上へ
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        :disabled="!row.canMoveDown"
+                        @click="moveStaffRollSection(row.index, 1)"
+                      >
+                        下へ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- スクロール速度 -->
               <div class="mt-3">
                 <p class="text-sm font-medium text-gray-700 mb-2">スクロール速度</p>
@@ -1035,6 +1072,7 @@ const props = defineProps<{
   initialStaffRollEnabled?: boolean | null
   initialStaffRollAutoOpenEnabled?: boolean | null
   initialStaffRollSpeedPreset?: string | null
+  initialStaffRollSectionOrder?: string | null
   isPublic?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
@@ -1056,6 +1094,39 @@ const staffRollEnabledInitialValue = computed(() => props.initialStaffRollEnable
 const staffRollEnabledDraft = ref(staffRollEnabledInitialValue.value)
 const staffRollAutoOpenEnabledInitialValue = computed(() => props.initialStaffRollAutoOpenEnabled === true)
 const staffRollAutoOpenEnabledDraft = ref(staffRollAutoOpenEnabledInitialValue.value)
+const STAFF_ROLL_SECTION_IDS = ['manual', 'assets', 'characters'] as const
+type StaffRollSectionId = (typeof STAFF_ROLL_SECTION_IDS)[number]
+const STAFF_ROLL_SECTION_LABELS: Record<StaffRollSectionId, string> = {
+  manual: '手動クレジット',
+  assets: '使用素材',
+  characters: '使用キャラクター',
+}
+
+function normalizeStaffRollSectionOrder(value: unknown): StaffRollSectionId[] {
+  const defaultOrder = [...STAFF_ROLL_SECTION_IDS]
+  if (typeof value !== 'string') return defaultOrder
+
+  const seen = new Set<StaffRollSectionId>()
+  const ordered: StaffRollSectionId[] = []
+
+  for (const rawSectionId of value.split(',')) {
+    const sectionId = rawSectionId.trim() as StaffRollSectionId
+    if (!STAFF_ROLL_SECTION_IDS.includes(sectionId)) continue
+    if (seen.has(sectionId)) continue
+    seen.add(sectionId)
+    ordered.push(sectionId)
+  }
+
+  for (const sectionId of STAFF_ROLL_SECTION_IDS) {
+    if (seen.has(sectionId)) continue
+    ordered.push(sectionId)
+  }
+
+  return ordered
+}
+
+const staffRollSectionOrderInitialValue = computed(() => normalizeStaffRollSectionOrder(props.initialStaffRollSectionOrder))
+const staffRollSectionOrderDraft = ref<StaffRollSectionId[]>(staffRollSectionOrderInitialValue.value)
 
 type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
 function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
@@ -1144,6 +1215,24 @@ const metaSummaryValidationMessage = computed(() => {
 const metaValidationMessage = computed(() => {
   return metaTitleValidationMessage.value || metaSummaryValidationMessage.value
 })
+
+const staffRollSectionRows = computed(() => staffRollSectionOrderDraft.value.map((sectionId, index) => ({
+  sectionId,
+  label: STAFF_ROLL_SECTION_LABELS[sectionId],
+  index,
+  canMoveUp: index > 0,
+  canMoveDown: index < staffRollSectionOrderDraft.value.length - 1,
+})))
+
+function moveStaffRollSection(index: number, direction: -1 | 1) {
+  const nextIndex = index + direction
+  if (nextIndex < 0 || nextIndex >= staffRollSectionOrderDraft.value.length) return
+
+  const nextOrder = [...staffRollSectionOrderDraft.value]
+  const [movedSection] = nextOrder.splice(index, 1)
+  nextOrder.splice(nextIndex, 0, movedSection)
+  staffRollSectionOrderDraft.value = nextOrder
+}
 
 // デフォルトテーマ（v2）
 const defaultThemeV2: MessageThemeV2 = {
@@ -1886,6 +1975,7 @@ function reset() {
   staffRollEnabledDraft.value = staffRollEnabledInitialValue.value
   staffRollAutoOpenEnabledDraft.value = staffRollAutoOpenEnabledInitialValue.value
   staffRollSpeedPresetDraft.value = staffRollSpeedPresetInitialValue.value
+  staffRollSectionOrderDraft.value = staffRollSectionOrderInitialValue.value
 }
 
 // 保存
@@ -1922,6 +2012,7 @@ function buildSavePayload() {
     staffRollEnabled: staffRollEnabledDraft.value,
     staffRollAutoOpenEnabled: staffRollAutoOpenEnabledDraft.value,
     staffRollSpeedPreset: staffRollSpeedPresetDraft.value,
+    staffRollSectionOrder: staffRollSectionOrderDraft.value.join(','),
   }
 }
 
@@ -1939,6 +2030,7 @@ function hasPublicSettingsChanges() {
     staffRollEnabled: staffRollEnabledInitialValue.value,
     staffRollAutoOpenEnabled: staffRollAutoOpenEnabledInitialValue.value,
     staffRollSpeedPreset: staffRollSpeedPresetInitialValue.value,
+    staffRollSectionOrder: staffRollSectionOrderInitialValue.value.join(','),
   }
 
   return (
@@ -1951,6 +2043,7 @@ function hasPublicSettingsChanges() {
     || currentPayload.staffRollEnabled !== initialPayload.staffRollEnabled
     || currentPayload.staffRollAutoOpenEnabled !== initialPayload.staffRollAutoOpenEnabled
     || currentPayload.staffRollSpeedPreset !== initialPayload.staffRollSpeedPreset
+    || currentPayload.staffRollSectionOrder !== initialPayload.staffRollSectionOrder
   )
 }
 
@@ -1995,6 +2088,9 @@ async function save() {
       staffRollSpeedPreset: 'staffRollSpeedPreset' in (result ?? {})
         ? normalizeStaffRollSpeedPreset(result?.staffRollSpeedPreset)
         : payload.staffRollSpeedPreset,
+      staffRollSectionOrder: 'staffRollSectionOrder' in (result ?? {})
+        ? normalizeStaffRollSectionOrder(result?.staffRollSectionOrder).join(',')
+        : payload.staffRollSectionOrder,
     })
     toast.success('全体設定を保存しました')
     emit('close')

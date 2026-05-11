@@ -186,7 +186,7 @@
     - 既存ゲームのデフォルトは「標準」（42 px/sec）。slow=28px/sec、fast=64px/sec。
     - `staffRollEnabled=false` でも速度設定値は保存される。導線は従来通り非表示。
     - ON/OFF設定・通常クレジット表示・`GET /games/:id/credits` は維持。
-    - BGM・表示順カスタマイズは将来課題のまま。
+    - BGMは将来課題のまま。
   - スタッフロール自動表示ON/OFF MVP（2026-05-11）を実装済み。ゲーム単位でエンディング到達時の自動表示有無を切り替えできる。
     - `GameProject.staffRollAutoOpenEnabled`（BOOLEAN NOT NULL DEFAULT false）を追加（migration: `20260511120000staffrollautoopenenabled`）。
     - defaultは `false`（既存ゲーム挙動を変えない）。新規/既存とも未設定時は自動表示しない。
@@ -203,7 +203,7 @@
     - 操作UI（自動スクロール停止/再開、先頭へ戻る）
     - ユーザーの手動操作（wheel/touchstart/pointerdown）時の自動スクロール停止
   - 以下は将来課題のまま。
-    - スタッフロール拡張（表示順カスタマイズ、終了時挙動の詳細オプション、より細かな速度カスタマイズ）
+    - スタッフロール拡張（終了時挙動の詳細オプション、より細かな速度カスタマイズ）
     - スタッフロール用BGM（なし / アップロード音源 / 既存音声素材から選択）
     - BGM音量
     - より凝った演出
@@ -409,7 +409,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 | UI文言候補 | `使用素材` / `素材クレジット` / `このゲームで使われている素材` / `クレジットに表示` |
 | 現行DB（MVP） | `GameCredit`（`GameAssetReference` / `GameCharacterReference` から自動同期） |
 | 将来拡張候補 | `GameAssetCredit`、`GameCharacterCredit` など用途別分離 |
-| 注意 | MVPでは自動生成方針でよい。公開時点のクレジット/利用条件スナップショット固定MVPは実装済み（`GameCredit.snapshotLockedAt` により公開時点固定）。公開後参照追加・削除の厳密運用MVPも実装済み（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked GameCredit を即lock）。手動クレジットUI/API MVPとスタッフロールUI MVPは実装済み（2026-05-09）。構造化ライセンス、スタッフロールの表示順カスタマイズ、終了時挙動の詳細オプション、より細かな速度カスタマイズ、カテゴリ別アニメーション、BGM/SE連動、スタッフロール用BGM、より凝った演出は将来課題。 |
+| 注意 | MVPでは自動生成方針でよい。公開時点のクレジット/利用条件スナップショット固定MVPは実装済み（`GameCredit.snapshotLockedAt` により公開時点固定）。公開後参照追加・削除の厳密運用MVPも実装済み（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked GameCredit を即lock）。手動クレジットUI/API MVPとスタッフロールUI MVPは実装済み（2026-05-09）。構造化ライセンス、終了時挙動の詳細オプション、より細かな速度カスタマイズ、カテゴリ別アニメーション、BGM/SE連動、スタッフロール用BGM、より凝った演出は将来課題。 |
 
 ## 共通ヘッダーのスマホ対応MVP（2026-05-07）
 
@@ -548,7 +548,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 - スタッフロール用BGM（将来拡張）
   - 想定項目: BGMソース選択（なし/アップロード/既存音声素材）、BGM音量、BGM/SE連動。
   - BGM関連は音声素材・権利・クレジット・公開前チェックの整合を前提に設計する。
-- スタッフロール演出強化（表示順カスタマイズ、より細かなスクロール速度、終了時挙動の詳細オプション、カテゴリ別アニメーション、より凝った演出）
+- スタッフロール演出強化（より細かなスクロール速度、終了時挙動の詳細オプション、カテゴリ別アニメーション、より凝った演出）
 - クレジット確認からのノード/フィールド単位直接ジャンプ（現在はカテゴリ単位で公開前チェックへ誘導）
 - 作者向けテストプレイ支援（MVP実装済み、作者専用UI）
   - 公開プレイヤー向け本番UIとは分離し、`testPlay=1` かつ作者本人（`game.ownerId === currentUserId`）のときだけ作者向け確認UIを表示する。
@@ -1160,13 +1160,14 @@ GET /games/:id/reference-diagnostics
   - 取得失敗時はエラー表示 + 再読み込み導線を表示。
   - DB変更・migration追加・API追加なし（UI MVP時点）。
 - 後続MVPで実装済み（2026-05-10〜2026-05-11）
+  - `staffRollSectionOrder`（手動クレジット / 使用素材 / 使用キャラクターの大分類順のみ、default manual,assets,characters）
   - `staffRollEnabled`（導線ON/OFF、default true）
   - `staffRollSpeedPreset`（ゆっくり/標準/速い、default normal）
   - `staffRollAutoOpenEnabled`（エンディング後自動表示ON/OFF、default false、1プレイ中1回、`staffRollEnabled=false` 時は自動表示しない）
   - 公開中ゲームの全体設定保存confirm対象（変更なし保存/非公開ゲームはconfirmなし）
   - クレジット取得処理を `useStaffRollCredits` で共通化（公開詳細/プレイ画面）
 - 将来課題
-  - 表示順カスタマイズ
+  - 素材/キャラクター/手動クレジットの個別アイテム並び替え
   - 終了時挙動の詳細オプション
   - より細かな速度カスタマイズ
   - カテゴリ別アニメーション
@@ -1270,7 +1271,7 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
 - `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
 - 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
-- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset` と手動クレジット編集（ゲーム単位）を扱う。
+- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset`・`staffRollSectionOrder` と手動クレジット編集（ゲーム単位）を扱う。
 - 基本情報MVPの対象は `title` / `summary` のみ。
 - 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
 

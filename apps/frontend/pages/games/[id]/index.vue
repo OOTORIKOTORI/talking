@@ -214,6 +214,7 @@
         :loading="staffRollLoading"
         :error="staffRollError"
         :speed-preset="game?.staffRollSpeedPreset"
+        :section-order="game?.staffRollSectionOrder"
         @close="closeStaffRoll"
         @retry="retryStaffRoll"
       />
@@ -243,6 +244,7 @@ type GameDetail = {
   staffRollEnabled?: boolean | null
   staffRollAutoOpenEnabled?: boolean | null
   staffRollSpeedPreset?: 'slow' | 'normal' | 'fast' | string | null
+  staffRollSectionOrder?: string | null
   viewCount?: number
   playCount?: number
   startSceneId: string | null

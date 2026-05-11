@@ -39,6 +39,8 @@ const GAME_SUMMARY_MAX_LENGTH = 500;
 const GAME_MANUAL_CREDIT_LABEL_MAX_LENGTH = 100;
 const GAME_MANUAL_CREDIT_ROLE_MAX_LENGTH = 50;
 const GAME_MANUAL_CREDIT_NOTE_MAX_LENGTH = 2000;
+const STAFF_ROLL_SECTION_IDS = ['manual', 'assets', 'characters'] as const;
+type StaffRollSectionId = (typeof STAFF_ROLL_SECTION_IDS)[number];
 
 // Reference diagnostics types
 type GameReferenceDiagnosticCode =
@@ -892,6 +894,29 @@ export class GamesService {
     return trimmed;
   }
 
+  private normalizeStaffRollSectionOrder(value: unknown): string {
+    const defaultOrder = STAFF_ROLL_SECTION_IDS.join(',');
+    if (typeof value !== 'string') return defaultOrder;
+
+    const seen = new Set<StaffRollSectionId>();
+    const ordered: StaffRollSectionId[] = [];
+
+    for (const rawSectionId of value.split(',')) {
+      const sectionId = rawSectionId.trim() as StaffRollSectionId;
+      if (!STAFF_ROLL_SECTION_IDS.includes(sectionId)) continue;
+      if (seen.has(sectionId)) continue;
+      seen.add(sectionId);
+      ordered.push(sectionId);
+    }
+
+    for (const sectionId of STAFF_ROLL_SECTION_IDS) {
+      if (seen.has(sectionId)) continue;
+      ordered.push(sectionId);
+    }
+
+    return ordered.join(',');
+  }
+
   private async assertGameAssetUsable(
     userId: string,
     assetId: string | null | undefined,
@@ -1441,6 +1466,7 @@ export class GamesService {
           staffRollEnabled: source.staffRollEnabled,
           staffRollAutoOpenEnabled: source.staffRollAutoOpenEnabled,
           staffRollSpeedPreset: source.staffRollSpeedPreset,
+          staffRollSectionOrder: source.staffRollSectionOrder,
           viewCount: 0,
           playCount: 0,
           startSceneId: null,
@@ -2225,6 +2251,9 @@ export class GamesService {
     }
     if (typeof data?.staffRollSpeedPreset === 'string' && ['slow', 'normal', 'fast'].includes(data.staffRollSpeedPreset)) {
       allowed.staffRollSpeedPreset = data.staffRollSpeedPreset;
+    }
+    if ('staffRollSectionOrder' in (data ?? {})) {
+      allowed.staffRollSectionOrder = this.normalizeStaffRollSectionOrder(data?.staffRollSectionOrder);
     }
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
       allowed.startSceneId = data.startSceneId ?? null;

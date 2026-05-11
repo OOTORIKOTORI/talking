@@ -468,6 +468,9 @@ function handleThemeSaved(v: any) {
   if ('staffRollSpeedPreset' in (v ?? {})) {
     game.value.staffRollSpeedPreset = v.staffRollSpeedPreset ?? 'normal'
   }
+  if ('staffRollSectionOrder' in (v ?? {})) {
+    game.value.staffRollSectionOrder = v.staffRollSectionOrder ?? 'manual,assets,characters'
+  }
 }
 
 function isEditingPublishedGame() {
@@ -3471,6 +3474,7 @@ function onUp() {
         :initial-staff-roll-enabled="game?.staffRollEnabled"
         :initial-staff-roll-auto-open-enabled="game?.staffRollAutoOpenEnabled"
         :initial-staff-roll-speed-preset="game?.staffRollSpeedPreset"
+        :initial-staff-roll-section-order="game?.staffRollSectionOrder"
         :is-public="game?.isPublic === true"
         @close="openThemeModal=false"
         @saved="handleThemeSaved"

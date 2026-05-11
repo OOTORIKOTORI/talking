@@ -35,6 +35,10 @@ export class UpdateGameDto {
 
   @IsOptional()
   @IsString()
+  staffRollSectionOrder?: string
+
+  @IsOptional()
+  @IsString()
   startSceneId?: string | null
 
   @IsOptional()

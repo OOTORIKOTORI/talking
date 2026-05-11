@@ -417,6 +417,7 @@
         :loading="staffRollLoading"
         :error="staffRollError"
         :speed-preset="game?.staffRollSpeedPreset"
+        :section-order="game?.staffRollSectionOrder"
         @close="closeStaffRoll"
         @retry="retryStaffRoll"
       />

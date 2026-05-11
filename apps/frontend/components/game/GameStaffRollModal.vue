@@ -95,87 +95,89 @@
               <div v-else-if="credits" class="mx-auto w-full max-w-3xl space-y-10 text-center">
                 <div class="min-h-[12vh]" aria-hidden="true" />
 
-                <section class="space-y-3">
-                  <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">手動クレジット</h3>
-                  <p v-if="credits.manualCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
-                  <ul v-else class="space-y-3">
-                    <li
-                      v-for="item in credits.manualCredits"
-                      :key="item.id"
-                      class="border-b border-white/10 px-1 pb-3"
-                    >
-                      <p class="mx-auto max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.label }}</p>
-                      <p v-if="item.manualRole" class="mt-1 text-xs text-slate-300">{{ item.manualRole }}</p>
-                      <p v-if="item.manualNote" class="mx-auto mt-1.5 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.manualNote }}</p>
-                      <p v-if="item.manualUrl" class="mx-auto mt-1.5 max-w-xl text-left text-xs break-all">
-                        <a
-                          v-if="isHttpUrl(item.manualUrl)"
-                          :href="item.manualUrl"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-sky-300 underline-offset-2 hover:underline"
-                        >
-                          {{ item.manualUrl }}
-                        </a>
-                        <span v-else class="text-slate-400">{{ item.manualUrl }}</span>
-                      </p>
-                    </li>
-                  </ul>
-                </section>
+                <template v-for="sectionId in orderedSectionIds" :key="sectionId">
+                  <section v-if="sectionId === 'manual'" class="space-y-3">
+                    <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">手動クレジット</h3>
+                    <p v-if="credits.manualCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
+                    <ul v-else class="space-y-3">
+                      <li
+                        v-for="item in credits.manualCredits"
+                        :key="item.id"
+                        class="border-b border-white/10 px-1 pb-3"
+                      >
+                        <p class="mx-auto max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.label }}</p>
+                        <p v-if="item.manualRole" class="mt-1 text-xs text-slate-300">{{ item.manualRole }}</p>
+                        <p v-if="item.manualNote" class="mx-auto mt-1.5 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.manualNote }}</p>
+                        <p v-if="item.manualUrl" class="mx-auto mt-1.5 max-w-xl text-left text-xs break-all">
+                          <a
+                            v-if="isHttpUrl(item.manualUrl)"
+                            :href="item.manualUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-sky-300 underline-offset-2 hover:underline"
+                          >
+                            {{ item.manualUrl }}
+                          </a>
+                          <span v-else class="text-slate-400">{{ item.manualUrl }}</span>
+                        </p>
+                      </li>
+                    </ul>
+                  </section>
 
-                <section class="space-y-3">
-                  <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用素材</h3>
-                  <p v-if="credits.assetCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
-                  <ul v-else class="space-y-3">
-                    <li
-                      v-for="item in credits.assetCredits"
-                      :key="item.assetId"
-                      class="border-b border-white/10 px-1 pb-3"
-                    >
-                      <div class="flex flex-wrap items-center justify-center gap-2">
-                        <p class="max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.title }}</p>
-                        <span
-                          v-if="item.creditRequired"
-                          class="rounded-full border border-amber-200/50 bg-amber-200/20 px-2 py-0.5 text-[11px] text-amber-100"
-                        >
-                          クレジット必須
-                        </span>
-                      </div>
-                      <p class="mt-1 text-xs text-slate-300">
-                        by {{ item.ownerDisplayName || item.ownerId || 'unknown' }}
-                      </p>
-                      <p v-if="item.usageTerms" class="mx-auto mt-1 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.usageTerms }}</p>
-                      <p class="mt-1 text-[11px] text-slate-400">使用数: {{ item.usageCount }}</p>
-                    </li>
-                  </ul>
-                </section>
+                  <section v-else-if="sectionId === 'assets'" class="space-y-3">
+                    <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用素材</h3>
+                    <p v-if="credits.assetCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
+                    <ul v-else class="space-y-3">
+                      <li
+                        v-for="item in credits.assetCredits"
+                        :key="item.assetId"
+                        class="border-b border-white/10 px-1 pb-3"
+                      >
+                        <div class="flex flex-wrap items-center justify-center gap-2">
+                          <p class="max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.title }}</p>
+                          <span
+                            v-if="item.creditRequired"
+                            class="rounded-full border border-amber-200/50 bg-amber-200/20 px-2 py-0.5 text-[11px] text-amber-100"
+                          >
+                            クレジット必須
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-300">
+                          by {{ item.ownerDisplayName || item.ownerId || 'unknown' }}
+                        </p>
+                        <p v-if="item.usageTerms" class="mx-auto mt-1 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.usageTerms }}</p>
+                        <p class="mt-1 text-[11px] text-slate-400">使用数: {{ item.usageCount }}</p>
+                      </li>
+                    </ul>
+                  </section>
 
-                <section class="space-y-3">
-                  <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用キャラクター</h3>
-                  <p v-if="credits.characterCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
-                  <ul v-else class="space-y-3">
-                    <li
-                      v-for="item in credits.characterCredits"
-                      :key="item.characterId"
-                      class="border-b border-white/10 px-1 pb-3"
-                    >
-                      <div class="flex flex-wrap items-center justify-center gap-2">
-                        <p class="max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.displayName || item.name }}</p>
-                        <span
-                          v-if="item.creditRequired"
-                          class="rounded-full border border-amber-200/50 bg-amber-200/20 px-2 py-0.5 text-[11px] text-amber-100"
-                        >
-                          クレジット必須
-                        </span>
-                      </div>
-                      <p class="mt-1 text-xs text-slate-300">
-                        by {{ item.ownerDisplayName || item.ownerId || 'unknown' }}
-                      </p>
-                      <p v-if="item.usageTerms" class="mx-auto mt-1 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.usageTerms }}</p>
-                      <p class="mt-1 text-[11px] text-slate-400">使用数: {{ item.usageCount }}</p>
-                    </li>
-                  </ul>
-                </section>
+                  <section v-else class="space-y-3">
+                    <h3 class="pt-1 text-center text-[11px] font-semibold tracking-[0.24em] text-slate-400">使用キャラクター</h3>
+                    <p v-if="credits.characterCredits.length === 0" class="text-sm text-slate-500">該当なし</p>
+                    <ul v-else class="space-y-3">
+                      <li
+                        v-for="item in credits.characterCredits"
+                        :key="item.characterId"
+                        class="border-b border-white/10 px-1 pb-3"
+                      >
+                        <div class="flex flex-wrap items-center justify-center gap-2">
+                          <p class="max-w-xl text-sm font-medium text-slate-100 break-words">{{ item.displayName || item.name }}</p>
+                          <span
+                            v-if="item.creditRequired"
+                            class="rounded-full border border-amber-200/50 bg-amber-200/20 px-2 py-0.5 text-[11px] text-amber-100"
+                          >
+                            クレジット必須
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-300">
+                          by {{ item.ownerDisplayName || item.ownerId || 'unknown' }}
+                        </p>
+                        <p v-if="item.usageTerms" class="mx-auto mt-1 max-w-xl whitespace-pre-wrap break-words text-left text-xs text-slate-200">{{ item.usageTerms }}</p>
+                        <p class="mt-1 text-[11px] text-slate-400">使用数: {{ item.usageCount }}</p>
+                      </li>
+                    </ul>
+                  </section>
+                </template>
 
                 <div class="min-h-[20vh]" aria-hidden="true" />
               </div>
@@ -208,6 +210,7 @@ interface Props {
   loading?: boolean
   error?: string | null
   speedPreset?: string | null
+  sectionOrder?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -225,12 +228,38 @@ type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
 function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
   return value === 'slow' || value === 'fast' || value === 'normal' ? value : 'normal'
 }
+const STAFF_ROLL_SECTION_IDS = ['manual', 'assets', 'characters'] as const
+type StaffRollSectionId = (typeof STAFF_ROLL_SECTION_IDS)[number]
+function normalizeStaffRollSectionOrder(value: unknown): StaffRollSectionId[] {
+  const defaultOrder = [...STAFF_ROLL_SECTION_IDS]
+  if (typeof value !== 'string') return defaultOrder
+
+  const seen = new Set<StaffRollSectionId>()
+  const ordered: StaffRollSectionId[] = []
+
+  for (const rawSectionId of value.split(',')) {
+    const sectionId = rawSectionId.trim() as StaffRollSectionId
+    if (!STAFF_ROLL_SECTION_IDS.includes(sectionId)) continue
+    if (seen.has(sectionId)) continue
+    seen.add(sectionId)
+    ordered.push(sectionId)
+  }
+
+  for (const sectionId of STAFF_ROLL_SECTION_IDS) {
+    if (seen.has(sectionId)) continue
+    ordered.push(sectionId)
+  }
+
+  return ordered
+}
 const autoScrollSpeedPxPerSec = computed(() => {
   const preset = normalizeStaffRollSpeedPreset(props.speedPreset)
   if (preset === 'slow') return 28
   if (preset === 'fast') return 64
   return 42
 })
+
+const orderedSectionIds = computed(() => normalizeStaffRollSectionOrder(props.sectionOrder))
 
 type PlaybackStatus = 'paused' | 'ended'
 
