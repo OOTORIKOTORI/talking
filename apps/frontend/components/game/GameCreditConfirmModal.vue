@@ -155,7 +155,7 @@
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       @click="$emit('edit-reference-issues', 'asset-reference')"
                     >
-                      編集する
+                      参照を編集
                     </button>
                   </div>
                 </div>
@@ -255,7 +255,7 @@
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       @click="$emit('edit-reference-issues', 'character-reference')"
                     >
-                      編集する
+                      参照を編集
                     </button>
                   </div>
                 </div>
