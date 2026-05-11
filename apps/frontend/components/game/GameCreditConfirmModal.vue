@@ -15,8 +15,8 @@
         <div class="border-b border-gray-200 px-6 py-4">
           <h2 id="credit-confirm-title" class="text-xl font-bold text-gray-900">公開前にクレジットを確認</h2>
           <p class="text-sm text-gray-600 mt-1">
-            このゲームで使用している素材・キャラクター・手動クレジットの内容を確認してください。<br />
-            公開すると、現在のクレジット情報が公開時点の記録として固定されます。
+            このゲームで使用している素材・キャラクター・手動クレジットを確認してください。<br />
+            <span class="text-xs text-gray-500">公開時点のクレジット情報が記録として固定されます。</span>
           </p>
         </div>
 
@@ -50,7 +50,7 @@
               class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
               role="alert"
             >
-              <p>⚠ 公開前に確認が必要そうな項目があります（削除済み・非公開など）。</p>
+              <p>⚠ 削除済み・非公開など確認が必要な項目があります。</p>
               <div class="mt-2">
                 <button
                   type="button"
@@ -58,7 +58,7 @@
                   class="inline-flex items-center px-3 py-1 text-xs rounded border border-amber-400 bg-white text-amber-800 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   @click="$emit('edit-reference-issues', 'all')"
                 >
-                  編集画面で参照警告を確認
+                  問題を確認する
                 </button>
               </div>
             </div>
@@ -155,7 +155,7 @@
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       @click="$emit('edit-reference-issues', 'asset-reference')"
                     >
-                      素材参照を編集画面で確認
+                      編集する
                     </button>
                   </div>
                 </div>
@@ -255,7 +255,7 @@
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       @click="$emit('edit-reference-issues', 'character-reference')"
                     >
-                      キャラクター参照を編集画面で確認
+                      編集する
                     </button>
                   </div>
                 </div>

@@ -889,11 +889,8 @@
           <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
               <h4 class="font-semibold text-md flex items-center gap-2">
-                <span class="text-blue-600">🎬</span> スタッフロール導線
+                <span class="text-blue-600">🎬</span> スタッフロール
               </h4>
-              <p class="text-sm text-gray-600 break-words leading-relaxed">
-                ゲーム終了後や公開ページにスタッフロール導線を表示するかを設定します。
-              </p>
               <label class="inline-flex w-full flex-wrap items-center gap-3 cursor-pointer select-none sm:flex-nowrap">
                 <input
                   v-model="staffRollEnabledDraft"
@@ -910,12 +907,12 @@
                   ></span>
                 </span>
                 <span class="text-sm font-medium text-gray-800 break-words">
-                  スタッフロールを表示する
+                  表示する
                 </span>
               </label>
 
               <!-- スクロール速度 -->
-              <div class="mt-4">
+              <div class="mt-3">
                 <p class="text-sm font-medium text-gray-700 mb-2">スクロール速度</p>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <label
@@ -938,10 +935,10 @@
                 </div>
               </div>
 
-              <div class="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p class="text-sm font-medium text-gray-700">エンディング後に自動表示</p>
+              <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p class="text-sm font-medium text-gray-700">エンディング後に自動で開く</p>
                 <p class="text-xs text-gray-600 break-words leading-relaxed">
-                  ONにすると、プレイ終了画面に到達したときスタッフロールを自動で開きます。
+                  プレイ終了画面でスタッフロールを自動的に表示します。
                 </p>
                 <label
                   class="inline-flex w-full flex-wrap items-center gap-3 select-none sm:flex-nowrap"
@@ -962,27 +959,20 @@
                       :class="staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
                     ></span>
                   </span>
-                  <span class="text-sm font-medium text-gray-800 break-words">自動表示を有効にする</span>
+                  <span class="text-sm font-medium text-gray-800 break-words">有効にする</span>
                 </label>
                 <p v-if="!staffRollEnabledDraft" class="text-xs text-amber-700 break-words leading-relaxed">
-                  スタッフロール導線OFF時は自動表示されません。
+                  スタッフロールを非表示にしても、通常クレジットは表示されます。
                 </p>
               </div>
             </section>
-
-            <!-- 保存方式の説明 -->
-            <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 sm:px-4 sm:py-3">
-              <p class="text-xs sm:text-sm text-blue-800 leading-relaxed break-words">
-                <strong>💡 保存方式について:</strong> スタッフロール導線・自動表示・スクロール速度の変更は、右下の「全体設定を保存」で反映されます。
-              </p>
-            </div>
 
             <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
               <h4 class="font-semibold text-md flex items-center gap-2">
                 <span class="text-violet-600">🧾</span> 手動クレジット
               </h4>
               <p class="text-sm text-gray-600 break-words leading-relaxed">
-                手動クレジットは、ノード単位ではなくゲーム単位で表示されるクレジットです。
+                ゲーム全体に適用される追加クレジットです。素材・キャラクター参照とは別に表示されます。
               </p>
               <GameManualCreditsEditor
                 :game-id="gameId"
