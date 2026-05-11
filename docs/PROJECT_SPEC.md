@@ -409,7 +409,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
 | UI文言候補 | `使用素材` / `素材クレジット` / `このゲームで使われている素材` / `クレジットに表示` |
 | 現行DB（MVP） | `GameCredit`（`GameAssetReference` / `GameCharacterReference` から自動同期） |
 | 将来拡張候補 | `GameAssetCredit`、`GameCharacterCredit` など用途別分離 |
-| 注意 | MVPでは自動生成方針でよい。公開時点のクレジット/利用条件スナップショット固定MVPは実装済み（`GameCredit.snapshotLockedAt` により公開時点固定）。公開後参照追加・削除の厳密運用MVPも実装済み（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked GameCredit を即lock）。手動クレジットUI/API MVPとスタッフロールUI MVPは実装済み（2026-05-09）。構造化ライセンス、スタッフロール演出強化（自動スクロール / スキップ演出 / エンディング連動の細かな設定）は将来課題。 |
+| 注意 | MVPでは自動生成方針でよい。公開時点のクレジット/利用条件スナップショット固定MVPは実装済み（`GameCredit.snapshotLockedAt` により公開時点固定）。公開後参照追加・削除の厳密運用MVPも実装済み（`lockUnlockedGameCreditsIfPublished` により公開済みゲームで unlocked GameCredit を即lock）。手動クレジットUI/API MVPとスタッフロールUI MVPは実装済み（2026-05-09）。構造化ライセンス、スタッフロールの表示順カスタマイズ、終了時挙動の詳細オプション、より細かな速度カスタマイズ、カテゴリ別アニメーション、BGM/SE連動、スタッフロール用BGM、より凝った演出は将来課題。 |
 
 ## 共通ヘッダーのスマホ対応MVP（2026-05-07）
 
