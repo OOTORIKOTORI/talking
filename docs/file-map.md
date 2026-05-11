@@ -91,13 +91,16 @@ apps/frontend/composables/
 ├── useAssets.ts                             # アセット API 呼び出しをまとめたコンポーザブル
 ├── useAudioConsent.ts                       # 音声再生の同意状態を localStorage と同期
 ├── useAutoRefreshUrl.ts                     # 期限付きURLを自動更新して失効を防ぐ
+├── useBacklog.ts                            # バックログ取得・表示の共通処理
 ├── useCharacters.ts                         # キャラクター API 呼び出しをまとめる
 ├── useFavoriteToggle.ts                     # アセットお気に入りのトグル処理
 ├── useFavoriteToggleCharacter.ts            # キャラクターお気に入りのトグル処理
 ├── useGames.ts                              # ゲーム API 呼び出し群。scene/node/save API の窓口
 ├── useIoOnce.ts                             # 一度だけ動かしたい処理の補助ユーティリティ
+├── useProfiles.ts                           # プロフィール関連 API 呼び出しをまとめる
 ├── useQuerySync.ts                          # URL クエリと画面状態の同期補助
 ├── useSignedUrl.ts                          # 署名 GET URL の取得関数を提供
+├── useStaffRollCredits.ts                   # スタッフロール用クレジット取得処理の共通化
 ├── useStageScale.ts                         # ステージ実寸を CSS 変数へ反映して拡縮を安定化
 ├── useToast.ts                              # 成功/失敗トーストを発行する共有ストア
 ├── useUploader.ts                           # 署名 PUT URL を使ったアップロード処理

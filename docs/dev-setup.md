@@ -91,6 +91,18 @@ cd apps/api
 pnpm prisma migrate dev
 ```
 
+### Prisma schema 変更時の運用（重要）
+
+Prisma schema を変更した場合、frontend build だけでは不十分です。必ず API 側で以下を実行してください。
+
+```powershell
+pnpm -C apps/api prisma:migrate
+pnpm -C apps/api prisma:generate
+pnpm -C apps/api build
+```
+
+必要に応じて `apps/api` / `apps/frontend` の dev server を再起動してください。
+
 ### 5. MinIO の CORS 設定
 
 MinIO は署名付き URL で PUT/GET するため、CORS 設定が必要です。
@@ -182,6 +194,8 @@ docker-compose restart <service-name>
 cd apps/api
 pnpm prisma generate
 ```
+
+Prisma schema 変更後は、`pnpm -C apps/api prisma:migrate` と `pnpm -C apps/api build` まで実施してください。
 
 ### ポートが既に使用されている
 

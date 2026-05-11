@@ -53,6 +53,18 @@ pnpm dlx prisma migrate dev --name init
 pnpm start:dev
 ```
 
+## 5.1) Prisma schema 変更時のチェックリスト（重要）
+```pwsh
+Set-Location C:\talking
+pnpm -C apps/api prisma:migrate
+pnpm -C apps/api prisma:generate
+pnpm -C apps/api build
+```
+
+注意:
+- Prisma schema 変更時は frontend build のみでは不十分
+- 必要に応じて API / Frontend の dev server を再起動
+
 ## 6) Worker 起動（任意/別ターミナル）
 ```pwsh
 Set-Location apps/worker
