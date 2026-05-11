@@ -2256,8 +2256,12 @@ export class GamesService {
     if ('staffRollSectionOrder' in (data ?? {})) {
       allowed.staffRollSectionOrder = this.normalizeStaffRollSectionOrder(data?.staffRollSectionOrder);
     }
-    if (typeof data?.staffRollEndBehavior === 'string' && ['stop', 'close', 'loop'].includes(data.staffRollEndBehavior)) {
-      allowed.staffRollEndBehavior = data.staffRollEndBehavior;
+    if ('staffRollEndBehavior' in (data ?? {})) {
+      const normalizedStaffRollEndBehavior =
+        typeof data?.staffRollEndBehavior === 'string' && ['stop', 'close', 'loop'].includes(data.staffRollEndBehavior)
+          ? data.staffRollEndBehavior
+          : 'stop';
+      allowed.staffRollEndBehavior = normalizedStaffRollEndBehavior;
     }
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
       allowed.startSceneId = data.startSceneId ?? null;
