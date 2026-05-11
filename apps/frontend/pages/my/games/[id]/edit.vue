@@ -1916,33 +1916,127 @@ function onNodeSelected(nodeId: string) {
 // ---------- 3ペイン可変 & 全画面 ----------
 const fullscreenProps = ref(false)
 const wrap = ref<HTMLElement | null>(null)
-const widths = useState('gameEditorPaneWidths', () => ({ scenes: 280, nodes: 520, props: 640 })) // px (デフォルト幅を640に拡大)
+const PANE_WIDTHS_STORAGE_KEY = 'gameEditorPaneWidths'
+const defaultPaneWidths = { scenes: 280, nodes: 520, props: 640 }
+const widths = useState(PANE_WIDTHS_STORAGE_KEY, () => ({ ...defaultPaneWidths }))
 const min = { scenes: 200, nodes: 360, props: 360 }
+const clampMin = { scenes: 160, nodes: 240, props: 280 }
+const RESIZER_SIZE = 8
+const RESIZER_COUNT = 2
+const GRID_GAP = 16
+const GRID_GAP_COUNT = 4
 const gridStyle = computed(() => ({
   '--w-scenes': widths.value.scenes + 'px',
   '--w-nodes': widths.value.nodes + 'px',
   '--w-props': widths.value.props + 'px',
-  '--sz-resizer': '8px',
+  '--sz-resizer': RESIZER_SIZE + 'px',
 }) as any)
+
+function clampNumber(value: unknown, fallback: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+  return value
+}
+
+function getEditorWrapWidth() {
+  const wrapBoxWidth = wrap.value?.getBoundingClientRect().width ?? 0
+  if (wrapBoxWidth > 0) return wrapBoxWidth
+  if (process.client && window.innerWidth > 0) return Math.max(0, window.innerWidth - 32)
+  return 0
+}
+
+function normalizePaneWidths(input: Partial<typeof defaultPaneWidths>, wrapBoxWidth: number) {
+  let next = {
+    scenes: clampNumber(input.scenes, defaultPaneWidths.scenes),
+    nodes: clampNumber(input.nodes, defaultPaneWidths.nodes),
+    props: clampNumber(input.props, defaultPaneWidths.props),
+  }
+
+  next.scenes = Math.max(clampMin.scenes, next.scenes)
+  next.nodes = Math.max(clampMin.nodes, next.nodes)
+  next.props = Math.max(clampMin.props, next.props)
+
+  const chromeWidth = RESIZER_SIZE * RESIZER_COUNT + GRID_GAP * GRID_GAP_COUNT
+  const available = Math.max(0, wrapBoxWidth - chromeWidth)
+  if (available <= 0) return { ...defaultPaneWidths }
+
+  const total = next.scenes + next.nodes + next.props
+  if (total <= available) return next
+
+  const baseline = {
+    scenes: clampMin.scenes,
+    nodes: clampMin.nodes,
+    props: clampMin.props,
+  }
+  const baselineTotal = baseline.scenes + baseline.nodes + baseline.props
+
+  if (baselineTotal >= available) {
+    const ratio = available / baselineTotal
+    return {
+      scenes: Math.max(120, Math.floor(baseline.scenes * ratio)),
+      nodes: Math.max(160, Math.floor(baseline.nodes * ratio)),
+      props: Math.max(180, Math.floor(baseline.props * ratio)),
+    }
+  }
+
+  const over = total - available
+  const reducible = {
+    scenes: Math.max(0, next.scenes - baseline.scenes),
+    nodes: Math.max(0, next.nodes - baseline.nodes),
+    props: Math.max(0, next.props - baseline.props),
+  }
+  const reducibleTotal = reducible.scenes + reducible.nodes + reducible.props
+  if (reducibleTotal <= 0) {
+    return { ...baseline }
+  }
+
+  const reduceScenes = Math.floor(over * (reducible.scenes / reducibleTotal))
+  const reduceNodes = Math.floor(over * (reducible.nodes / reducibleTotal))
+  const reduceProps = over - reduceScenes - reduceNodes
+
+  return {
+    scenes: Math.max(baseline.scenes, next.scenes - reduceScenes),
+    nodes: Math.max(baseline.nodes, next.nodes - reduceNodes),
+    props: Math.max(baseline.props, next.props - reduceProps),
+  }
+}
+
+function applyWidthClamp(source: Partial<typeof defaultPaneWidths>, options: { persist?: boolean } = {}) {
+  const normalized = normalizePaneWidths(source, getEditorWrapWidth())
+  widths.value = normalized
+  if (options.persist && process.client) {
+    localStorage.setItem(PANE_WIDTHS_STORAGE_KEY, JSON.stringify(normalized))
+  }
+}
+
+function onWindowResize() {
+  applyWidthClamp(widths.value)
+}
 
 // 幅プリセット (プレビューペインの幅を変更)
 function setPreviewWidth(w: number) {
-  widths.value.props = w
-  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
+  applyWidthClamp({ ...widths.value, props: w }, { persist: true })
 }
 
 onMounted(() => {
   // 以前の幅を復元
-  const saved = localStorage.getItem('gameEditorPaneWidths')
+  const saved = localStorage.getItem(PANE_WIDTHS_STORAGE_KEY)
   if (saved) {
-    try { Object.assign(widths.value, JSON.parse(saved)) } catch {}
+    try {
+      applyWidthClamp(JSON.parse(saved) as Partial<typeof defaultPaneWidths>, { persist: true })
+    } catch {
+      applyWidthClamp(defaultPaneWidths, { persist: true })
+    }
+  } else {
+    applyWidthClamp(defaultPaneWidths)
   }
   // Fキーで切替
   window.addEventListener('keydown', onKey)
+  window.addEventListener('resize', onWindowResize)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('keydown', onGlobalKeydown)
+  window.removeEventListener('resize', onWindowResize)
 })
 function onKey(e: KeyboardEvent) {
   if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
@@ -1971,20 +2065,11 @@ function onMove(ev: PointerEvent) {
     w.nodes = Math.max(min.nodes, startWidths.nodes + dx)
     w.props = Math.max(min.props, startWidths.props - dx)
   }
-  // wrap 幅にリサイズバー(×2)とギャップ(×4)を考慮
-  const RES = 8, GAP = 16
-  const maxSum = Math.max(0, wrapWidth - 2*RES - 4*GAP)
-  const sum = w.scenes + w.nodes + w.props
-  if (sum > maxSum) {
-    const over = sum - maxSum
-    if (resizing === 'left') w.nodes = Math.max(min.nodes, w.nodes - over)
-    else w.props = Math.max(min.props, w.props - over)
-  }
-  widths.value = w
+  widths.value = normalizePaneWidths(w, wrapWidth)
 }
 function onUp() {
   resizing = null
-  localStorage.setItem('gameEditorPaneWidths', JSON.stringify(widths.value))
+  localStorage.setItem(PANE_WIDTHS_STORAGE_KEY, JSON.stringify(widths.value))
   window.removeEventListener('pointermove', onMove)
 }
 </script>
