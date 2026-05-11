@@ -1467,6 +1467,7 @@ export class GamesService {
           staffRollAutoOpenEnabled: source.staffRollAutoOpenEnabled,
           staffRollSpeedPreset: source.staffRollSpeedPreset,
           staffRollSectionOrder: source.staffRollSectionOrder,
+          staffRollEndBehavior: source.staffRollEndBehavior,
           viewCount: 0,
           playCount: 0,
           startSceneId: null,
@@ -2254,6 +2255,9 @@ export class GamesService {
     }
     if ('staffRollSectionOrder' in (data ?? {})) {
       allowed.staffRollSectionOrder = this.normalizeStaffRollSectionOrder(data?.staffRollSectionOrder);
+    }
+    if (typeof data?.staffRollEndBehavior === 'string' && ['stop', 'close', 'loop'].includes(data.staffRollEndBehavior)) {
+      allowed.staffRollEndBehavior = data.staffRollEndBehavior;
     }
     if (typeof data?.startSceneId === 'string' || data?.startSceneId === null) {
       allowed.startSceneId = data.startSceneId ?? null;

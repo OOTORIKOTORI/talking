@@ -418,6 +418,7 @@
         :error="staffRollError"
         :speed-preset="game?.staffRollSpeedPreset"
         :section-order="game?.staffRollSectionOrder"
+        :end-behavior="game?.staffRollEndBehavior"
         @close="closeStaffRoll"
         @retry="retryStaffRoll"
       />

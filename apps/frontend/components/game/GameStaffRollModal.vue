@@ -211,6 +211,7 @@ interface Props {
   error?: string | null
   speedPreset?: string | null
   sectionOrder?: string | null
+  endBehavior?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -252,6 +253,10 @@ function normalizeStaffRollSectionOrder(value: unknown): StaffRollSectionId[] {
 
   return ordered
 }
+type StaffRollEndBehavior = 'stop' | 'close' | 'loop'
+function normalizeStaffRollEndBehavior(value: unknown): StaffRollEndBehavior {
+  return value === 'stop' || value === 'close' || value === 'loop' ? value : 'stop'
+}
 const autoScrollSpeedPxPerSec = computed(() => {
   const preset = normalizeStaffRollSpeedPreset(props.speedPreset)
   if (preset === 'slow') return 28
@@ -269,6 +274,7 @@ const isAutoScrolling = ref(false)
 const shouldResetScrollOnReady = ref(false)
 const autoScrollOffset = ref(0)
 const playbackStatus = ref<PlaybackStatus>('paused')
+const isUserPaused = ref(false)
 
 let animationFrameId: number | null = null
 let lastFrameTime = 0
@@ -324,7 +330,7 @@ function getMaxOffset(): number {
   return Math.max(track.scrollHeight - container.clientHeight, 0)
 }
 
-function stopAutoScroll(options: { preservePosition?: boolean; ended?: boolean } = {}) {
+function stopAutoScroll(options: { preservePosition?: boolean; ended?: boolean; userPaused?: boolean } = {}) {
   cleanupAnimationFrame()
 
   if (options.preservePosition) {
@@ -337,6 +343,7 @@ function stopAutoScroll(options: { preservePosition?: boolean; ended?: boolean }
 
   isAutoScrolling.value = false
   lastFrameTime = 0
+  isUserPaused.value = options.userPaused ?? false
   playbackStatus.value = options.ended ? 'ended' : 'paused'
 }
 
@@ -369,8 +376,27 @@ function runAutoScrollFrame(timestamp: number) {
   )
 
   if (autoScrollOffset.value >= maxOffset - 0.25) {
-    stopAutoScroll({ preservePosition: true, ended: true })
-    return
+    // Handle end behavior
+    const endBehavior = normalizeStaffRollEndBehavior(props.endBehavior)
+    if (endBehavior === 'close') {
+      // Close the modal
+      emitClose()
+      return
+    } else if (endBehavior === 'loop') {
+      // Loop back to the top
+      autoScrollOffset.value = 0
+      const container = scrollContainerRef.value
+      if (container) {
+        container.scrollTop = 0
+      }
+      // Continue scrolling from the top
+      animationFrameId = requestAnimationFrame(runAutoScrollFrame)
+      return
+    } else {
+      // 'stop' - stop and mark as ended
+      stopAutoScroll({ preservePosition: true, ended: true })
+      return
+    }
   }
 
   animationFrameId = requestAnimationFrame(runAutoScrollFrame)
@@ -429,7 +455,7 @@ function toggleAutoScroll() {
 
 function onManualScrollIntent() {
   if (!isAutoScrolling.value) return
-  stopAutoScroll({ preservePosition: true })
+  stopAutoScroll({ preservePosition: true, userPaused: true })
 }
 
 function onContainerScroll() {
@@ -469,6 +495,7 @@ watch(
     if (!process.client) return
     if (open) {
       shouldResetScrollOnReady.value = true
+      isUserPaused.value = false
       window.addEventListener('keydown', onWindowKeydown)
       if (canAutoScroll.value) {
         shouldResetScrollOnReady.value = false
@@ -478,6 +505,7 @@ watch(
     }
     window.removeEventListener('keydown', onWindowKeydown)
     shouldResetScrollOnReady.value = false
+    isUserPaused.value = false
     stopAutoScroll()
     autoScrollOffset.value = 0
   },

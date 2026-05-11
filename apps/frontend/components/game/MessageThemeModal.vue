@@ -972,6 +972,30 @@
                 </div>
               </div>
 
+              <!-- 終了時挙動 -->
+              <div class="mt-3">
+                <p class="text-sm font-medium text-gray-700 mb-2">末尾到達時</p>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <label
+                    v-for="opt in staffRollEndBehaviorOptions"
+                    :key="opt.value"
+                    class="flex min-w-0 items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
+                    :class="staffRollEndBehaviorDraft === opt.value
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
+                  >
+                    <input
+                      type="radio"
+                      name="staffRollEndBehavior"
+                      :value="opt.value"
+                      v-model="staffRollEndBehaviorDraft"
+                      class="sr-only"
+                    />
+                    {{ opt.label }}
+                  </label>
+                </div>
+              </div>
+
               <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
                 <p class="text-sm font-medium text-gray-700">エンディング後に自動で開く</p>
                 <p class="text-xs text-gray-600 break-words leading-relaxed">
@@ -1073,6 +1097,7 @@ const props = defineProps<{
   initialStaffRollAutoOpenEnabled?: boolean | null
   initialStaffRollSpeedPreset?: string | null
   initialStaffRollSectionOrder?: string | null
+  initialStaffRollEndBehavior?: string | null
   isPublic?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved', v: any): void }>()  
@@ -1139,6 +1164,18 @@ const staffRollSpeedOptions = [
 ]
 const staffRollSpeedPresetInitialValue = computed(() => normalizeStaffRollSpeedPreset(props.initialStaffRollSpeedPreset))
 const staffRollSpeedPresetDraft = ref<StaffRollSpeedPreset>(staffRollSpeedPresetInitialValue.value)
+
+type StaffRollEndBehavior = 'stop' | 'close' | 'loop'
+function normalizeStaffRollEndBehavior(value: unknown): StaffRollEndBehavior {
+  return value === 'stop' || value === 'close' || value === 'loop' ? value : 'stop'
+}
+const staffRollEndBehaviorOptions = [
+  { value: 'stop', label: '最後で停止' },
+  { value: 'close', label: '最後で閉じる' },
+  { value: 'loop', label: '先頭に戻ってループ' },
+]
+const staffRollEndBehaviorInitialValue = computed(() => normalizeStaffRollEndBehavior(props.initialStaffRollEndBehavior))
+const staffRollEndBehaviorDraft = ref<StaffRollEndBehavior>(staffRollEndBehaviorInitialValue.value)
 
 const GAME_TITLE_MAX_LENGTH = 120
 const GAME_SUMMARY_MAX_LENGTH = 500
@@ -1976,6 +2013,7 @@ function reset() {
   staffRollAutoOpenEnabledDraft.value = staffRollAutoOpenEnabledInitialValue.value
   staffRollSpeedPresetDraft.value = staffRollSpeedPresetInitialValue.value
   staffRollSectionOrderDraft.value = staffRollSectionOrderInitialValue.value
+  staffRollEndBehaviorDraft.value = staffRollEndBehaviorInitialValue.value
 }
 
 // 保存
@@ -2013,6 +2051,7 @@ function buildSavePayload() {
     staffRollAutoOpenEnabled: staffRollAutoOpenEnabledDraft.value,
     staffRollSpeedPreset: staffRollSpeedPresetDraft.value,
     staffRollSectionOrder: staffRollSectionOrderDraft.value.join(','),
+    staffRollEndBehavior: staffRollEndBehaviorDraft.value,
   }
 }
 
@@ -2031,6 +2070,7 @@ function hasPublicSettingsChanges() {
     staffRollAutoOpenEnabled: staffRollAutoOpenEnabledInitialValue.value,
     staffRollSpeedPreset: staffRollSpeedPresetInitialValue.value,
     staffRollSectionOrder: staffRollSectionOrderInitialValue.value.join(','),
+    staffRollEndBehavior: staffRollEndBehaviorInitialValue.value,
   }
 
   return (
@@ -2044,6 +2084,7 @@ function hasPublicSettingsChanges() {
     || currentPayload.staffRollAutoOpenEnabled !== initialPayload.staffRollAutoOpenEnabled
     || currentPayload.staffRollSpeedPreset !== initialPayload.staffRollSpeedPreset
     || currentPayload.staffRollSectionOrder !== initialPayload.staffRollSectionOrder
+    || currentPayload.staffRollEndBehavior !== initialPayload.staffRollEndBehavior
   )
 }
 
@@ -2091,6 +2132,9 @@ async function save() {
       staffRollSectionOrder: 'staffRollSectionOrder' in (result ?? {})
         ? normalizeStaffRollSectionOrder(result?.staffRollSectionOrder).join(',')
         : payload.staffRollSectionOrder,
+      staffRollEndBehavior: 'staffRollEndBehavior' in (result ?? {})
+        ? normalizeStaffRollEndBehavior(result?.staffRollEndBehavior)
+        : payload.staffRollEndBehavior,
     })
     toast.success('全体設定を保存しました')
     emit('close')

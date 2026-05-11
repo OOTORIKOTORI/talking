@@ -39,6 +39,11 @@ export class UpdateGameDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(['stop', 'close', 'loop'])
+  staffRollEndBehavior?: string
+
+  @IsOptional()
+  @IsString()
   startSceneId?: string | null
 
   @IsOptional()

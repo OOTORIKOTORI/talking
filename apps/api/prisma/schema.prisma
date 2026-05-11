@@ -156,6 +156,7 @@ model GameProject {
   staffRollAutoOpenEnabled Boolean @default(false)
   staffRollSpeedPreset String @default("normal")
   staffRollSectionOrder String @default("manual,assets,characters")
+  staffRollEndBehavior String @default("stop")
   viewCount    Int         @default(0)
   playCount    Int         @default(0)
   startSceneId String?
