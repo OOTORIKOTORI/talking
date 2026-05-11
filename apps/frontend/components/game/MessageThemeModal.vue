@@ -937,12 +937,43 @@
                   </label>
                 </div>
               </div>
+
+              <div class="mt-4 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <p class="text-sm font-medium text-gray-700">エンディング後に自動表示</p>
+                <p class="text-xs text-gray-600 break-words leading-relaxed">
+                  ONにすると、プレイ終了画面に到達したときスタッフロールを自動で開きます。
+                </p>
+                <label
+                  class="inline-flex w-full flex-wrap items-center gap-3 select-none sm:flex-nowrap"
+                  :class="staffRollEnabledDraft ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+                >
+                  <input
+                    v-model="staffRollAutoOpenEnabledDraft"
+                    type="checkbox"
+                    class="sr-only peer"
+                    :disabled="!staffRollEnabledDraft"
+                  />
+                  <span
+                    class="relative h-7 w-12 rounded-full transition-colors"
+                    :class="staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'bg-blue-600' : 'bg-gray-300'"
+                  >
+                    <span
+                      class="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform"
+                      :class="staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
+                    ></span>
+                  </span>
+                  <span class="text-sm font-medium text-gray-800 break-words">自動表示を有効にする</span>
+                </label>
+                <p v-if="!staffRollEnabledDraft" class="text-xs text-amber-700 break-words leading-relaxed">
+                  スタッフロール導線OFF時は自動表示されません。
+                </p>
+              </div>
             </section>
 
             <!-- 保存方式の説明 -->
             <div class="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 sm:px-4 sm:py-3">
               <p class="text-xs sm:text-sm text-blue-800 leading-relaxed break-words">
-                <strong>💡 保存方式について:</strong> スタッフロール導線・スクロール速度の変更は、右下の「全体設定を保存」で反映されます。
+                <strong>💡 保存方式について:</strong> スタッフロール導線・自動表示・スクロール速度の変更は、右下の「全体設定を保存」で反映されます。
               </p>
             </div>
 
@@ -1012,6 +1043,7 @@ const props = defineProps<{
   initialUi?: GameUiTheme
   initialBacklog?: BacklogTheme
   initialStaffRollEnabled?: boolean | null
+  initialStaffRollAutoOpenEnabled?: boolean | null
   initialStaffRollSpeedPreset?: string | null
   isPublic?: boolean
 }>()
@@ -1032,6 +1064,8 @@ const modalTabs: { key: ModalTabKey; label: string }[] = [
 
 const staffRollEnabledInitialValue = computed(() => props.initialStaffRollEnabled !== false)
 const staffRollEnabledDraft = ref(staffRollEnabledInitialValue.value)
+const staffRollAutoOpenEnabledInitialValue = computed(() => props.initialStaffRollAutoOpenEnabled === true)
+const staffRollAutoOpenEnabledDraft = ref(staffRollAutoOpenEnabledInitialValue.value)
 
 type StaffRollSpeedPreset = 'slow' | 'normal' | 'fast'
 function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
@@ -1860,6 +1894,7 @@ function reset() {
     coverAssetId: props.initialCoverAssetId ?? null,
   }
   staffRollEnabledDraft.value = staffRollEnabledInitialValue.value
+  staffRollAutoOpenEnabledDraft.value = staffRollAutoOpenEnabledInitialValue.value
   staffRollSpeedPresetDraft.value = staffRollSpeedPresetInitialValue.value
 }
 
@@ -1895,6 +1930,7 @@ function buildSavePayload() {
     gameUiTheme: uiDraft.value,
     backlogTheme: backlogDraft.value,
     staffRollEnabled: staffRollEnabledDraft.value,
+    staffRollAutoOpenEnabled: staffRollAutoOpenEnabledDraft.value,
     staffRollSpeedPreset: staffRollSpeedPresetDraft.value,
   }
 }
@@ -1911,6 +1947,7 @@ function hasPublicSettingsChanges() {
     gameUiTheme: props.initialUi ?? defaultUiTheme,
     backlogTheme: props.initialBacklog ?? DEFAULT_BACKLOG_THEME,
     staffRollEnabled: staffRollEnabledInitialValue.value,
+    staffRollAutoOpenEnabled: staffRollAutoOpenEnabledInitialValue.value,
     staffRollSpeedPreset: staffRollSpeedPresetInitialValue.value,
   }
 
@@ -1922,6 +1959,7 @@ function hasPublicSettingsChanges() {
     || JSON.stringify(currentPayload.gameUiTheme) !== JSON.stringify(initialPayload.gameUiTheme)
     || JSON.stringify(currentPayload.backlogTheme) !== JSON.stringify(initialPayload.backlogTheme)
     || currentPayload.staffRollEnabled !== initialPayload.staffRollEnabled
+    || currentPayload.staffRollAutoOpenEnabled !== initialPayload.staffRollAutoOpenEnabled
     || currentPayload.staffRollSpeedPreset !== initialPayload.staffRollSpeedPreset
   )
 }
@@ -1961,6 +1999,9 @@ async function save() {
       staffRollEnabled: 'staffRollEnabled' in (result ?? {})
         ? result?.staffRollEnabled !== false
         : payload.staffRollEnabled,
+      staffRollAutoOpenEnabled: 'staffRollAutoOpenEnabled' in (result ?? {})
+        ? result?.staffRollAutoOpenEnabled === true
+        : payload.staffRollAutoOpenEnabled,
       staffRollSpeedPreset: 'staffRollSpeedPreset' in (result ?? {})
         ? normalizeStaffRollSpeedPreset(result?.staffRollSpeedPreset)
         : payload.staffRollSpeedPreset,

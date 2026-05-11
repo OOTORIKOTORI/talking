@@ -153,6 +153,7 @@ model GameProject {
   coverAssetId String?
   isPublic     Boolean     @default(false)
   staffRollEnabled Boolean @default(true)
+  staffRollAutoOpenEnabled Boolean @default(false)
   staffRollSpeedPreset String @default("normal")
   viewCount    Int         @default(0)
   playCount    Int         @default(0)

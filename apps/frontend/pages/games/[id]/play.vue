@@ -677,6 +677,7 @@ const modalMode = ref<ModalMode>('save')
 const activeSlotType = ref<SaveSlotType>('MANUAL')
 const selectedSlotKey = ref<string>('MANUAL-1')
 const staffRollOpen = ref(false)
+const staffRollAutoOpenedInRun = ref(false)
 const staffRollCredits = ref<GameCreditsResult | null>(null)
 const staffRollLoading = ref(false)
 const staffRollError = ref<string | null>(null)
@@ -953,6 +954,16 @@ function closeStaffRoll() {
 
 async function retryStaffRoll() {
   await loadStaffRollCredits({ force: true })
+}
+
+async function maybeAutoOpenStaffRollOnEnd() {
+  if (!showEndScreen.value) return
+  if (staffRollAutoOpenedInRun.value) return
+  if (game.value?.staffRollEnabled === false) return
+  if (game.value?.staffRollAutoOpenEnabled !== true) return
+
+  staffRollAutoOpenedInRun.value = true
+  await openStaffRoll()
 }
 
 function openBacklog() {
@@ -2128,6 +2139,7 @@ watch(
 function start() {
   // スタート画面を非表示にして開始
   stopAutoSkipModes()
+  staffRollAutoOpenedInRun.value = false
   accumulatedText.value = ''
   gameState.value = {}
   showStartScreen.value = false
@@ -2144,6 +2156,7 @@ function restart() {
   stopAutoSkipModes()
   backlog.reset()
   closeStaffRoll()
+  staffRollAutoOpenedInRun.value = false
   accumulatedText.value = ''
   gameState.value = {}
   messageTypingComplete.value = true
@@ -2404,6 +2417,11 @@ watch(choices, (nextChoices) => {
 watch(showChoices, (isOpen) => {
   if (!isOpen) return
   highlightedChoiceIndex.value = 0
+})
+
+watch(showEndScreen, (isOpen) => {
+  if (!isOpen) return
+  void maybeAutoOpenStaffRollOnEnd()
 })
 
 watch(isTestPlay, (enabled) => {

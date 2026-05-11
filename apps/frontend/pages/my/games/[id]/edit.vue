@@ -462,6 +462,9 @@ function handleThemeSaved(v: any) {
   if ('staffRollEnabled' in (v ?? {})) {
     game.value.staffRollEnabled = v.staffRollEnabled !== false
   }
+  if ('staffRollAutoOpenEnabled' in (v ?? {})) {
+    game.value.staffRollAutoOpenEnabled = v.staffRollAutoOpenEnabled === true
+  }
   if ('staffRollSpeedPreset' in (v ?? {})) {
     game.value.staffRollSpeedPreset = v.staffRollSpeedPreset ?? 'normal'
   }
@@ -3381,6 +3384,7 @@ function onUp() {
         :initial-ui="game?.gameUiTheme"
         :initial-backlog="game?.backlogTheme"
         :initial-staff-roll-enabled="game?.staffRollEnabled"
+        :initial-staff-roll-auto-open-enabled="game?.staffRollAutoOpenEnabled"
         :initial-staff-roll-speed-preset="game?.staffRollSpeedPreset"
         :is-public="game?.isPublic === true"
         @close="openThemeModal=false"

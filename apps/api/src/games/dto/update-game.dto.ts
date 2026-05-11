@@ -25,6 +25,10 @@ export class UpdateGameDto {
   staffRollEnabled?: boolean
 
   @IsOptional()
+  @IsBoolean()
+  staffRollAutoOpenEnabled?: boolean
+
+  @IsOptional()
   @IsString()
   @IsIn(['slow', 'normal', 'fast'])
   staffRollSpeedPreset?: string
