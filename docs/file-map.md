@@ -28,7 +28,9 @@ apps/frontend/pages/
 │   ├── index.vue                            # 公開キャラクター一覧
 │   └── [id].vue                             # キャラクター詳細・画像表示画面
 ├── games/
+│   ├── index.vue                            # 公開ゲーム一覧ページ
 │   └── [id]/
+│       ├── index.vue                        # 公開ゲーム詳細ページ。通常クレジット表示、スタッフロール導線、`useStaffRollCredits` 経由のスタッフロール用クレジット取得を扱う
 │       └── play.vue                         # ゲームプレイ画面。ノード進行、選択肢分岐、音声、カメラ、セーブ/ロードを統括
 ├── my/
 │   ├── assets/
@@ -67,11 +69,16 @@ apps/frontend/components/
 │   ├── ToastContainer.vue                   # トースト通知の描画コンテナ
 │   └── UploadTabs.vue                       # アップロード画面の種別切り替えタブ
 ├── game/
-│   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル
+│   ├── BacklogModal.vue                     # バックログ表示モーダル
+│   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題を表示し公開可否を判断する
+│   ├── GameManualCreditsEditor.vue          # ゲーム単位の手動クレジット編集コンポーネント。個別保存フローで動作する
+│   ├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順に従い自動スクロール再生する
+│   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル。`クレジット/導線` タブでスタッフロール導線ON/OFF・速度・自動表示・セクション表示順・手動クレジット導線を扱う
 │   ├── MessageWindow.vue                    # メッセージ窓本体。テーマ解決済みCSSで台詞を表示
 │   ├── MiniStage.vue                        # エディタ用の簡易ステージプレビュー
 │   ├── NodePicker.vue                       # 遷移先ノード選択ダイアログ
-│   └── StageCanvas.vue                      # 背景・立ち絵・カメラ・演出を描くステージキャンバス
+│   ├── StageCanvas.vue                      # 背景・立ち絵・カメラ・演出を描くステージキャンバス
+│   └── TestPlayPanel.vue                    # テストプレイ専用パネル。現在地・操作・ノード情報・遷移ログの4セクション構成
 ├── pickers/
 │   ├── AssetPicker.vue                      # アセット選択モーダル。背景/BGM/SFX選択に利用
 │   ├── CharacterImagePicker.vue             # キャラクター画像差分の選択モーダル
@@ -180,7 +187,9 @@ apps/api/src/
 ├── games/
 │   ├── games.controller.ts                  # ゲーム/シーン/ノード/セーブ API の HTTP 入口
 │   ├── games.module.ts                      # games 機能のモジュール定義
-│   └── games.service.ts                     # ゲーム本体ロジック。theme 保存、scene/node 更新、save slots を担当
+│   ├── games.service.ts                     # ゲーム本体ロジック。theme 保存、スタッフロール設定の保存、scene/node 更新、save slots、クレジット/参照診断を担当
+│   └── dto/
+│       └── update-game.dto.ts               # ゲーム更新 DTO。タイトル/概要/公開状態/テーマ/スタッフロール設定などを受ける
 ├── health/
 │   ├── health.controller.ts                 # ヘルスチェック API
 │   ├── health.module.ts                     # health 機能のモジュール定義
@@ -254,9 +263,10 @@ packages/types/src/
 
 ### apps/frontend/components/game/MessageThemeModal.vue
 - メッセージ窓テーマとセーブ/ロード UI テーマをまとめて編集するモーダルです。
+- `クレジット/導線` タブでスタッフロール導線のON/OFF（`staffRollEnabled`）、速度プリセット（`staffRollSpeedPreset`）、エンディング後自動表示（`staffRollAutoOpenEnabled`）、セクション表示順（`staffRollSectionOrder`）、手動クレジット編集（`GameManualCreditsEditor` 経由の個別保存）を扱います。
 - 公開 props は gameId、initial、initialUi、emit は close と saved です。
 - 主な関数は save、reset、resetUi、applyPreset、applyUiPreset、exportTheme です。
-- ※ 保存時は PATCH /games/:id に messageTheme と gameUiTheme を同時送信します。
+- ※ 「全体設定を保存」は PATCH /games/:id に messageTheme / gameUiTheme / staffRoll 設定を同時送信します。手動クレジットは独立した個別保存フローで保存します。
 
 ### ゲームエンジン相当の実装
 - 専用の useGameEngine.ts はありません。

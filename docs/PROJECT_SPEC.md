@@ -1160,12 +1160,13 @@ GET /games/:id/reference-diagnostics
   - 取得失敗時はエラー表示 + 再読み込み導線を表示。
   - DB変更・migration追加・API追加なし（UI MVP時点）。
 - 後続MVPで実装済み（2026-05-10〜2026-05-11）
-  - `staffRollSectionOrder`（手動クレジット / 使用素材 / 使用キャラクターの大分類順のみ、default manual,assets,characters）
   - `staffRollEnabled`（導線ON/OFF、default true）
   - `staffRollSpeedPreset`（ゆっくり/標準/速い、default normal）
   - `staffRollAutoOpenEnabled`（エンディング後自動表示ON/OFF、default false、1プレイ中1回、`staffRollEnabled=false` 時は自動表示しない）
   - 公開中ゲームの全体設定保存confirm対象（変更なし保存/非公開ゲームはconfirmなし）
   - クレジット取得処理を `useStaffRollCredits` で共通化（公開詳細/プレイ画面）
+- 表示順カスタマイズMVPで実装済み（2026-05-12）
+  - `staffRollSectionOrder`（手動クレジット / 使用素材 / 使用キャラクターの大分類順のみ、default manual,assets,characters）
 - 将来課題
   - 素材/キャラクター/手動クレジットの個別アイテム並び替え
   - 終了時挙動の詳細オプション
@@ -1271,7 +1272,7 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
 - `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
 - 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
-- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset`・`staffRollSectionOrder` と手動クレジット編集（ゲーム単位）を扱う。
+- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset`・`staffRollAutoOpenEnabled`・`staffRollSectionOrder` と手動クレジット編集（ゲーム単位・個別保存）を扱う。手動クレジットの保存は「全体設定を保存」とは独立した個別保存フローで行う。
 - 基本情報MVPの対象は `title` / `summary` のみ。
 - 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
 
