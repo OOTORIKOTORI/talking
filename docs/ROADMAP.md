@@ -58,7 +58,7 @@
 
 - **スタッフロール速度設定MVP**（2026-05-10 実装）（`GameProject.staffRollSpeedPreset`（TEXT NOT NULL DEFAULT 'normal'）を追加（migration: `20260510130000staffrollspeedpreset`）。ゲーム単位で「ゆっくり / 標準 / 速い」3段階の自動スクロール速度を選択できる。設定場所は「ゲーム全体設定 > クレジット/導線」タブ内、スタッフロール導線 ON/OFF トグルの下。速度設定は「全体設定を保存」で反映される（ON/OFFと同一保存フロー）。公開中ゲームで速度変更して保存する場合も共通confirm対象。既存ゲームのデフォルトは「標準」（42px/sec）。slow=28px/sec、fast=64px/sec。`staffRollEnabled=false`でも速度値は保存される。ON/OFF設定・通常クレジット表示・`GET /games/:id/credits` は維持。速度設定MVP実装時点では「エンディング後自動表示」は将来課題だったが、2026-05-11に「スタッフロール自動表示ON/OFF MVP」として実装済み。残る将来課題は「BGM、表示順カスタマイズ、終了時挙動の詳細オプション、より細かな速度カスタマイズ、カテゴリ別アニメーション、より凝った演出」。）
 
-- **スタッフロールUI MVP**（2026-05-09 実装）（`apps/frontend/components/game/GameStaffRollModal.vue` を追加。`GET /games/:id/credits` の既存レスポンスをそのまま表示。プレイ終了画面（通常/フルスクリーン）と公開ゲーム詳細ページに導線を追加。DB変更・migration追加・API追加なし。演出強化MVPとして自動スクロール（初期ON・最下部停止）、停止/再開、先頭へ戻る、手動操作時の自動停止、スクロールバーを目立たせない表示、上下フェード/再生状態表示/中央上映寄りレイアウトを実装。速度設定・表示順カスタマイズ・より凝った演出・カテゴリ別アニメーション・BGM/SE連動は将来課題。）
+- **スタッフロールUI MVP**（2026-05-09 実装）（`apps/frontend/components/game/GameStaffRollModal.vue` を追加。`GET /games/:id/credits` の既存レスポンスをそのまま表示。プレイ終了画面（通常/フルスクリーン）と公開ゲーム詳細ページに導線を追加。DB変更・migration追加・API追加なし。演出強化MVPとして自動スクロール（初期ON・最下部停止）、停止/再開、先頭へ戻る、手動操作時の自動停止、スクロールバーを目立たせない表示、上下フェード/再生状態表示/中央上映寄りレイアウトを実装。表示順カスタマイズ・より凝った演出・カテゴリ別アニメーション・BGM/SE連動は将来課題。速度設定・自動表示ON/OFFは別MVPで実装済み。）
 
 - **スタッフロール設定MVP**（2026-05-10 実装）（`GameProject.staffRollEnabled` を追加し、ゲーム編集画面で導線表示ON/OFFを保存可能化。defaultは `true` で既存ゲーム挙動を維持。OFF時は公開詳細の「スタッフロールで見る」とプレイ終了画面（通常/フルスクリーン）の「スタッフロール」ボタンのみ非表示にし、通常クレジット表示と `GET /games/:id/credits` は変更しない。`GameCredit` / 手動クレジット / snapshot lock の仕様変更なし。）
 
@@ -70,7 +70,7 @@
 
 - **公開前確認での最新参照反映・履歴クレジット混入防止**（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中の ID のみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
 - **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
-- **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに「編集画面で参照警告を確認」ボタンを追加。全体警告ボタンは `focusScenarioCheck=1&scenarioCheckFilter=warning`、素材/キャラクター別カードは `scenarioCheckCategory=asset-reference` / `character-reference` を付けて `/my/games/{id}/edit` へ遷移。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに編集画面への導線を追加。警告ありの場合に警告サマリーボタン「問題を確認する」、素材/キャラクター別カードのボタン「参照を編集」を実装。クリックで `/my/games/{id}/edit` へ遷移し、カテゴリ単位で公開前チェックへ誘導。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開中編集時の保存前再確認UX MVP**（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中ゲームの構造変更confirm拡張 MVP**（2026-05-09 実装）（公開中ゲームのみ、ノード削除・シーン削除・開始シーン変更・開始ノード変更の直前に `window.confirm` を表示。削除系は通常削除confirmを公開中向け文言へ置き換えて1回表示に統一し、二重confirmを回避。非公開ゲームは従来挙動を維持。`nextNode`/選択肢遷移変更は保存ボタン確定フローのため既存保存confirmで扱う。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中編集バナー折りたたみMVP**（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
