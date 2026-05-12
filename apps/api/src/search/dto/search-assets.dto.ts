@@ -45,6 +45,10 @@ export class SearchAssetsDto {
   sort?: 'createdAt:desc' | 'createdAt:asc' = 'createdAt:desc';
 
   @IsOptional()
+  @IsEnum(['public', 'private', 'all'])
+  visibility?: 'public' | 'private' | 'all';
+
+  @IsOptional()
   @IsString()
   owner?: string; // 'me' or explicit ownerId
 }

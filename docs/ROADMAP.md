@@ -2613,11 +2613,13 @@ AIや外部ツールでテスト用シナリオを作りやすくし、テキス
 
 ## 🔎 今回の確認メモ（2026-05-01 / 公開ギャラリー検索 追加確認・補正）
 
+> 注釈（2026-05-13）: 以下は当時の調査メモ。後続の Asset.isPublic MVP で `Asset.isPublic`（Boolean, default true）は導入済みで、現在の公開条件は `deletedAt = null` かつ `isPublic = true`。
+
 ### 調査結果（5点確認）
 
 #### 1. Asset の公開条件
-- Asset モデルに `isPublic` / `visibility` / `status` フィールドは存在しない
-- `deletedAt: null` が唯一かつ正しい公開フィルタ（既存 `/assets` findAll と同一仕様）
+- （当時メモ）Asset モデルに `isPublic` / `visibility` / `status` フィールドは存在しない
+- （当時メモ）`deletedAt: null` が唯一かつ正しい公開フィルタ（既存 `/assets` findAll と同一仕様）
 - Character・GameProject の `isPublic` とは無関係
 - **結論**: `deletedAt: null` は要件を満たしており、追加修正不要
 
@@ -2654,8 +2656,8 @@ AIや外部ツールでテスト用シナリオを作りやすくし、テキス
 
 ### 今回未実行の確認と理由
 - `/assets` 画面での手動確認（ブラウザを起動した実画面確認）: この作業ではブラウザ画面の直接操作は未実施。ビルド・テストは通過
-- 非公開アセットの境界テスト（実際に非公開アセットを作成して漏洩確認）: Asset に `isPublic` がないため、全非削除アセットが公開扱いになる設計上の前提として対象外
+- 非公開アセットの境界テスト（実際に非公開アセットを作成して漏洩確認）: （当時メモ）Asset に `isPublic` がないため、全非削除アセットが公開扱いになる設計上の前提として対象外。現在は `isPublic` 導入済みのため前提は無効
 
 ### 残課題・リスク
-- **任意 owner 指定のアクセス制御**: `GET /search/assets?owner=userId` は未認証ユーザーが任意 userId のアセットを取得できる。これは旧 `GET /assets?ownerId=xxx` と同一の既存仕様であり、Asset に `isPublic` がない設計に由来する。将来 Asset に `isPublic` を追加する場合は、Meilisearch filter と Prisma fallback の両方に反映が必要
+- **任意 owner 指定のアクセス制御**: （当時メモ）`GET /search/assets?owner=userId` は未認証ユーザーが任意 userId のアセットを取得できる。これは旧 `GET /assets?ownerId=xxx` と同一の既存仕様であり、Asset に `isPublic` がない設計に由来する。将来 Asset に `isPublic` を追加する場合は、Meilisearch filter と Prisma fallback の両方に反映が必要
 - **Meilisearch インデックス未同期**: fallback 時は Prisma LIKE 検索のため、Meilisearch 時より全文検索の精度・速度が下がる可能性がある

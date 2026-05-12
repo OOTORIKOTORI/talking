@@ -140,8 +140,14 @@ export class SearchController {
       where.ownerId = dto.owner;
     }
 
-    if (!this.shouldIncludePrivateAssets(dto, userId)) {
+    const includePrivateAssets = this.shouldIncludePrivateAssets(dto, userId);
+
+    if (!includePrivateAssets) {
       where.isPublic = true;
+    } else if (dto.visibility === 'public') {
+      where.isPublic = true;
+    } else if (dto.visibility === 'private') {
+      where.isPublic = false;
     }
 
     return where;
@@ -161,8 +167,14 @@ export class SearchController {
       filters.push(`ownerId = "${dto.owner}"`);
     }
 
-    if (!this.shouldIncludePrivateAssets(dto, userId)) {
+    const includePrivateAssets = this.shouldIncludePrivateAssets(dto, userId);
+
+    if (!includePrivateAssets) {
       filters.push('isPublic = true');
+    } else if (dto.visibility === 'public') {
+      filters.push('isPublic = true');
+    } else if (dto.visibility === 'private') {
+      filters.push('isPublic = false');
     }
 
     if (dto.contentType === 'image') {

@@ -3,6 +3,10 @@ import { Type } from 'class-transformer';
 
 export class QueryAssetsDto {
   @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

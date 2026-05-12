@@ -144,6 +144,9 @@ export class AssetsService {
     const where: any = { deletedAt: null }
     if (query.ownerId) {
       where.ownerId = query.ownerId
+      if (!query.userId || query.ownerId !== query.userId) {
+        where.isPublic = true
+      }
     } else {
       where.isPublic = true
     }

@@ -401,15 +401,7 @@ const getPrimaryTagLabel = (tag: string): string => {
   return primaryTagLabels[tag] || tag;
 };
 
-const displayAssets = computed(() => {
-  if (visibilityFilter.value === 'public') {
-    return assets.value.filter((asset) => asset.isPublic !== false);
-  }
-  if (visibilityFilter.value === 'private') {
-    return assets.value.filter((asset) => asset.isPublic === false);
-  }
-  return assets.value;
-});
+const displayAssets = computed(() => assets.value);
 
 // Load data from query params on mount
 const loadFromQuery = () => {
@@ -455,6 +447,7 @@ const performSearch = async () => {
       contentType?: 'image' | 'audio';
       primaryTag?: string;
       tags?: string;
+      visibility?: 'public' | 'private' | 'all';
     } = {
       q: searchQuery.value || undefined,
       limit: 20,
@@ -472,6 +465,10 @@ const performSearch = async () => {
 
     if (tagsInput.value.trim()) {
       params.tags = tagsInput.value;
+    }
+
+    if (visibilityFilter.value !== 'all') {
+      params.visibility = visibilityFilter.value;
     }
 
     const res: any = await api.searchMine(params);

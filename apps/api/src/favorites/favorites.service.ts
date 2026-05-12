@@ -54,15 +54,20 @@ export class FavoritesService {
     const where: any = {
       id: { in: ids },
       deletedAt: null,
-      OR: [{ ownerId: userId }, { isPublic: true }],
+      AND: [
+        { OR: [{ ownerId: userId }, { isPublic: true }] },
+      ],
     }
 
     if (opt.q) {
-      where.OR = [
-        { title: { contains: opt.q, mode: 'insensitive' } },
-        { description: { contains: opt.q, mode: 'insensitive' } },
-        { tags: { hasSome: opt.q.split(/\s+/) } },
-      ]
+      const qTags = opt.q.split(/\s+/).filter(Boolean)
+      where.AND.push({
+        OR: [
+          { title: { contains: opt.q, mode: 'insensitive' } },
+          { description: { contains: opt.q, mode: 'insensitive' } },
+          { tags: { hasSome: qTags } },
+        ],
+      })
     }
 
     if (opt.type === 'image') {

@@ -3,11 +3,12 @@
 ## ドメイン
 
 ### アセット（画像/音声）
-- モデル: `Asset { id, ownerId, ownerDisplayNameSnapshot?, ownerDisplayName?, key, thumbKeyWebp?, thumbKeyAvif?, title, description, contentType, primaryTag, tags[], size, createdAt, deletedAt?, usageTerms?, creditRequired, isFavorite?, favoriteCount?, ... }`
+- モデル: `Asset { id, ownerId, ownerDisplayNameSnapshot?, ownerDisplayName?, key, thumbKeyWebp?, thumbKeyAvif?, title, description, contentType, primaryTag, tags[], size, isPublic, createdAt, deletedAt?, usageTerms?, creditRequired, isFavorite?, favoriteCount?, ... }`
 - 画像URLは **署名付き GET `/uploads/signed-get?key=...` の JSON `{ url }` を取得してから `<img src>` に適用** する（直リンク禁止）
 - 検索: Meilisearch（facets: `contentType`, `primaryTag`, `tags`）
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
 - `thumbKeyWebp` / `thumbKeyAvif` は WebP/AVIF フォーマットのサムネイル
+- 公開一覧/検索の表示条件は `deletedAt = null` かつ `isPublic = true`。owner は自分の private asset を一覧/詳細で確認できる
 
 ### キャラクター
 - モデル:
@@ -88,7 +89,7 @@ talking/
 
 ### コア機能
 - **公開ギャラリー**（`/assets`）: 未ログインでも閲覧・検索可能なアセット/キャラクター導線
-- **アセット管理**（`/my/assets`）: 本人のみがアクセスできる編集・削除画面
+- **アセット管理**（`/my/assets`）: 本人のみがアクセスできる編集・削除画面（public/private の両方を表示）
 - **キャラクター管理**（`/my/characters`）: キャラクター作成、立ち絵追加、表示順管理
 - **ファイルアップロード**: S3/MinIO 署名付き PUT → finalize でDB保存
 - **サムネ生成**: Worker が sharp で 512px cover サムネを `thumbs/` に生成
@@ -107,7 +108,7 @@ talking/
 | `/characters` | キャラクター公開一覧 | 不要 | 公開キャラクターの一覧 |
 | `/characters/[id]` | キャラクター詳細 | 不要 | 立ち絵一覧・プロフィール表示 |
 | `/upload` | アップロード | **必須** | ログイン後のみアクセス可能 |
-| `/my/assets` | アセット管理 | **必須** | 本人のアセットのみ表示・編集・削除 |
+| `/my/assets` | アセット管理 | **必須** | 本人のアセットのみ表示（public/private 両方）・編集・削除 |
 | `/my/characters` | マイキャラクター管理 | **必須** | 自分のキャラクターのみ表示 |
 | `/my/characters/new` | キャラクター新規作成 | **必須** | 作成フロー入口 |
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
@@ -130,8 +131,8 @@ talking/
 ### エンドポイントの認可
 
 #### 公開（認証不要）
-- `GET /assets` — 公開ギャラリー一覧
-- `GET /assets/:id` — アセット詳細
+- `GET /assets` — 公開ギャラリー一覧（`deletedAt = null` かつ `isPublic = true`。ただし `ownerId=<自分>` 指定時は private も取得可）
+- `GET /assets/:id` — アセット詳細（public または owner のみ）
 - `GET /search/assets` — 公開ギャラリー検索（Meilisearch）
 - `GET /uploads/signed-get` — 署名付き GET URL 取得
 - `GET /characters` — キャラクター公開一覧
@@ -245,10 +246,10 @@ talking/
 ```
 
 #### `GET /assets?limit=20&offset=0`
-公開ギャラリー一覧（ページネーション / フィルタ対応）
+公開ギャラリー一覧（ページネーション / フィルタ対応、`deletedAt = null` かつ `isPublic = true`）
 
 #### `GET /assets/mine?limit=20&offset=0`
-本人のアセット一覧（アセット管理画面用）
+本人のアセット一覧（アセット管理画面用、public/private 両方）
 
 #### `GET /assets/:id`
 アセット詳細取得
@@ -313,6 +314,7 @@ model Asset {
   primaryTag  AssetPrimaryTag @default(IMAGE_OTHER)
   tags        String[]        @default([])
   size        Int
+  isPublic    Boolean         @default(true)
   createdAt   DateTime        @default(now())
   deletedAt   DateTime?
   favorites   Favorite[]
@@ -321,7 +323,8 @@ model Asset {
 
 #### ソフトデリートについて
 - `Asset.deletedAt` が非 null のレコードは論理削除済みとして扱う
-- `GET /assets` と `GET /assets/mine` では `deletedAt: null` のものだけを返す
+- `GET /assets` は `deletedAt: null` かつ `isPublic: true` を返す（`ownerId=<自分>` 指定時のみ private を含める）
+- `GET /assets/mine` は `deletedAt: null` の自分のアセットを返す（public/private 両方）
 - `DELETE /assets/:id` は物理削除ではなく `deletedAt` に現在時刻をセットする
 - 論理削除後、検索インデックスから除外し、MinIO 上の実ファイルは `purge` キュー経由で遅延ハード削除される
 
