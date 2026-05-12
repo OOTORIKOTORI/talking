@@ -991,19 +991,20 @@ function selectScenarioCheckFilter(filter: ScenarioCheckFilter) {
   scenarioCheckFilter.value = filter
 }
 
+function firstQueryString(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === 'string')
+    return typeof first === 'string' ? first.trim() : ''
+  }
+  return ''
+}
+
 function findScenarioIssueFromQueryHint() {
-  const issueId = typeof route.query.scenarioCheckIssueId === 'string'
-    ? route.query.scenarioCheckIssueId.trim()
-    : ''
-  const refId = typeof route.query.scenarioCheckRefId === 'string'
-    ? route.query.scenarioCheckRefId.trim()
-    : ''
-  const field = typeof route.query.scenarioCheckField === 'string'
-    ? route.query.scenarioCheckField.trim()
-    : ''
-  const nodeId = typeof route.query.scenarioCheckNodeId === 'string'
-    ? route.query.scenarioCheckNodeId.trim()
-    : ''
+  const issueId = firstQueryString(route.query.scenarioCheckIssueId)
+  const refId = firstQueryString(route.query.scenarioCheckRefId)
+  const field = firstQueryString(route.query.scenarioCheckField)
+  const nodeId = firstQueryString(route.query.scenarioCheckNodeId)
 
   const issues = scenarioCheckIssues.value
   if (issueId) {
@@ -1026,9 +1027,9 @@ function findScenarioIssueFromQueryHint() {
 }
 
 async function applyScenarioCheckQueryHint() {
-  const requestedFilter = route.query.scenarioCheckFilter
-  const requestedFocus = route.query.focusScenarioCheck
-  const requestedCategory = route.query.scenarioCheckCategory
+  const requestedFilter = firstQueryString(route.query.scenarioCheckFilter)
+  const requestedFocus = firstQueryString(route.query.focusScenarioCheck)
+  const requestedCategory = firstQueryString(route.query.scenarioCheckCategory)
 
   if (requestedFocus === '1' || requestedFocus === 'true') {
     sectionOpen.scenarioCheck = true

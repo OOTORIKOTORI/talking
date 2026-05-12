@@ -166,7 +166,7 @@
                         ? emitDirectIssue('asset-reference', getAssetDirectIssue(asset.assetId)!)
                         : $emit('edit-reference-issues', 'asset-reference')"
                     >
-                      {{ getAssetDirectIssue(asset.assetId) ? '該当箇所へ移動' : '参照を編集' }}
+                      {{ getAssetDirectIssue(asset.assetId) ? '最初の該当箇所へ移動' : '参照を編集' }}
                     </button>
                   </div>
                 </div>
@@ -277,7 +277,7 @@
                         ? emitDirectIssue('character-reference', getCharacterDirectIssue(character.characterId)!)
                         : $emit('edit-reference-issues', 'character-reference')"
                     >
-                      {{ getCharacterDirectIssue(character.characterId) ? '該当箇所へ移動' : '参照を編集' }}
+                      {{ getCharacterDirectIssue(character.characterId) ? '最初の該当箇所へ移動' : '参照を編集' }}
                     </button>
                   </div>
                 </div>
