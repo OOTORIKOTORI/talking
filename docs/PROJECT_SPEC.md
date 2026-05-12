@@ -1617,14 +1617,18 @@ interface MessageTheme {
 - 選択肢と `nextNodeId` の併用注意
   - 表示可能な選択肢が1件以上あり、かつ `nextNodeId` も設定されているノード（info）
 - 到達不能ノード
-  - 開始ノードから到達できないノード（warning）
+  - 到達可能性の起点（ゲーム開始ノード + 各シーン開始ノード）から到達できないノード（warning）
 - 空シーン
   - ノード0件のシーン（warning）
 - 終端ノード
   - 到達可能ノードのうち、表示可能な選択肢0件かつ `nextNodeId` なし（info）
 
 到達可能性の計算ルール:
-- 始点は `GameProject.startSceneId` のシーンにある `startNodeId`
+- 始点は以下を使用する
+  - ゲーム全体の開始ノード（`GameProject.startSceneId` のシーンにある `startNodeId`）
+  - 各シーンの開始ノード（`scene.startNodeId`）
+  - `scene.startNodeId` が未設定で `nodes` があるシーンは先頭ノードを開始ノードとして扱う
+  - `scene.startNodeId` が設定済みだが参照不正な場合は、先頭ノードへ自動フォールバックしない（既存の開始ノード参照不正チェックを維持）
 - ノード遷移
   - 表示可能な選択肢が1件以上ある場合:
     - `choice.targetNodeId` を候補に含める

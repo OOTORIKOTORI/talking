@@ -314,3 +314,94 @@ describe('既存チェック: 後退防止', () => {
     expect(result.counts.warning).toBeGreaterThan(0)
   })
 })
+
+// ── 到達不能ノード判定MVP: 開始起点の見直し ──────────────────────────────────
+
+describe('到達不能ノード判定MVP: 開始起点の見直し', () => {
+  it('開始シーンの開始ノードには未到達warningが出ない', () => {
+    const node1 = makeNode('node-1', { text: '開始' })
+    const scene1 = makeScene('scene-1', [node1], 'node-1')
+
+    const result = runScenarioCheck({ scenes: [scene1], startSceneId: 'scene-1' })
+
+    const unreachableIssues = result.issues.filter(
+      (i) => i.nodeId === 'node-1' && i.severity === 'warning' && i.message.includes('到達できません'),
+    )
+    expect(unreachableIssues.length).toBe(0)
+  })
+
+  it('他シーンの開始ノードも未到達warning対象外になる', () => {
+    const s1a = makeNode('s1-a', { text: 'S1開始' })
+    const scene1 = makeScene('scene-1', [s1a], 's1-a')
+
+    const s2a = makeNode('s2-a', { text: 'S2開始' })
+    const scene2 = makeScene('scene-2', [s2a], 's2-a')
+
+    const result = runScenarioCheck({ scenes: [scene1, scene2], startSceneId: 'scene-1' })
+
+    const unreachableIssues = result.issues.filter(
+      (i) => i.nodeId === 's2-a' && i.severity === 'warning' && i.message.includes('到達できません'),
+    )
+    expect(unreachableIssues.length).toBe(0)
+  })
+
+  it('シーン開始ノードからの遷移先は到達可能扱いになる', () => {
+    const s1a = makeNode('s1-a', { text: 'S1開始' })
+    const scene1 = makeScene('scene-1', [s1a], 's1-a')
+
+    const s2b = makeNode('s2-b', { text: '到達先' })
+    const s2a = makeNode('s2-a', { text: 'S2開始', nextNodeId: 's2-b' })
+    const s2x = makeNode('s2-x', { text: '孤立ノード' })
+    const scene2 = makeScene('scene-2', [s2a, s2b, s2x], 's2-a')
+
+    const result = runScenarioCheck({ scenes: [scene1, scene2], startSceneId: 'scene-1' })
+
+    const reachableChildUnreachable = result.issues.filter(
+      (i) => i.nodeId === 's2-b' && i.severity === 'warning' && i.message.includes('到達できません'),
+    )
+    expect(reachableChildUnreachable.length).toBe(0)
+
+    const isolatedUnreachable = result.issues.filter(
+      (i) => i.nodeId === 's2-x' && i.severity === 'warning' && i.message.includes('到達できません'),
+    )
+    expect(isolatedUnreachable.length).toBeGreaterThan(0)
+  })
+
+  it('startNodeId未設定シーンは先頭ノードを開始ノード扱いにする', () => {
+    const s1a = makeNode('s1-a', { text: 'S1開始' })
+    const scene1 = makeScene('scene-1', [s1a], 's1-a')
+
+    const s2b = makeNode('s2-b', { text: '到達先' })
+    const s2a = makeNode('s2-a', { text: 'S2先頭', nextNodeId: 's2-b' })
+    const scene2 = makeScene('scene-2', [s2a, s2b], null)
+
+    const result = runScenarioCheck({ scenes: [scene1, scene2], startSceneId: 'scene-1' })
+
+    const unreachableIssues = result.issues.filter(
+      (i) => (i.nodeId === 's2-a' || i.nodeId === 's2-b')
+        && i.severity === 'warning'
+        && i.message.includes('到達できません'),
+    )
+    expect(unreachableIssues.length).toBe(0)
+  })
+
+  it('壊れたstartNodeIdは従来通り壊れチェックを維持し、先頭ノードへ自動フォールバックしない', () => {
+    const s1a = makeNode('s1-a', { text: 'S1開始' })
+    const scene1 = makeScene('scene-1', [s1a], 's1-a')
+
+    const s2a = makeNode('s2-a', { text: 'S2ノード' })
+    const scene2 = makeScene('scene-2', [s2a], 's2-missing')
+
+    const result = runScenarioCheck({ scenes: [scene1, scene2], startSceneId: 'scene-1' })
+
+    const brokenStartWarning = result.issues.filter(
+      (i) => i.sceneId === 'scene-2' && i.severity === 'warning' && i.message.includes('開始ノードが存在しません'),
+    )
+    expect(brokenStartWarning.length).toBeGreaterThan(0)
+
+    const unreachableIssues = result.issues.filter(
+      (i) => i.nodeId === 's2-a' && i.severity === 'warning' && i.message.includes('到達できません'),
+    )
+    expect(unreachableIssues.length).toBeGreaterThan(0)
+  })
+})

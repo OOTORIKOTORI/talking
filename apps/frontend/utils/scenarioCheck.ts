@@ -73,6 +73,19 @@ function buildNodePreview(text: unknown): string {
   return normalized.slice(0, 28) + (normalized.length > 28 ? '…' : '')
 }
 
+function resolveSceneStartNodeId(sceneItem: any): string | null {
+  const sceneNodes = Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []
+  if (sceneNodes.length === 0) return null
+
+  const explicitStartNodeId = normalizeNodeId(sceneItem?.startNodeId)
+  if (explicitStartNodeId) {
+    const exists = sceneNodes.some((n: any) => n?.id === explicitStartNodeId)
+    return exists ? explicitStartNodeId : null
+  }
+
+  return normalizeNodeId(sceneNodes[0]?.id)
+}
+
 export function runScenarioCheck(payload: {
   scenes: any[]
   startSceneId: unknown
@@ -295,8 +308,19 @@ export function runScenarioCheck(payload: {
   }
 
   const reachableNodeIds = new Set<string>()
+  const traversalStartNodeIds = new Set<string>()
   if (validStartNodeId && nodeById.has(validStartNodeId)) {
-    const stack = [validStartNodeId]
+    traversalStartNodeIds.add(validStartNodeId)
+  }
+  for (const [, { scene: sceneItem }] of sceneById) {
+    const sceneStartNodeId = resolveSceneStartNodeId(sceneItem)
+    if (sceneStartNodeId && nodeById.has(sceneStartNodeId)) {
+      traversalStartNodeIds.add(sceneStartNodeId)
+    }
+  }
+
+  if (traversalStartNodeIds.size > 0) {
+    const stack = Array.from(traversalStartNodeIds)
     while (stack.length > 0) {
       const nodeId = stack.pop() as string
       if (reachableNodeIds.has(nodeId)) continue
