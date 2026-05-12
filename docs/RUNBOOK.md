@@ -63,7 +63,7 @@ pnpm -C apps/api build
 
 注意:
 - Prisma schema 変更時は frontend build のみでは不十分
-- migration を追加した後、`git status --ignored apps/api/prisma/migrations/<migration名>` や `git ls-files apps/api/prisma/migrations/<migration名>/migration.sql` で Git 追跡寻常か確認してください（`_` を含む名前は `.gitignore` に引っかかる可能性がある）
+- migration を追加した後、`git status --ignored apps/api/prisma/migrations/<migration名>` や `git ls-files apps/api/prisma/migrations/<migration名>/migration.sql` で Git 追跡対象か確認してください（`_` を含む名前は `.gitignore` に引っかかる可能性がある）
 - 必要なら dev server 再起動
 
 ## 6) Worker 起動（任意/別ターミナル）

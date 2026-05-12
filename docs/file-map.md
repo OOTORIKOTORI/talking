@@ -72,7 +72,7 @@ apps/frontend/components/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
 │   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題を表示し公開可否を判断する
 │   ├── GameManualCreditsEditor.vue          # ゲーム単位の手動クレジット編集コンポーネント。個別保存フローで動作する
-	├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順・終了時挙動に従い自動スクロール再生する
+│   ├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順・終了時挙動に従い自動スクロール再生する
 │   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル。`クレジット/導線` タブでスタッフロール導線ON/OFF・速度・自動表示・セクション表示順・終了時挙動・手動クレジット導線を扱う
 │   ├── MessageWindow.vue                    # メッセージ窓本体。テーマ解決済みCSSで台詞を表示
 │   ├── MiniStage.vue                        # エディタ用の簡易ステージプレビュー
