@@ -855,6 +855,12 @@ const scenarioCheckFilter = ref<ScenarioCheckFilter>('all')
 const scenarioCategoryFilter = ref<'all' | PrepublishIssueCategory>('all')
 const scenarioCheckInfoOpen = ref(false)
 const scenarioSeverityOrder: ScenarioCheckSeverity[] = ['error', 'warning', 'info']
+const highlightedScenarioIssueId = ref<string | null>(null)
+const scenarioIssueCardRefs = ref<Record<string, HTMLElement | null>>({})
+
+function setScenarioIssueCardRef(issueId: string, el: Element | null) {
+  scenarioIssueCardRefs.value[issueId] = (el as HTMLElement | null)
+}
 
 function normalizeNodeId(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -985,7 +991,41 @@ function selectScenarioCheckFilter(filter: ScenarioCheckFilter) {
   scenarioCheckFilter.value = filter
 }
 
-function applyScenarioCheckQueryHint() {
+function findScenarioIssueFromQueryHint() {
+  const issueId = typeof route.query.scenarioCheckIssueId === 'string'
+    ? route.query.scenarioCheckIssueId.trim()
+    : ''
+  const refId = typeof route.query.scenarioCheckRefId === 'string'
+    ? route.query.scenarioCheckRefId.trim()
+    : ''
+  const field = typeof route.query.scenarioCheckField === 'string'
+    ? route.query.scenarioCheckField.trim()
+    : ''
+  const nodeId = typeof route.query.scenarioCheckNodeId === 'string'
+    ? route.query.scenarioCheckNodeId.trim()
+    : ''
+
+  const issues = scenarioCheckIssues.value
+  if (issueId) {
+    const byIssueId = issues.find((issue) => issue.id === issueId)
+    if (byIssueId) return byIssueId
+  }
+  if (refId && field) {
+    const byRefAndField = issues.find((issue: any) => issue.refId === refId && issue.field === field)
+    if (byRefAndField) return byRefAndField
+  }
+  if (refId) {
+    const byRef = issues.find((issue: any) => issue.refId === refId)
+    if (byRef) return byRef
+  }
+  if (nodeId) {
+    const byNode = issues.find((issue) => issue.nodeId === nodeId)
+    if (byNode) return byNode
+  }
+  return null
+}
+
+async function applyScenarioCheckQueryHint() {
   const requestedFilter = route.query.scenarioCheckFilter
   const requestedFocus = route.query.focusScenarioCheck
   const requestedCategory = route.query.scenarioCheckCategory
@@ -1015,6 +1055,25 @@ function applyScenarioCheckQueryHint() {
     scenarioCategoryFilter.value = requestedCategory === 'all' ? 'all' : requestedCategory
     sectionOpen.scenarioCheck = true
   }
+
+  const matchedIssue = findScenarioIssueFromQueryHint()
+  if (!matchedIssue) {
+    highlightedScenarioIssueId.value = null
+    return
+  }
+
+  sectionOpen.scenarioCheck = true
+  scenarioCheckFilter.value = matchedIssue.severity
+  scenarioCategoryFilter.value = categorizeIssue(matchedIssue as any)
+  highlightedScenarioIssueId.value = matchedIssue.id
+
+  if (matchedIssue.sceneId || matchedIssue.nodeId) {
+    await focusScenarioIssue(matchedIssue)
+  }
+
+  await nextTick()
+  const issueCard = matchedIssue.id ? scenarioIssueCardRefs.value[matchedIssue.id] : null
+  issueCard?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 function scenarioFilterButtonClass(filter: ScenarioCheckFilter) {
@@ -1310,7 +1369,7 @@ onMounted(async () => {
   }
 
   restoreSectionOpen()
-  applyScenarioCheckQueryHint()
+  await applyScenarioCheckQueryHint()
 
   // 公開中編集バナーの折りたたみ状態を復元
   publishedEditBannerCollapsed.value = localStorage.getItem(PUBLISHED_EDIT_BANNER_COLLAPSED_STORAGE_KEY) === 'true'
@@ -2357,8 +2416,12 @@ function onUp() {
                   <article
                     v-for="issue in scenarioCheckVisibleIssues"
                     :key="issue.id"
+                    :ref="(el) => setScenarioIssueCardRef(issue.id, el)"
                     class="rounded border px-2 py-2 text-xs"
-                    :class="scenarioSeverityClass(issue.severity)"
+                    :class="[
+                      scenarioSeverityClass(issue.severity),
+                      highlightedScenarioIssueId === issue.id ? 'ring-2 ring-sky-300 border-sky-400 bg-sky-50/40' : ''
+                    ]"
                   >
                     <div class="mb-1 flex items-center justify-between gap-2">
                       <span class="font-semibold">
@@ -2377,6 +2440,7 @@ function onUp() {
                     </div>
                     <p class="leading-relaxed">{{ issue.message }}</p>
                     <p class="mt-1 text-[11px] text-gray-600">{{ scenarioIssueLocation(issue) }}</p>
+                    <p v-if="issue.field" class="mt-1 text-[11px] text-gray-600">対象項目: {{ issue.field }}</p>
                     <p v-if="issue.nodePreview" class="mt-1 text-[11px] text-gray-500">{{ issue.nodePreview }}</p>
                   </article>
                 </div>

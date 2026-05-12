@@ -93,7 +93,11 @@
           - 警告ありの場合は編集画面の公開前チェックへ移動できる。
           - 警告サマリーボタン「問題を確認する」：`focusScenarioCheck=1&scenarioCheckFilter=warning` を付けて `/my/games/{id}/edit` へ遷移
           - 素材/キャラクター別カードのボタン「参照を編集」：カテゴリ単位で公開前チェックへ誘導（素材: `scenarioCheckCategory=asset-reference`、キャラクター: `scenarioCheckCategory=character-reference`）
-          - 直接ノード/フィールド単位ジャンプは未実装（将来課題）
+          - 直接ジャンプMVP（2026-05-12）: 削除済み/見つからない/非公開の素材・キャラクターカードで、該当する最初の参照診断 issue（nodeId優先）を使って公開前チェックへ直接遷移可能
+            - クエリ（`scenarioCheckIssueId` / `scenarioCheckRefId` / `scenarioCheckField` / `scenarioCheckNodeId`）を付けて `/my/games/{id}/edit` へ遷移
+            - edit画面側で該当 issue を強調表示し、`sceneId`/`nodeId` がある場合は既存「対象へ移動」処理で対象ノードへフォーカス
+            - issue未特定時は既存のカテゴリ単位誘導へフォールバック
+            - 複数使用箇所の完全一覧、入力フィールドそのものへの自動フォーカス、一括修正は将来課題
         - キャンセルボタン（公開しない）
         - 「確認して公開」ボタン（クレジット確認後に公開処理実行）
       - キャンセルで非公開のまま

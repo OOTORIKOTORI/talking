@@ -37,6 +37,10 @@ export type ScenarioCheckIssue = {
   id: string
   severity: ScenarioCheckSeverity
   message: string
+  source?: string
+  code?: string
+  field?: string
+  refId?: string | null
   sceneId: string | null
   sceneName: string
   sceneOrder: number | null

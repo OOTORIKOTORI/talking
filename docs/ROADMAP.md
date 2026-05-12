@@ -73,7 +73,8 @@
 
 - **公開前確認での最新参照反映・履歴クレジット混入防止**（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中の ID のみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
 - **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。ノード/フィールド単位の直接ジャンプ・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
-- **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに編集画面への導線を追加。警告ありの場合に警告サマリーボタン「問題を確認する」、素材/キャラクター別カードのボタン「参照を編集」を実装。クリックで `/my/games/{id}/edit` へ遷移し、カテゴリ単位で公開前チェックへ誘導。編集画面側の既存「対象へ移動」でノードへ移動可能。ノード/フィールド単位の直接ジャンプは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに編集画面への導線を追加。警告ありの場合に警告サマリーボタン「問題を確認する」、素材/キャラクター別カードのボタン「参照を編集」を実装。クリックで `/my/games/{id}/edit` へ遷移し、カテゴリ単位で公開前チェックへ誘導。編集画面側の既存「対象へ移動」でノードへ移動可能。後続で最初の該当issueへの直接ジャンプMVPを追加済み。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開前確認モーダルからの該当 issue 直接ジャンプMVP**（2026-05-12 実装）（削除済み/見つからない/非公開の素材・キャラクターカードで、参照診断 `reference issues` から最初の該当 issue（`nodeId` を持つ issue を優先）へ直接遷移。`/my/games/{id}/edit` に `scenarioCheckIssueId` / `scenarioCheckRefId` / `scenarioCheckField` / `scenarioCheckNodeId` を付与し、edit画面側で該当 issue を強調表示。`sceneId`/`nodeId` がある場合は既存フォーカス処理で対象ノードへ移動。issue未特定時は既存のカテゴリ単位導線へフォールバック。複数使用箇所の完全一覧・入力フィールドへのピンポイントフォーカス・一括修正は将来課題。）
 - **公開中編集時の保存前再確認UX MVP**（公開済みゲームの編集画面で「保存」「保存して次のノードへ」実行時に `window.confirm` で再確認。キャンセル時は保存中断、続行時のみ既存保存処理を実行。非公開ゲームでは確認表示なし。公開中編集バナーと文言整合を維持。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中ゲームの構造変更confirm拡張 MVP**（2026-05-09 実装）（公開中ゲームのみ、ノード削除・シーン削除・開始シーン変更・開始ノード変更の直前に `window.confirm` を表示。削除系は通常削除confirmを公開中向け文言へ置き換えて1回表示に統一し、二重confirmを回避。非公開ゲームは従来挙動を維持。`nextNode`/選択肢遷移変更は保存ボタン確定フローのため既存保存confirmで扱う。`apps/frontend/pages/my/games/[id]/edit.vue`）
 - **公開中編集バナー折りたたみMVP**（全文表示/省スペース表示の切り替えボタンを追加。折りたたみ状態を `localStorage`（key: `talking.editor.publishedEditBannerCollapsed.v1`）に保存し再読み込み後も維持。全ゲーム共通状態。`apps/frontend/pages/my/games/[id]/edit.vue`）
@@ -202,6 +203,7 @@
 **クレジット・ライセンス**
 - GameCredit snapshot lock guard 強化（`db:check-game-credit-snapshots` 運用強化・公開前/公開時ガード連携）
 - ノード/フィールド単位の直接ジャンプ（クレジット確認からの精密ジャンプ、現状はカテゴリフィルタ単位）
+- ノード/フィールド単位の直接ジャンプの拡張（最初の該当issueへ移動するMVPは実装済み。複数箇所一覧・入力フィールドへのピンポイントフォーカスは未実装）
 - スタッフロール演出強化（スキップ導線、終了時挙動の詳細オプション、カテゴリ別アニメーション、より凝った演出）
 - スタッフロール拡張（終了時挙動の詳細オプション、より細かな速度カスタマイズ、スタッフロール用BGM）
 - スタッフロール用BGMは音声素材管理・権利表示・`GameCredit`・公開前確認との整合を前提に設計し、単独で先行実装しない

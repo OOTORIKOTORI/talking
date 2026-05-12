@@ -185,10 +185,12 @@
       :publishing="creditConfirmPublishing"
       :data="creditConfirmData"
       :error="creditConfirmError"
+      :reference-issues="creditConfirmReferenceIssues"
       @cancel="onCreditConfirmCancel"
       @confirm="onCreditConfirmConfirm"
       @retry="onCreditConfirmRetry"
       @edit-reference-issues="onCreditConfirmEditReferenceIssues"
+      @edit-reference-issue="onCreditConfirmEditReferenceIssue"
     />
   </div>
 </template>
@@ -238,6 +240,7 @@ const creditConfirmPublishing = ref(false)
 const creditConfirmData = ref<GameCreditsResult | null>(null)
 const creditConfirmError = ref<string | null>(null)
 const creditConfirmPendingGameId = ref<string | null>(null)
+const creditConfirmReferenceIssues = ref<any[]>([])
 
 const sortOptions: Array<{ value: MyGamesSort; label: string }> = [
   { value: 'updated', label: '更新順' },
@@ -492,7 +495,7 @@ async function togglePublic(game: any) {
       }
 
       // === クレジット確認モーダルを表示 ===
-      await showCreditConfirmModal(game.id)
+      await showCreditConfirmModal(game.id, refDiagFailed ? [] : refIssues)
       return // モーダルが確認を処理
     } else {
       // 公開→非公開：確認なし、そのまま実行
@@ -529,10 +532,11 @@ async function togglePublic(game: any) {
   }
 }
 
-async function showCreditConfirmModal(gameId: string) {
+async function showCreditConfirmModal(gameId: string, referenceIssues: any[] = []) {
   creditConfirmPendingGameId.value = gameId
   creditConfirmData.value = null
   creditConfirmError.value = null
+  creditConfirmReferenceIssues.value = Array.isArray(referenceIssues) ? referenceIssues : []
   creditConfirmLoading.value = true
   creditConfirmModalOpen.value = true
 
@@ -551,6 +555,37 @@ async function showCreditConfirmModal(gameId: string) {
 
 type ReferenceIssueCategory = 'all' | 'asset-reference' | 'character-reference' | 'structure'
 
+type DirectReferenceIssuePayload = {
+  category: 'asset-reference' | 'character-reference'
+  issueId?: string
+  refId?: string | null
+  field?: string | null
+  nodeId?: string | null
+}
+
+function buildScenarioCheckDirectQuery(payload: DirectReferenceIssuePayload) {
+  const query: Record<string, string> = {
+    focusScenarioCheck: '1',
+    scenarioCheckFilter: 'warning',
+    scenarioCheckCategory: payload.category,
+  }
+
+  if (typeof payload.issueId === 'string' && payload.issueId.trim().length > 0) {
+    query.scenarioCheckIssueId = payload.issueId
+  }
+  if (typeof payload.refId === 'string' && payload.refId.trim().length > 0) {
+    query.scenarioCheckRefId = payload.refId
+  }
+  if (typeof payload.field === 'string' && payload.field.trim().length > 0) {
+    query.scenarioCheckField = payload.field
+  }
+  if (typeof payload.nodeId === 'string' && payload.nodeId.trim().length > 0) {
+    query.scenarioCheckNodeId = payload.nodeId
+  }
+
+  return query
+}
+
 async function onCreditConfirmEditReferenceIssues(category: ReferenceIssueCategory = 'all') {
   const gameId = creditConfirmPendingGameId.value
   if (!gameId || creditConfirmPublishing.value) return
@@ -559,6 +594,7 @@ async function onCreditConfirmEditReferenceIssues(category: ReferenceIssueCatego
   creditConfirmPendingGameId.value = null
   creditConfirmData.value = null
   creditConfirmError.value = null
+  creditConfirmReferenceIssues.value = []
   setToggling(gameId, false)
 
   await navigateTo({
@@ -571,6 +607,23 @@ async function onCreditConfirmEditReferenceIssues(category: ReferenceIssueCatego
   })
 }
 
+async function onCreditConfirmEditReferenceIssue(payload: DirectReferenceIssuePayload) {
+  const gameId = creditConfirmPendingGameId.value
+  if (!gameId || creditConfirmPublishing.value) return
+
+  creditConfirmModalOpen.value = false
+  creditConfirmPendingGameId.value = null
+  creditConfirmData.value = null
+  creditConfirmError.value = null
+  creditConfirmReferenceIssues.value = []
+  setToggling(gameId, false)
+
+  await navigateTo({
+    path: `/my/games/${gameId}/edit`,
+    query: buildScenarioCheckDirectQuery(payload),
+  })
+}
+
 async function onCreditConfirmCancel() {
   if (creditConfirmPublishing.value) return
   const gameId = creditConfirmPendingGameId.value
@@ -578,6 +631,7 @@ async function onCreditConfirmCancel() {
   creditConfirmPendingGameId.value = null
   creditConfirmData.value = null
   creditConfirmError.value = null
+  creditConfirmReferenceIssues.value = []
   creditConfirmPublishing.value = false
   // togglePublic のトグル状態を解除
   if (gameId) {
@@ -587,7 +641,7 @@ async function onCreditConfirmCancel() {
 
 async function onCreditConfirmRetry() {
   if (!creditConfirmPendingGameId.value) return
-  await showCreditConfirmModal(creditConfirmPendingGameId.value)
+  await showCreditConfirmModal(creditConfirmPendingGameId.value, creditConfirmReferenceIssues.value)
 }
 
 async function onCreditConfirmConfirm() {
@@ -612,6 +666,7 @@ async function onCreditConfirmConfirm() {
     creditConfirmPendingGameId.value = null
     creditConfirmData.value = null
     creditConfirmError.value = null
+    creditConfirmReferenceIssues.value = []
   } catch (error: any) {
     console.error('Failed to publish game:', error)
     const rawMessage = error?.data?.message

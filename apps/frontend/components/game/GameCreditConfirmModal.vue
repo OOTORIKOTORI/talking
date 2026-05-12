@@ -149,13 +149,24 @@
 
                   <!-- Edit navigation for non-active assets -->
                   <div v-if="asset.status !== 'active'" class="mt-2">
+                    <p
+                      v-if="getAssetDirectIssue(asset.assetId)"
+                      class="mb-1 text-[11px] text-amber-700"
+                    >
+                      使用箇所: {{ issueLocationText(getAssetDirectIssue(asset.assetId)!) }}
+                      <span v-if="getAssetDirectIssue(asset.assetId)!.nodePreview" class="ml-1 text-amber-800">
+                        - {{ getAssetDirectIssue(asset.assetId)!.nodePreview }}
+                      </span>
+                    </p>
                     <button
                       type="button"
                       :disabled="publishing"
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      @click="$emit('edit-reference-issues', 'asset-reference')"
+                      @click="getAssetDirectIssue(asset.assetId)
+                        ? emitDirectIssue('asset-reference', getAssetDirectIssue(asset.assetId)!)
+                        : $emit('edit-reference-issues', 'asset-reference')"
                     >
-                      参照を編集
+                      {{ getAssetDirectIssue(asset.assetId) ? '該当箇所へ移動' : '参照を編集' }}
                     </button>
                   </div>
                 </div>
@@ -249,13 +260,24 @@
 
                   <!-- Edit navigation for non-active characters -->
                   <div v-if="character.status !== 'active'" class="mt-2">
+                    <p
+                      v-if="getCharacterDirectIssue(character.characterId)"
+                      class="mb-1 text-[11px] text-amber-700"
+                    >
+                      使用箇所: {{ issueLocationText(getCharacterDirectIssue(character.characterId)!) }}
+                      <span v-if="getCharacterDirectIssue(character.characterId)!.nodePreview" class="ml-1 text-amber-800">
+                        - {{ getCharacterDirectIssue(character.characterId)!.nodePreview }}
+                      </span>
+                    </p>
                     <button
                       type="button"
                       :disabled="publishing"
                       class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      @click="$emit('edit-reference-issues', 'character-reference')"
+                      @click="getCharacterDirectIssue(character.characterId)
+                        ? emitDirectIssue('character-reference', getCharacterDirectIssue(character.characterId)!)
+                        : $emit('edit-reference-issues', 'character-reference')"
                     >
-                      参照を編集
+                      {{ getCharacterDirectIssue(character.characterId) ? '該当箇所へ移動' : '参照を編集' }}
                     </button>
                   </div>
                 </div>
@@ -337,6 +359,30 @@ import { formatCreatorLabel } from '@/utils/creatorDisplay'
 type AssetCreditStatus = GameCreditsResult['assetCredits'][number]['status']
 type CharacterCreditStatus = GameCreditsResult['characterCredits'][number]['status']
 type CreditStatus = AssetCreditStatus | CharacterCreditStatus
+type DirectReferenceIssueCategory = 'asset-reference' | 'character-reference'
+
+type ReferenceIssue = {
+  id?: string
+  source?: string
+  code?: string
+  message?: string
+  field?: string
+  refId?: string | null
+  sceneId?: string | null
+  sceneName?: string
+  sceneOrder?: number | null
+  nodeId?: string | null
+  nodeOrder?: number | null
+  nodePreview?: string
+}
+
+type DirectReferenceIssuePayload = {
+  category: DirectReferenceIssueCategory
+  issueId?: string
+  refId?: string | null
+  field?: string | null
+  nodeId?: string | null
+}
 
 interface Props {
   open: boolean
@@ -344,6 +390,7 @@ interface Props {
   publishing?: boolean
   data?: GameCreditsResult | null
   error?: string | null
+  referenceIssues?: ReferenceIssue[]
 }
 
 const props = defineProps<Props>()
@@ -355,7 +402,53 @@ const emit = defineEmits<{
   confirm: []
   retry: []
   'edit-reference-issues': [category: ReferenceIssueCategory]
+  'edit-reference-issue': [payload: DirectReferenceIssuePayload]
 }>()
+
+function firstDirectIssue(
+  category: DirectReferenceIssueCategory,
+  refId: string,
+): ReferenceIssue | null {
+  const all = Array.isArray(props.referenceIssues) ? props.referenceIssues : []
+  const matched = all.filter((issue) => {
+    if (!issue || issue.source !== 'reference') return false
+    if (issue.refId !== refId) return false
+    const code = issue.code ?? ''
+    if (category === 'asset-reference') return code.startsWith('ASSET_')
+    return code.startsWith('CHARACTER_')
+  })
+
+  if (matched.length === 0) return null
+  const withNode = matched.find((issue) => typeof issue.nodeId === 'string' && issue.nodeId.trim().length > 0)
+  return withNode ?? matched[0]
+}
+
+function issueLocationText(issue: ReferenceIssue): string {
+  const scene = issue.sceneOrder
+    ? `Scene ${issue.sceneOrder}`
+    : (issue.sceneName ? `Scene ${issue.sceneName}` : 'Scene ?')
+  const node = issue.nodeOrder ? `Node ${issue.nodeOrder}` : (issue.nodeId ? 'Node' : 'Node ?')
+  const field = issue.field ? issue.field : '項目未特定'
+  return `${scene} / ${node} / ${field}`
+}
+
+function emitDirectIssue(category: DirectReferenceIssueCategory, issue: ReferenceIssue) {
+  emit('edit-reference-issue', {
+    category,
+    issueId: issue.id,
+    refId: issue.refId ?? null,
+    field: issue.field ?? null,
+    nodeId: issue.nodeId ?? null,
+  })
+}
+
+function getAssetDirectIssue(refId: string): ReferenceIssue | null {
+  return firstDirectIssue('asset-reference', refId)
+}
+
+function getCharacterDirectIssue(refId: string): ReferenceIssue | null {
+  return firstDirectIssue('character-reference', refId)
+}
 
 const hasStatusWarnings = computed(() => {
   if (!props.data) return false

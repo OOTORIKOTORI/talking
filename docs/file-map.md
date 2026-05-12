@@ -70,7 +70,7 @@ apps/frontend/components/
 │   └── UploadTabs.vue                       # アップロード画面の種別切り替えタブ
 ├── game/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
-│   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題を表示し公開可否を判断する
+│   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題を表示し、カテゴリ導線と最初の該当issue直接ジャンプ導線を提供
 │   ├── GameManualCreditsEditor.vue          # ゲーム単位の手動クレジット編集コンポーネント。個別保存フローで動作する
 │   ├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順・終了時挙動に従い自動スクロール再生する
 │   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル。`クレジット/導線` タブでスタッフロール導線ON/OFF・速度・自動表示・セクション表示順・終了時挙動・手動クレジット導線を扱う
