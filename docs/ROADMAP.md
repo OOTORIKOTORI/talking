@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-12（スタッフロール表示順カスタマイズMVP・スタッフロール自動表示ON/OFF MVP・スタッフロール速度設定MVP・スタッフロール設定MVP・スタッフロール終了時挙動MVP・右ペイン軽量化MVP・クレジット/導線タブ保存導線polish・公開中ゲームの全体設定保存confirm統一MVP・作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
+> 最終更新: 2026-05-12（スタッフロール表示順カスタマイズMVP・スタッフロール自動表示ON/OFF MVP・スタッフロール速度設定MVP・スタッフロール設定MVP・スタッフロール終了時挙動MVP・右ペイン軽量化MVP・クレジット/スタッフロール設定タブ保存polish・公開中ゲームの全体設定保存confirm統一MVP・作者向けテストプレイ支援・パネルUI整理・テストプレイパネル小コンポーネント化MVP・開始位置フォールバック修正）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -17,10 +17,10 @@
 - スタッフロール表示順カスタマイズMVP（`staffRollSectionOrder`、ゲーム単位で「手動クレジット / 使用素材 / 使用キャラクター」の大分類順のみを変更可能）
 - スタッフロール設定MVP（ゲーム単位ON/OFF、default ON。OFF時は導線のみ非表示で通常クレジット表示と `GET /games/:id/credits` は維持）
 - スタッフロール自動表示ON/OFF MVP（`staffRollAutoOpenEnabled`、default OFF。`staffRollEnabled=false` 時は自動表示されない。プレイ終了時に1回だけ自動表示）
-- スタッフロール速度設定MVP（ゲーム単位で「ゆっくり/標準/速い」3段階。設定は「ゲーム全体設定 > クレジット/導線」で「全体設定を保存」反映。既存ゲームのデフォルトは標準）
+- スタッフロール速度設定MVP（ゲーム単位で「ゆっくり/標準/速い」3段階。設定は「ゲーム全体設定 > クレジット/スタッフロール」で「全体設定を保存」反映。既存ゲームのデフォルトは標準）
 - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`、owner向けCRUD、公開中即反映）
-- 右ペイン軽量化MVP（スタッフロール設定・手動クレジットを編集画面右ペインから「ゲーム全体設定 > クレジット/導線」へ移設済み）
-- スタッフロール導線は「クレジット/導線」タブ内で設定し、右下の「全体設定を保存」で反映
+- 右ペイン軽量化MVP（スタッフロール設定・手動クレジットを編集画面右ペインから「ゲーム全体設定 > クレジット/スタッフロール」へ移設済み）
+- スタッフロール表示は「クレジット/スタッフロール」タブ内で設定し、右下の「全体設定を保存」で反映
 - 手動クレジットは同タブに表示するが、追加/編集/削除は個別保存
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
@@ -55,17 +55,17 @@
 
 ### 公開・クレジットまわり
 
-- **スタッフロール終了時挙動MVP**（2026-05-12 実装）（`GameProject.staffRollEndBehavior`（TEXT NOT NULL DEFAULT 'stop'）を追加（migration: `20260512130000_add_staff_roll_end_behavior`）。ゲーム単位で自動スクロール末尾到達時の挙動を「最後で停止（`stop`）/ 最後で閉じる（`close`）/ 先頭に戻ってループ（`loop`）」の3択で選択可能。設定場所は「ゲーム全体設定 > クレジット/導線」タブ内、スクロール速度設定の下。スマホ幅でも押しやすいUIにする（grid-cols-2 / sm:grid-cols-3）。自動スクロール末尾到達時だけ挙動を適用。手動スクロール/ホイール/タッチ操作による一時停止の既存挙動は維持。`stop` は末尾で停止、`close` は末尾でモーダル自動閉じ、`loop` は末尾から先頭へ戻り自動スクロール継続。`staffRollEnabled=false` でも設定値は保存される。公開中ゲーム側は共通confirm対象。`credits.counts.total === 0`（空表示）時は無理に終了時挙動を発火しない。ユーザーが明示的に一時停止中は末尾挙動を暴発させず、モーダル閉じ後に interval/timer が残らないようクリーンアップ。BGM/SE連動・より凝った演出は将来課題。）
+- **スタッフロール終了時挙動MVP**（2026-05-12 実装）（`GameProject.staffRollEndBehavior`（TEXT NOT NULL DEFAULT 'stop'）を追加（migration: `20260512130000_add_staff_roll_end_behavior`）。ゲーム単位で自動スクロール末尾到達時の挙動を「最後で停止（`stop`）/ 最後で閉じる（`close`）/ 先頭に戻ってループ（`loop`）」の3択で選択可能。設定場所は「ゲーム全体設定 > クレジット/スタッフロール」タブ内、スクロール速度設定の下。スマホ幅でも押しやすいUIにする（grid-cols-2 / sm:grid-cols-3）。自動スクロール末尾到達時だけ挙動を適用。手動スクロール/ホイール/タッチ操作による一時停止の既存挙動は維持。`stop` は末尾で停止、`close` は末尾でモーダル自動閉じ、`loop` は末尾から先頭へ戻り自動スクロール継続。`staffRollEnabled=false` でも設定値は保存される。公開中ゲーム側は共通confirm対象。`credits.counts.total === 0`（空表示）時は無理に終了時挙動を発火しない。ユーザーが明示的に一時停止中は末尾挙動を暴発させず、モーダル閉じ後に interval/timer が残らないようクリーンアップ。BGM/SE連動・より凝った演出は将来課題。）
 
-- **スタッフロール自動表示ON/OFF MVP**（2026-05-11 実装）（`GameProject.staffRollAutoOpenEnabled`（BOOLEAN NOT NULL DEFAULT false）を追加（migration: `20260511120000staffrollautoopenenabled`）。設定場所は「ゲーム全体設定 > クレジット/導線」タブ。`staffRollEnabled=false` の場合は自動表示設定を有効化していても自動表示しない。公開中ゲームでこの設定を変更して「全体設定を保存」する場合も、既存の共通confirm対象。非公開ゲームではconfirmなし。プレイ画面では終了状態到達時に `staffRollEnabled !== false` かつ `staffRollAutoOpenEnabled === true` のときだけスタッフロールを自動で開き、1プレイ中に1回のみ自動表示する。モーダルを閉じた後の再レンダーでは再表示しない。手動ボタン・既存速度設定・`GET /games/:id/credits` 仕様は維持。）
+- **スタッフロール自動表示ON/OFF MVP**（2026-05-11 実装）（`GameProject.staffRollAutoOpenEnabled`（BOOLEAN NOT NULL DEFAULT false）を追加（migration: `20260511120000staffrollautoopenenabled`）。設定場所は「ゲーム全体設定 > クレジット/スタッフロール」タブ。`staffRollEnabled=false` の場合は自動表示設定を有効化していても自動表示しない。公開中ゲームでこの設定を変更して「全体設定を保存」する場合も、既存の共通confirm対象。非公開ゲームではconfirmなし。プレイ画面では終了状態到達時に `staffRollEnabled !== false` かつ `staffRollAutoOpenEnabled === true` のときだけスタッフロールを自動で開き、1プレイ中に1回のみ自動表示する。モーダルを閉じた後の再レンダーでは再表示しない。手動ボタン・既存速度設定・`GET /games/:id/credits` 仕様は維持。）
 
-- **スタッフロール速度設定MVP**（2026-05-10 実装）（`GameProject.staffRollSpeedPreset`（TEXT NOT NULL DEFAULT 'normal'）を追加（migration: `20260510130000staffrollspeedpreset`）。ゲーム単位で「ゆっくり / 標準 / 速い」3段階の自動スクロール速度を選択できる。設定場所は「ゲーム全体設定 > クレジット/導線」タブ内、スタッフロール導線 ON/OFF トグルの下。速度設定は「全体設定を保存」で反映される（ON/OFFと同一保存フロー）。公開中ゲームで速度変更して保存する場合も共通confirm対象。既存ゲームのデフォルトは「標準」（42px/sec）。slow=28px/sec、fast=64px/sec。`staffRollEnabled=false`でも速度値は保存される。ON/OFF設定・通常クレジット表示・`GET /games/:id/credits` は維持。速度設定MVP実装時点では「エンディング後自動表示」は将来課題だったが、2026-05-11に「スタッフロール自動表示ON/OFF MVP」として実装済み。残る将来課題は「BGM、より細かな速度カスタマイズ、カテゴリ別アニメーション、より凝った演出」。）
+- **スタッフロール速度設定MVP**（2026-05-10 実装）（`GameProject.staffRollSpeedPreset`（TEXT NOT NULL DEFAULT 'normal'）を追加（migration: `20260510130000staffrollspeedpreset`）。ゲーム単位で「ゆっくり / 標準 / 速い」3段階の自動スクロール速度を選択できる。設定場所は「ゲーム全体設定 > クレジット/スタッフロール」タブ内、スタッフロール表示ON/OFF トグルの下。速度設定は「全体設定を保存」で反映される（ON/OFFと同一保存フロー）。公開中ゲームで速度変更して保存する場合も共通confirm対象。既存ゲームのデフォルトは「標準」（42px/sec）。slow=28px/sec、fast=64px/sec。`staffRollEnabled=false`でも速度値は保存される。ON/OFF設定・通常クレジット表示・`GET /games/:id/credits` は維持。速度設定MVP実装時点では「エンディング後自動表示」は将来課題だったが、2026-05-11に「スタッフロール自動表示ON/OFF MVP」として実装済み。残る将来課題は「BGM、より細かな速度カスタマイズ、カテゴリ別アニメーション、より凝った演出」。）
 
 - **スタッフロールUI MVP**（2026-05-09 実装）（`apps/frontend/components/game/GameStaffRollModal.vue` を追加。`GET /games/:id/credits` の既存レスポンスをそのまま表示。プレイ終了画面（通常/フルスクリーン）と公開ゲーム詳細ページに導線を追加。DB変更・migration追加・API追加なし。演出強化MVPとして自動スクロール（初期ON・最下部停止）、停止/再開、先頭へ戻る、手動操作時の自動停止、スクロールバーを目立たせない表示、上下フェード/再生状態表示/中央上映寄りレイアウトを実装。より凝った演出・カテゴリ別アニメーション・BGM/SE連動は将来課題。速度設定・自動表示ON/OFFは別MVPで実装済み。）
 
 - **スタッフロール設定MVP**（2026-05-10 実装）（`GameProject.staffRollEnabled` を追加し、ゲーム編集画面で導線表示ON/OFFを保存可能化。defaultは `true` で既存ゲーム挙動を維持。OFF時は公開詳細の「スタッフロールで見る」とプレイ終了画面（通常/フルスクリーン）の「スタッフロール」ボタンのみ非表示にし、通常クレジット表示と `GET /games/:id/credits` は変更しない。`GameCredit` / 手動クレジット / snapshot lock の仕様変更なし。）
 
-- **右ペイン軽量化MVP**（2026-05-10 実装）（編集画面右ペインから「スタッフロール設定」カードと `GameManualCreditsEditor` を撤去し、`MessageThemeModal.vue` の `クレジット/導線` タブへ移設。スタッフロール導線設定は即時保存ではなく右下の「全体設定を保存」で反映し、手動クレジットは同タブ内で個別保存を維持。公開中ゲームでは、`staffRollEnabled` に限らず全体設定モーダル内の公開版に影響する設定変更を保存する時に共通confirmを表示し、変更なし保存や非公開ゲームではconfirmを出さない。手動クレジットの個別保存confirmは別管理。`GET /games/:id/credits`、通常クレジット表示、`GameCredit` / 手動クレジット / snapshot lock の仕様は維持。）
+- **右ペイン軽量化MVP**（2026-05-10 実装）（編集画面右ペインから「スタッフロール設定」カードと `GameManualCreditsEditor` を撤去し、`MessageThemeModal.vue` の `クレジット/スタッフロール` タブへ移設。スタッフロール設定は即時保存ではなく右下の「全体設定を保存」で反映し、手動クレジットは同タブ内で個別保存を維持。公開中ゲームでは、`staffRollEnabled` に限らず全体設定モーダル内の公開版に影響する設定変更を保存する時に共通confirmを表示し、変更なし保存や非公開ゲームではconfirmを出さない。手動クレジットの個別保存confirmは別管理。`GET /games/:id/credits`、通常クレジット表示、`GameCredit` / 手動クレジット / snapshot lock の仕様は維持。）
 
 - **スタッフロール用クレジット取得処理の共通化**（2026-05-11 実装）（`apps/frontend/composables/useStaffRollCredits.ts` を追加し、公開ゲーム詳細ページ（`/games/:id`）とプレイ画面（`/games/:id/play`）の両方で共通利用。`GET /games/:id/credits` の取得・エラーハンドリング・再取得フローを共通化し、UI挙動は維持。）
 

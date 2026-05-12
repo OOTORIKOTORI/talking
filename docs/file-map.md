@@ -30,7 +30,7 @@ apps/frontend/pages/
 ├── games/
 │   ├── index.vue                            # 公開ゲーム一覧ページ
 │   └── [id]/
-│       ├── index.vue                        # 公開ゲーム詳細ページ。通常クレジット表示、スタッフロール導線、`useStaffRollCredits` 経由のスタッフロール用クレジット取得を扱う
+│       ├── index.vue                        # 公開ゲーム詳細ページ。通常クレジット表示、スタッフロール表示、`useStaffRollCredits` 経由のスタッフロール用クレジット取得を扱う
 │       └── play.vue                         # ゲームプレイ画面。ノード進行、選択肢分岐、音声、カメラ、セーブ/ロードを統括
 ├── my/
 │   ├── assets/
