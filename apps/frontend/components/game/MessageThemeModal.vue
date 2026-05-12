@@ -891,6 +891,9 @@
               <h4 class="font-semibold text-md flex items-center gap-2">
                 <span class="text-blue-600">🎬</span> スタッフロール
               </h4>
+              <p class="text-sm text-gray-600 break-words leading-relaxed">
+                公開ページやプレイ終了後に、使用素材・使用キャラクター・手動クレジットをスタッフロール形式で表示します。
+              </p>
               <label class="inline-flex w-full flex-wrap items-center gap-3 cursor-pointer select-none sm:flex-nowrap">
                 <input
                   v-model="staffRollEnabledDraft"
@@ -907,14 +910,18 @@
                   ></span>
                 </span>
                 <span class="text-sm font-medium text-gray-800 break-words">
-                  表示する
+                  スタッフロール導線を有効にする
                 </span>
               </label>
 
+              <p class="text-xs text-gray-500 break-words leading-relaxed">
+                現在: 自動表示{{ staffRollAutoOpenEnabledDraft ? 'ON' : 'OFF' }} / 速度: {{ currentStaffRollSpeedLabel }} / 終了時: {{ currentStaffRollEndBehaviorLabel }}
+              </p>
+
               <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p class="text-sm font-medium text-gray-700">表示順</p>
+                <p class="text-sm font-medium text-gray-700">表示順（大分類）</p>
                 <p class="text-xs text-gray-600 break-words leading-relaxed">
-                  手動クレジット / 使用素材 / 使用キャラクター の3区分だけを並び替えます。導線がOFFでも保存されます。
+                  手動クレジット / 使用素材 / 使用キャラクター の大分類順を変更します。スタッフロール導線がOFFでも保存されます。
                 </p>
                 <div class="space-y-2">
                   <div
@@ -933,7 +940,7 @@
                         :disabled="!row.canMoveUp"
                         @click="moveStaffRollSection(row.index, -1)"
                       >
-                        上へ
+                        上へ移動
                       </button>
                       <button
                         type="button"
@@ -941,7 +948,7 @@
                         :disabled="!row.canMoveDown"
                         @click="moveStaffRollSection(row.index, 1)"
                       >
-                        下へ
+                        下へ移動
                       </button>
                     </div>
                   </div>
@@ -951,11 +958,14 @@
               <!-- スクロール速度 -->
               <div class="mt-3">
                 <p class="text-sm font-medium text-gray-700 mb-2">スクロール速度</p>
+                <p class="text-xs text-gray-600 mb-2 break-words leading-relaxed">
+                  スタッフロール全体の流れる速さを選びます。
+                </p>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <label
                     v-for="opt in staffRollSpeedOptions"
                     :key="opt.value"
-                    class="flex min-w-0 items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
+                    class="flex min-w-0 flex-col items-center justify-center gap-0.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
                     :class="staffRollSpeedPresetDraft === opt.value
                       ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
@@ -967,7 +977,8 @@
                       v-model="staffRollSpeedPresetDraft"
                       class="sr-only"
                     />
-                    {{ opt.label }}
+                    <span>{{ opt.label }}</span>
+                    <span class="text-[11px] leading-tight" :class="staffRollSpeedPresetDraft === opt.value ? 'text-blue-600' : 'text-gray-500'">{{ opt.description }}</span>
                   </label>
                 </div>
               </div>
@@ -975,11 +986,14 @@
               <!-- 終了時挙動 -->
               <div class="mt-3">
                 <p class="text-sm font-medium text-gray-700 mb-2">末尾到達時</p>
+                <p class="text-xs text-gray-600 mb-2 break-words leading-relaxed">
+                  スタッフロールが最後まで流れた後の動きを選びます。
+                </p>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <label
                     v-for="opt in staffRollEndBehaviorOptions"
                     :key="opt.value"
-                    class="flex min-w-0 items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
+                    class="flex min-w-0 flex-col items-center justify-center gap-0.5 py-2.5 px-2 rounded-lg border cursor-pointer text-sm transition-colors"
                     :class="staffRollEndBehaviorDraft === opt.value
                       ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
@@ -991,7 +1005,8 @@
                       v-model="staffRollEndBehaviorDraft"
                       class="sr-only"
                     />
-                    {{ opt.label }}
+                    <span>{{ opt.label }}</span>
+                    <span class="text-[11px] leading-tight" :class="staffRollEndBehaviorDraft === opt.value ? 'text-blue-600' : 'text-gray-500'">{{ opt.description }}</span>
                   </label>
                 </div>
               </div>
@@ -999,7 +1014,7 @@
               <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
                 <p class="text-sm font-medium text-gray-700">エンディング後に自動で開く</p>
                 <p class="text-xs text-gray-600 break-words leading-relaxed">
-                  プレイ終了画面でスタッフロールを自動的に表示します。
+                  エンディング到達時にスタッフロールを自動で開きます。
                 </p>
                 <label
                   class="inline-flex w-full flex-wrap items-center gap-3 select-none sm:flex-nowrap"
@@ -1158,9 +1173,9 @@ function normalizeStaffRollSpeedPreset(value: unknown): StaffRollSpeedPreset {
   return value === 'slow' || value === 'fast' || value === 'normal' ? value : 'normal'
 }
 const staffRollSpeedOptions = [
-  { value: 'slow', label: 'ゆっくり' },
-  { value: 'normal', label: '標準' },
-  { value: 'fast', label: '速い' },
+  { value: 'slow', label: 'ゆっくり', description: '落ち着いて表示' },
+  { value: 'normal', label: '標準', description: '通常の速度' },
+  { value: 'fast', label: '速い', description: 'テンポよく表示' },
 ]
 const staffRollSpeedPresetInitialValue = computed(() => normalizeStaffRollSpeedPreset(props.initialStaffRollSpeedPreset))
 const staffRollSpeedPresetDraft = ref<StaffRollSpeedPreset>(staffRollSpeedPresetInitialValue.value)
@@ -1170,9 +1185,9 @@ function normalizeStaffRollEndBehavior(value: unknown): StaffRollEndBehavior {
   return value === 'stop' || value === 'close' || value === 'loop' ? value : 'stop'
 }
 const staffRollEndBehaviorOptions = [
-  { value: 'stop', label: '最後で停止' },
-  { value: 'close', label: '最後で閉じる' },
-  { value: 'loop', label: '先頭に戻ってループ' },
+  { value: 'stop', label: '最後で停止', description: '最後の位置で止めます' },
+  { value: 'close', label: '最後で閉じる', description: '最後まで流れたら閉じます' },
+  { value: 'loop', label: 'ループ', description: '最後まで流れたら先頭から繰り返します' },
 ]
 const staffRollEndBehaviorInitialValue = computed(() => normalizeStaffRollEndBehavior(props.initialStaffRollEndBehavior))
 const staffRollEndBehaviorDraft = ref<StaffRollEndBehavior>(staffRollEndBehaviorInitialValue.value)
@@ -1260,6 +1275,16 @@ const staffRollSectionRows = computed(() => staffRollSectionOrderDraft.value.map
   canMoveUp: index > 0,
   canMoveDown: index < staffRollSectionOrderDraft.value.length - 1,
 })))
+
+const currentStaffRollSpeedLabel = computed(() => {
+  const selected = staffRollSpeedOptions.find((opt) => opt.value === staffRollSpeedPresetDraft.value)
+  return selected?.label ?? '標準'
+})
+
+const currentStaffRollEndBehaviorLabel = computed(() => {
+  const selected = staffRollEndBehaviorOptions.find((opt) => opt.value === staffRollEndBehaviorDraft.value)
+  return selected?.label ?? '最後で停止'
+})
 
 function moveStaffRollSection(index: number, direction: -1 | 1) {
   const nextIndex = index + direction
