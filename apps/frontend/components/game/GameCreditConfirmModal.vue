@@ -443,24 +443,6 @@ const emit = defineEmits<{
   'edit-reference-issue': [payload: DirectReferenceIssuePayload]
 }>()
 
-function firstDirectIssue(
-  category: DirectReferenceIssueCategory,
-  refId: string,
-): ReferenceIssue | null {
-  const all = Array.isArray(props.referenceIssues) ? props.referenceIssues : []
-  const matched = all.filter((issue) => {
-    if (!issue || issue.source !== 'reference') return false
-    if (issue.refId !== refId) return false
-    const code = issue.code ?? ''
-    if (category === 'asset-reference') return code.startsWith('ASSET_')
-    return code.startsWith('CHARACTER_')
-  })
-
-  if (matched.length === 0) return null
-  const withNode = matched.find((issue) => typeof issue.nodeId === 'string' && issue.nodeId.trim().length > 0)
-  return withNode ?? matched[0]
-}
-
 function issueFieldLabel(field: string | null | undefined): string {
   if (!field) return '項目未特定'
   const map: Record<string, string> = {
@@ -507,14 +489,6 @@ function emitDirectIssue(category: DirectReferenceIssueCategory, issue: Referenc
     field: issue.field ?? null,
     nodeId: issue.nodeId ?? null,
   })
-}
-
-function getAssetDirectIssue(refId: string): ReferenceIssue | null {
-  return firstDirectIssue('asset-reference', refId)
-}
-
-function getCharacterDirectIssue(refId: string): ReferenceIssue | null {
-  return firstDirectIssue('character-reference', refId)
 }
 
 function getAllDirectIssues(

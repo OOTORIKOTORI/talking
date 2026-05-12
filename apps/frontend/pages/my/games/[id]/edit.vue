@@ -1772,6 +1772,28 @@ async function addNode() {
   }
 }
 
+function extractApiErrorMessage(error: any): string | null {
+  const raw =
+    error?.response?._data?.message ??
+    error?.data?.message ??
+    error?.message ??
+    null
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  const errors = error?.response?._data?.errors ?? error?.data?.errors
+  if (Array.isArray(errors) && errors.length > 0) {
+    const first = errors.find((v: unknown) => typeof v === 'string')
+    if (typeof first === 'string' && first.trim().length > 0) {
+      return first.trim()
+    }
+  }
+
+  return null
+}
+
 async function saveNode() {
   if (!scene.value || !node.value) return
   if (!confirmSavePublishedGame()) return
@@ -1809,7 +1831,8 @@ async function saveNode() {
     await refreshReferenceDiagnostics()
   } catch (error) {
     console.error('Failed to save node:', error)
-    alert('ノードの保存に失敗しました')
+    const detail = extractApiErrorMessage(error)
+    alert(detail ? `ノードの保存に失敗しました\n${detail}` : 'ノードの保存に失敗しました')
   } finally {
     saving.value = false
   }
@@ -1887,7 +1910,8 @@ async function saveAndCreateNext() {
   } catch (e) {
     console.error(e)
     const toast = useToast()
-    toast.error('次ノードの作成に失敗しました')
+    const detail = extractApiErrorMessage(e)
+    toast.error(detail ? `次ノードの作成に失敗しました: ${detail}` : '次ノードの作成に失敗しました')
   } finally {
     saving.value = false
   }
