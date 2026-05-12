@@ -149,25 +149,44 @@
 
                   <!-- Edit navigation for non-active assets -->
                   <div v-if="asset.status !== 'active'" class="mt-2">
-                    <p
-                      v-if="getAssetDirectIssue(asset.assetId)"
-                      class="mb-1 text-[11px] text-amber-700"
-                    >
-                      使用箇所: {{ issueLocationText(getAssetDirectIssue(asset.assetId)!) }}
-                      <span v-if="getAssetDirectIssue(asset.assetId)!.nodePreview" class="ml-1 text-amber-800">
-                        - {{ getAssetDirectIssue(asset.assetId)!.nodePreview }}
-                      </span>
-                    </p>
-                    <button
-                      type="button"
-                      :disabled="publishing"
-                      class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      @click="getAssetDirectIssue(asset.assetId)
-                        ? emitDirectIssue('asset-reference', getAssetDirectIssue(asset.assetId)!)
-                        : $emit('edit-reference-issues', 'asset-reference')"
-                    >
-                      {{ getAssetDirectIssue(asset.assetId) ? '最初の該当箇所へ移動' : '参照を編集' }}
-                    </button>
+                    <template v-if="getAssetDirectIssues(asset.assetId).length > 0">
+                      <p class="mb-1 text-[11px] text-amber-700 font-medium">
+                        使用箇所 {{ getAssetDirectIssues(asset.assetId).length }}件
+                      </p>
+                      <ul class="mb-1 space-y-1">
+                        <li
+                          v-for="(issue, idx) in getAssetDirectIssues(asset.assetId).slice(0, 5)"
+                          :key="issue.id ?? idx"
+                          class="flex items-center gap-1"
+                        >
+                          <span class="flex-1 text-[11px] text-amber-700">
+                            {{ issueLocationText(issue) }}
+                            <span v-if="issue.nodePreview" class="text-amber-800"> — {{ issue.nodePreview }}</span>
+                          </span>
+                          <button
+                            type="button"
+                            :disabled="publishing"
+                            class="inline-flex shrink-0 items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            @click="emitDirectIssue('asset-reference', issue)"
+                          >
+                            {{ getAssetDirectIssues(asset.assetId).length === 1 ? '該当箇所へ移動' : 'ここへ移動' }}
+                          </button>
+                        </li>
+                      </ul>
+                      <p v-if="getAssetDirectIssues(asset.assetId).length > 5" class="text-[11px] text-gray-500">
+                        ほか{{ getAssetDirectIssues(asset.assetId).length - 5 }}件
+                      </p>
+                    </template>
+                    <template v-else>
+                      <button
+                        type="button"
+                        :disabled="publishing"
+                        class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        @click="$emit('edit-reference-issues', 'asset-reference')"
+                      >
+                        参照を編集
+                      </button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -260,25 +279,44 @@
 
                   <!-- Edit navigation for non-active characters -->
                   <div v-if="character.status !== 'active'" class="mt-2">
-                    <p
-                      v-if="getCharacterDirectIssue(character.characterId)"
-                      class="mb-1 text-[11px] text-amber-700"
-                    >
-                      使用箇所: {{ issueLocationText(getCharacterDirectIssue(character.characterId)!) }}
-                      <span v-if="getCharacterDirectIssue(character.characterId)!.nodePreview" class="ml-1 text-amber-800">
-                        - {{ getCharacterDirectIssue(character.characterId)!.nodePreview }}
-                      </span>
-                    </p>
-                    <button
-                      type="button"
-                      :disabled="publishing"
-                      class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      @click="getCharacterDirectIssue(character.characterId)
-                        ? emitDirectIssue('character-reference', getCharacterDirectIssue(character.characterId)!)
-                        : $emit('edit-reference-issues', 'character-reference')"
-                    >
-                      {{ getCharacterDirectIssue(character.characterId) ? '最初の該当箇所へ移動' : '参照を編集' }}
-                    </button>
+                    <template v-if="getCharacterDirectIssues(character.characterId).length > 0">
+                      <p class="mb-1 text-[11px] text-amber-700 font-medium">
+                        使用箇所 {{ getCharacterDirectIssues(character.characterId).length }}件
+                      </p>
+                      <ul class="mb-1 space-y-1">
+                        <li
+                          v-for="(issue, idx) in getCharacterDirectIssues(character.characterId).slice(0, 5)"
+                          :key="issue.id ?? idx"
+                          class="flex items-center gap-1"
+                        >
+                          <span class="flex-1 text-[11px] text-amber-700">
+                            {{ issueLocationText(issue) }}
+                            <span v-if="issue.nodePreview" class="text-amber-800"> — {{ issue.nodePreview }}</span>
+                          </span>
+                          <button
+                            type="button"
+                            :disabled="publishing"
+                            class="inline-flex shrink-0 items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            @click="emitDirectIssue('character-reference', issue)"
+                          >
+                            {{ getCharacterDirectIssues(character.characterId).length === 1 ? '該当箇所へ移動' : 'ここへ移動' }}
+                          </button>
+                        </li>
+                      </ul>
+                      <p v-if="getCharacterDirectIssues(character.characterId).length > 5" class="text-[11px] text-gray-500">
+                        ほか{{ getCharacterDirectIssues(character.characterId).length - 5 }}件
+                      </p>
+                    </template>
+                    <template v-else>
+                      <button
+                        type="button"
+                        :disabled="publishing"
+                        class="inline-flex items-center px-2 py-0.5 text-xs rounded border border-amber-300 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        @click="$emit('edit-reference-issues', 'character-reference')"
+                      >
+                        参照を編集
+                      </button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -423,12 +461,41 @@ function firstDirectIssue(
   return withNode ?? matched[0]
 }
 
+function issueFieldLabel(field: string | null | undefined): string {
+  if (!field) return '項目未特定'
+  const map: Record<string, string> = {
+    bgAssetId: '背景画像',
+    musicAssetId: 'BGM',
+    sfxAssetId: 'SE',
+    speakerCharacterId: 'キャラクター',
+    coverAssetId: 'カバー画像',
+  }
+  if (map[field]) return map[field]
+  if (field.startsWith('portraits.')) return '立ち絵'
+  return field
+}
+
 function issueLocationText(issue: ReferenceIssue): string {
+  const hasScene =
+    issue.sceneOrder != null ||
+    (typeof issue.sceneName === 'string' && issue.sceneName.trim().length > 0)
+  const hasNode =
+    issue.nodeOrder != null ||
+    (typeof issue.nodeId === 'string' && issue.nodeId.trim().length > 0)
+  const field = issueFieldLabel(issue.field)
+  if (!hasScene && !hasNode) {
+    return `ゲーム全体設定 / ${field}`
+  }
   const scene = issue.sceneOrder
     ? `Scene ${issue.sceneOrder}`
-    : (issue.sceneName ? `Scene ${issue.sceneName}` : 'Scene ?')
-  const node = issue.nodeOrder ? `Node ${issue.nodeOrder}` : (issue.nodeId ? 'Node' : 'Node ?')
-  const field = issue.field ? issue.field : '項目未特定'
+    : issue.sceneName
+      ? `Scene ${issue.sceneName}`
+      : 'Scene ?'
+  const node = issue.nodeOrder
+    ? `Node ${issue.nodeOrder}`
+    : issue.nodeId
+      ? 'Node'
+      : 'Node ?'
   return `${scene} / ${node} / ${field}`
 }
 
@@ -448,6 +515,49 @@ function getAssetDirectIssue(refId: string): ReferenceIssue | null {
 
 function getCharacterDirectIssue(refId: string): ReferenceIssue | null {
   return firstDirectIssue('character-reference', refId)
+}
+
+function getAllDirectIssues(
+  category: DirectReferenceIssueCategory,
+  refId: string,
+): ReferenceIssue[] {
+  const all = Array.isArray(props.referenceIssues) ? props.referenceIssues : []
+  const seenKeys = new Set<string>()
+  const matched: ReferenceIssue[] = []
+  for (const issue of all) {
+    if (!issue || issue.source !== 'reference') continue
+    if (issue.refId !== refId) continue
+    const code = issue.code ?? ''
+    if (category === 'asset-reference' && !code.startsWith('ASSET_')) continue
+    if (category === 'character-reference' && !code.startsWith('CHARACTER_')) continue
+    const dedupeKey =
+      typeof issue.id === 'string' && issue.id.trim().length > 0
+        ? `id:${issue.id}`
+        : `node:${issue.nodeId ?? ''}_field:${issue.field ?? ''}`
+    if (seenKeys.has(dedupeKey)) continue
+    seenKeys.add(dedupeKey)
+    matched.push(issue)
+  }
+  matched.sort((a, b) => {
+    const aHasNode = typeof a.nodeId === 'string' && a.nodeId.trim().length > 0 ? 0 : 1
+    const bHasNode = typeof b.nodeId === 'string' && b.nodeId.trim().length > 0 ? 0 : 1
+    if (aHasNode !== bHasNode) return aHasNode - bHasNode
+    const aScene = a.sceneOrder ?? 9999
+    const bScene = b.sceneOrder ?? 9999
+    if (aScene !== bScene) return aScene - bScene
+    const aNode = a.nodeOrder ?? 9999
+    const bNode = b.nodeOrder ?? 9999
+    return aNode - bNode
+  })
+  return matched
+}
+
+function getAssetDirectIssues(refId: string): ReferenceIssue[] {
+  return getAllDirectIssues('asset-reference', refId)
+}
+
+function getCharacterDirectIssues(refId: string): ReferenceIssue[] {
+  return getAllDirectIssues('character-reference', refId)
 }
 
 const hasStatusWarnings = computed(() => {
