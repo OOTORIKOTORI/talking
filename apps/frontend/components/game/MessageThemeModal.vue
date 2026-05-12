@@ -915,7 +915,7 @@
               </label>
 
               <p class="text-xs text-gray-500 break-words leading-relaxed">
-                現在: 自動表示{{ staffRollAutoOpenEnabledDraft ? 'ON' : 'OFF' }} / 速度: {{ currentStaffRollSpeedLabel }} / 終了時: {{ currentStaffRollEndBehaviorLabel }}
+                現在: {{ staffRollEnabledDraft ? '導線ON' : '導線OFF' }} / 自動表示{{ staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'ON' : staffRollAutoOpenEnabledDraft ? 'ON（OFF中は開きません）' : 'OFF' }} / 速度: {{ currentStaffRollSpeedLabel }} / 終了時: {{ currentStaffRollEndBehaviorLabel }}
               </p>
 
               <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
