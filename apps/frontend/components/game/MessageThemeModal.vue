@@ -884,7 +884,7 @@
           </div>
           </template>
 
-          <!-- ===== クレジット/導線 タブ ===== -->
+          <!-- ===== クレジット/スタッフロール タブ ===== -->
           <template v-if="activeModalTab === 'credits'">
           <div class="px-3 py-4 sm:px-5 sm:py-5 space-y-6">
             <section class="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
@@ -910,18 +910,18 @@
                   ></span>
                 </span>
                 <span class="text-sm font-medium text-gray-800 break-words">
-                  スタッフロール導線を有効にする
+                  スタッフロールを表示する
                 </span>
               </label>
 
               <p class="text-xs text-gray-500 break-words leading-relaxed">
-                現在: {{ staffRollEnabledDraft ? '導線ON' : '導線OFF' }} / 自動表示{{ staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'ON' : staffRollAutoOpenEnabledDraft ? 'ON（OFF中は開きません）' : 'OFF' }} / 速度: {{ currentStaffRollSpeedLabel }} / 終了時: {{ currentStaffRollEndBehaviorLabel }}
+                現在: {{ staffRollEnabledDraft ? 'スタッフロールON' : 'スタッフロールOFF' }} / 自動表示{{ staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'ON' : staffRollAutoOpenEnabledDraft ? 'ON（OFF中は開きません）' : 'OFF' }} / 速度: {{ currentStaffRollSpeedLabel }} / 終了時: {{ currentStaffRollEndBehaviorLabel }}
               </p>
 
               <div class="mt-3 space-y-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
                 <p class="text-sm font-medium text-gray-700">表示順（大分類）</p>
                 <p class="text-xs text-gray-600 break-words leading-relaxed">
-                  手動クレジット / 使用素材 / 使用キャラクター の大分類順を変更します。スタッフロール導線がOFFでも保存されます。
+                  手動クレジット / 使用素材 / 使用キャラクター の大分類順を変更します。スタッフロール設定がOFFでも保存されます。
                 </p>
                 <div class="space-y-2">
                   <div
@@ -1017,22 +1017,20 @@
                   エンディング到達時にスタッフロールを自動で開きます。
                 </p>
                 <label
-                  class="inline-flex w-full flex-wrap items-center gap-3 select-none sm:flex-nowrap"
-                  :class="staffRollEnabledDraft ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+                  class="inline-flex w-full flex-wrap items-center gap-3 cursor-pointer select-none sm:flex-nowrap"
                 >
                   <input
                     v-model="staffRollAutoOpenEnabledDraft"
                     type="checkbox"
                     class="sr-only peer"
-                    :disabled="!staffRollEnabledDraft"
                   />
                   <span
                     class="relative h-7 w-12 rounded-full transition-colors"
-                    :class="staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'bg-blue-600' : 'bg-gray-300'"
+                    :class="staffRollAutoOpenEnabledDraft ? 'bg-blue-600' : 'bg-gray-300'"
                   >
                     <span
                       class="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform"
-                      :class="staffRollAutoOpenEnabledDraft && staffRollEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
+                      :class="staffRollAutoOpenEnabledDraft ? 'translate-x-5' : 'translate-x-0.5'"
                     ></span>
                   </span>
                   <span class="text-sm font-medium text-gray-800 break-words">有効にする</span>
@@ -1127,7 +1125,7 @@ const modalTabs: { key: ModalTabKey; label: string }[] = [
   { key: 'quickbtn', label: 'クイックボタン' },
   { key: 'backlog', label: 'バックログ' },
   { key: 'labels', label: '文言設定' },
-  { key: 'credits', label: 'クレジット/導線' },
+  { key: 'credits', label: 'クレジット/スタッフロール' },
 ]
 
 const staffRollEnabledInitialValue = computed(() => props.initialStaffRollEnabled !== false)
