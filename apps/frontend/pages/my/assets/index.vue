@@ -65,6 +65,45 @@
             </div>
           </div>
 
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">公開状態</label>
+            <div class="flex gap-2">
+              <button
+                @click="visibilityFilter = 'all'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  visibilityFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                すべて
+              </button>
+              <button
+                @click="visibilityFilter = 'public'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  visibilityFilter === 'public'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                公開
+              </button>
+              <button
+                @click="visibilityFilter = 'private'"
+                :class="[
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  visibilityFilter === 'private'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                非公開
+              </button>
+            </div>
+          </div>
+
           <!-- Primary Tag Filter -->
           <div v-if="contentTypeFilter === 'image' || contentTypeFilter === 'audio' || contentTypeFilter === undefined">
             <label class="block text-sm font-medium text-gray-700 mb-2">プライマリタグ</label>
@@ -153,7 +192,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="assets.length === 0" class="text-center py-12">
+      <div v-else-if="displayAssets.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
@@ -173,7 +212,7 @@
       <div v-else>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div
-            v-for="asset in assets"
+            v-for="asset in displayAssets"
             :key="asset.id"
             class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
           >
@@ -204,6 +243,12 @@
                   ]"
                 >
                   {{ getPrimaryTagLabel(asset.primaryTag) }}
+                </span>
+                <span
+                  class="ml-2 inline-block px-2 py-0.5 text-xs font-medium rounded"
+                  :class="asset.isPublic === false ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'"
+                >
+                  {{ asset.isPublic === false ? '非公開' : '公開' }}
                 </span>
               </div>
               
@@ -314,6 +359,7 @@ const contentTypeFilter = ref<'image' | 'audio' | undefined>(undefined);
 const primaryTagFilter = ref<string[]>([]);
 const tagsInput = ref('');
 const sortOrder = ref<'createdAt:desc' | 'createdAt:asc'>('createdAt:desc');
+const visibilityFilter = ref<'all' | 'public' | 'private'>('all');
 
 let searchTimeout: NodeJS.Timeout | null = null;
 
@@ -355,6 +401,16 @@ const getPrimaryTagLabel = (tag: string): string => {
   return primaryTagLabels[tag] || tag;
 };
 
+const displayAssets = computed(() => {
+  if (visibilityFilter.value === 'public') {
+    return assets.value.filter((asset) => asset.isPublic !== false);
+  }
+  if (visibilityFilter.value === 'private') {
+    return assets.value.filter((asset) => asset.isPublic === false);
+  }
+  return assets.value;
+});
+
 // Load data from query params on mount
 const loadFromQuery = () => {
   const query = route.query;
@@ -379,6 +435,10 @@ const loadFromQuery = () => {
   
   if (query.sort === 'createdAt:asc' || query.sort === 'createdAt:desc') {
     sortOrder.value = query.sort;
+  }
+
+  if (query.visibility === 'public' || query.visibility === 'private' || query.visibility === 'all') {
+    visibilityFilter.value = query.visibility;
   }
 };
 
@@ -454,6 +514,7 @@ const applyFilters = () => {
     primaryTag: primaryTagFilter.value.length > 0 ? primaryTagFilter.value.join(',') : undefined,
     tags: tagsInput.value.trim() || undefined,
     sort: sortOrder.value !== 'createdAt:desc' ? sortOrder.value : undefined,
+    visibility: visibilityFilter.value !== 'all' ? visibilityFilter.value : undefined,
   };
 
   // Remove undefined values
@@ -473,6 +534,7 @@ const resetFilters = () => {
   primaryTagFilter.value = [];
   tagsInput.value = '';
   sortOrder.value = 'createdAt:desc';
+  visibilityFilter.value = 'all';
   offset.value = 0;
   
   router.push({ query: {} });

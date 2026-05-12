@@ -46,6 +46,7 @@ type StaffRollSectionId = (typeof STAFF_ROLL_SECTION_IDS)[number];
 type GameReferenceDiagnosticCode =
   | 'ASSET_MISSING'
   | 'ASSET_DELETED'
+  | 'ASSET_PRIVATE'
   | 'ASSET_KIND_MISMATCH'
   | 'ASSET_NOT_USABLE'
   | 'CHARACTER_MISSING'
@@ -100,7 +101,7 @@ type GameAssetCreditItem = {
     label: string;
     count: number;
   }>;
-  status: 'active' | 'deleted' | 'missing';
+  status: 'active' | 'deleted' | 'missing' | 'private';
   linkable: boolean;
   usageTerms: string | null;
   creditRequired: boolean;
@@ -938,6 +939,10 @@ export class GamesService {
 
     if (asset.ownerId === userId) return;
 
+    if (!asset.isPublic) {
+      throw new ForbiddenException(`asset ${assetId} is not accessible (not public)`);
+    }
+
     const favorite = await this.prisma.favorite.findUnique({
       where: { userId_assetId: { userId, assetId } },
     });
@@ -1735,6 +1740,7 @@ export class GamesService {
               contentType: true,
               primaryTag: true,
               deletedAt: true,
+              isPublic: true,
               usageTerms: true,
               creditRequired: true,
             },
@@ -1763,7 +1769,7 @@ export class GamesService {
 
     // Collect all ownerIds for display name lookup (active/linkable only)
     const allOwnerIds = [
-      ...assets.filter((a) => !a.deletedAt).map((a) => a.ownerId),
+      ...assets.filter((a) => !a.deletedAt && a.isPublic).map((a) => a.ownerId),
       ...characters.filter((c) => !c.deletedAt && c.isPublic).map((c) => c.ownerId),
     ];
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(allOwnerIds);
@@ -1809,6 +1815,27 @@ export class GamesService {
           usageCount,
           fields,
           status: 'deleted',
+          linkable: false,
+          usageTerms: credit?.usageTermsSnapshot ?? null,
+          creditRequired:
+            typeof credit?.creditRequiredSnapshot === 'boolean' ? credit.creditRequiredSnapshot : true,
+        };
+      }
+
+      if (!asset.isPublic) {
+        return {
+          assetId,
+          title: this.normalizeGameCreditName(
+            credit?.sourceNameSnapshot ?? credit?.label,
+            '非公開素材',
+          ),
+          ownerId: null,
+          ownerDisplayName: credit?.ownerDisplayNameSnapshot ?? null,
+          contentType: null,
+          primaryTag: null,
+          usageCount,
+          fields,
+          status: 'private',
           linkable: false,
           usageTerms: credit?.usageTermsSnapshot ?? null,
           creditRequired:
@@ -2972,6 +2999,18 @@ export class GamesService {
       }
 
       if (asset.ownerId !== userId) {
+        if (!asset.isPublic) {
+          pushIssue({
+            code: 'ASSET_PRIVATE',
+            message: `${field}として指定された素材は非公開です。素材を公開するか、別の素材に差し替えてください。`,
+            field,
+            refId: assetId,
+            sceneId,
+            nodeId,
+          });
+          return;
+        }
+
         const isFavorited = !!favoriteByAssetId.get(`${userId}:${assetId}`);
         if (!isFavorited) {
           pushIssue({
@@ -2983,6 +3022,15 @@ export class GamesService {
             nodeId,
           });
         }
+      } else if (!asset.isPublic) {
+        pushIssue({
+          code: 'ASSET_PRIVATE',
+          message: `${field}として指定された素材は非公開です。素材を公開するか、別の素材に差し替えてください。`,
+          field,
+          refId: assetId,
+          sceneId,
+          nodeId,
+        });
       }
     };
 

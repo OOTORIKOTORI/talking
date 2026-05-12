@@ -4,6 +4,7 @@ import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
+import { OptionalSupabaseAuthGuard } from '../auth/optional-supabase-auth.guard';
 import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 
 @Controller('assets')
@@ -19,6 +20,7 @@ export class AssetsController {
   }
 
   @Get()
+  @UseGuards(OptionalSupabaseAuthGuard)
   findAll(@Query() query: QueryAssetsDto, @CurrentUser() user?: AuthUser) {
     return this.assetsService.findAll({ ...query, userId: user?.userId });
   }
@@ -37,6 +39,7 @@ export class AssetsController {
   }
 
   @Get(':id')
+  @UseGuards(OptionalSupabaseAuthGuard)
   async findOne(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
     const asset = await this.assetsService.findOne(id, user?.userId);
     if (!asset) {

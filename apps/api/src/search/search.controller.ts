@@ -87,19 +87,10 @@ export class SearchController {
   }
 
   private buildPrismaWhere(dto: SearchAssetsDto, userId?: string | null): Prisma.AssetWhereInput {
-    const where: Prisma.AssetWhereInput = { deletedAt: null };
+    const where: Prisma.AssetWhereInput = this.buildPrismaAccessWhere(dto, userId);
     const q = (dto.q || '').trim();
     const tags = this.toArray(dto.tags);
     const primaryTags = this.toArray(dto.primaryTag);
-
-    if (dto.owner === 'me') {
-      if (!userId) {
-        throw new UnauthorizedException('Authentication required for owner=me');
-      }
-      where.ownerId = userId;
-    } else if (dto.owner) {
-      where.ownerId = dto.owner;
-    }
 
     if (primaryTags.length > 0) {
       where.primaryTag = { in: primaryTags as any[] };
@@ -132,6 +123,30 @@ export class SearchController {
     return where;
   }
 
+  private shouldIncludePrivateAssets(dto: SearchAssetsDto, userId?: string | null): boolean {
+    if (!userId) return false;
+    return dto.owner === 'me' || dto.owner === userId;
+  }
+
+  private buildPrismaAccessWhere(dto: SearchAssetsDto, userId?: string | null): Prisma.AssetWhereInput {
+    const where: Prisma.AssetWhereInput = { deletedAt: null };
+
+    if (dto.owner === 'me') {
+      if (!userId) {
+        throw new UnauthorizedException('Authentication required for owner=me');
+      }
+      where.ownerId = userId;
+    } else if (dto.owner) {
+      where.ownerId = dto.owner;
+    }
+
+    if (!this.shouldIncludePrivateAssets(dto, userId)) {
+      where.isPublic = true;
+    }
+
+    return where;
+  }
+
   private buildMeiliFilter(dto: SearchAssetsDto, userId?: string | null) {
     const filters: string[] = [];
     const primaryTags = this.toArray(dto.primaryTag);
@@ -144,6 +159,10 @@ export class SearchController {
       filters.push(`ownerId = "${userId}"`);
     } else if (dto.owner) {
       filters.push(`ownerId = "${dto.owner}"`);
+    }
+
+    if (!this.shouldIncludePrivateAssets(dto, userId)) {
+      filters.push('isPublic = true');
     }
 
     if (dto.contentType === 'image') {
@@ -196,13 +215,6 @@ export class SearchController {
     return { items: withOwnerDisplayName, limit, offset, total };
   }
 
-  /**
-   * Meilisearch で検索し、失敗時は Prisma fallback。
-   * userId は opt-in の認証ユーザー ID（未認証は null）。
-   * dto.owner に 'me' または実際の userId を渡すことで owner フィルタを適用する。
-   * 公開範囲: Asset モデルに isPublic フィールドは存在せず、
-   *   deletedAt: null が唯一の公開フィルタ（既存 /assets API と同一仕様）。
-   */
   private async searchWithMeiliAndFallback(dto: SearchAssetsDto, userId: string | null) {
     const { limit, offset } = this.parsePagination(dto);
     const q = dto.q || '';
@@ -230,7 +242,10 @@ export class SearchController {
       }
 
       const assets = await this.prisma.asset.findMany({
-        where: { id: { in: ids }, deletedAt: null },
+        where: {
+          ...this.buildPrismaAccessWhere(dto, userId),
+          id: { in: ids },
+        },
         include: { _count: { select: { favorites: true } } },
       });
 

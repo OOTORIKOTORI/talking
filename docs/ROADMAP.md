@@ -27,6 +27,7 @@
 - 公開前確認モーダル（クレジット/利用条件/status 警告/修正候補表示/編集導線強化）
 - 公開前クレジット確認から該当 issue への直接ジャンプMVP完了
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
+- Asset.isPublic MVP（Boolean）実装: 公開一覧/検索/プロフィール/お気に入りは `isPublic=true` を基準、自分の一覧と owner 自身の詳細は private 表示可
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
 - 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
 - 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
@@ -76,7 +77,7 @@
 - **手動クレジットUI/API MVP**（2026-05-09 実装）（`GameCredit.kind = MANUAL` をゲーム単位の手動クレジットとして運用。`GET/POST/PATCH/DELETE /games/:id/manual-credits` を追加。公開中ゲームでの追加/編集は `snapshotLockedAt` を即時更新。`GET /games/:id/credits` に `manualCredits` と `counts.manual` を追加し、`counts.total` を `assets + characters + manual` に拡張。`syncGameCredits` の delete/recreate 対象を `ASSET/CHARACTER` unlocked のみに限定し、`MANUAL` を削除しないよう修正。）
 
 - **公開前確認での最新参照反映・履歴クレジット混入防止**（`GamesService.getCredits` で非公開ゲームのオーナー公開前確認時は `collectGameReferenceUsageFromGame` を使い現在参照中の ID のみを表示対象とする。locked `GameCredit` は名前/利用条件の補完用途に限定し、現在参照されていない削除済みキャラ等が公開前確認モーダルに出ないよう修正。`apps/api/src/games/games.service.ts`）
-- **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（キャラクター）項目に、修正候補の短文ヒントをカード内表示。素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため廃止し、現行型に整合。当時の将来課題だったノード/フィールド単位の直接ジャンプは後続MVPで実装済み。残る将来課題は一括修正・自動差し替え。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
+- **公開前確認画面内の修正候補表示MVP**（クレジット確認モーダルの deleted / missing / private（素材・キャラクター）項目に、修正候補の短文ヒントをカード内表示。ノード/フィールド単位の直接ジャンプは後続MVPで実装済み。残る将来課題は一括修正・自動差し替え。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開前確認画面からの編集導線強化MVP**（クレジット確認モーダルに編集画面への導線を追加。警告ありの場合に警告サマリーボタン「問題を確認する」、素材/キャラクター別カードのボタン「参照を編集」を実装。クリックで `/my/games/{id}/edit` へ遷移し、カテゴリ単位で公開前チェックへ誘導。編集画面側の既存「対象へ移動」でノードへ移動可能。後続で最初の該当issueへの直接ジャンプMVPを追加済み。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
 - **公開前確認モーダルからの該当 issue 直接ジャンプMVP**（2026-05-12 実装）（削除済み/見つからない/非公開の素材・キャラクターカードで、参照診断 `reference issues` から最初の該当 issue（`nodeId` を持つ issue を優先）へ直接遷移。`/my/games/{id}/edit` に `scenarioCheckIssueId` / `scenarioCheckRefId` / `scenarioCheckField` / `scenarioCheckNodeId` を付与し、edit画面側で該当 issue を強調表示。`sceneId`/`nodeId` がある場合は既存フォーカス処理で対象ノードへ移動。issue未特定時は既存のカテゴリ単位導線へフォールバック。）
 - **公開前確認の複数使用箇所一覧MVP**（2026-05-12 実装）（削除済み/見つからない/非公開の素材・キャラクターが複数ノードで参照されている場合、クレジット確認モーダルのカード内に「使用箇所 N件」と Scene/Node/フィールド別の行一覧を最大5件表示。各行に「ここへ移動」ボタン（1件のみ「該当箇所へ移動」）。5件超は「ほかN件」のみ表示。issue未特定時は「参照を編集」カテゴリ導線にフォールバック。入力フィールドへのピンポイントフォーカス・一括修正・自動差し替えは将来課題。`apps/frontend/components/game/GameCreditConfirmModal.vue`）
@@ -177,7 +178,7 @@
 	- 全体警告ボタン: `focusScenarioCheck=1&scenarioCheckFilter=warning`
 	- 素材別カード: `scenarioCheckCategory=asset-reference`
 	- キャラクター別カード: `scenarioCheckCategory=character-reference`
-- 素材側 `private` 分岐は `Asset.visibility` / `Asset.isPublic` 未実装のため現行UIでは扱わない。
+- 素材側 `private` も status 警告として扱う（`Asset.isPublic=false`）。
 - 詳細仕様: `docs/PROJECT_SPEC.md` 参照。
 
 ### 公開中編集（/my/games/:id/edit）
@@ -197,7 +198,7 @@
 
 優先順（現時点のおすすめ順）:
 
-1. **Asset.visibility / Asset.isPublic** — アセットの公開状態フィールド設計・導入（現行は `deletedAt: null` が公開条件）。非公開化影響表示とセットで実施。
+1. **Asset.visibility 拡張（unlisted など）** — 現在の `Asset.isPublic` Boolean MVP を、必要に応じて `public/private/unlisted` へ拡張する設計。
 2. **Like / Shelf DB 分離** — `AssetLike` / `AssetShelfItem` 導入、現行 `favorites` の役割分離。設計は `docs/PROJECT_SPEC.md` に明文化済み。
 3. **スタッフロール拡張 / BGM（P2〜P3）** — 現スタッフロールMVP（スタッフロール表示ON/OFF・速度設定・自動表示ON/OFF実装済み）の拡張（終了時挙動の詳細オプション、BGM、より細かな速度設定）。音声素材/クレジット設計と絡むため慎重に扱う。
 4. **公開版/下書き版分離** — 公開中編集の安全性向上の本命施策（反映タイミング分離）。
@@ -219,7 +220,7 @@
 - 公開前チェックUIの完全ミニマル化（ヘッダー重大度バッジのフィルタ化等）
 
 **アセット/キャラクター visibility**
-- `Asset.visibility` / `Asset.isPublic` フィールドの設計・導入（現状は `deletedAt: null` が公開条件）
+- `Asset.visibility`（public/private/unlisted など）拡張設計（現状は `isPublic` Boolean MVP）
 - 非公開化時の利用中ゲームへの影響表示（`Asset.visibility` 設計後に接続予定）
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）

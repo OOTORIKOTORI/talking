@@ -72,6 +72,14 @@
             <h2 class="text-2xl font-bold text-gray-900">
               {{ asset.title || 'Untitled' }}
             </h2>
+            <div class="mt-2">
+              <span
+                class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded"
+                :class="asset.isPublic === false ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'"
+              >
+                {{ asset.isPublic === false ? '非公開' : '公開' }}
+              </span>
+            </div>
             <div class="mt-3 flex items-center gap-3">
               <button
                 @click="toggleAssetFavorite"
@@ -242,6 +250,16 @@
                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label for="editCreditRequired" class="text-sm font-medium text-gray-700">クレジット表記を必須にする</label>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <input
+                  id="editIsPublic"
+                  v-model="editForm.isPublic"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="editIsPublic" class="text-sm font-medium text-gray-700">公開する</label>
               </div>
 
               <div>
@@ -453,6 +471,7 @@ const editForm = ref({
   tagsString: '',
   usageTerms: '',
   creditRequired: true,
+  isPublic: true,
 });
 
 const loadAsset = async () => {
@@ -497,6 +516,7 @@ const resetForm = () => {
     editForm.value.tagsString = asset.value.tags?.join(', ') || '';
     editForm.value.usageTerms = asset.value.usageTerms || '';
     editForm.value.creditRequired = asset.value.creditRequired !== false;
+    editForm.value.isPublic = asset.value.isPublic !== false;
   }
 };
 
@@ -517,6 +537,7 @@ const saveAsset = async () => {
       tags,
       usageTerms: editForm.value.usageTerms,
       creditRequired: editForm.value.creditRequired,
+      isPublic: editForm.value.isPublic,
     });
 
     if (updated) {

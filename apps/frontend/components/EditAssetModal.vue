@@ -98,6 +98,18 @@
                 </p>
               </div>
 
+              <div class="flex items-center gap-3">
+                <input
+                  id="asset-public"
+                  v-model="formData.isPublic"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="asset-public" class="text-sm font-medium text-gray-700">
+                  公開する
+                </label>
+              </div>
+
               <!-- Error Message -->
               <div v-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p class="text-sm text-red-800">{{ errorMessage }}</p>
@@ -153,6 +165,7 @@ const formData = ref({
   description: '',
   primaryTag: '',
   tags: [] as string[],
+  isPublic: true,
 });
 
 const tagsInput = ref('');
@@ -214,6 +227,7 @@ watch(() => props.asset, (asset) => {
       description: asset.description || '',
       primaryTag: asset.primaryTag,
       tags: asset.tags || [],
+      isPublic: asset.isPublic !== false,
     };
     tagsInput.value = (asset.tags || []).join(', ');
   }
@@ -257,6 +271,7 @@ const handleSubmit = async () => {
       description: formData.value.description || undefined,
       primaryTag: formData.value.primaryTag,
       tags,
+      isPublic: formData.value.isPublic,
     };
 
     const updatedAsset = await $api<Asset>(`/assets/${props.asset.id}`, {

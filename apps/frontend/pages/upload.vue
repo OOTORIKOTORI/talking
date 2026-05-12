@@ -77,6 +77,19 @@
           </label>
         </div>
 
+        <!-- Visibility -->
+        <div class="flex items-center gap-3">
+          <input
+            id="isPublic"
+            v-model="isPublic"
+            type="checkbox"
+            class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label for="isPublic" class="text-sm font-medium text-gray-700">
+            公開する
+          </label>
+        </div>
+
         <!-- Usage Terms -->
         <div>
           <label for="usageTerms" class="block text-sm font-medium text-gray-700 mb-2">
@@ -248,6 +261,7 @@ const description = ref('')
 const tagsInput = ref('')
 const primaryTag = ref('')
 const creditRequired = ref(true)
+const isPublic = ref(true)
 const usageTerms = ref('')
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement>()
@@ -299,6 +313,7 @@ async function handleUpload() {
       primaryTag: primaryTag.value,
       usageTerms: usageTerms.value.trim() || undefined,
       creditRequired: creditRequired.value,
+      isPublic: isPublic.value,
     })
     uploadResult.value = {
       ...result,

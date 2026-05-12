@@ -8,6 +8,7 @@ type UploadOpts = {
   primaryTag?: string
   usageTerms?: string
   creditRequired?: boolean
+  isPublic?: boolean
 }
 
 export function useUploader() {
@@ -55,6 +56,7 @@ export function useUploader() {
         size: file.size,
         usageTerms: opts?.usageTerms,
         creditRequired: opts?.creditRequired,
+        isPublic: opts?.isPublic,
       },
     })
 

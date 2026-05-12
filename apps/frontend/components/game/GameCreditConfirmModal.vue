@@ -118,6 +118,12 @@
                       >
                         ⚠ 見つかりません
                       </span>
+                      <span
+                        v-else-if="asset.status === 'private'"
+                        class="inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-800"
+                      >
+                        ⚠ 非公開
+                      </span>
                     </div>
                   </div>
 
@@ -549,6 +555,9 @@ function getAssetFixHint(status: AssetCreditStatus): string | null {
   }
   if (status === 'deleted') {
     return 'この素材は削除済みです。別の素材に差し替えてください。'
+  }
+  if (status === 'private') {
+    return 'この素材は非公開です。素材を公開するか、別の素材に差し替えてください。'
   }
   if (status !== 'active') {
     return 'この素材は現在利用できない状態です。別の素材に差し替えてください。'

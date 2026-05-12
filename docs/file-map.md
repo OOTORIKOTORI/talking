@@ -20,10 +20,10 @@ apps/frontend/pages/
 ├── explore.vue                              # 公開コンテンツの探索ページ。ゲーム/アセット/キャラクターの導線
 ├── login.vue                                # Supabase ログイン画面
 ├── logout.vue                               # ログアウト処理を実行してトップへ戻すページ
-├── upload.vue                               # アセットアップロード画面。画像/音声の投稿入口
+├── upload.vue                               # アセットアップロード画面。画像/音声の投稿入口（公開/非公開の初期設定を含む）
 ├── assets/
 │   ├── index.vue                            # 公開アセット一覧。検索・絞り込みの入口
-│   └── [id].vue                             # アセット詳細画面。内容確認や関連操作を提供
+│   └── [id].vue                             # アセット詳細画面。内容確認や関連操作を提供（非公開は owner のみ閲覧可）
 ├── characters/
 │   ├── index.vue                            # 公開キャラクター一覧
 │   └── [id].vue                             # キャラクター詳細・画像表示画面
@@ -34,7 +34,7 @@ apps/frontend/pages/
 │       └── play.vue                         # ゲームプレイ画面。ノード進行、選択肢分岐、音声、カメラ、セーブ/ロードを統括
 ├── my/
 │   ├── assets/
-│   │   └── index.vue                        # 自分のアセット管理一覧。投稿物の確認・整理用
+│   │   └── index.vue                        # 自分のアセット管理一覧。投稿物の確認・整理用（公開/非公開バッジ・フィルタ対応）
 │   ├── characters/
 │   │   ├── index.vue                        # 自分のキャラクター一覧
 │   │   ├── new.vue                          # キャラクター新規作成画面
@@ -55,7 +55,7 @@ apps/frontend/pages/
 ```text
 apps/frontend/components/
 ├── AssetThumbnail.vue                       # アセットのサムネイル表示。署名URLやフォールバック表示を吸収
-├── EditAssetModal.vue                       # アセット情報編集モーダル
+├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）
 ├── asset/
 │   └── AssetCard.vue                        # アセット一覧用カード。画像・タイトル・お気に入りUIを表示
 ├── character/
@@ -153,9 +153,9 @@ apps/api/src/
 ├── app.module.ts                            # NestJS 全体モジュール。各 feature module を束ねる
 ├── main.ts                                  # API エントリポイント。Nest の起動設定を行う
 ├── assets/
-│   ├── assets.controller.ts                 # アセット CRUD と公開取得の HTTP 入口
+│   ├── assets.controller.ts                 # アセット CRUD と公開取得の HTTP 入口（詳細は任意認証で owner の private 閲覧を許可）
 │   ├── assets.module.ts                     # assets 機能のモジュール定義
-│   ├── assets.service.ts                    # Prisma・検索キュー連携を含むアセット業務ロジック
+│   ├── assets.service.ts                    # Prisma・検索キュー連携を含むアセット業務ロジック（公開条件: deletedAt=null かつ isPublic=true、owner は private 閲覧可）
 │   └── dto/
 │       ├── create-asset.dto.ts              # アセット作成リクエスト DTO
 │       ├── query-assets.dto.ts              # アセット検索/絞り込み用 DTO
@@ -180,7 +180,7 @@ apps/api/src/
 │   ├── favorites.controller.ts              # お気に入り関連 API の共通入口
 │   ├── favorites.list.controller.ts         # お気に入り一覧取得 API
 │   ├── favorites.module.ts                  # favorites 機能のモジュール定義
-│   ├── favorites.service.ts                 # アセットお気に入りの保存/取得ロジック
+│   ├── favorites.service.ts                 # アセットお気に入りの保存/取得ロジック（他者privateは登録/一覧表示不可）
 │   ├── favorites.toggle.controller.ts       # お気に入り ON/OFF 切り替え API
 │   └── dto/
 │       └── favorites.query.dto.ts           # お気に入り一覧取得用 DTO
@@ -197,7 +197,7 @@ apps/api/src/
 ├── meili/
 │   └── meili.client.ts                      # Meilisearch クライアント初期化
 ├── my/
-│   ├── my.controller.ts                     # 自分の assets / characters 一覧を返す API
+│   ├── my.controller.ts                     # 自分の assets / characters 一覧を返す API（assets は public/private 両方返却）
 │   └── my.module.ts                         # my 機能のモジュール定義
 ├── prisma/
 │   ├── prisma.module.ts                     # PrismaService を DI するモジュール
@@ -207,7 +207,7 @@ apps/api/src/
 │   ├── search.producer.ts                   # 検索インデックス更新ジョブの投入
 │   └── thumbnail.producer.ts                # サムネイル生成ジョブの投入
 ├── search/
-│   ├── search.controller.ts                 # Meilisearch を使ったアセット検索 API
+│   ├── search.controller.ts                 # Meilisearch を使ったアセット検索 API（public は isPublic=true、owner=self は private 含む）
 │   ├── search.module.ts                     # search 機能のモジュール定義
 │   └── dto/
 │       └── search-assets.dto.ts             # 検索条件 DTO

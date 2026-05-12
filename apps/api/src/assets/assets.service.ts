@@ -120,6 +120,7 @@ export class AssetsService {
         url,
         ownerId,
         ownerDisplayNameSnapshot,
+        isPublic: createAssetDto.isPublic ?? true,
         usageTerms: normalizedUsageTerms,
         ...(createAssetDto.creditRequired !== undefined && { creditRequired: createAssetDto.creditRequired }),
       },
@@ -143,6 +144,8 @@ export class AssetsService {
     const where: any = { deletedAt: null }
     if (query.ownerId) {
       where.ownerId = query.ownerId
+    } else {
+      where.isPublic = true
     }
 
     const items = await this.prisma.asset.findMany({
@@ -201,6 +204,10 @@ export class AssetsService {
     });
     if (!asset) return null;
 
+    if (!asset.isPublic && asset.ownerId !== userId) {
+      return null;
+    }
+
     const { _count, ...base } = asset as any;
     const ownerDisplayNameMap = await this.getOwnerDisplayNameMap([base.ownerId]);
     const assetWithFavoriteCount = {
@@ -244,6 +251,7 @@ export class AssetsService {
         ...(updateAssetDto.description !== undefined && { description: updateAssetDto.description }),
         ...(updateAssetDto.tags !== undefined && { tags: updateAssetDto.tags }),
         ...(updateAssetDto.primaryTag !== undefined && { primaryTag: updateAssetDto.primaryTag }),
+        ...(updateAssetDto.isPublic !== undefined && { isPublic: updateAssetDto.isPublic }),
         ...(updateAssetDto.usageTerms !== undefined && {
           usageTerms: updateAssetDto.usageTerms.trim() || null,
         }),

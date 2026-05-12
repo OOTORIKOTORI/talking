@@ -27,4 +27,8 @@ export class UpdateAssetDto {
   @IsOptional()
   @IsBoolean()
   creditRequired?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
 }

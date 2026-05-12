@@ -39,6 +39,7 @@ export interface Asset {
   ownerId?: string;
   ownerDisplayNameSnapshot?: string | null;
   ownerDisplayName?: string | null;
+  isPublic?: boolean;
   thumbKey?: string;
     thumbKeyWebp?: string;
     thumbKeyAvif?: string;
@@ -371,7 +372,7 @@ export interface GameAssetCreditItem {
     label: string
     count: number
   }>
-  status: 'active' | 'deleted' | 'missing'
+  status: 'active' | 'deleted' | 'missing' | 'private'
   linkable: boolean
   usageTerms: string | null
   creditRequired: boolean

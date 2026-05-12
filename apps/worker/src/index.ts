@@ -34,11 +34,11 @@ const searchWorker = new Worker(
   async (job) => {
     console.log(`[${new Date().toISOString()}] Indexing asset ${job.data.id}`);
     
-    const { id, title, description, tags, primaryTag, contentType, url, createdAt, ownerId, thumbKey } = job.data;
+    const { id, title, description, tags, primaryTag, contentType, url, createdAt, ownerId, thumbKey, isPublic } = job.data;
     
     const index = meiliClient.index('assets');
     await index.addDocuments([
-      { id, title, description, tags, primaryTag, contentType, url, createdAt, ownerId, thumbKey }
+      { id, title, description, tags, primaryTag, contentType, url, createdAt, ownerId, thumbKey, isPublic }
     ], { primaryKey: 'id' });
     
     console.log(`[${new Date().toISOString()}] Asset ${id} indexed`);

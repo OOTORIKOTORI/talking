@@ -147,7 +147,7 @@ export class ProfilesService {
         },
       }),
       this.prisma.asset.findMany({
-        where: { ownerId: userId, deletedAt: null },
+        where: { ownerId: userId, deletedAt: null, isPublic: true },
         orderBy: { createdAt: 'desc' },
         take: PROFILE_CONTENTS_LIMIT,
         select: {

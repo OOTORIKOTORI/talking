@@ -36,4 +36,8 @@ export class CreateAssetDto {
   @IsOptional()
   @IsBoolean()
   creditRequired?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
 }

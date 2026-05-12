@@ -49,7 +49,7 @@ Write-Host "assets インデックスの設定を構成中..." -ForegroundColor 
 
 try {
     $settingsBody = @{
-        filterableAttributes = @("contentType", "primaryTag", "tags", "ownerId")
+        filterableAttributes = @("contentType", "primaryTag", "tags", "ownerId", "isPublic")
         sortableAttributes = @("createdAt")
     } | ConvertTo-Json
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Favorite, Asset } from '@prisma/client';
 
@@ -7,6 +7,14 @@ export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
   async add(userId: string, assetId: string) {
+    const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
+    if (!asset || asset.deletedAt) {
+      throw new NotFoundException('asset not found');
+    }
+    if (asset.ownerId !== userId && !asset.isPublic) {
+      throw new ForbiddenException('cannot favorite a non-public asset');
+    }
+
     await this.prisma.favorite.upsert({
       where: { userId_assetId: { userId, assetId } },
       update: {},
@@ -46,6 +54,7 @@ export class FavoritesService {
     const where: any = {
       id: { in: ids },
       deletedAt: null,
+      OR: [{ ownerId: userId }, { isPublic: true }],
     }
 
     if (opt.q) {

@@ -85,7 +85,7 @@
           - 名前、作者（`ownerDisplayName` → 短縮 `ownerId`）
           - クレジット必須/任意バッジ
           - 利用条件（`usageTerms`） → 無い場合は「個別条件なし」と表示
-          - status（`active` / `deleted` / `missing` / `private`） → 異常時は警告表示（`private` は現状キャラクター参照のみ。素材側は `Asset.visibility` / `Asset.isPublic` 未実装のため判定しない）
+          - status（`active` / `deleted` / `missing` / `private`） → 異常時は警告表示（素材・キャラクターの両方で `private` を判定）
           - 使用箇所（各フィールドの使用数）
           - 修正候補表示MVP（2026-05-07）: deleted / missing / private（キャラクター）など非active項目に、カード内の小さな説明ボックスで修正候補を表示
         - 件数表示：素材 X 件 / キャラクター Y 件
@@ -238,7 +238,7 @@
   - フロント表示は既存通り `ownerDisplayName` を使い、`null` のときのみ短縮 `ownerId` へフォールバックする。
   - プロフィールページヘッダー表示名は現在の `CreatorProfile.displayName` を使う。
   - スナップショットは法的なクレジット確定情報ではなく、MVP段階の作者名安定表示用。
-  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）と、公開中ゲームの構造変更confirm拡張MVP（ノード削除・シーン削除・開始シーン変更・開始ノード変更で公開中のみconfirm、削除系は1回confirm化）も実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPも実装済み。構造化ライセンス、公開中編集時の再確認UX拡張（差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。
+  - 公開時点のクレジット/利用条件スナップショット固定MVPは `GameCredit.snapshotLockedAt` により実装済み。公開後の参照追加・削除の厳密運用MVPも実装済み（公開済みゲームで `syncGameReferences` 後に未lock `GameCredit` を即lock）。公開中編集時の保存前再確認UX MVP（公開ゲームで「保存」「保存して次のノードへ」時に `window.confirm`、キャンセル時は保存中断、非公開では非表示）と、公開中ゲームの構造変更confirm拡張MVP（ノード削除・シーン削除・開始シーン変更・開始ノード変更で公開中のみconfirm、削除系は1回confirm化）も実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPも実装済み。Asset 側の `isPublic`（Boolean）MVP は実装済み。`visibility`（public/private/unlisted など）への拡張は将来課題。
 - 公開前クレジット確認の表示基準（2026-05-08）
   - **非公開ゲームのオーナーによる公開前確認** (`GET /games/:id/credits`、`!game.isPublic && game.ownerId === userId`) では、`GameCredit` 履歴ではなく現在のゲーム内容を走査して収集した参照（`collectGameReferenceUsageFromGame`）を表示対象IDの基準とする。
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
@@ -251,9 +251,20 @@
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedUrl`
 - アセット（Favorites 含む）
   - 公開一覧: `GET /assets`、検索: `GET /search/assets`
+    - 公開条件は `deletedAt = null` かつ `isPublic = true`
+    - `owner=me` または `owner` がログイン中ユーザー自身の場合は、自分の `isPublic=false` も検索対象
+    - 他ユーザー指定または未指定では `isPublic=true` のみ返却
     - 出典: `apps/frontend/composables/useAssets.ts`（`listPublic`, `searchMine`）と `apps/api/src/search/search.controller.ts`
+  - 公開詳細: `GET /assets/:id`
+    - 公開アセットは未ログインでも取得可能
+    - `isPublic=false` は owner のみ取得可能（他者には 404）
+  - 自分の一覧（管理）: `GET /my/assets`
+    - `ownerId = userId` かつ `deletedAt = null` を返却し、`isPublic=true/false` の両方を含む
   - お気に入り一覧: `GET /favorites`（配列は `normalizeAssetFavorite` で正規化）
+    - 一覧表示は `deletedAt = null` かつ（`ownerId = userId` または `isPublic = true`）
+    - 他者の非公開化後アセットは一覧から除外される
   - お気に入り登録: `POST /assets/:id/favorite`
+    - 登録条件は「未削除」かつ（自分のアセット または `isPublic=true`）
   - お気に入り解除: `DELETE /assets/:id/favorite`
     - 出典: フロント `apps/frontend/composables/useAssets.ts`（`listFavorites`, `favorite`, `unfavorite`, `applyFavorites`）/ サーバ `apps/api/src/favorites/*.ts`
 - キャラクター
@@ -508,7 +519,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 参照削除時の locked 行は削除しない。履歴クレジットとして `/games/:id/credits` に残る（`usageCount: 0`, `fields: []`）。
   - `lockGameCreditsSnapshot`（公開遷移時）は `syncGameReferences` 呼び出し後に念のため最終 `updateMany` を維持する。
   - `syncGameCredits` の二重呼び出しは `lockGameCreditsSnapshot` 内で除去した。
-- 構造化ライセンス、公開中編集時の再確認UX拡張（ノード追加・シーン追加への公開中confirm拡張、差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、`Asset.visibility` / `Asset.isPublic` は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPは2026-05-09に実装済み。
+- 構造化ライセンス、公開中編集時の再確認UX拡張（ノード追加・シーン追加への公開中confirm拡張、差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）、Asset visibility の段階拡張（unlisted など）は将来課題。公開前クレジット確認画面MVPは2026-05-06に実装済み。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。手動クレジットUI/API MVPとスタッフロールUI MVPは2026-05-09に実装済み。
 - 表示対象
   - assets: `coverAssetId`, `bgAssetId`, `musicAssetId`, `sfxAssetId`, `portraitAssetId`
   - characters: `speakerCharacterId`, `portraits`
@@ -668,7 +679,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - 公開ゲーム詳細クレジット欄: `linkable` な項目にのみバッジ + `usageTerms` を表示（非公開/削除済みは出さない）
 - **API:** `CreateAssetDto` / `UpdateAssetDto` / `CreateCharacterDto` / `UpdateCharacterDto` に `usageTerms` (trim・空文字→null) と `creditRequired` を追加。
 - **注意:**
-  - `Asset.visibility` / `Asset.isPublic` は今回も未導入。Asset の公開条件は `deletedAt = null` のまま。
+  - `Asset.isPublic`（Boolean MVP）は導入済み。公開向けの取得条件は `deletedAt = null` かつ `isPublic = true`。`visibility`（public/private/unlisted など）への拡張は将来課題。
 - `GameAssetReference` / `GameCharacterReference` / `GameCredit` は導入済み。公開時点のクレジット/利用条件スナップショット固定MVPは2026-05-06に実装済み（`snapshotLockedAt` 導入）。公開後の参照追加・削除の厳密運用MVPは2026-05-07に実装済み（`lockUnlockedGameCreditsIfPublished` 導入）。公開前確認画面からの編集導線強化MVPは2026-05-07に実装済み（クレジット確認モーダルから公開前チェックへの遷移ボタン追加）。公開中編集時の保存前再確認UX MVPは2026-05-08に実装済み。公開中編集時の再確認UX拡張（ノード追加・シーン追加への公開中confirm拡張、差分検出、重要変更のみ確認、独自モーダル化、「今後表示しない」導線、公開版/下書き版分離）は将来課題。
 
 #### クレジット作者表示の将来改善
@@ -691,7 +702,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   - **その他**
     - 削除済み/退会済み/非公開ユーザーの場合のフォールバック表示を整理
     - 構造化ライセンス
-    - `Asset.visibility` / `Asset.isPublic`
+    - Asset visibility 拡張（public/private/unlisted など）
 
   ## プロフィール/クリエイター名MVP（2026-05-05）
 
@@ -704,7 +715,7 @@ MVPとしてこの兼任を許容する。ただし将来的には以下のと�
   `GET /profiles/:userId/contents` 仕様（MVP）:
   - 認証不要（`OptionalSupabaseAuthGuard`）
   - プロフィールが存在しない場合は `404`
-  - 各カテゴリは公開・未削除のもののみ返却（games: `isPublic=true, deletedAt=null`; characters: `isPublic=true, deletedAt=null`; assets: `deletedAt=null`）
+  - 各カテゴリは公開・未削除のもののみ返却（games: `isPublic=true, deletedAt=null`; characters: `isPublic=true, deletedAt=null`; assets: `isPublic=true, deletedAt=null`）
   - 各カテゴリ最大6件、games/characters は `updatedAt desc` 順、assets は `createdAt desc` 順（Asset に `updatedAt` がないため）
   - `ownerDisplayName` は各アイテムの `ownerDisplayNameSnapshot` を優先し、未設定時は当該プロフィールの `displayName` を利用
   - 個人情報（email等）は返却しない
@@ -1006,7 +1017,8 @@ GET /games/:id/reference-diagnostics
 **理由**: 非公開ゲームの存在・タイトル・内容がアセット所有者に漏れるのを避けるため。また、「誰がこの素材を使っているか」の監視機能にならないようにするため。
 
 #### Asset.isPublic / visibility について
-現行の `Asset` モデルには `isPublic` / visibility フィールドがない。現状は `deletedAt: null` が実質的な公開条件。「非公開化時の影響表示」は将来 `Asset.visibility` / `Asset.isPublic` 等を設計するときに接続する。MVPでは対象外。
+`Asset.isPublic`（Boolean MVP）は導入済み。公開向けの一覧・検索・プロフィール・お気に入りでは `deletedAt: null` かつ `isPublic=true` を公開条件として扱う。owner は自分の `isPublic=false` を一覧/詳細で確認できる。
+将来課題として、`visibility`（public/private/unlisted など）へ段階拡張する。
 
 ### 共有素材の再アップロード/コピー問題（設計論点）
 

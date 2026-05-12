@@ -150,9 +150,12 @@ export const thumbnailWorker = new Worker(
           title: updated.title || '',
           description: updated.description || '',
           tags: updated.tags,
+          primaryTag: updated.primaryTag,
           contentType: updated.contentType,
           url: updated.url,
+          ownerId: updated.ownerId,
           thumbKey: updated.thumbKey,
+          isPublic: updated.isPublic,
           createdAt: updated.createdAt.toISOString(),
         }]);
       } catch (error) {
