@@ -195,7 +195,7 @@
     - `GameProject.staffRollAutoOpenEnabled`（BOOLEAN NOT NULL DEFAULT false）を追加（migration: `20260511120000staffrollautoopenenabled`）。
     - defaultは `false`（既存ゲーム挙動を変えない）。新規/既存とも未設定時は自動表示しない。
     - 設定場所は「ゲーム全体設定 > クレジット/スタッフロール」タブ。
-    - `staffRollEnabled=false` の場合は自動表示しない（自動表示トグルはUI上で無効化し、説明文も表示）。
+    - `staffRollEnabled=false` の場合はスタッフロール自動表示は実行しない。自動表示設定自体はUI上で操作・保存できるが、サマリでは `自動表示ON（OFF中は開きません）` と表示して誤解を避ける。
     - 公開中ゲームで自動表示設定を変更して「全体設定を保存」する場合は既存の共通confirm対象。変更なし保存ではconfirmなし。非公開ゲームはconfirmなし。
     - プレイ画面では、終了状態到達時に条件を満たす場合のみスタッフロールを自動表示し、1プレイ中1回だけ開く。
     - 自動表示時も既存の `openStaffRoll()` / `loadStaffRollCredits()` / 速度設定を再利用する。
