@@ -165,7 +165,7 @@
   - クレジット取得失敗時：エラー表示＋再試行ボタン
   - 手動クレジットUI/API MVP（`GameCredit.kind = MANUAL`）は2026-05-09に実装済み。
   - スタッフロールUI MVP（2026-05-09）を実装済み。`GET /games/:id/credits` を既存仕様のまま利用し、フロントUIを追加。
-    - 注記: UI MVP時点ではDB変更なしだったが、後続MVPで `staffRollEnabled` / `staffRollSpeedPreset` / `staffRollAutoOpenEnabled` を追加済み。
+    - 注記: UI MVP時点ではDB変更なしだったが、後続MVPで `staffRollEnabled` / `staffRollSpeedPreset` / `staffRollAutoOpenEnabled` / `staffRollSectionOrder` / `staffRollEndBehavior` を追加済み。
   - スタッフロール設定MVP（2026-05-10）を実装済み。`GameProject.staffRollEnabled`（default: `true`）でゲーム単位に導線の表示ON/OFFを切り替える。
     - 編集画面右ペインの即時切替UIは廃止し、`ゲーム全体設定` モーダルの `クレジット/導線` タブで保存時反映する構成へ移設（MVP）。
     - スタッフロール導線は同タブ内で設定し、右下の「全体設定を保存」で反映する。
@@ -1181,6 +1181,12 @@ GET /games/:id/reference-diagnostics
   - クレジット取得処理を `useStaffRollCredits` で共通化（公開詳細/プレイ画面）
 - 表示順カスタマイズMVPで実装済み（2026-05-12）
   - `staffRollSectionOrder`（手動クレジット / 使用素材 / 使用キャラクターの大分類順のみ、default manual,assets,characters）
+- スタッフロール終了時挙動MVPで実装済み（2026-05-12）
+  - `staffRollEndBehavior`（TEXT NOT NULL DEFAULT 'stop'）を追加（migration: `20260512130000_add_staff_roll_end_behavior`）
+  - 選択肢：`stop`（最後で停止）/ `close`（最後で閉じる）/ `loop`（先頭に戻ってループ）、default `stop`
+  - 設定場所は「ゲーム全体設定 > クレジット/導線」タブ内、スクロール速度設定の下
+  - 公開中ゲームの全体設定保存confirm対象（変更なし保存/非公開ゲームはconfirmなし）
+  - 基本の終了時挙動は実装済み。詳細オプション・BGM/SE連動・より凝った演出は将来課題
 - 将来課題
   - 素材/キャラクター/手動クレジットの個別アイテム並び替え
   - 終了時挙動の詳細オプション
@@ -1286,7 +1292,7 @@ type Portrait = {
 <!-- impl: apps/frontend/components/game/MessageThemeModal.vue, apps/frontend/pages/my/games/[id]/edit.vue -->
 - `/my/games/:id/edit` 上部の常時フォームは廃止し、ゲーム基本情報は「全体設定」モーダル内の `基本情報` タブで編集する。
 - 全体設定モーダルは「ゲーム全体設定」として、`title` / `summary` とプレイ画面UI設定（messageTheme / gameUiTheme / backlogTheme）を一体で扱う。
-- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset`・`staffRollAutoOpenEnabled`・`staffRollSectionOrder` と手動クレジット編集（ゲーム単位・個別保存）を扱う。手動クレジットの保存は「全体設定を保存」とは独立した個別保存フローで行う。
+- 全体設定モーダルに `クレジット/導線` タブを持ち、`staffRollEnabled`・`staffRollSpeedPreset`・`staffRollAutoOpenEnabled`・`staffRollSectionOrder`・`staffRollEndBehavior` と手動クレジット編集（ゲーム単位・個別保存）を扱う。手動クレジットの保存は「全体設定を保存」とは独立した個別保存フローで行う。
 - 基本情報MVPの対象は `title` / `summary` のみ。
 - 将来拡張候補: `coverAssetId` / タグ / ジャンル / 注意書き / slug などを基本情報タブまたは周辺設定へ追加検討。
 

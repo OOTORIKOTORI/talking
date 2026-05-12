@@ -72,8 +72,8 @@ apps/frontend/components/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
 │   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題を表示し公開可否を判断する
 │   ├── GameManualCreditsEditor.vue          # ゲーム単位の手動クレジット編集コンポーネント。個別保存フローで動作する
-│   ├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順に従い自動スクロール再生する
-│   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル。`クレジット/導線` タブでスタッフロール導線ON/OFF・速度・自動表示・セクション表示順・手動クレジット導線を扱う
+	├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順・終了時挙動に従い自動スクロール再生する
+│   ├── MessageThemeModal.vue                # メッセージウィンドウ/セーブUIのテーマ編集モーダル。`クレジット/導線` タブでスタッフロール導線ON/OFF・速度・自動表示・セクション表示順・終了時挙動・手動クレジット導線を扱う
 │   ├── MessageWindow.vue                    # メッセージ窓本体。テーマ解決済みCSSで台詞を表示
 │   ├── MiniStage.vue                        # エディタ用の簡易ステージプレビュー
 │   ├── NodePicker.vue                       # 遷移先ノード選択ダイアログ
@@ -263,7 +263,7 @@ packages/types/src/
 
 ### apps/frontend/components/game/MessageThemeModal.vue
 - メッセージ窓テーマとセーブ/ロード UI テーマをまとめて編集するモーダルです。
-- `クレジット/導線` タブでスタッフロール導線のON/OFF（`staffRollEnabled`）、速度プリセット（`staffRollSpeedPreset`）、エンディング後自動表示（`staffRollAutoOpenEnabled`）、セクション表示順（`staffRollSectionOrder`）、手動クレジット編集（`GameManualCreditsEditor` 経由の個別保存）を扱います。
+- `クレジット/導線` タブでスタッフロール導線ON/OFF（`staffRollEnabled`）、速度プリセット（`staffRollSpeedPreset`）、エンディング後自動表示（`staffRollAutoOpenEnabled`）、セクション表示順（`staffRollSectionOrder`）、終了時挙動（`staffRollEndBehavior`）、手動クレジット編集（`GameManualCreditsEditor` 経由の個別保存）を扱います。
 - 公開 props は gameId、initial、initialUi、emit は close と saved です。
 - 主な関数は save、reset、resetUi、applyPreset、applyUiPreset、exportTheme です。
 - ※ 「全体設定を保存」は PATCH /games/:id に messageTheme / gameUiTheme / staffRoll 設定を同時送信します。手動クレジットは独立した個別保存フローで保存します。
