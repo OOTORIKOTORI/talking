@@ -29,6 +29,8 @@
 - アセット管理
   - パス: `/my/assets`（タブ: アセット｜キャラクター）
   - 検索/フィルタ: 上記と同等のクエリ同期
+  - アセット編集モーダル（`EditAssetModal.vue`）で `isPublic: true -> false` の保存時のみ利用影響確認を実行し、参照中ゲームがある場合は保存前に確認モーダルを表示（0件時は確認なしで保存）
+  - 公開中ゲームで参照がある場合は強い warning、非公開/下書きのみの場合は軽い notice を表示。確認後は保存を続行可能（非公開化をブロックしない）
   - 出典: `apps/frontend/pages/my/assets/index.vue`
 - お気に入り
   - パス: `/my/favorites`（アセット）・`/my/favorites/characters`（キャラクター）
@@ -58,6 +60,8 @@
     - 新規アップロード画像は末尾に追加（最大の `sortOrder` + 1 を付与）
     - ドラッグ＆ドロップで入替、`sortOrder` を 0..N-1 に再採番して保存
     - 保存トースト／削除は取り消し可能トースト（5秒）
+    - 編集保存で `isPublic: true -> false` のときのみ利用影響確認を実行し、参照中ゲームがあれば保存前確認モーダルを表示（0件時は確認なし）
+    - 公開中ゲーム参照ありは強い warning、非公開/下書きのみは軽い notice。確認後は保存続行可能
     - 出典: `apps/frontend/pages/my/characters/[id].vue`
 - 公開ゲーム
   - 一覧（公開）: `/games`
@@ -1004,10 +1008,19 @@ GET /games/:id/reference-diagnostics
 
 #### レスポンス設計
 - `totalGameCount` / `ownGameCount` / `otherGameCount`: distinct ゲーム件数
+- `publicGameCount` / `privateGameCount`: 公開中/非公開ゲーム件数
+- `ownPublicGameCount` / `otherPublicGameCount`: 自分/他人の公開中ゲーム件数
 - `totalReferenceCount` / `ownReferenceCount` / `otherReferenceCount`: 参照箇所合計
 - `byField`: フィールド別件数（cover/bg/music/sfx/portrait）
 - `ownGameSamples`: 自分のゲームの最大10件サンプル（`sampleLimit: 10`、`hasMoreOwnGames: boolean`）
 - `checkedAt`: 診断実行時刻（ISO 8601）
+
+#### 非公開化時の保存前確認（2026-05-13 MVP）
+- 既存の `GET /assets/:id/usage-impact` を削除時だけでなく「公開→非公開」保存前確認にも流用
+- 確認条件: 編集対象が初期状態 `isPublic=true` かつ保存値が `isPublic=false`
+- 参照中ゲームが0件なら確認なしで保存
+- 参照中ゲームが1件以上なら確認モーダルを表示し、ユーザーが「非公開にして保存」を選んだ場合のみ保存を続行
+- 利用影響取得失敗時も続行不能にはせず、注意表示つきで続行可能
 
 #### 他人ゲームのプライバシー方針
 他人のゲームは、公開・非公開に関わらず **件数だけ** 返す。以下は返さない:
@@ -1075,10 +1088,17 @@ GET /games/:id/reference-diagnostics
 
 #### レスポンス設計
 - `characterId` / `totalGameCount` / `ownGameCount` / `otherGameCount`
+- `publicGameCount` / `privateGameCount` / `ownPublicGameCount` / `otherPublicGameCount`
 - `totalReferenceCount` / `ownReferenceCount` / `otherReferenceCount`
 - `ownByField`: 自分のゲームでのフィールド別件数（`{ speakerCharacterId, portraits }`）
 - `ownGameSamples`: 自分のゲームの最大10件サンプル（`sampleLimit: 10`、`hasMoreOwnGames: boolean`）
 - `checkedAt`: 診断実行時刻（ISO 8601）
+
+#### 非公開化時の保存前確認（2026-05-13 MVP）
+- 既存の `GET /my/characters/:id/usage-impact` を削除時だけでなく「公開→非公開」保存前確認にも流用
+- 確認条件: 編集対象が初期状態 `isPublic=true` かつ保存値が `isPublic=false`
+- 参照中ゲームが0件なら確認なしで保存
+- 参照中ゲームが1件以上なら確認モーダルを表示し、ユーザー確認後に保存を続行（非公開化はブロックしない）
 
 #### 他人ゲームのプライバシー方針
 アセット削除時MVPと同じ方針：他人のゲームは **件数だけ** 返す。以下は返さない:

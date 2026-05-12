@@ -28,6 +28,7 @@
 - 公開前クレジット確認から該当 issue への直接ジャンプMVP完了
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
 - Asset.isPublic MVP（Boolean）実装: 公開一覧/検索/プロフィール/お気に入りは `isPublic=true` を基準、自分の一覧と owner 自身の詳細は private 表示可
+- Asset/Character 非公開化時の利用影響表示MVP: 編集保存で `isPublic: true -> false` の場合のみ usage-impact を確認し、参照中ゲームがあるときは保存前 warning モーダルを表示（確認後続行可、保存ブロックなし）
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
 - 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
 - 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
@@ -146,6 +147,7 @@
 
 - **キャラクター削除時の利用影響表示MVP**（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）
 - **アセット削除時の利用影響表示MVP**（`GET /assets/:id/usage-impact` API、削除確認モーダルへの影響表示統合、他人ゲームは件数のみ、100件超でも全件返さない設計）
+- **Asset/Character 非公開化時の利用影響表示MVP**（`GET /assets/:id/usage-impact` / `GET /my/characters/:id/usage-impact` を流用し、`isPublic: true -> false` 保存時のみ参照影響を確認。公開中ゲーム参照ありは強い warning、非公開/下書きのみは軽い notice。確認後に保存続行可能）
 - **アセットお気に入り数表示MVP**（`favoriteCount` 表示、公開一覧/詳細、楽観更新+ロールバック）
 - **ゲーム内参照アセット権限ルールの棚卸しMVP**（自分+お気に入り方針の明文化、UI/API 現状差分の記録）
 
@@ -221,7 +223,6 @@
 
 **アセット/キャラクター visibility**
 - `Asset.visibility`（public/private/unlisted など）拡張設計（現状は `isPublic` Boolean MVP）
-- 非公開化時の利用中ゲームへの影響表示（`Asset.visibility` 設計後に接続予定）
 - `sourceAssetId` / `derivedFromAssetId` による派生元追跡
 - 再アップロード/コピー問題への対策（perceptual hash / audio fingerprint は将来課題）
 

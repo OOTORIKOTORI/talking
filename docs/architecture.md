@@ -9,6 +9,7 @@
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
 - `thumbKeyWebp` / `thumbKeyAvif` は WebP/AVIF フォーマットのサムネイル
 - 公開一覧/検索の表示条件は `deletedAt = null` かつ `isPublic = true`。owner は自分の private asset を一覧/詳細で確認できる
+- アセット編集で `isPublic: true -> false` を保存する場合は `GET /assets/:id/usage-impact` を使って利用影響を確認し、参照中ゲームがある場合は保存前 warning を表示する（確認後に保存続行可）
 
 ### キャラクター
 - モデル:
@@ -17,6 +18,7 @@
 - 立ち絵画像は **複数** 管理でき、各画像に **感情**、**パターン**、**表示ラベル**、**並び順（sortOrder, 小さいほど先頭）** を付与
 - 編集UIでは画像クリックで **拡大プレビュー**、並び替え結果は `sortOrder` 更新で保存
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
+- キャラクター編集で `isPublic: true -> false` を保存する場合は `GET /my/characters/:id/usage-impact` を使って利用影響を確認し、参照中ゲームがある場合は保存前 warning を表示する（確認後に保存続行可）
 
 ### ゲーム（β）
 - モデル: `GameProject { id, ownerId, ownerDisplayNameSnapshot?, title, summary, coverAssetId?, isPublic, viewCount, playCount, startSceneId?, messageTheme?, gameUiTheme?, backlogTheme?, createdAt, updatedAt, deletedAt? }`, `GameScene`, `GameNode`, `GameChoice`, `GameSave`

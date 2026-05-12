@@ -457,6 +457,9 @@ export class AssetsService {
     const allGames = Array.from(gameMap.values());
     const ownGames = allGames.filter(g => g.isOwn);
     const otherGames = allGames.filter(g => !g.isOwn);
+    const publicGames = allGames.filter(g => g.isPublic);
+    const ownPublicGames = ownGames.filter(g => g.isPublic);
+    const otherPublicGames = otherGames.filter(g => g.isPublic);
 
     const sumByField = (games: GameAgg[]): ByField => {
       const counts: ByField = { coverAssetId: 0, bgAssetId: 0, musicAssetId: 0, sfxAssetId: 0, portraitAssetId: 0 };
@@ -489,6 +492,10 @@ export class AssetsService {
       totalGameCount: allGames.length,
       ownGameCount: ownGames.length,
       otherGameCount: otherGames.length,
+      publicGameCount: publicGames.length,
+      privateGameCount: allGames.length - publicGames.length,
+      ownPublicGameCount: ownPublicGames.length,
+      otherPublicGameCount: otherPublicGames.length,
       totalReferenceCount,
       ownReferenceCount,
       otherReferenceCount: totalReferenceCount - ownReferenceCount,

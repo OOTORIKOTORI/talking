@@ -38,7 +38,7 @@ apps/frontend/pages/
 │   ├── characters/
 │   │   ├── index.vue                        # 自分のキャラクター一覧
 │   │   ├── new.vue                          # キャラクター新規作成画面
-│   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新
+│   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新。公開→非公開保存時は usage-impact による保存前 warning 確認を表示
 │   ├── favorites/
 │   │   ├── index.vue                        # お気に入りアセット一覧
 │   │   └── characters.vue                   # お気に入りキャラクター一覧
@@ -55,7 +55,7 @@ apps/frontend/pages/
 ```text
 apps/frontend/components/
 ├── AssetThumbnail.vue                       # アセットのサムネイル表示。署名URLやフォールバック表示を吸収
-├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）
+├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）。公開→非公開保存時は usage-impact を確認し、参照中ゲームがある場合に保存前 warning モーダルを表示
 ├── asset/
 │   └── AssetCard.vue                        # アセット一覧用カード。画像・タイトル・お気に入りUIを表示
 ├── character/

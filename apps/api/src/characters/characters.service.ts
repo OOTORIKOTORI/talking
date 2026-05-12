@@ -322,6 +322,9 @@ export class CharactersService {
     const allGames = Array.from(gameMap.values());
     const ownGames = allGames.filter(g => g.isOwn);
     const otherGames = allGames.filter(g => !g.isOwn);
+    const publicGames = allGames.filter(g => g.isPublic);
+    const ownPublicGames = ownGames.filter(g => g.isPublic);
+    const otherPublicGames = otherGames.filter(g => g.isPublic);
 
     const sumByField = (games: GameAgg[]) => {
       let speakerCount = 0;
@@ -353,6 +356,10 @@ export class CharactersService {
       totalGameCount: allGames.length,
       ownGameCount: ownGames.length,
       otherGameCount: otherGames.length,
+      publicGameCount: publicGames.length,
+      privateGameCount: allGames.length - publicGames.length,
+      ownPublicGameCount: ownPublicGames.length,
+      otherPublicGameCount: otherPublicGames.length,
       totalReferenceCount,
       ownReferenceCount,
       otherReferenceCount: totalReferenceCount - ownReferenceCount,

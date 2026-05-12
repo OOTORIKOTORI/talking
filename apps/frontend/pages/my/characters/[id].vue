@@ -38,10 +38,11 @@
       <div class="mt-4">
         <button
           class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 flex items-center gap-2"
-          :disabled="!isDirty || saving"
+          :disabled="!isDirty || saving || privateSaveImpactLoading"
           @click="save"
         >
           <span v-if="saving">保存中…</span>
+          <span v-else-if="privateSaveImpactLoading">確認中…</span>
           <span v-else>保存</span>
         </button>
       </div>
@@ -116,6 +117,81 @@
         >元に戻す</button>
       </div>
     </Transition>
+
+    <div
+      v-if="showPrivateSaveModal"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+      @click.self="showPrivateSaveModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start gap-3">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900">このキャラクターを非公開にしますか？</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              このキャラクターを非公開にすると、公開中ゲームの公開前チェックやクレジット確認で「非公開キャラクター」として警告されます。
+            </p>
+            <p class="mt-1 text-sm text-gray-600">
+              必要に応じて、ゲーム側で別のキャラクターに差し替えてください。
+            </p>
+
+            <div v-if="privateSaveImpactError" class="mt-4 rounded p-3 text-sm bg-amber-50 text-amber-700">
+              利用影響の取得に失敗しました。内容確認なしでも続行できますが、利用中ゲームがある可能性があります。
+            </div>
+
+            <div v-else-if="privateSaveImpact" class="mt-4 space-y-3">
+              <div v-if="hasPublicCharacterUsage" class="rounded p-3 text-sm bg-amber-100 text-amber-900">
+                公開中のゲームで使用されています（{{ privateSaveImpact.publicGameCount }}件）。
+              </div>
+              <div v-else class="rounded p-3 text-sm bg-blue-50 text-blue-800">
+                自分のゲームで使用されています（公開中ゲームでの使用はありません）。
+              </div>
+
+              <div class="bg-gray-50 rounded p-3 text-xs text-gray-700 space-y-1">
+                <p>参照中ゲーム: {{ privateSaveImpact.totalGameCount }}件</p>
+                <p>使用箇所数: {{ privateSaveImpact.totalReferenceCount }}箇所</p>
+              </div>
+
+              <div v-if="privateSaveImpact.ownGameSamples?.length" class="space-y-1">
+                <p class="text-xs font-medium text-gray-700">あなたのゲームでの使用例（最大{{ privateSaveImpact.sampleLimit }}件）:</p>
+                <ul class="text-xs text-gray-600 space-y-1">
+                  <li v-for="g in privateSaveImpact.ownGameSamples" :key="g.gameId" class="flex flex-wrap gap-2">
+                    <span>{{ g.title }}</span>
+                    <span class="rounded px-2 py-0.5" :class="g.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'">
+                      {{ g.isPublic ? '公開中' : '非公開' }}
+                    </span>
+                    <span>{{ g.referenceCount }}箇所</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-5 flex gap-3">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                :disabled="saving"
+                @click="showPrivateSaveModal = false"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
+                :disabled="saving"
+                @click="confirmPrivateSaveAndContinue"
+              >
+                非公開にして保存
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 削除確認モーダル -->
     <div
@@ -295,9 +371,59 @@ const snapshot = () => ({
 })
 const isDirty = computed(() => initial.value !== JSON.stringify(snapshot()))
 const saving = ref(false)
+const showPrivateSaveModal = ref(false)
+const privateSaveImpact = ref<any>(null)
+const privateSaveImpactLoading = ref(false)
+const privateSaveImpactError = ref(false)
+const privateSaveConfirmed = ref(false)
+
+const hasPublicCharacterUsage = computed(() => {
+  if (!privateSaveImpact.value) return false
+  return Number(privateSaveImpact.value.publicGameCount || 0) > 0
+})
+
+const willMakeCharacterPrivate = computed(() => {
+  if (!data.value) return false
+  return data.value.isPublic !== false && isPublic.value === false
+})
+
+watch(isPublic, () => {
+  privateSaveConfirmed.value = false
+})
+
+const checkPrivateSaveImpactBeforeSave = async () => {
+  if (!willMakeCharacterPrivate.value || privateSaveConfirmed.value) return true
+
+  privateSaveImpact.value = null
+  privateSaveImpactError.value = false
+  privateSaveImpactLoading.value = true
+  try {
+    const impact = await api.getUsageImpact(id)
+    if (!impact || Number(impact.totalGameCount || 0) === 0) {
+      privateSaveConfirmed.value = true
+      return true
+    }
+    privateSaveImpact.value = impact
+    showPrivateSaveModal.value = true
+    return false
+  } catch {
+    privateSaveImpactError.value = true
+    showPrivateSaveModal.value = true
+    return false
+  } finally {
+    privateSaveImpactLoading.value = false
+  }
+}
+
+const confirmPrivateSaveAndContinue = async () => {
+  showPrivateSaveModal.value = false
+  privateSaveConfirmed.value = true
+  await save()
+}
 
 const save = async () => {
-  if (saving.value || !isDirty.value) return
+  if (saving.value || privateSaveImpactLoading.value || !isDirty.value) return
+  if (!(await checkPrivateSaveImpactBeforeSave())) return
   try {
     saving.value = true
     await api.update(id, { name: name.value, displayName: displayName.value, description: description.value, isPublic: isPublic.value, tags: toTags(tagsCsv.value), creditRequired: creditRequired.value, usageTerms: usageTerms.value })
@@ -305,6 +431,9 @@ const save = async () => {
     syncFormFromCharacter(data.value)
     // 初期スナップショット更新
     initial.value = JSON.stringify(snapshot())
+    privateSaveConfirmed.value = false
+    privateSaveImpact.value = null
+    privateSaveImpactError.value = false
     showToast('保存しました', 'success')
   } catch (e) {
     console.error(e)

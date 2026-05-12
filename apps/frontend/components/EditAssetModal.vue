@@ -128,13 +128,89 @@
                 <button
                   type="submit"
                   class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  :disabled="saving || !formData.primaryTag"
+                  :disabled="saving || privateImpactLoading || !formData.primaryTag"
                 >
                   <span v-if="saving">保存中...</span>
+                  <span v-else-if="privateImpactLoading">確認中...</span>
                   <span v-else>保存</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <div
+          v-if="showPrivateImpactModal"
+          class="fixed inset-0 z-[60] bg-gray-500 bg-opacity-75 flex items-center justify-center"
+          @click.self="showPrivateImpactModal = false"
+        >
+          <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900">この素材を非公開にしますか？</h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  この素材を非公開にすると、公開中ゲームの公開前チェックやクレジット確認で「非公開素材」として警告されます。
+                </p>
+                <p class="mt-1 text-sm text-gray-600">
+                  必要に応じて、ゲーム側で別の素材に差し替えてください。
+                </p>
+
+                <div v-if="privateImpactError" class="mt-4 rounded p-3 text-sm bg-amber-50 text-amber-700">
+                  利用影響の取得に失敗しました。内容確認なしでも続行できますが、利用中ゲームがある可能性があります。
+                </div>
+
+                <div v-else-if="privateImpact" class="mt-4 space-y-3">
+                  <div v-if="hasPublicUsage" class="rounded p-3 text-sm bg-amber-100 text-amber-900">
+                    公開中のゲームで使用されています（{{ privateImpact.publicGameCount }}件）。
+                  </div>
+                  <div v-else class="rounded p-3 text-sm bg-blue-50 text-blue-800">
+                    自分のゲームで使用されています（公開中ゲームでの使用はありません）。
+                  </div>
+
+                  <div class="bg-gray-50 rounded p-3 text-xs text-gray-700 space-y-1">
+                    <p>参照中ゲーム: {{ privateImpact.totalGameCount }}件</p>
+                    <p>使用箇所数: {{ privateImpact.totalReferenceCount }}箇所</p>
+                  </div>
+
+                  <div v-if="privateImpact.ownGameSamples?.length" class="space-y-1">
+                    <p class="text-xs font-medium text-gray-700">あなたのゲームでの使用例（最大{{ privateImpact.sampleLimit }}件）:</p>
+                    <ul class="text-xs text-gray-600 space-y-1">
+                      <li v-for="g in privateImpact.ownGameSamples" :key="g.gameId" class="flex flex-wrap gap-2">
+                        <span>{{ g.title }}</span>
+                        <span class="rounded px-2 py-0.5" :class="g.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'">
+                          {{ g.isPublic ? '公開中' : '非公開' }}
+                        </span>
+                        <span>{{ g.referenceCount }}箇所</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="mt-5 flex gap-3">
+                  <button
+                    type="button"
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                    :disabled="saving"
+                    @click="showPrivateImpactModal = false"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
+                    :disabled="saving"
+                    @click="confirmPrivateAndSave"
+                  >
+                    非公開にして保存
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -172,6 +248,16 @@ const tagsInput = ref('');
 const saving = ref(false);
 const errorMessage = ref('');
 const primaryTagError = ref('');
+const showPrivateImpactModal = ref(false);
+const privateImpact = ref<any>(null);
+const privateImpactError = ref(false);
+const privateImpactLoading = ref(false);
+const privateImpactConfirmed = ref(false);
+
+const hasPublicUsage = computed(() => {
+  if (!privateImpact.value) return false;
+  return Number(privateImpact.value.publicGameCount || 0) > 0;
+});
 
 // Available primary tags based on content type
 const availablePrimaryTags = computed(() => {
@@ -230,8 +316,16 @@ watch(() => props.asset, (asset) => {
       isPublic: asset.isPublic !== false,
     };
     tagsInput.value = (asset.tags || []).join(', ');
+    privateImpactConfirmed.value = false;
+    privateImpact.value = null;
+    privateImpactError.value = false;
+    showPrivateImpactModal.value = false;
   }
 }, { immediate: true });
+
+watch(() => formData.value.isPublic, () => {
+  privateImpactConfirmed.value = false;
+});
 
 // Watch primaryTag for validation
 watch(() => formData.value.primaryTag, (newTag) => {
@@ -244,15 +338,60 @@ const close = () => {
   if (!saving.value) {
     errorMessage.value = '';
     primaryTagError.value = '';
+    showPrivateImpactModal.value = false;
     emit('close');
   }
 };
 
+const shouldCheckPrivateImpact = () => {
+  if (!props.asset) return false;
+  const wasPublic = props.asset.isPublic !== false;
+  return wasPublic && formData.value.isPublic === false;
+};
+
+const checkPrivateImpactBeforeSave = async (): Promise<boolean> => {
+  if (!props.asset || !shouldCheckPrivateImpact() || privateImpactConfirmed.value) {
+    return true;
+  }
+
+  privateImpact.value = null;
+  privateImpactError.value = false;
+  privateImpactLoading.value = true;
+
+  try {
+    const impact = await $api<any>(`/assets/${props.asset.id}/usage-impact`);
+    if (!impact || Number(impact.totalGameCount || 0) === 0) {
+      privateImpactConfirmed.value = true;
+      return true;
+    }
+    privateImpact.value = impact;
+    showPrivateImpactModal.value = true;
+    return false;
+  } catch {
+    privateImpactError.value = true;
+    showPrivateImpactModal.value = true;
+    return false;
+  } finally {
+    privateImpactLoading.value = false;
+  }
+};
+
+const confirmPrivateAndSave = async () => {
+  showPrivateImpactModal.value = false;
+  privateImpactConfirmed.value = true;
+  await handleSubmit();
+};
+
 const handleSubmit = async () => {
   if (!props.asset) return;
+  if (saving.value || privateImpactLoading.value) return;
 
   // Validate primary tag
   if (!validatePrimaryTag(formData.value.primaryTag, props.asset.contentType)) {
+    return;
+  }
+
+  if (!(await checkPrivateImpactBeforeSave())) {
     return;
   }
 
