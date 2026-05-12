@@ -103,9 +103,10 @@ pnpm -C apps/api build
 
 **migration 追跡漏れ注意（重要）**
 
-- migration を追加したら `git status --ignored apps/api/prisma/migrations/<migration名>` や `git ls-files apps/api/prisma/migrations/<migration名>/migration.sql` で Git 追跡対象か確認してください
+- migration を追加したら `git status --ignored apps/api/prisma/migrations/{migration-name}` や `git ls-files apps/api/prisma/migrations/{migration-name}/migration.sql` で Git 追跡対象か確認してください
+- `{migration-name}` は実際の migration ディレクトリ名に置き換えてください
 - `_` を含む migration ディレクトリ名（例: `20260512130000_add_staff_roll_end_behavior`）は `.gitignore` に引っかかる可能性があります
-- 必要に応じて `.gitignore` に個別例外を追加してください（例: `!apps/api/prisma/migrations/<migration名>/` と `!apps/api/prisma/migrations/<migration名>/migration.sql`）
+- 必要に応じて `.gitignore` に個別例外を追加してください（例: `!apps/api/prisma/migrations/{migration-name}/` と `!apps/api/prisma/migrations/{migration-name}/migration.sql`）
 - schema 変更後は migration 適用、prisma generate、API build、必要なら dev server 再起動まで行ってください
 
 必要に応じて `apps/api` / `apps/frontend` の dev server を再起動してください。
