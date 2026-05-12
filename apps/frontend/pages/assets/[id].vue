@@ -277,10 +277,10 @@
               <div class="flex space-x-3">
                 <button
                   type="submit"
-                  :disabled="saving"
+                  :disabled="saving || privateImpactLoading"
                   class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {{ saving ? '保存中...' : '保存' }}
+                  {{ saving ? '保存中...' : privateImpactLoading ? '確認中...' : '保存' }}
                 </button>
                 <button
                   type="button"
@@ -414,6 +414,82 @@
         </div>
       </div>
     </div>
+
+    <!-- Private Impact Confirmation Modal -->
+    <div
+      v-if="showPrivateImpactModal"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+      @click.self="showPrivateImpactModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start gap-3">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-900">この素材を非公開にしますか？</h3>
+            <p class="mt-2 text-sm text-gray-600">
+              この素材を非公開にすると、公開中ゲームの公開前チェックやクレジット確認で「非公開素材」として警告されます。
+            </p>
+            <p class="mt-1 text-sm text-gray-600">
+              必要に応じて、ゲーム側で別の素材に差し替えてください。
+            </p>
+
+            <div v-if="privateImpactError" class="mt-4 rounded p-3 text-sm bg-amber-50 text-amber-700">
+              利用影響の取得に失敗しました。内容確認なしでも続行できますが、利用中ゲームがある可能性があります。
+            </div>
+
+            <div v-else-if="privateImpact" class="mt-4 space-y-3">
+              <div v-if="privateImpact.publicGameCount > 0" class="rounded p-3 text-sm bg-amber-100 text-amber-900">
+                公開中のゲームで使用されています（{{ privateImpact.publicGameCount }}件）。
+              </div>
+              <div v-else class="rounded p-3 text-sm bg-blue-50 text-blue-800">
+                自分のゲームで使用されています（公開中ゲームでの使用はありません）。
+              </div>
+
+              <div class="bg-gray-50 rounded p-3 text-xs text-gray-700 space-y-1">
+                <p>参照中ゲーム: {{ privateImpact.totalGameCount }}件</p>
+                <p>使用箇所数: {{ privateImpact.totalReferenceCount }}箇所</p>
+              </div>
+
+              <div v-if="privateImpact.ownGameSamples?.length" class="space-y-1">
+                <p class="text-xs font-medium text-gray-700">あなたのゲームでの使用例（最大{{ privateImpact.sampleLimit }}件）:</p>
+                <ul class="text-xs text-gray-600 space-y-1">
+                  <li v-for="g in privateImpact.ownGameSamples" :key="g.gameId" class="flex flex-wrap gap-2">
+                    <span>{{ g.title }}</span>
+                    <span class="rounded px-2 py-0.5" :class="g.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'">
+                      {{ g.isPublic ? '公開中' : '非公開' }}
+                    </span>
+                    <span>{{ g.referenceCount }}箇所</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-5 flex gap-3">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                :disabled="saving"
+                @click="showPrivateImpactModal = false"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
+                :disabled="saving"
+                @click="confirmPrivateAndSave"
+              >
+                非公開にして保存
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -448,6 +524,11 @@ const favoriteToggling = ref(false);
 const usageImpact = ref<any>(null);
 const usageImpactLoading = ref(false);
 const usageImpactError = ref(false);
+const showPrivateImpactModal = ref(false);
+const privateImpact = ref<any>(null);
+const privateImpactLoading = ref(false);
+const privateImpactError = ref(false);
+const privateImpactConfirmed = ref(false);
 
 const isFavorited = computed(() => {
   if (!asset.value) return false;
@@ -517,10 +598,54 @@ const resetForm = () => {
     editForm.value.usageTerms = asset.value.usageTerms || '';
     editForm.value.creditRequired = asset.value.creditRequired !== false;
     editForm.value.isPublic = asset.value.isPublic !== false;
+    privateImpactConfirmed.value = false;
   }
 };
 
-const saveAsset = async () => {
+watch(() => editForm.value.isPublic, () => {
+  privateImpactConfirmed.value = false;
+});
+
+const shouldCheckPrivateImpact = () => {
+  if (!asset.value) return false;
+  const wasPublic = asset.value.isPublic !== false;
+  return wasPublic && editForm.value.isPublic === false;
+};
+
+const checkPrivateImpactBeforeSave = async (): Promise<boolean> => {
+  if (!asset.value || !shouldCheckPrivateImpact() || privateImpactConfirmed.value) {
+    return true;
+  }
+
+  privateImpact.value = null;
+  privateImpactError.value = false;
+  privateImpactLoading.value = true;
+
+  try {
+    const impact = await getUsageImpact(asset.value.id);
+    if (!impact || Number(impact.totalGameCount || 0) === 0) {
+      privateImpactConfirmed.value = true;
+      return true;
+    }
+    privateImpact.value = impact;
+    showPrivateImpactModal.value = true;
+    return false;
+  } catch {
+    privateImpactError.value = true;
+    showPrivateImpactModal.value = true;
+    return false;
+  } finally {
+    privateImpactLoading.value = false;
+  }
+};
+
+const confirmPrivateAndSave = async () => {
+  showPrivateImpactModal.value = false;
+  privateImpactConfirmed.value = true;
+  await performSaveAsset();
+};
+
+const performSaveAsset = async () => {
   if (!asset.value) return;
 
   try {
@@ -552,6 +677,16 @@ const saveAsset = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+const saveAsset = async () => {
+  if (!asset.value || saving.value || privateImpactLoading.value) return;
+
+  if (!(await checkPrivateImpactBeforeSave())) {
+    return;
+  }
+
+  await performSaveAsset();
 };
 
 const refreshSignedUrl = async () => {
