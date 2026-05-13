@@ -1,7 +1,6 @@
 <template>
-  <NuxtLink
-    :to="`/assets/${asset.id}`"
-    class="block group relative rounded-2xl shadow-sm ring-1 ring-black/5 bg-white overflow-hidden hover:shadow-md transition"
+  <article
+    class="relative rounded-2xl shadow-sm ring-1 ring-black/5 bg-white overflow-hidden hover:shadow-md transition"
   >
     <!-- 右上 お気に入り -->
     <button
@@ -25,7 +24,8 @@
     </button>
 
     <!-- サムネ or プレースホルダ -->
-    <div class="aspect-[16/9] w-full bg-gray-100 overflow-hidden">
+    <NuxtLink :to="`/assets/${asset.id}`" class="block group">
+      <div class="aspect-[16/9] w-full bg-gray-100 overflow-hidden">
       <!-- 画像: 署名URL解決済みのみ描画、失敗時はスケルトン -->
       <img
         v-if="isImage && src"
@@ -43,11 +43,16 @@
         </svg>
         <p class="text-xs mt-1">MPEG</p>
       </div>
-    </div>
+      </div>
+    </NuxtLink>
 
     <!-- 本文 -->
     <div class="p-3">
-      <h3 class="font-medium line-clamp-1">{{ asset.title || '（無題）' }}</h3>
+      <h3 class="font-medium line-clamp-1">
+        <NuxtLink :to="`/assets/${asset.id}`" class="hover:underline">
+          {{ asset.title || '（無題）' }}
+        </NuxtLink>
+      </h3>
       <p class="text-xs text-gray-500 line-clamp-2 min-h-[1.5em]">{{ asset.description || '\u00A0' }}</p>
 
       <!-- タグ表示 -->
@@ -66,14 +71,13 @@
 
       <p class="mt-2 text-xs text-gray-500">
         作者:
-        <button
+        <NuxtLink
           v-if="asset.ownerId"
-          type="button"
+          :to="`/profiles/${asset.ownerId}`"
           class="text-blue-600 hover:underline"
-          @click.stop.prevent="goToProfile"
         >
           {{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}
-        </button>
+        </NuxtLink>
         <span v-else>{{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}</span>
       </p>
       <div class="mt-2 flex items-center gap-2">
@@ -86,7 +90,7 @@
         <span class="text-xs text-gray-500">お気に入り {{ favoriteCount }}</span>
       </div>
     </div>
-  </NuxtLink>
+  </article>
 </template>
 
 <script setup lang="ts">
@@ -105,7 +109,6 @@ const props = defineProps({
 });
 
 const api = useAssetsApi()
-const router = useRouter()
 const isFav = ref(!!props.asset?.isFavorited)
 watch(() => props.asset?.isFavorited, v => (isFav.value = !!v))
 const favoriteCount = ref(Math.max(0, Number(props.asset?.favoriteCount ?? 0) || 0))
@@ -115,9 +118,7 @@ watch(() => props.asset?.favoriteCount, v => {
 
 const toggling = ref(false)
 
-const toggleFavorite = async (e: MouseEvent) => {
-  e.stopPropagation()
-  e.preventDefault()
+const toggleFavorite = async () => {
   if (toggling.value) return
   toggling.value = true
   const prev = isFav.value
@@ -192,11 +193,6 @@ function onImgError() {
   // TTL切れなど。最大2回まで再取得
   attempts.value++
   if (attempts.value <= 2) fetchSignedUrl(true)
-}
-
-function goToProfile() {
-  if (!props.asset?.ownerId) return
-  router.push(`/profiles/${props.asset.ownerId}`)
 }
 </script>
 

@@ -18,7 +18,7 @@
           </span>
           <component
             :is="it.kind === 'ASSET' ? 'AssetCard' : 'CharacterCard'"
-            v-bind="it.kind === 'ASSET' ? { asset: it.asset, showFavorite: true, onToggleFavorite: toggle } : { character: it.character }"
+            v-bind="it.kind === 'ASSET' ? { asset: it.asset, showFavorite: true } : { character: it.character }"
           />
         </div>
       </div>
@@ -35,7 +35,6 @@ type MixedItem =
 
 const { searchAssets } = useAssets()
 const { listPublic } = useCharactersApi()
-const { toggle } = useFavoriteToggle()
 
 const items = ref<MixedItem[]>([])
 const loading = ref(true)

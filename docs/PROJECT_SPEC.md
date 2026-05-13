@@ -56,6 +56,8 @@
   - パス: `/assets`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
   - 検索/フィルタ: `q`, `contentType`, `primaryTag`, `tags`, `sort` をURLクエリに保持・復元
   - 公開素材カード表示: タイトル、説明、タグ（最大3件+`+N`）、作者、クレジット表記（必須/任意）、お気に入りボタン/件数
+    - HTML構造: 詳細導線はサムネイル/タイトルのリンクに限定し、作者リンク・お気に入りボタンは詳細リンクとDOM上で分離
+    - DB/API変更なし（UI構造整理のみ）
   - 出典: `apps/frontend/pages/assets/index.vue`（クエリ同期と検索）、`apps/frontend/composables/useAssets.ts`
 - コンテンツ管理（素材）
   - パス: `/my/assets`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
@@ -72,6 +74,8 @@
     - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）
     - クエリ同期: `q`, `tags`, `sort`（`フィルタを適用` / `リセット`）
     - 公開キャラクターカード表示: キャラクター名、説明、タグ（最大3件+`+N`）、作者、クレジット表記（必須/任意）、お気に入りボタン
+      - HTML構造: 詳細導線はサムネイル/タイトルのリンクに限定し、作者リンク・お気に入りボタンは詳細リンクとDOM上で分離
+      - DB/API変更なし（UI構造整理のみ）
     - 空状態: 既定時「公開キャラクターはまだありません。」、検索条件あり時「条件に一致するキャラクターはありません。」
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
@@ -82,7 +86,7 @@
     - owner の場合のみ「管理」セクションと `/my/characters/:id` への「編集」ボタンを表示
     - 出典: `apps/frontend/pages/characters/[id].vue`, `apps/frontend/components/common/ImageLightbox.vue`
   - キャラクターカードに作者表示を追加し、作者名クリックでプロフィールページ `/profiles/:userId` へ遷移可能
-    - カード本体の詳細遷移（`/characters/:id`）と干渉しないよう、作者リンククリックはイベント伝播を停止
+    - 詳細リンク（サムネイル/タイトル）と作者リンク・お気に入りボタンのDOM構造を分離し、イベント伝播停止に依存しない
     - 出典: `apps/frontend/pages/characters/index.vue`
 - コンテンツ管理（キャラクター）
   - マイ一覧: `/my/characters`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）

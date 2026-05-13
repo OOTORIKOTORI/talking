@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-14（RUNBOOK / migration / Meili手順整理MVP・再index安全化）
+> 最終更新: 2026-05-14（作者リンク/お気に入りボタンのHTML構造整理MVP、RUNBOOK / migration / Meili手順整理MVP・再index安全化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -41,6 +41,7 @@
 **プロフィール/作者表示まわり**
 - CreatorProfile / ownerDisplayName / ownerDisplayNameSnapshot
 - 作者プロフィールページ・公開コンテンツ一覧（各最大6件）
+- 作者リンク/お気に入りボタンのHTML構造整理MVP（公開素材カード/公開キャラクターカードの詳細リンク・作者リンク・お気に入り導線をDOM上で分離、DB/API変更なし）
 
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
@@ -103,6 +104,7 @@
 
 ### プロフィール/作者表示まわり
 
+- **作者リンク/お気に入りボタンのHTML構造整理MVP**（2026-05-14 実装）（`apps/frontend/components/asset/AssetCard.vue` と `apps/frontend/components/character/CharacterCard.vue` でカード全体リンク構造を見直し、詳細遷移をサムネイル/タイトルリンクへ限定。作者導線は `/profiles/:ownerId` の独立リンク化、お気に入りボタンは詳細リンク外の独立操作に統一。`@click.stop.prevent` や `router.push` 補助関数に依存せず導線競合を回避。`/assets`、`/characters`、`/my/favorites`、`/my/favorites/characters`、`/explore` の表示要素（タグ、クレジットバッジ、ASSET/CHAR ラベル）を維持。DB/API/migration変更なし。）
 - **表示名スナップショット保存MVP**（`Asset` / `Character` / `GameProject` に `ownerDisplayNameSnapshot` を追加。作成時に現在の `CreatorProfile.displayName` を保存。`ownerDisplayName` は `snapshot -> 現在 profile -> null` で解決するよう統一）
 - **作者プロフィール公開コンテンツ一覧MVP**（`GET /profiles/:userId/contents` を追加。`/profiles/[userId]` にその作者の公開ゲーム・公開アセット・公開キャラクターを各最大6件表示。0件時は各カテゴリに控えめな空表示。コンテンツAPI失敗時もプロフィール表示は維持）
 - **キャラクター作者プロフィールリンクMVP**（公開キャラクター詳細 `/characters/:id` で作者表示を追加し、`/profiles/:userId` へ遷移。公開キャラクター一覧 `/characters` のカードにも作者表示/遷移を追加。キャラクター系レスポンスに `ownerDisplayName` を追加し、未設定時は短縮 ownerId フォールバック）
