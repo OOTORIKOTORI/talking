@@ -232,7 +232,6 @@ const fetchCharacters = async () => {
 
 const applyFilters = () => {
   router.push({ query: buildQuery() })
-  fetchCharacters()
 }
 
 const resetFilters = () => {
@@ -241,7 +240,6 @@ const resetFilters = () => {
   visibilityFilter.value = 'all'
   sortOrder.value = 'createdAt:desc'
   router.push({ query: {} })
-  fetchCharacters()
 }
 
 onMounted(() => {
@@ -251,5 +249,6 @@ onMounted(() => {
 
 watch(() => route.query, () => {
   loadFromQuery()
+  fetchCharacters()
 })
 </script>

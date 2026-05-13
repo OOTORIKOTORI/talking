@@ -191,7 +191,6 @@ const fetchCharacters = async () => {
 
 const applyFilters = () => {
   router.push({ query: buildQuery() })
-  fetchCharacters()
 }
 
 const resetFilters = () => {
@@ -199,7 +198,6 @@ const resetFilters = () => {
   tagsInput.value = ''
   sortOrder.value = 'createdAt:desc'
   router.push({ query: {} })
-  fetchCharacters()
 }
 
 const goToProfile = (ownerId: string) => {
@@ -213,5 +211,6 @@ onMounted(() => {
 
 watch(() => route.query, () => {
   loadFromQuery()
+  fetchCharacters()
 })
 </script>

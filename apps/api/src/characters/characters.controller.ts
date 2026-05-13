@@ -14,7 +14,6 @@ export class CharactersController {
   @Get('/characters')
   @UseGuards(OptionalSupabaseAuthGuard)
   async list(@Req() req: any, @Query() q: QueryCharactersDto) {
-    const publicOnly = q.publicOnly !== 'false'; // 省略時は公開のみ
     const limit = Number(q.limit ?? 20); const offset = Number(q.offset ?? 0);
     return this.service.list({
       viewerUserId: req.user?.userId ?? null,
@@ -22,7 +21,7 @@ export class CharactersController {
       q: q.q,
       tags: q.tags,
       sort: q.sort,
-      publicOnly,
+      publicOnly: true,
       limit,
       offset,
     });
