@@ -191,9 +191,9 @@
             </svg>
           </div>
           <div class="ml-3 flex-1">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">アセットを削除</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">素材を削除</h3>
             <p class="text-sm text-gray-500 mb-4">
-              このアセットを削除してよろしいですか？ 削除後しばらくは「元に戻す」が可能です。
+              この素材を削除してよろしいですか？ 削除後しばらくは、「元に戻す」が可能です。
             </p>
 
             <div class="mb-4">
@@ -205,10 +205,10 @@
               </div>
               <div v-else-if="usageImpact">
                 <div v-if="usageImpact.totalGameCount === 0" class="text-sm text-gray-500">
-                  このアセットを参照しているゲームは見つかりませんでした。
+                  この素材を参照しているゲームは見つかりませんでした。
                 </div>
                 <div v-else class="text-sm space-y-2">
-                  <p class="text-amber-700 font-medium">このアセットはゲーム内で使用されています。</p>
+                  <p class="text-amber-700 font-medium">この素材はゲーム内で使用されています。</p>
                   <div class="bg-amber-50 rounded p-3 space-y-1 text-xs">
                     <div class="flex flex-wrap gap-4">
                       <span>あなたのゲーム: <strong>{{ usageImpact.ownGameCount }}件 / {{ usageImpact.ownReferenceCount }}参照</strong></span>

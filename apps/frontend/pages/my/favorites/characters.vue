@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
     <h1 class="text-2xl font-semibold mb-2">お気に入り</h1>
-  <TabsSwitch :items="[{label:'アセット', to:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
+  <TabsSwitch :items="[{label:'素材', to:'/my/favorites'}, {label:'キャラクター', to:'/my/favorites/characters'}]" />
     
 
     <div v-if="list.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">

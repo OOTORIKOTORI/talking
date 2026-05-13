@@ -18,7 +18,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between p-6 border-b">
               <h3 class="text-xl font-semibold text-gray-900">
-                アセットを編集
+                素材を編集
               </h3>
               <button
                 @click="close"
@@ -41,7 +41,7 @@
                   v-model="formData.title"
                   type="text"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="アセットのタイトル"
+                  placeholder="素材のタイトル"
                 />
               </div>
 
@@ -54,7 +54,7 @@
                   v-model="formData.description"
                   rows="3"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="アセットの説明"
+                  placeholder="素材の説明"
                 />
               </div>
 

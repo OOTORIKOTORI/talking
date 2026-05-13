@@ -2,11 +2,11 @@
   <div v-if="open" class="fixed inset-0 bg-black/30 grid place-items-center z-50" @click.self="$emit('update:open', false)">
     <div class="bg-white w-[min(960px,95vw)] max-h-[85vh] rounded-lg shadow p-4 overflow-auto">
       <div class="flex items-center justify-between mb-3">
-        <div class="text-lg font-semibold">アセットを選択</div>
+        <div class="text-lg font-semibold">素材を選択</div>
         <input v-model="q" placeholder="検索…" class="border rounded px-2 py-1 w-64" />
       </div>
       <div class="mb-3 border-b">
-        <button class="px-3 py-2" :class="tab==='mine' ? 'border-b-2 border-black' : ''" @click="tab='mine'">自分のアセット</button>
+        <button class="px-3 py-2" :class="tab==='mine' ? 'border-b-2 border-black' : ''" @click="tab='mine'">自分の素材</button>
         <button class="px-3 py-2" :class="tab==='fav' ? 'border-b-2 border-black' : ''" @click="tab='fav'">お気に入り</button>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

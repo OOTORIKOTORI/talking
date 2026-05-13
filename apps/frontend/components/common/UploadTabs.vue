@@ -3,7 +3,7 @@
     <NuxtLink
       to="/upload"
       :class="tabClass(active === 'asset')"
-    >アセットをアップロード</NuxtLink>
+    >素材をアップロード</NuxtLink>
     <NuxtLink
       to="/my/characters/new"
       :class="tabClass(active === 'character')"

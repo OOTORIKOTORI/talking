@@ -69,9 +69,9 @@
 
             <!-- 公開アセット -->
             <section>
-              <h3 class="text-base font-semibold text-gray-800 mb-3">公開アセット（{{ contents?.assets?.length ?? 0 }}）</h3>
+              <h3 class="text-base font-semibold text-gray-800 mb-3">公開素材（{{ contents?.assets?.length ?? 0 }}）</h3>
               <div v-if="contentsLoading" class="text-sm text-gray-400">公開コンテンツを読み込み中...</div>
-              <p v-else-if="!contents?.assets?.length" class="text-sm text-gray-400">まだ公開アセットはありません。</p>
+              <p v-else-if="!contents?.assets?.length" class="text-sm text-gray-400">まだ公開素材はありません。</p>
               <ul v-else class="space-y-2">
                 <li v-for="asset in contents.assets" :key="asset.id">
                   <NuxtLink

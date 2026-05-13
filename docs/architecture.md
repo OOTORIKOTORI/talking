@@ -39,11 +39,11 @@
 
 ## 画面構成 / 導線
 
-- **公開ギャラリー `/assets`** … アセット/キャラクターの **タブ切替** を持つ共通検索UI
-- **アセット管理 `/my/assets`** … 自分の投稿一覧。UI からキャラクター管理へ遷移可能
-- **アップロード `/upload`** … 「アセットをアップロード / キャラクターを作成」をタブで切替
-- **お気に入り `/my/favorites` と `/my/favorites/characters`** … アセット/キャラクターで分離したお気に入り導線
-- **マイキャラ `/my/characters`・公開一覧 `/characters`** … 一覧カードから詳細編集/閲覧へ遷移
+- **公開ギャラリー `/assets`** … 素材/キャラクターの **タブ切替** を持つ共通検UI
+- **コンテンツ管理（素材） `/my/assets`** … 自分の投稿一覧。UI からキャラクター管理へ遷移可能
+- **アップロード `/upload`** … 【素材をアップロード / キャラクターを作成】をタブで切替
+- **お気に入り `/my/favorites` と `/my/favorites/characters`** … 素材/キャラクターで分離したお気に入り導線
+- **キャラクター管理 `/my/characters`・公開一覧 `/characters`** … 一覧カードから詳細編集/閲覧へ遷移
 - **ゲーム管理 `/my/games`・ゲームエディタ `/my/games/[id]/edit`・プレイ `/games/[id]/play`** … β機能の主要導線
 
 ## API / クライアント規約
@@ -90,8 +90,8 @@ talking/
 ## 機能サマリ
 
 ### コア機能
-- **公開ギャラリー**（`/assets`）: 未ログインでも閲覧・検索可能なアセット/キャラクター導線
-- **アセット管理**（`/my/assets`）: 本人のみがアクセスできる編集・削除画面（public/private の両方を表示）
+- **公開ギャラリー**（`/assets`）: 未ログインでも閉覧・検索可能な素材/キャラクター導線
+- **素材管理**（`/my/assets`）: 本人のみがアクセスできる編集・削除画面（public/private の両方を表示）
 - **キャラクター管理**（`/my/characters`）: キャラクター作成、立ち絵追加、表示順管理
 - **ファイルアップロード**: S3/MinIO 署名付き PUT → finalize でDB保存
 - **サムネ生成**: Worker が sharp で 512px cover サムネを `thumbs/` に生成
@@ -110,11 +110,11 @@ talking/
 | `/characters` | キャラクター公開一覧 | 不要 | 公開キャラクターの一覧 |
 | `/characters/[id]` | キャラクター詳細 | 不要 | 立ち絵一覧・プロフィール表示 |
 | `/upload` | アップロード | **必須** | ログイン後のみアクセス可能 |
-| `/my/assets` | アセット管理 | **必須** | 本人のアセットのみ表示（public/private 両方）・編集・削除 |
+| `/my/assets` | 素材管理 | **必須** | 本人の素材のみ表示（public/private 両方）・編集・削除 |
 | `/my/characters` | マイキャラクター管理 | **必須** | 自分のキャラクターのみ表示 |
 | `/my/characters/new` | キャラクター新規作成 | **必須** | 作成フロー入口 |
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
-| `/my/favorites` | お気に入りアセット | **必須** | 公開ギャラリー準拠UI |
+| `/my/favorites` | お気に入り素材 | **必須** | 公開ギャラリー準拠UI |
 | `/my/favorites/characters` | お気に入りキャラクター | **必須** | キャラクター専用お気に入り一覧 |
 | `/games` | 公開ゲーム一覧 | 不要 | 検索・並び替え対応。公開ゲームのみ表示 |
 | `/games/[id]` | 公開ゲーム詳細 | 不要 | クレジット表示、viewCount/playCount 表示 |
@@ -251,13 +251,13 @@ talking/
 公開ギャラリー一覧（ページネーション / フィルタ対応、`deletedAt = null` かつ `isPublic = true`）
 
 #### `GET /assets/mine?limit=20&offset=0`
-本人のアセット一覧（アセット管理画面用、public/private 両方）
+本人の素材一覧（素材管理画面用、public/private 両方）
 
 #### `GET /assets/:id`
-アセット詳細取得
+素材詳細取得
 
 #### `PATCH /assets/:id`
-アセット更新（本人のみ）
+素材更新（本人のみ）
 
 #### `DELETE /assets/:id`
 アセット削除（本人のみ）
@@ -462,7 +462,7 @@ model FavoriteCharacter {
 
 ## 用語ルール（更新）
 - 公開ギャラリー: `/assets`（全体閲覧・検索）
-- アセット管理: `/my/assets`（自分の投稿の編集・削除）
+- 素材管理: `/my/assets`（自分の投稿の編集・削除）
 - キャラクター管理: `/my/characters`（自分のキャラクター編集）
 - お気に入り: `/my/favorites` / `/my/favorites/characters`
 - サムネ: `thumbKey` を基点に署名GETで解決した URL 画像
