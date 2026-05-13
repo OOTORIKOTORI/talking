@@ -67,7 +67,9 @@
   - 出典: `apps/frontend/pages/my/favorites/characters.vue`
 - 公開ギャラリー（キャラクター）
   - 一覧（公開）: `/characters`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
-    - クエリ同期: `q`, `tags`, `sort`
+    - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）
+    - クエリ同期: `q`, `tags`, `sort`（`フィルタを適用` / `リセット`）
+    - 空状態: 既定時「公開キャラクターはまだありません。」、検索条件あり時「条件に一致するキャラクターはありません。」
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
     - 画像クリックで拡大モーダル
@@ -78,6 +80,10 @@
     - 出典: `apps/frontend/pages/characters/index.vue`
 - コンテンツ管理（キャラクター）
   - マイ一覧: `/my/characters`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
+    - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、公開状態（`all` / `public` / `private`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）
+    - クエリ同期: `q`, `tags`, `visibility`, `sort`（`フィルタを適用` / `リセット`）
+    - 一覧カード: 公開/非公開バッジを表示（`Character.isPublic` を使用）
+    - 一覧カード: 編集導線を維持
     - 出典: `apps/frontend/pages/my/characters/index.vue`
   - 新規作成: `/my/characters/new`
     - タブ `UploadTabs` を利用（「素材をアップロード｜キャラクターを作成」）

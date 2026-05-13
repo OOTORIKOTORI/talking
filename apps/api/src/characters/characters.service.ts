@@ -8,6 +8,24 @@ import { CreateCharacterImageDto } from './dto/create-image.dto';
 export class CharactersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private parseTags(input?: string): string[] {
+    if (!input) return [];
+    const tokens = input
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+    for (const t of tokens) {
+      const key = t.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      normalized.push(t);
+      if (normalized.length >= 20) break;
+    }
+    return normalized;
+  }
+
   private async getOwnerDisplayNameMap(
     ownerIds: Array<string | null | undefined>,
   ): Promise<Map<string, string>> {
@@ -100,18 +118,74 @@ export class CharactersService {
     return { success: true };
   }
 
-  async list(userId: string | null, q: string | undefined, publicOnly: boolean, limit = 20, offset = 0) {
+  async list(params: {
+    viewerUserId: string | null;
+    ownerUserId: string | null;
+    q?: string;
+    tags?: string;
+    sort?: 'createdAt:desc' | 'createdAt:asc' | 'name:asc';
+    visibility?: 'all' | 'public' | 'private';
+    publicOnly: boolean;
+    limit?: number;
+    offset?: number;
+  }) {
+    const {
+      viewerUserId,
+      ownerUserId,
+      q,
+      tags,
+      sort,
+      visibility,
+      publicOnly,
+      limit = 20,
+      offset = 0,
+    } = params;
+
     const where: any = { deletedAt: null };
     if (publicOnly) where.isPublic = true;
-    if (!publicOnly && userId) where.ownerId = userId;
-    if (q) where.OR = [
-      { name: { contains: q, mode: 'insensitive' } },
-      { displayName: { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } },
-    ];
+    if (!publicOnly && ownerUserId) {
+      where.ownerId = ownerUserId;
+      if (visibility === 'public') where.isPublic = true;
+      if (visibility === 'private') where.isPublic = false;
+    }
+
+    const andConditions: any[] = [];
+
+    const qValue = q?.trim();
+    if (qValue) {
+      const qTokens = this.parseTags(qValue);
+      const orConditions: any[] = [
+        { name: { contains: qValue, mode: 'insensitive' } },
+        { displayName: { contains: qValue, mode: 'insensitive' } },
+        { description: { contains: qValue, mode: 'insensitive' } },
+      ];
+      if (qTokens.length > 0) {
+        orConditions.push({ tags: { hasSome: qTokens } });
+      }
+      andConditions.push({ OR: orConditions });
+    }
+
+    const tagList = this.parseTags(tags);
+    if (tagList.length > 0) {
+      andConditions.push({ tags: { hasSome: tagList } });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
+
+    const orderBy =
+      sort === 'createdAt:asc'
+        ? [{ createdAt: 'asc' as const }, { id: 'asc' as const }]
+        : sort === 'name:asc'
+          ? [{ name: 'asc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }]
+          : [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
 
     const characters = await this.prisma.character.findMany({
-      where, take: limit, skip: offset, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      where,
+      take: limit,
+      skip: offset,
+      orderBy,
       include: { images: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], take: 1 } }, // 先頭1枚をサムネに
     });
 
@@ -126,9 +200,9 @@ export class CharactersService {
     }));
     
     // Check favorites for this user
-    if (userId) {
+    if (viewerUserId) {
       const favoriteIds = await this.prisma.favoriteCharacter.findMany({
-        where: { userId },
+        where: { userId: viewerUserId },
         select: { characterId: true },
       });
       const favSet = new Set(favoriteIds.map(f => f.characterId));

@@ -16,7 +16,16 @@ export class CharactersController {
   async list(@Req() req: any, @Query() q: QueryCharactersDto) {
     const publicOnly = q.publicOnly !== 'false'; // 省略時は公開のみ
     const limit = Number(q.limit ?? 20); const offset = Number(q.offset ?? 0);
-    return this.service.list(req.user?.userId ?? null, q.q, publicOnly, limit, offset);
+    return this.service.list({
+      viewerUserId: req.user?.userId ?? null,
+      ownerUserId: null,
+      q: q.q,
+      tags: q.tags,
+      sort: q.sort,
+      publicOnly,
+      limit,
+      offset,
+    });
   }
 
   // 公開詳細（公開のみ）
@@ -31,7 +40,17 @@ export class CharactersController {
   @UseGuards(SupabaseAuthGuard)
   async listMine(@Req() req: any, @Query() q: QueryCharactersDto) {
     const limit = Number(q.limit ?? 20); const offset = Number(q.offset ?? 0);
-    return this.service.list(req.user.userId, q.q, false, limit, offset);
+    return this.service.list({
+      viewerUserId: req.user.userId,
+      ownerUserId: req.user.userId,
+      q: q.q,
+      tags: q.tags,
+      sort: q.sort,
+      visibility: q.visibility,
+      publicOnly: false,
+      limit,
+      offset,
+    });
   }
 
   // マイ（作成・更新・削除・自分の詳細）

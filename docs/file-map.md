@@ -25,7 +25,7 @@ apps/frontend/pages/
 │   ├── index.vue                            # 公開ギャラリー（素材）。検索・絞り込みの入口
 │   └── [id].vue                             # 素材詳細画面。内容確認や関連操作を提供（非公開は owner のみ閲覧可）
 ├── characters/
-│   ├── index.vue                            # 公開ギャラリー（キャラクター）一覧
+│   ├── index.vue                            # 公開ギャラリー（キャラクター）一覧。キーワード/タグ/並び替えのフィルタパネル（適用・リセット、URLクエリ同期）
 │   └── [id].vue                             # キャラクター詳細・画像表示画面
 ├── games/
 │   ├── index.vue                            # 公開ゲーム一覧ページ
@@ -36,7 +36,7 @@ apps/frontend/pages/
 │   ├── assets/
 │   │   └── index.vue                        # 自分の素材管理一覧。投稿物の確認・整理用（公開/非公開バッジ・フィルタ対応）
 │   ├── characters/
-│   │   ├── index.vue                        # 自分のキャラクター一覧
+│   │   ├── index.vue                        # 自分のキャラクター一覧。検索/公開状態/タグ/並び替えフィルタ、公開/非公開バッジ表示
 │   │   ├── new.vue                          # キャラクター新規作成画面
 │   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新。公開→非公開保存時は usage-impact による保存前 warning 確認を表示
 │   ├── favorites/
@@ -168,13 +168,13 @@ apps/api/src/
 │   ├── character-favorites.controller.ts    # キャラクターお気に入り操作の API 入口
 │   ├── character-favorites.service.ts       # キャラクターお気に入り登録/解除ロジック
 │   ├── character-images.controller.ts       # キャラクター画像の追加・管理 API
-│   ├── characters.controller.ts             # キャラクター CRUD と公開取得 API
+│   ├── characters.controller.ts             # キャラクター CRUD と公開取得 API（`q/tags/sort/visibility` クエリ対応）
 │   ├── characters.module.ts                 # characters 機能のモジュール定義
-│   ├── characters.service.ts                # キャラクター本体と画像関連の業務ロジック
+│   ├── characters.service.ts                # キャラクター本体と画像関連の業務ロジック（公開/管理一覧の検索・タグ・並び替え・公開状態フィルタを含む）
 │   └── dto/
 │       ├── create-character.dto.ts          # キャラクター作成 DTO
 │       ├── create-image.dto.ts              # キャラクター画像作成 DTO
-│       ├── query-characters.dto.ts          # キャラクター検索 DTO
+│       ├── query-characters.dto.ts          # キャラクター検索 DTO（`q/tags/sort/visibility`）
 │       └── update-character.dto.ts          # キャラクター更新 DTO
 ├── favorites/
 │   ├── favorites.controller.ts              # お気に入り関連 API の共通入口

@@ -18,6 +18,8 @@
 - 立ち絵画像は **複数** 管理でき、各画像に **感情**、**パターン**、**表示ラベル**、**並び順（sortOrder, 小さいほど先頭）** を付与
 - 編集UIでは画像クリックで **拡大プレビュー**、並び替え結果は `sortOrder` 更新で保存
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
+- 公開一覧 `/characters` は `isPublic=true` かつ `deletedAt=null` のみ表示し、`q` / `tags` / `sort(createdAt:desc|createdAt:asc|name:asc)` の検索・並び替えを提供
+- 管理一覧 `/my/characters` は owner の public/private 両方を表示し、`visibility(all|public|private)` による絞り込み、`q` / `tags` / `sort` を提供
 - キャラクター編集で `isPublic: true -> false` を保存する場合は `GET /my/characters/:id/usage-impact` を使って利用影響を確認し、参照中ゲームがある場合は保存前 warning を表示する（確認後に保存続行可）
 
 ### ゲーム（β）
@@ -107,11 +109,11 @@ talking/
 | `/` | ホーム | 不要 | 公開トップページ |
 | `/assets` | 公開ギャラリー | 不要 | アセット/キャラクターをタブ切替で表示 |
 | `/assets/[id]` | 素材詳細 | 不要 | 管理ボタンはオーナーのみ表示 |
-| `/characters` | キャラクター公開一覧 | 不要 | 公開キャラクターの一覧 |
+| `/characters` | キャラクター公開一覧 | 不要 | 公開キャラクターの一覧。検索/タグ/並び替えフィルタ対応 |
 | `/characters/[id]` | キャラクター詳細 | 不要 | 立ち絵一覧・プロフィール表示 |
 | `/upload` | アップロード | **必須** | ログイン後のみアクセス可能 |
 | `/my/assets` | 素材管理 | **必須** | 本人の素材のみ表示（public/private 両方）・編集・削除 |
-| `/my/characters` | キャラクター管理 | **必須** | 自分のキャラクターのみ表示 |
+| `/my/characters` | キャラクター管理 | **必須** | 自分のキャラクター（public/private）表示。公開状態フィルタ対応 |
 | `/my/characters/new` | キャラクター新規作成 | **必須** | 作成フロー入口 |
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
 | `/my/favorites` | お気に入り素材 | **必須** | 公開ギャラリー準拠UI |
@@ -272,9 +274,9 @@ talking/
 
 ### キャラクター関連 API
 
-#### `GET /characters` — 公開キャラクター一覧（認証不要）
+#### `GET /characters` — 公開キャラクター一覧（認証不要、`q`/`tags`/`sort` 対応）
 #### `GET /characters/:id` — キャラクター詳細（認証不要）
-#### `GET /my/characters` — 自分のキャラクター一覧（要ログイン）
+#### `GET /my/characters` — 自分のキャラクター一覧（要ログイン、`q`/`tags`/`visibility`/`sort` 対応）
 #### `POST /my/characters` — キャラクター作成（要ログイン）
 #### `GET /my/characters/:id` — キャラクター詳細（オーナー用）
 #### `PATCH /my/characters/:id` — キャラクター更新（要ログイン・オーナーのみ）
