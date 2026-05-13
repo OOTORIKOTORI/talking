@@ -45,7 +45,8 @@
 - **コンテンツ管理（素材） `/my/assets`** … 自分の投稿一覧。UI からキャラクター管理へ遷移可能
 - **アップロード `/upload`** … 【素材をアップロード / キャラクターを作成】をタブで切替
 - **お気に入り `/my/favorites` と `/my/favorites/characters`** … 素材/キャラクターで分離したお気に入り導線
-- **キャラクター管理 `/my/characters`・公開一覧 `/characters`** … 一覧カードから詳細編集/閲覧へ遷移
+- **キャラクター管理 `/my/characters`・公開一覧 `/characters`** … 一覧カードから詳細編集/閲覧へ遷移（`/characters` は `CharacterCard` を利用）
+- **公開カード表示の中核コンポーネント** … `AssetCard` / `CharacterCard` で公開一覧カードの表示情報を整理（DB/API変更なし）
 - **ゲーム管理 `/my/games`・ゲームエディタ `/my/games/[id]/edit`・プレイ `/games/[id]/play`** … β機能の主要導線
 
 ## API / クライアント規約

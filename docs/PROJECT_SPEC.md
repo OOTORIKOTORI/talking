@@ -44,7 +44,8 @@
 - ページ見出し・タブ名の統一
 - ナビゲーションテキストの最小限整理
 - ドキュメント更新
-- 後続課題: 一覧 UI 検索/フィルタ機能統一、カード表示情報統一、管理画面側の詳細/編集レイアウト polish
+- 後続課題: 一覧 UI 検索/フィルタ機能統一、管理画面側の詳細/編集レイアウト polish
+- カード表示情報統一MVPは2026-05-13に実施済み。後続は管理画面カードの操作導線 polish や検索/フィルタUIの最終調整。
 
 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`, `apps/frontend/app.vue`
 
@@ -54,6 +55,7 @@
 - 公開ギャラリー（素材）
   - パス: `/assets`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
   - 検索/フィルタ: `q`, `contentType`, `primaryTag`, `tags`, `sort` をURLクエリに保持・復元
+  - 公開素材カード表示: タイトル、説明、タグ（最大3件+`+N`）、作者、クレジット表記（必須/任意）、お気に入りボタン/件数
   - 出典: `apps/frontend/pages/assets/index.vue`（クエリ同期と検索）、`apps/frontend/composables/useAssets.ts`
 - コンテンツ管理（素材）
   - パス: `/my/assets`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
@@ -69,6 +71,7 @@
   - 一覧（公開）: `/characters`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
     - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）
     - クエリ同期: `q`, `tags`, `sort`（`フィルタを適用` / `リセット`）
+    - 公開キャラクターカード表示: キャラクター名、説明、タグ（最大3件+`+N`）、作者、クレジット表記（必須/任意）、お気に入りボタン
     - 空状態: 既定時「公開キャラクターはまだありません。」、検索条件あり時「条件に一致するキャラクターはありません。」
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
@@ -86,6 +89,7 @@
     - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、公開状態（`all` / `public` / `private`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）
     - クエリ同期: `q`, `tags`, `visibility`, `sort`（`フィルタを適用` / `リセット`）
     - 一覧カード: 公開/非公開バッジを表示（`Character.isPublic` を使用）
+    - 管理キャラクターカード表示: キャラクター名、説明、公開状態、クレジット表記（必須/任意）、タグ、作成日、編集導線
     - 一覧カード: 編集導線を維持
     - 出典: `apps/frontend/pages/my/characters/index.vue`
   - 新規作成: `/my/characters/new`

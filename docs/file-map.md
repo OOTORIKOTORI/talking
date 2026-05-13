@@ -57,9 +57,9 @@ apps/frontend/components/
 ├── AssetThumbnail.vue                       # アセットのサムネイル表示。署名URLやフォールバック表示を吸収
 ├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）。公開→非公開保存時は usage-impact を確認し、参照中ゲームがある場合に保存前 warning モーダルを表示
 ├── asset/
-│   └── AssetCard.vue                        # アセット一覧用カード。画像・タイトル・お気に入りUIを表示
+│   └── AssetCard.vue                        # 素材一覧用カード。サムネイル・タイトル・説明・タグ・作者リンク・クレジット表記・お気に入りUI/件数を表示
 ├── character/
-│   ├── CharacterCard.vue                    # キャラクター一覧用カード
+│   ├── CharacterCard.vue                    # キャラクター一覧用カード。サムネイル・名称・説明・タグ・作者リンク・クレジット表記・お気に入りUIを表示し、公開一覧/お気に入り/探索で利用
 │   └── CharacterImageThumb.vue              # キャラクター差分画像のサムネイル表示
 ├── common/
 │   ├── CrossNavTabs.vue                     # 画面横断ナビゲーション用タブ
