@@ -76,15 +76,14 @@
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <CharacterCard v-for="c in list" :key="c.id" :character="c" />
       </div>
-    import CharacterCard from '@/components/character/CharacterCard.vue'
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import CharacterCard from '@/components/character/CharacterCard.vue'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
 import { useCharactersApi } from '@/composables/useCharacters'
-import { formatCreatorLabel } from '@/utils/creatorDisplay'
 
 const api = useCharactersApi()
 const route = useRoute()
@@ -155,10 +154,6 @@ const resetFilters = () => {
   tagsInput.value = ''
   sortOrder.value = 'createdAt:desc'
   router.push({ query: {} })
-}
-
-const goToProfile = (ownerId: string) => {
-  router.push(`/profiles/${ownerId}`)
 }
 
 onMounted(() => {

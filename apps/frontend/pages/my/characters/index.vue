@@ -152,7 +152,7 @@
             </div>
 
             <div class="mt-2 text-xs text-gray-400">
-              作成日: {{ c.createdAt ? (new Date(c.createdAt).toLocaleDateString()) : '-' }}
+              作成日: {{ formatDate(c.createdAt) }}
             </div>
 
             <div class="mt-4 flex gap-2">
@@ -252,6 +252,15 @@ const resetFilters = () => {
   visibilityFilter.value = 'all'
   sortOrder.value = 'createdAt:desc'
   router.push({ query: {} })
+}
+
+const formatDate = (date: string | Date | undefined | null): string => {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('ja-JP', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 onMounted(() => {
