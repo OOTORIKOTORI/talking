@@ -17,7 +17,7 @@
 ```text
 apps/frontend/pages/
 ├── index.vue                                # トップページ。ヘルス確認と主要導線を表示
-├── explore.vue                              # 公開コンテンツの探索ページ。ゲーム/アセット/キャラクターの導線
+├── explore.vue                              # 公開素材・公開キャラクターを混在表示する探索ページ。ASSET/CHARラベル付きカードgrid、読み込み/エラー/空状態を扱う
 ├── login.vue                                # Supabase ログイン画面
 ├── logout.vue                               # ログアウト処理を実行してトップへ戻すページ
 ├── upload.vue                               # 素材アップロード画面。画像/音声の投稿入口（公開/非公開の初期設定を含む）
