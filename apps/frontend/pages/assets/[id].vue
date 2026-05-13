@@ -104,392 +104,26 @@
             <dd class="mt-1 text-gray-400">—</dd>
           </div>
 
-          <!-- Primary Tag -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">種別</dt>
-            <dd>
-              <span class="inline-block px-3 py-1 text-sm font-semibold bg-indigo-100 text-indigo-800 rounded-lg">
-                {{ formatPrimaryTag(asset.primaryTag) }}
-              </span>
-            </dd>
-          </div>
-
-          <!-- Tags -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">タグ</dt>
-            <dd v-if="asset.tags && asset.tags.length > 0" class="flex flex-wrap gap-2">
-              <span
-                v-for="tag in asset.tags"
-                :key="tag"
-                class="inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full"
-              >
-                {{ tag }}
-              </span>
-            </dd>
-            <dd v-else class="text-gray-400">—</dd>
-          </div>
-
-          <div class="bg-gray-50 rounded-lg p-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">作者</dt>
-            <dd>
-              <NuxtLink
-                v-if="asset.ownerId"
-                :to="`/profiles/${asset.ownerId}`"
-                class="text-blue-600 hover:underline"
-              >
-                {{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}
-              </NuxtLink>
-              <span v-else class="text-gray-600">unknown</span>
-            </dd>
-          </div>
-
-          <!-- Usage Terms -->
-          <div class="bg-gray-50 rounded-lg p-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">利用条件</dt>
-            <dd>
-              <div class="flex items-center gap-2 mb-2">
-                <span
-                  class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full"
-                  :class="asset.creditRequired !== false ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'"
-                >
-                  {{ asset.creditRequired !== false ? 'クレジット表記: 必須' : 'クレジット表記: 任意' }}
-                </span>
-              </div>
-              <p v-if="asset.usageTerms" class="text-sm text-gray-800 whitespace-pre-wrap">{{ asset.usageTerms }}</p>
-              <p v-else class="text-sm text-gray-400">個別の利用条件は未設定です。</p>
-            </dd>
-          </div>
-
-          <!-- Info Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">ファイルサイズ</dt>
-              <dd class="mt-1 text-lg text-gray-900">{{ formatFileSize(asset.size) }}</dd>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">コンテンツタイプ</dt>
-              <dd class="mt-1 text-lg text-gray-900">{{ asset.contentType }}</dd>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">作成</dt>
-              <dd class="mt-1 text-lg text-gray-900">{{ formatDate(asset.createdAt) }}</dd>
-            </div>
-
-            <div class="bg-gray-50 rounded-lg p-4">
-              <dt class="text-sm font-medium text-gray-500">アセットID</dt>
-              <dd class="mt-1 text-sm text-gray-900 font-mono truncate">{{ asset.id }}</dd>
-            </div>
-          </div>
-
-          <!-- URL -->
-          <div class="border-t pt-4">
-            <dt class="text-sm font-medium text-gray-500 mb-2">表示用URL（有効期限あり）</dt>
-            <dd class="flex items-center space-x-2">
-              <input
-                :value="signedUrl"
-                readonly
-                class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-mono text-gray-700"
-              />
-              <button
-                @click="copyUrl"
-                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-              >
-                {{ copied ? 'Copied!' : 'Copy' }}
-              </button>
-              <button
-                @click="refreshSignedUrl"
-                class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
-              >
-                再取得
-              </button>
-            </dd>
-          </div>
-
-          <!-- Edit Section -->
-          <div v-if="canManage" class="border-t pt-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">編集</h3>
-            <form @submit.prevent="saveAsset" class="space-y-4">
-              <div>
-                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
-                <input
-                  id="title"
-                  v-model="editForm.title"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">説明</label>
-                <textarea
-                  id="description"
-                  v-model="editForm.description"
-                  rows="4"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                ></textarea>
-              </div>
-
-              <div>
-                <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">タグ（カンマ区切り）</label>
-                <input
-                  id="tags"
-                  v-model="editForm.tagsString"
-                  type="text"
-                  placeholder="例: 画像, デザイン, 2024"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div class="flex items-center gap-3">
-                <input
-                  id="editCreditRequired"
-                  v-model="editForm.creditRequired"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label for="editCreditRequired" class="text-sm font-medium text-gray-700">クレジット表記を必須にする</label>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <input
-                  id="editIsPublic"
-                  v-model="editForm.isPublic"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label for="editIsPublic" class="text-sm font-medium text-gray-700">公開する</label>
-              </div>
-
-              <div>
-                <label for="editUsageTerms" class="block text-sm font-medium text-gray-700 mb-1">利用条件（任意）</label>
-                <textarea
-                  id="editUsageTerms"
-                  v-model="editForm.usageTerms"
-                  rows="3"
-                  maxlength="1000"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                ></textarea>
-                <p class="mt-1 text-xs text-gray-500">{{ editForm.usageTerms.length }}/1000文字</p>
-              </div>
-
-              <div class="flex space-x-3">
-                <button
-                  type="submit"
-                  :disabled="saving || privateImpactLoading"
-                  class="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {{ saving ? '保存中...' : privateImpactLoading ? '確認中...' : '保存' }}
-                </button>
-                <button
-                  type="button"
-                  @click="resetForm"
-                  class="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50"
-                >
-                  リセット
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <!-- Actions -->
-          <div class="border-t pt-4 flex justify-between">
-            <div class="flex space-x-4">
-              <a
-                :href="asset.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Open in New Tab
-              </a>
-
-              <a
-                :href="asset.url"
-                download
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download
-              </a>
-            </div>
-
+          <!-- Edit Button -->
+          <div v-if="canManage" class="mt-6">
             <button
-              v-if="canManage"
-              @click="confirmDelete"
-              class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+              @click="showEditModal = true"
+              class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
             >
-              <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              削除
+              編集
             </button>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- Delete Confirmation Modal -->
-    <div
-      v-if="showDeleteModal"
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
-      @click.self="showDeleteModal = false"
-    >
-      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-start">
-          <div class="flex-shrink-0">
-            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <div class="ml-3 flex-1">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">アセットを削除</h3>
-            <p class="text-sm text-gray-500 mb-4">
-              このアセットを削除してよろしいですか？削除後しばらくの間は「元に戻す」で復元できます。
-            </p>
-
-            <!-- Usage Impact -->
-            <div class="mb-4">
-              <div v-if="usageImpactLoading" class="text-sm text-gray-500 italic">
-                利用中ゲームへの影響を確認中...
-              </div>
-              <div v-else-if="usageImpactError" class="text-sm text-amber-700 bg-amber-50 rounded p-3">
-                影響確認に失敗しました。削除は続行できますが、利用中のゲームがある可能性があります。
-              </div>
-              <div v-else-if="usageImpact">
-                <div v-if="usageImpact.totalGameCount === 0" class="text-sm text-gray-500">
-                  このアセットを参照しているゲームは見つかりませんでした。
-                </div>
-                <div v-else class="text-sm space-y-2">
-                  <p class="text-amber-700 font-medium">このアセットはゲーム内で使用されています。</p>
-                  <p class="text-gray-600 text-xs">削除すると、使用中のゲームで参照警告が表示され、画像・音声が表示・再生されなくなる可能性があります。</p>
-                  <div class="bg-amber-50 rounded p-3 space-y-1">
-                    <div class="flex gap-4 text-xs">
-                      <span>あなたのゲーム: <strong>{{ usageImpact.ownGameCount }}件 / {{ usageImpact.ownReferenceCount }}箇所</strong></span>
-                      <span>他のユーザーのゲーム: <strong>{{ usageImpact.otherGameCount }}件 / {{ usageImpact.otherReferenceCount }}箇所</strong></span>
-                    </div>
-                    <div class="text-xs text-gray-600">
-                      用途: {{ formatByField(usageImpact.byField) }}
-                    </div>
-                  </div>
-                  <div v-if="usageImpact.ownGameSamples.length > 0" class="mt-2">
-                    <p class="text-xs font-medium text-gray-700 mb-1">あなたのゲームでの使用例（最大{{ usageImpact.sampleLimit }}件）:</p>
-                    <ul class="text-xs text-gray-600 space-y-0.5">
-                      <li
-                        v-for="g in usageImpact.ownGameSamples"
-                        :key="g.gameId"
-                      >
-                        — {{ g.title }}: {{ formatByFieldShort(g.byField) }}
-                      </li>
-                    </ul>
-                    <p v-if="usageImpact.hasMoreOwnGames" class="text-xs text-gray-400 mt-1">他にも使用しているゲームがあります。</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex space-x-3">
-              <button
-                @click="handleDelete"
-                :disabled="deleting"
-                class="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
-              >
-                {{ deleting ? '削除中...' : '削除する' }}
-              </button>
-              <button
-                @click="showDeleteModal = false"
-                :disabled="deleting"
-                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 disabled:opacity-50"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Private Impact Confirmation Modal -->
-    <div
-      v-if="showPrivateImpactModal"
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
-      @click.self="showPrivateImpactModal = false"
-    >
-      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-start gap-3">
-          <div class="flex-shrink-0">
-            <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-lg font-semibold text-gray-900">この素材を非公開にしますか？</h3>
-            <p class="mt-2 text-sm text-gray-600">
-              この素材を非公開にすると、公開中ゲームの公開前チェックやクレジット確認で「非公開素材」として警告されます。
-            </p>
-            <p class="mt-1 text-sm text-gray-600">
-              必要に応じて、ゲーム側で別の素材に差し替えてください。
-            </p>
-
-            <div v-if="privateImpactError" class="mt-4 rounded p-3 text-sm bg-amber-50 text-amber-700">
-              利用影響の取得に失敗しました。内容確認なしでも続行できますが、利用中ゲームがある可能性があります。
-            </div>
-
-            <div v-else-if="privateImpact" class="mt-4 space-y-3">
-              <div v-if="privateImpact.publicGameCount > 0" class="rounded p-3 text-sm bg-amber-100 text-amber-900">
-                公開中のゲームで使用されています（{{ privateImpact.publicGameCount }}件）。
-              </div>
-              <div v-else class="rounded p-3 text-sm bg-blue-50 text-blue-800">
-                自分のゲームで使用されています（公開中ゲームでの使用はありません）。
-              </div>
-
-              <div class="bg-gray-50 rounded p-3 text-xs text-gray-700 space-y-1">
-                <p>参照中ゲーム: {{ privateImpact.totalGameCount }}件</p>
-                <p>使用箇所数: {{ privateImpact.totalReferenceCount }}箇所</p>
-              </div>
-
-              <div v-if="privateImpact.ownGameSamples?.length" class="space-y-1">
-                <p class="text-xs font-medium text-gray-700">あなたのゲームでの使用例（最大{{ privateImpact.sampleLimit }}件）:</p>
-                <ul class="text-xs text-gray-600 space-y-1">
-                  <li v-for="g in privateImpact.ownGameSamples" :key="g.gameId" class="flex flex-wrap gap-2">
-                    <span>{{ g.title }}</span>
-                    <span class="rounded px-2 py-0.5" :class="g.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'">
-                      {{ g.isPublic ? '公開中' : '非公開' }}
-                    </span>
-                    <span>{{ g.referenceCount }}箇所</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="mt-5 flex gap-3">
-              <button
-                type="button"
-                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                :disabled="saving"
-                @click="showPrivateImpactModal = false"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
-                :disabled="saving"
-                @click="confirmPrivateAndSave"
-              >
-                非公開にして保存
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Edit Modal -->
+    <EditAssetModal
+      v-if="showEditModal"
+      :asset="asset"
+      @close="showEditModal = false"
+      @saved="loadAsset"
+    />
   </div>
 </template>
 
@@ -497,6 +131,7 @@
 import type { Asset } from '@talking/types';
 import { getSignedGetUrl } from '@/composables/useSignedUrl';
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
+import EditAssetModal from '@/components/EditAssetModal.vue';
 import { useToast } from '@/composables/useToast';
 import { useFavoriteToggle } from '@/composables/useFavoriteToggle';
 import { formatCreatorLabel } from '@/utils/creatorDisplay';
@@ -504,31 +139,16 @@ import { formatCreatorLabel } from '@/utils/creatorDisplay';
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient() as any;
-const { getAsset, updateAsset, deleteAsset, restoreAsset, getUsageImpact } = useAssets();
-const { toggle } = useFavoriteToggle();
+const { getAsset } = useAssets();
 const toast = useToast();
 
-// Get current user session
 const currentUserId = ref<string | null>(null);
-
 const asset = ref<Asset | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const copied = ref(false);
 const signedUrl = ref<string>('');
-const mediaErrorRetried = ref(false);
-const saving = ref(false);
-const showDeleteModal = ref(false);
-const deleting = ref(false);
 const favoriteToggling = ref(false);
-const usageImpact = ref<any>(null);
-const usageImpactLoading = ref(false);
-const usageImpactError = ref(false);
-const showPrivateImpactModal = ref(false);
-const privateImpact = ref<any>(null);
-const privateImpactLoading = ref(false);
-const privateImpactError = ref(false);
-const privateImpactConfirmed = ref(false);
+const showEditModal = ref(false);
 
 const isFavorited = computed(() => {
   if (!asset.value) return false;
@@ -541,18 +161,8 @@ const displayFavoriteCount = computed(() => {
   return Number.isFinite(count) && count > 0 ? count : 0;
 });
 
-// Check if current user can manage this asset
 const canManage = computed(() => {
   return !!currentUserId.value && !!asset.value && asset.value.ownerId === currentUserId.value;
-});
-
-const editForm = ref({
-  title: '',
-  description: '',
-  tagsString: '',
-  usageTerms: '',
-  creditRequired: true,
-  isPublic: true,
 });
 
 const loadAsset = async () => {
@@ -568,7 +178,6 @@ const loadAsset = async () => {
     asset.value = await getAsset(id);
     if (asset.value) {
       signedUrl.value = await getSignedGetUrl(asset.value.key);
-      resetForm();
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load asset';
@@ -581,263 +190,17 @@ const toggleAssetFavorite = async () => {
   if (!asset.value || favoriteToggling.value) return;
   favoriteToggling.value = true;
   try {
-    await toggle(asset.value as any);
+    await useFavoriteToggle().toggle(asset.value as any);
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'お気に入り更新に失敗しました';
-    toast.error(message);
+    toast.error(e instanceof Error ? e.message : 'お気に入り更新に失敗しました');
   } finally {
     favoriteToggling.value = false;
   }
 };
 
-const resetForm = () => {
-  if (asset.value) {
-    editForm.value.title = asset.value.title || '';
-    editForm.value.description = asset.value.description || '';
-    editForm.value.tagsString = asset.value.tags?.join(', ') || '';
-    editForm.value.usageTerms = asset.value.usageTerms || '';
-    editForm.value.creditRequired = asset.value.creditRequired !== false;
-    editForm.value.isPublic = asset.value.isPublic !== false;
-    privateImpactConfirmed.value = false;
-  }
-};
-
-watch(() => editForm.value.isPublic, () => {
-  privateImpactConfirmed.value = false;
-});
-
-const shouldCheckPrivateImpact = () => {
-  if (!asset.value) return false;
-  const wasPublic = asset.value.isPublic !== false;
-  return wasPublic && editForm.value.isPublic === false;
-};
-
-const checkPrivateImpactBeforeSave = async (): Promise<boolean> => {
-  if (!asset.value || !shouldCheckPrivateImpact() || privateImpactConfirmed.value) {
-    return true;
-  }
-
-  privateImpact.value = null;
-  privateImpactError.value = false;
-  privateImpactLoading.value = true;
-
-  try {
-    const impact = await getUsageImpact(asset.value.id);
-    if (!impact || Number(impact.totalGameCount || 0) === 0) {
-      privateImpactConfirmed.value = true;
-      return true;
-    }
-    privateImpact.value = impact;
-    showPrivateImpactModal.value = true;
-    return false;
-  } catch {
-    privateImpactError.value = true;
-    showPrivateImpactModal.value = true;
-    return false;
-  } finally {
-    privateImpactLoading.value = false;
-  }
-};
-
-const confirmPrivateAndSave = async () => {
-  showPrivateImpactModal.value = false;
-  privateImpactConfirmed.value = true;
-  await performSaveAsset();
-};
-
-const performSaveAsset = async () => {
-  if (!asset.value) return;
-
-  try {
-    saving.value = true;
-    
-    const tags = editForm.value.tagsString
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
-
-    const updated = await updateAsset(asset.value.id, {
-      title: editForm.value.title || undefined,
-      description: editForm.value.description || undefined,
-      tags,
-      usageTerms: editForm.value.usageTerms,
-      creditRequired: editForm.value.creditRequired,
-      isPublic: editForm.value.isPublic,
-    });
-
-    if (updated) {
-      asset.value = { ...asset.value, ...updated };
-    }
-    
-    // Show success toast (simple alert for now)
-    alert('保存しました');
-  } catch (e) {
-    const message = e instanceof Error ? e.message : '保存に失敗しました';
-    alert(message);
-  } finally {
-    saving.value = false;
-  }
-};
-
-const saveAsset = async () => {
-  if (!asset.value || saving.value || privateImpactLoading.value) return;
-
-  if (!(await checkPrivateImpactBeforeSave())) {
-    return;
-  }
-
-  await performSaveAsset();
-};
-
-const refreshSignedUrl = async () => {
-  if (!asset.value) return;
-  try {
-    signedUrl.value = await getSignedGetUrl(asset.value.key);
-    mediaErrorRetried.value = false;
-  } catch (e) {
-    console.error('Failed to refresh signed URL', e);
-  }
-};
-
-const handleMediaError = async () => {
-  if (mediaErrorRetried.value || !asset.value) return;
-  mediaErrorRetried.value = true;
-  await refreshSignedUrl();
-};
-
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-};
-
-const formatDate = (date: Date | string): string => {
-  const d = new Date(date);
-  return d.toLocaleString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const getFileExtension = (contentType: string): string => {
-  const parts = contentType.split('/');
-  return parts[1]?.toUpperCase() || 'FILE';
-};
-
-const formatPrimaryTag = (tag: string): string => {
-  const labels: Record<string, string> = {
-    'IMAGE_BG': '背景',
-    'IMAGE_CG': '一枚絵',
-    'IMAGE_OTHER': 'その他（画像）',
-    'AUDIO_BGM': 'BGM',
-    'AUDIO_SE': '効果音',
-    'AUDIO_VOICE': 'ボイス',
-    'AUDIO_OTHER': 'その他（音声）',
-  };
-  return labels[tag] || tag;
-};
-
-const FIELD_LABELS: Record<string, string> = {
-  coverAssetId: 'カバー',
-  bgAssetId: '背景',
-  musicAssetId: 'BGM',
-  sfxAssetId: 'SE',
-  portraitAssetId: '立ち絵互換',
-};
-
-const formatByField = (byField: Record<string, number>) => {
-  return Object.entries(byField)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => `${FIELD_LABELS[k] ?? k} ${v}`)
-    .join(' / ') || 'なし';
-};
-
-const formatByFieldShort = (byField: Record<string, number>) => {
-  const parts = Object.entries(byField)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => `${FIELD_LABELS[k] ?? k} ${v}箇所`);
-  return parts.join('、') || '—';
-};
-
-const copyUrl = async () => {
-  if (signedUrl.value) {
-    try {
-      await navigator.clipboard.writeText(signedUrl.value);
-      copied.value = true;
-      setTimeout(() => {
-        copied.value = false;
-      }, 2000);
-    } catch (e) {
-      console.error('Failed to copy URL', e);
-    }
-  }
-};
-
-const confirmDelete = async () => {
-  usageImpact.value = null;
-  usageImpactError.value = false;
-  showDeleteModal.value = true;
-  if (!asset.value) return;
-  usageImpactLoading.value = true;
-  try {
-    usageImpact.value = await getUsageImpact(asset.value.id);
-  } catch {
-    usageImpactError.value = true;
-  } finally {
-    usageImpactLoading.value = false;
-  }
-};
-
-const handleDelete = async () => {
-  if (!asset.value) return;
-
-  try {
-    deleting.value = true;
-      const assetId = asset.value.id;
-      const assetTitle = asset.value.title || 'アセット';
-    
-    await deleteAsset(asset.value.id);
-    
-      // Show undo toast
-      toast.info(`${assetTitle}を削除しました`, {
-        duration: 5000,
-        action: {
-          label: '元に戻す',
-          onClick: async () => {
-            try {
-              await restoreAsset(assetId);
-              toast.success('復元しました');
-              loadAsset(); // Reload asset
-            } catch (e) {
-              toast.error('復元に失敗しました');
-            }
-          }
-        }
-      });
-    
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push('/assets');
-      }, 500);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : '削除に失敗しました';
-      toast.error(message);
-    deleting.value = false;
-  }
-};
-
-// Load asset on mount and get current user session
 onMounted(async () => {
-  // Get current user session
   const { data } = await supabase.auth.getSession();
   currentUserId.value = data?.session?.user?.id ?? null;
-  
-  // Load asset
   loadAsset();
 });
 
