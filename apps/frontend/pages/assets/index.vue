@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold mb-2">公開ギャラリー</h1>
         </div>
-  <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
+  <TabsSwitch :items="[{ label: '素材', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
       </div>
     </header>
 

@@ -1,8 +1,8 @@
 <template>
   <div class="mx-auto max-w-6xl p-6">
-  <TabsSwitch :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
+  <TabsSwitch :items="[{ label: '素材', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold mb-2">マイキャラクター</h1>
+      <h1 class="text-2xl font-semibold mb-2">コンテンツ管理</h1>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <NuxtLink v-for="c in list" :key="c.id" :to="`/my/characters/${c.id}`" class="block rounded shadow bg-white overflow-hidden">

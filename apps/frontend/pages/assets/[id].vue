@@ -4,15 +4,15 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between mb-4">
-          <h1 class="text-2xl font-bold text-gray-900">アセット詳細</h1>
+          <h1 class="text-2xl font-bold text-gray-900">素材詳細</h1>
           <NuxtLink
             to="/assets"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            ← アセット一覧に戻る
+            ← 素材一覧に戻る
           </NuxtLink>
         </div>
-        <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
+        <TabsSwitch :items="[{ label: '素材', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
       </div>
     </header>
 
@@ -474,6 +474,6 @@ onMounted(async () => {
 });
 
 useHead({
-  title: () => asset.value ? `${asset.value.title || 'Asset'} - Talking` : 'Asset - Talking',
+  title: () => asset.value ? `${asset.value.title || '素材'} - Talking` : '素材 - Talking',
 });
 </script>

@@ -19,41 +19,70 @@
 
 ## UI / 画面仕様（実装準拠）
 
+### ユーザー向けコンテンツ名称ルール（2026-05-13 MVP）
+
+内部実装では `Asset` / `Character` モデル名を継続使用し、API path / DB 名は変更しない。ユーザー向け UI 表示のみ以下の名称ルールを採用。
+
+**表示名称**:
+- `Asset` → UI では **「素材」** と表示
+- `Character` → UI では **「キャラクター」** と表示
+- 自作素材・キャラクターをまとめる概念 → **「コンテンツ管理」** で統一
+  - `/my/assets` の見出し: 「コンテンツ管理」
+  - `/my/characters` の見出し: 「コンテンツ管理」
+  - ヘッダーナビ: 「素材管理」「キャラクター管理」（2リンク）
+- 公開されている素材・キャラクターをまとめる概念 → **「公開ギャラリー」** で統一
+  - `/assets` の見出し: 「公開ギャラリー」
+  - `/characters` の見出し: 「公開ギャラリー」
+  - タブ表記（共通）: 「素材」「キャラクター」
+
+**影響範囲**:
+- ページ見出し・タブ表記・ナビゲーション・モーダルタイトル・案内テキストなど、ユーザーに向けた全表示
+- コード内の型名・変数名・API path・DB 名は変更しない（`Asset`, `Character`, `assetId` など）
+- ドキュメント内で内部実装を説明する際は「Asset（内部名）」のように併記してもよい
+
+**今回実装範囲（MVP）**:
+- ページ見出し・タブ名の統一
+- ナビゲーションテキストの最小限整理
+- ドキュメント更新
+- 後続課題: 詳細 UI レイアウト統一、一覧 UI 検索/フィルタ機能統一、カード表示情報統一
+
+出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`, `apps/frontend/app.vue`
+
 - タブナビ（共通）
-  - 画面上部に「アセット｜キャラクター」タブを表示
-  - 出典: `apps/frontend/components/common/SectionTabs.vue`
-- 公開ギャラリー
-  - パス: `/assets`（タブ: アセット｜キャラクター）
+  - 画面上部に「素材｜キャラクター」タブを表示（公開側・自作側共通）
+  - 出典: `apps/frontend/components/common/TabsSwitch.vue`
+- 公開ギャラリー（素材）
+  - パス: `/assets`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
   - 検索/フィルタ: `q`, `contentType`, `primaryTag`, `tags`, `sort` をURLクエリに保持・復元
   - 出典: `apps/frontend/pages/assets/index.vue`（クエリ同期と検索）、`apps/frontend/composables/useAssets.ts`
-- アセット管理
-  - パス: `/my/assets`（タブ: アセット｜キャラクター）
+- コンテンツ管理（素材）
+  - パス: `/my/assets`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
   - 検索/フィルタ: 上記と同等のクエリ同期
-  - アセット編集モーダル（`EditAssetModal.vue`）で `isPublic: true -> false` の保存時のみ利用影響確認を実行し、参照中ゲームがある場合は保存前に確認モーダルを表示（0件時は確認なしで保存）
+    - 素材編集モーダル（`EditAssetModal.vue`）で `isPublic: true -> false` の保存時のみ利用影響確認を実行し、参照中ゲームがある場合は保存前に確認モーダルを表示（0件時は確認なしで保存）
   - 公開中ゲームで参照がある場合は強い warning、非公開/下書きのみの場合は軽い notice を表示。確認後は保存を続行可能（非公開化をブロックしない）
   - 出典: `apps/frontend/pages/my/assets/index.vue`
 - お気に入り
-  - パス: `/my/favorites`（アセット）・`/my/favorites/characters`（キャラクター）
-  - タブ: アセット｜キャラクター
+  - パス: `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）
+  - タブ: 素材｜キャラクター
   - 出典: `apps/frontend/pages/my/favorites/characters.vue`
-- キャラクター
-  - 一覧（公開）: `/characters`（タブ: アセット｜キャラクター）
+- 公開ギャラリー（キャラクター）
+  - 一覧（公開）: `/characters`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
     - クエリ同期: `q`, `tags`, `sort`
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
     - 画像クリックで拡大モーダル
     - 作者表示からプロフィールページ `/profiles/:userId` へ遷移可能（表示は `ownerDisplayName` 優先、未設定時は短縮 `ownerId` フォールバック）
     - 出典: `apps/frontend/pages/characters/[id].vue`, `apps/frontend/components/common/ImageLightbox.vue`
-  - 一覧（公開）: `/characters`
-    - キャラクターカードに作者表示を追加し、作者名クリックでプロフィールページ `/profiles/:userId` へ遷移可能
+  - キャラクターカードに作者表示を追加し、作者名クリックでプロフィールページ `/profiles/:userId` へ遷移可能
     - カード本体の詳細遷移（`/characters/:id`）と干渉しないよう、作者リンククリックはイベント伝播を停止
     - 出典: `apps/frontend/pages/characters/index.vue`
-  - マイ一覧: `/my/characters`
+- コンテンツ管理（キャラクター）
+  - マイ一覧: `/my/characters`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
     - 出典: `apps/frontend/pages/my/characters/index.vue`
   - 新規作成: `/my/characters/new`
-    - タブ `UploadTabs` を利用（「アセットをアップロード｜キャラクターを作成」）
+    - タブ `UploadTabs` を利用（「素材をアップロード｜キャラクターを作成」）
     - 出典: `apps/frontend/pages/my/characters/new.vue`, `apps/frontend/components/common/UploadTabs.vue`
-  - 編集: `/my/characters/[id]`
+  - 編集: `/my/characters/[id]`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
     - 立ち絵カードのレイアウト: 3カラム（md以上で3列）
     - 画像クリックで拡大モーダル（フォーム操作では開かない）
     - 編集可能フィールド: `emotion`（Enum選択＋`emotionLabel`自由ラベル）, `pattern`（任意文字列）, `sortOrder`（小さいほど先頭）

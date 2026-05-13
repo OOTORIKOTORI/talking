@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-5xl p-6">
     <div class="mb-4">
-      <TabsSwitch :items="[{ label: 'アセット', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
+      <TabsSwitch :items="[{ label: '素材', to: '/assets' }, { label: 'キャラクター', to: '/characters' }]" />
     </div>
     <NuxtLink to="/characters" class="text-blue-600 text-sm hover:underline">← 一覧へ</NuxtLink>
     <div class="flex items-start justify-between mt-2">

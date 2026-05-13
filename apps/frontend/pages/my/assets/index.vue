@@ -4,9 +4,9 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-semibold mb-2">アセット管理</h1>
+          <h1 class="text-2xl font-semibold mb-2">コンテンツ管理</h1>
         </div>
-  <TabsSwitch :items="[{ label: 'アセット', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
+  <TabsSwitch :items="[{ label: '素材', to: '/my/assets' }, { label: 'キャラクター', to: '/my/characters' }]" />
       </div>
     </header>
 
@@ -624,7 +624,7 @@ watch(() => route.query, () => {
 });
 
 useHead({
-  title: 'アセット管理 - Talking',
+  title: 'コンテンツ管理 - Talking',
 });
 </script>
 

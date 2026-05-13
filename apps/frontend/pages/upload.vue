@@ -8,7 +8,7 @@
             to="/my/assets"
             class="text-blue-600 hover:text-blue-700 font-medium"
           >
-            アセット管理
+            素材管理
           </NuxtLink>
           <NuxtLink
             to="/"

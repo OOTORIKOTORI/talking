@@ -11,8 +11,8 @@
           <NuxtLink to="/games" class="text-gray-700 hover:text-gray-900">公開ゲーム</NuxtLink>
           <NuxtLink v-if="user" to="/my/games" class="text-gray-700 hover:text-gray-900">ゲーム制作</NuxtLink>
           <NuxtLink v-if="user" to="/upload" class="text-gray-700 hover:text-gray-900">アップロード</NuxtLink>
-          <NuxtLink v-if="user" to="/my/assets" class="text-gray-700 hover:text-gray-900">アセット管理</NuxtLink>
-          <NuxtLink v-if="user" to="/my/characters" class="text-gray-700 hover:text-gray-900">マイキャラ</NuxtLink>
+          <NuxtLink v-if="user" to="/my/assets" class="text-gray-700 hover:text-gray-900">素材管理</NuxtLink>
+          <NuxtLink v-if="user" to="/my/characters" class="text-gray-700 hover:text-gray-900">キャラクター管理</NuxtLink>
           <NuxtLink v-if="user" to="/my/favorites" class="text-pink-600 hover:text-pink-700">お気に入り</NuxtLink>
           <NuxtLink v-if="user" to="/my/profile" class="text-gray-700 hover:text-gray-900">プロフィール</NuxtLink>
           <div v-if="user" class="flex items-center space-x-3">
@@ -49,8 +49,8 @@
           <template v-if="user">
             <NuxtLink to="/my/games" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">ゲーム制作</NuxtLink>
             <NuxtLink to="/upload" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">アップロード</NuxtLink>
-            <NuxtLink to="/my/assets" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">アセット管理</NuxtLink>
-            <NuxtLink to="/my/characters" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">マイキャラ</NuxtLink>
+            <NuxtLink to="/my/assets" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">素材管理</NuxtLink>
+            <NuxtLink to="/my/characters" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">キャラクター管理</NuxtLink>
             <NuxtLink to="/my/favorites" class="py-3 text-pink-600 hover:text-pink-700 border-b border-gray-100" @click="menuOpen = false">お気に入り</NuxtLink>
             <NuxtLink to="/my/profile" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">プロフィール</NuxtLink>
             <div class="py-3 border-b border-gray-100">

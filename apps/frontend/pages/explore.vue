@@ -5,7 +5,7 @@
       <NuxtLink to="/" class="text-blue-600 hover:text-blue-700">ホーム</NuxtLink>
     </div>
 
-    <div class="mb-4 text-sm text-gray-600">最新のアセットとキャラクターを一緒に表示します</div>
+    <div class="mb-4 text-sm text-gray-600">最新の素材とキャラクターを一緒に表示します</div>
 
     <div v-if="loading" class="py-10 text-center text-gray-500">読み込み中…</div>
     <div v-else-if="error" class="py-4 px-5 bg-red-50 border border-red-200 text-red-800 rounded">{{ error }}</div>
