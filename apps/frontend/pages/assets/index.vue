@@ -184,7 +184,6 @@
             :key="asset.id"
             :asset="asset"
             :showFavorite="true"
-            :onToggleFavorite="toggle"
             @thumb-error="performSearch"
           />
         </div>
@@ -206,10 +205,8 @@
 </template>
 
 <script setup lang="ts">
-import { useFavoriteToggle } from '@/composables/useFavoriteToggle'
 import { useAssetsApi } from '@/composables/useAssets'
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
-const { toggle } = useFavoriteToggle()
 import type { Asset } from '@talking/types';
 
 const route = useRoute();
