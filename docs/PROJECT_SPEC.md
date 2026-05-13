@@ -68,7 +68,28 @@
 - お気に入り
   - パス: `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）
   - タブ: 素材｜キャラクター
-  - 出典: `apps/frontend/pages/my/favorites/characters.vue`
+  - UI 構成（2026-05-14 polish MVP）:
+    - ヘッダー背景白・shadow-sm、TabsSwitch 配置、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
+    - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
+    - 空状態: SVG アイコン + テキスト（「お気に入りの素材/キャラクターはまだありません」+ 補足説明）
+    - 公開ギャラリー・コンテンツ管理と見た目・余白・タブ配置を揃える
+  - カード表示・お気に入り ON/OFF 挙動維持、DB/API/migration 変更なし
+  - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`
+- Explore
+  - パス: `/explore`（素材とキャラクターを混在表示）
+  - 説明文: 「最新の素材とキャラクターを一緒に表示します」
+  - UI 構成（2026-05-14 polish MVP）:
+    - ヘッダー背景白・shadow-sm、見出し・ホーム導線、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
+    - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
+    - ASSET/CHAR ラベル表示: `absolute left-2 top-2 z-10 rounded bg-gray-900/80 px-2 py-0.5 text-[10px] font-semibold text-white`
+    - 読み込み状態: スピナー + 「読み込み中…」
+    - エラー状態: 赤背景エラーパネル（アイコン + 説明テキスト）
+    - 空状態: SVG アイコン + テキスト
+    - AssetCard（`showFavorite: true`）と CharacterCard の混在表示
+  - API: `searchAssets` + `listPublic`（キャラクター）の並列呼び出し、`createdAt` でソート
+  - カード表示・お気に入り ON/OFF 挙動維持、ASSET/CHAR ラベル維持、DB/API/migration 変更なし
+  - 出典: `apps/frontend/pages/explore.vue`
+
 - 公開ギャラリー（キャラクター）
   - 一覧（公開）: `/characters`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
     - 検索/フィルタ（MVP）: キーワード（`name` / `displayName` / `description` / `tags`）、タグ（カンマ区切り）、並び替え（`createdAt:desc` / `createdAt:asc` / `name:asc`）

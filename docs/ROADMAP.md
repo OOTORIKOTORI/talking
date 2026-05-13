@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-14（作者リンク/お気に入りボタンのHTML構造整理MVP、RUNBOOK / migration / Meili手順整理MVP・再index安全化、一覧ページ上部の検索・フィルタUI polish MVP）
+> 最終更新: 2026-05-14（お気に入り一覧 / Explore 表示 polish MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -8,7 +8,7 @@
 
 ## 📍 現在地サマリ（2026-05-14）
 
-最新仕様確認コミット: `3a72339e9a189f3ff50623964d9a20701c9a208c`
+最新仕様確認コミット: 本 MVP 実装後
 
 以下の MVP が一区切り済みです。
 
@@ -55,6 +55,21 @@
   - `/characters` と `/my/characters` の `applyFilters` / `resetFilters` 挙動維持
   - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ）
   - 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
+
+**お気に入り一覧 / Explore 表示 polish MVP**（2026-05-14 実装）
+- `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）・`/explore` の UI 見た目・余白・見出し・カード配置を公開ギャラリー・コンテンツ管理に統一
+  - **ページ構造の統一**:
+    - ヘッダー: 白背景・shadow-sm、見出し・TabsSwitch 配置（`/my/favorites` / `/my/favorites/characters`）、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
+    - メインコンテンツ: `min-h-screen bg-gray-50`、padding（`px-4 sm:px-6 lg:px-8 py-8`）
+    - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6（公開ギャラリー・コンテンツ管理と統一）
+  - **空状態・読み込み状態の改善**:
+    - `/my/favorites` / `/my/favorites/characters`: SVG アイコン + テキスト（例: 「お気に入りの素材はまだありません」+ 補足説明）
+    - `/explore`: 読み込み状態（スピナー + 「読み込み中…」）、エラー状態（赤背景パネル）、空状態（アイコン + テキスト）
+  - **Explore の ASSET/CHAR ラベル維持**: 位置・サイズ・色を調整し、カードと視覚的に競合しない配置（`absolute left-2 top-2 z-10 rounded bg-gray-900/80 px-2 py-0.5 text-[10px] font-semibold text-white`）
+  - **カード表示・お気に入り ON/OFF 挙動**: AssetCard / CharacterCard の既存責務は維持、詳細リンク・作者リンク・お気に入りボタンの DOM 構造は維持
+  - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ、既存クエリ・導線維持）
+  - 新規検索/フィルタ機能は追加しない
+  - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/frontend/pages/explore.vue`
 
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
