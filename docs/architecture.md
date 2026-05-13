@@ -38,7 +38,7 @@
   - キャラ: `POST/DELETE /characters/:id/favorite`, 一覧: `GET /my/favorites/characters`
 - UI
   - 公開ギャラリー・お気に入り・管理一覧で **♡トグル** が可能
-  - 一覧画面は **URL クエリにフィルタ状態を保持** し、共有や再訪時の復元に対応
+  - 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）は URL クエリにフィルタ状態を保持し、共有や再訪時の復元に対応（`/my/favorites` / `/my/favorites/characters` にはフィルタ UI なし）
 
 ## 画面構成 / 導線
 

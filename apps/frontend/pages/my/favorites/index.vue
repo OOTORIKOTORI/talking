@@ -9,7 +9,7 @@ import { useQuerySync } from '@/composables/useQuerySync'
 
 const api = useAssetsApi()
 const favorites = ref<any[]>([])
-const qs = useQuerySync({ q: '', sort: 'createdAt:desc', type: '', primary: '', tags: '', limit: 50, offset: 0 })
+const qs = useQuerySync({ sort: 'createdAt:desc', limit: 50, offset: 0 })
 
 async function load() {
   favorites.value = await api.listFavoriteAssets(qs.value)

@@ -9,7 +9,7 @@ definePageMeta({ name: 'my-favorites-characters' })
 
 const api = useCharactersApi()
 const list = ref<any[]>([])
-const qs = useQuerySync({ q: '', tags: '' })
+const qs = useQuerySync({})
 
 async function load() {
   list.value = await api.listFavoriteCharacters(qs.value)
