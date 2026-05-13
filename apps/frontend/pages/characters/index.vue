@@ -74,52 +74,9 @@
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <NuxtLink
-          v-for="c in list"
-          :key="c.id"
-          :to="`/characters/${c.id}`"
-          class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
-        >
-          <div class="aspect-[3/4]">
-            <CharacterImageThumb :keyOrThumb="c.images?.[0]?.thumbKey || c.images?.[0]?.key || null" :alt="c.name" />
-          </div>
-
-          <div class="p-4">
-            <h3 class="font-medium text-gray-900 truncate">{{ c.displayName || c.name }}</h3>
-            <p class="mt-1 text-xs text-slate-600">
-              <span>作者: </span>
-              <button
-                v-if="c.ownerId"
-                type="button"
-                class="text-blue-600 hover:underline"
-                @click.stop.prevent="goToProfile(c.ownerId)"
-              >
-                {{ formatCreatorLabel(c.ownerDisplayName, c.ownerId) }}
-              </button>
-              <span v-else>unknown</span>
-            </p>
-
-            <div v-if="c.creditRequired" class="mt-2">
-              <span class="inline-block px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800">
-                クレジット必須
-              </span>
-            </div>
-
-            <div v-if="c.tags && c.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
-              <span
-                v-for="tag in c.tags.slice(0, 3)"
-                :key="tag"
-                class="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded"
-              >
-                {{ tag }}
-              </span>
-              <span v-if="c.tags.length > 3" class="inline-block px-2 py-0.5 text-xs text-gray-500">
-                +{{ c.tags.length - 3 }}
-              </span>
-            </div>
-          </div>
-        </NuxtLink>
+        <CharacterCard v-for="c in list" :key="c.id" :character="c" />
       </div>
+    import CharacterCard from '@/components/character/CharacterCard.vue'
     </main>
   </div>
 </template>

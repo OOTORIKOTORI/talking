@@ -48,7 +48,22 @@
     <!-- 本文 -->
     <div class="p-3">
       <h3 class="font-medium line-clamp-1">{{ asset.title || '（無題）' }}</h3>
-      <p class="text-xs text-gray-500 line-clamp-2">{{ asset.description }}</p>
+      <p class="text-xs text-gray-500 line-clamp-2 min-h-[1.5em]">{{ asset.description || '\u00A0' }}</p>
+
+      <!-- タグ表示 -->
+      <div v-if="asset.tags && asset.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
+        <span
+          v-for="tag in asset.tags.slice(0, 3)"
+          :key="tag"
+          class="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded"
+        >
+          {{ tag }}
+        </span>
+        <span v-if="asset.tags.length > 3" class="inline-block px-2 py-0.5 text-xs text-gray-500">
+          +{{ asset.tags.length - 3 }}
+        </span>
+      </div>
+
       <p class="mt-2 text-xs text-gray-500">
         作者:
         <button

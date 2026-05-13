@@ -121,12 +121,20 @@
               <h3 class="font-medium text-gray-900 truncate hover:text-blue-600">{{ c.displayName || c.name }}</h3>
             </NuxtLink>
 
-            <div class="mt-2">
+            <p class="text-xs text-gray-500 line-clamp-1 min-h-[1.5em]">{{ c.description || '\u00A0' }}</p>
+
+            <div class="mt-2 flex gap-2 items-center">
               <span
                 class="inline-block px-2 py-0.5 text-xs font-medium rounded"
                 :class="c.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
               >
                 {{ c.isPublic ? '公開' : '非公開' }}
+              </span>
+              <span
+                class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full"
+                :class="c.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+              >
+                {{ c.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
               </span>
             </div>
 
@@ -141,6 +149,10 @@
               <span v-if="c.tags.length > 3" class="inline-block px-2 py-0.5 text-xs text-gray-500">
                 +{{ c.tags.length - 3 }}
               </span>
+            </div>
+
+            <div class="mt-2 text-xs text-gray-400">
+              作成日: {{ c.createdAt ? (new Date(c.createdAt).toLocaleDateString()) : '-' }}
             </div>
 
             <div class="mt-4 flex gap-2">
