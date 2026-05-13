@@ -197,7 +197,7 @@ apps/api/src/
 ├── meili/
 │   └── meili.client.ts                      # Meilisearch クライアント初期化
 ├── my/
-│   ├── my.controller.ts                     # 自分の assets / characters 一覧を返す API（assets は public/private 両方返却）
+│   ├── my.controller.ts                     # 自分の profile / assets 系 API（assets は public/private 両方返却、characters 管理一覧は characters.controller.ts 側に集約）
 │   └── my.module.ts                         # my 機能のモジュール定義
 ├── prisma/
 │   ├── prisma.module.ts                     # PrismaService を DI するモジュール

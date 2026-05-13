@@ -43,25 +43,4 @@ export class MyController {
       orderBy: { createdAt: 'desc' },
     })
   }
-
-  @Get('characters')
-  async myCharacters(
-    @Req() req: any,
-    @Query('q') q?: string,
-    @Query('limit') limit?: string,
-  ) {
-    const where: any = { ownerId: req.user.userId, deletedAt: null }
-    if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { displayName: { contains: q, mode: 'insensitive' } },
-        { tags: { hasSome: q.split(/\s+/).filter(Boolean) } },
-      ]
-    }
-    return this.prisma.character.findMany({
-      where,
-      take: Number(limit ?? 100),
-      orderBy: { updatedAt: 'desc' },
-    })
-  }
 }

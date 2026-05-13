@@ -88,7 +88,9 @@
   - 新規作成: `/my/characters/new`
     - タブ `UploadTabs` を利用（「素材をアップロード｜キャラクターを作成」）
     - 出典: `apps/frontend/pages/my/characters/new.vue`, `apps/frontend/components/common/UploadTabs.vue`
-  - 編集: `/my/characters/[id]`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
+  - 編集: `/my/characters/[id]`（見出し: 「編集: キャラクター名」）
+    - 基本情報・公開状態・利用条件・立ち絵画像を編集する
+    - 一覧UI統一MVPでは詳細/編集ページのレイアウト統一は未実施（後続課題）
     - 立ち絵カードのレイアウト: 3カラム（md以上で3列）
     - 画像クリックで拡大モーダル（フォーム操作では開かない）
     - 編集可能フィールド: `emotion`（Enum選択＋`emotionLabel`自由ラベル）, `pattern`（任意文字列）, `sortOrder`（小さいほど先頭）
@@ -307,7 +309,14 @@
   - お気に入り解除: `DELETE /assets/:id/favorite`
     - 出典: フロント `apps/frontend/composables/useAssets.ts`（`listFavorites`, `favorite`, `unfavorite`, `applyFavorites`）/ サーバ `apps/api/src/favorites/*.ts`
 - キャラクター
-  - 公開一覧: `GET /characters`（`publicOnly` 省略時は公開のみ）
+  - 公開一覧: `GET /characters`
+    - 常に `isPublic = true` かつ `deletedAt = null` の公開キャラクターのみ返す
+    - クエリは `q` / `tags` / `sort` に対応
+    - `publicOnly` query は公開一覧では反映しない（常に public only）
+  - 自分の一覧（管理）: `GET /my/characters`
+    - `ownerId = userId` のキャラクターを返す
+    - クエリは `q` / `tags` / `visibility` / `sort` に対応
+    - `visibility` は `public` / `private` / `all` をサポート
   - 公開詳細: `GET /characters/:id`
     - 返却に `ownerDisplayName?: string | null` を含む
     - `ownerDisplayName` は `ownerDisplayNameSnapshot` を優先し、未設定時は `CreatorProfile.displayName`、それも無ければ `null` を返す（個人情報は返さない）
