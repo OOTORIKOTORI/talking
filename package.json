@@ -24,7 +24,8 @@
     "db:check-game-credits": "pnpm -C apps/api db:check-game-credits",
     "db:lock-game-credit-snapshots": "pnpm -C apps/api db:lock-game-credit-snapshots",
     "db:check-game-credit-snapshots": "pnpm -C apps/api db:check-game-credit-snapshots",
-    "smoke:game-credits": "pnpm -C apps/api smoke:game-credits"
+    "smoke:game-credits": "pnpm -C apps/api smoke:game-credits",
+    "search:reindex": "pnpm -C apps/api search:reindex"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

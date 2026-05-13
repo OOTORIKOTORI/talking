@@ -5,7 +5,7 @@
 ### アセット（画像/音声）
 - モデル: `Asset { id, ownerId, ownerDisplayNameSnapshot?, ownerDisplayName?, key, thumbKeyWebp?, thumbKeyAvif?, title, description, contentType, primaryTag, tags[], size, isPublic, createdAt, deletedAt?, usageTerms?, creditRequired, isFavorite?, favoriteCount?, ... }`
 - 画像URLは **署名付き GET `/uploads/signed-get?key=...` の JSON `{ url }` を取得してから `<img src>` に適用** する（直リンク禁止）
-- 検索: Meilisearch（facets: `contentType`, `primaryTag`, `tags`）
+- 検索: Meilisearch（assets index の filterableAttributes は `contentType`, `primaryTag`, `tags`, `ownerId`, `isPublic`、sortableAttributes は `createdAt`）
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
 - `thumbKeyWebp` / `thumbKeyAvif` は WebP/AVIF フォーマットのサムネイル
 - 公開一覧/検索の表示条件は `deletedAt = null` かつ `isPublic = true`。owner は自分の private asset を一覧/詳細で確認できる
@@ -20,6 +20,7 @@
 - `ownerDisplayNameSnapshot` は作成時点の `CreatorProfile.displayName` を保存、`usageTerms` / `creditRequired` は利用条件設定フィールド
 - 公開一覧 `/characters` は `isPublic=true` かつ `deletedAt=null` のみ表示し、`q` / `tags` / `sort(createdAt:desc|createdAt:asc|name:asc)` の検索・並び替えを提供
 - 管理一覧 `/my/characters` は owner の public/private 両方を表示し、`visibility(all|public|private)` による絞り込み、`q` / `tags` / `sort` を提供
+- Character の Meilisearch index は未実装で、キャラクター一覧/詳細は Prisma 取得を継続
 - キャラクター編集で `isPublic: true -> false` を保存する場合は `GET /my/characters/:id/usage-impact` を使って利用影響を確認し、参照中ゲームがある場合は保存前 warning を表示する（確認後に保存続行可）
 
 ### ゲーム（β）

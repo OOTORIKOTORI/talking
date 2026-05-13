@@ -1,91 +1,97 @@
-# RUNBOOK — ローカル起動までのコマンド集（Windows/PowerShell 版）
+# RUNBOOK - ローカル環境更新と復旧（Windows / PowerShell）
 
-## 0) バージョン
-```pwsh
-node -v   # v22.12.0
-pnpm -v   # v10.16.0
-```
+## 1. 最新コード取得後 / ZIP 入れ替え後 / schema 変更後の標準手順
 
-## 1) リポ初期化（既に C:\talking がある場合はスキップ可）
-```pwsh
-# New-Item -ItemType Directory -Path C:\talking | Out-Null
-# Set-Location C:\talking
-git init
-```
+必ずリポジトリルートで実行:
 
-## 2) docker-compose 起動
 ```pwsh
+# 依存変更があるとき
+pnpm install
+
 docker compose up -d
-# UIs:
-# Meili:   http://localhost:7700  (Authorization: Bearer masterKey123)
-# MinIO:   http://localhost:9001  (admin / password123)
-# MailHog: http://localhost:8025
-```
-
-MinIO バケット作成（Console → Buckets → `talking-dev`）
-
-## 3) Meilisearch 初期化
-### (A) PowerShell推奨: Invoke-RestMethod を使用
-```pwsh
-$headers = @{ Authorization = 'Bearer masterKey123' }
-Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"assets"}'
-Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"games"}'
-Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"conversations"}'
-```
-
-### (B) もしくは curl.exe を明示
-```pwsh
-curl.exe -X POST http://localhost:7700/indexes -H "Authorization: Bearer masterKey123" -H "Content-Type: application/json" -d "{\"uid\":\"assets\"}"
-curl.exe -X POST http://localhost:7700/indexes -H "Authorization: Bearer masterKey123" -H "Content-Type: application/json" -d "{\"uid\":\"games\"}"
-curl.exe -X POST http://localhost:7700/indexes -H "Authorization: Bearer masterKey123" -H "Content-Type: application/json" -d "{\"uid\":\"conversations\"}"
-```
-
-## 4) Frontend 開発起動（別ターミナル）
-```pwsh
-Set-Location apps/frontend
-pnpm dev -o
-```
-
-## 5) API 開発起動（別ターミナル）
-```pwsh
-Set-Location apps/api
-pnpm dlx prisma migrate dev --name init
-pnpm start:dev
-```
-
-## 5.1) Prisma schema 変更時のチェックリスト（重要）
-```pwsh
-Set-Location C:\talking
+pnpm db:status
 pnpm -C apps/api prisma:migrate
 pnpm -C apps/api prisma:generate
 pnpm -C apps/api build
+.\scripts\init-meilisearch.ps1
+
+# 必要時のみ（詳細は下の「Meili再index」）
+pnpm search:reindex
+
+pnpm dev:all
 ```
 
-注意:
-- Prisma schema 変更時は frontend build のみでは不十分
-- migration を追加した後、`git status --ignored apps/api/prisma/migrations/{migration-name}` や `git ls-files apps/api/prisma/migrations/{migration-name}/migration.sql` で Git 追跡対象か確認してください（`_` を含む名前は `.gitignore` に引っかかる可能性があります）
-- 必要なら dev server 再起動
+補足:
+- `pnpm -C apps/api prisma:migrate` は `prisma migrate dev` を実行する。
+- `prisma migrate dev` が DB reset を要求した場合は、安易に reset せず一旦停止して原因を確認する。
+- frontend だけの build 成功では不十分。schema 変更時は API 側の migrate / generate / build まで完了させる。
 
-## 6) Worker 起動（任意/別ターミナル）
-```pwsh
-Set-Location apps/worker
-pnpm dev
-```
+## 2. Meilisearch 初期化
 
-## 7) よく使う補助
-```pwsh
-# ランダム秘匿値
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+推奨は `scripts/init-meilisearch.ps1` の実行:
 
-## トラブルシューティング
-
-### Docker Desktop が必要
-- Docker Desktop for Windows をインストールしてください
-- インストール後、PowerShellを再起動してください
-
-### Meilisearch 初期化スクリプト
-`scripts/init-meilisearch.ps1` を実行してください：
 ```pwsh
 .\scripts\init-meilisearch.ps1
 ```
+
+このスクリプトは次を行う:
+- `assets`, `games`, `conversations` index の作成（既存時はそのまま継続）
+- `assets` index settings 更新
+	- `filterableAttributes`: `contentType`, `primaryTag`, `tags`, `ownerId`, `isPublic`
+	- `sortableAttributes`: `createdAt`
+
+### 手動で設定する場合（最終手段）
+
+```pwsh
+$headers = @{ Authorization = 'Bearer masterKey123' }
+
+# index 作成
+Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"assets"}'
+Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"games"}'
+Invoke-RestMethod -Uri 'http://localhost:7700/indexes' -Method Post -Headers $headers -ContentType 'application/json' -Body '{"uid":"conversations"}'
+
+# assets settings 更新
+Invoke-RestMethod -Uri 'http://localhost:7700/indexes/assets/settings' -Method Patch -Headers $headers -ContentType 'application/json' -Body '{"filterableAttributes":["contentType","primaryTag","tags","ownerId","isPublic"],"sortableAttributes":["createdAt"]}'
+```
+
+## 3. Meili再index（必要時のみ）
+
+`isPublic` filter warning が出る、または index 内容に不整合が疑われる場合の復旧手順:
+
+1. Meilisearch 起動確認（`docker compose ps` など）
+2. `.\scripts\init-meilisearch.ps1` を実行
+3. worker を起動（`pnpm -C apps/worker dev`）
+4. reindex 実行（`pnpm search:reindex` または `pnpm -C apps/api search:reindex`）
+5. `GET /assets` や `GET /search/assets` で検索結果を確認
+
+重要:
+- `search:reindex` は BullMQ の `search-index` キューへ job を投入する方式。
+- worker が起動していないと、キュー投入されても Meilisearch への反映は進まない。
+
+## 4. Prisma EPERM（Windows）対策
+
+`query_engine-windows.dll.node` rename 失敗（EPERM）が出る場合は、実行中プロセスが DLL を掴んでいる可能性が高い。
+
+対応手順:
+1. dev server / worker / Prisma Studio / node プロセスを停止
+2. `pnpm -C apps/api prisma:generate` を再実行
+3. 必要なら `pnpm -C apps/api build` を再実行
+
+## 5. 日常運用メモ
+
+- Docker UI:
+	- Meili: http://localhost:7700
+	- MinIO: http://localhost:9001
+	- MailHog: http://localhost:8025
+- MinIO 初期セットアップ時は `talking-dev` バケット作成を確認する。
+
+## 6. Git へコミットしないもの
+
+検証ログはコミットしない:
+- `build_out.txt`
+- `build_output.txt`
+- `test_out.txt`
+- `diff_out.txt`
+- `review.patch.txt`
+
+`git status` で差分に含まれていたら、コミット対象から外すこと。

@@ -73,13 +73,13 @@ MEILI_KEY=masterKey123
 ### 3. Docker サービス起動
 
 ```powershell
-docker-compose up -d
+docker compose up -d
 ```
 
 起動確認:
 
 ```powershell
-docker-compose ps
+docker compose ps
 ```
 
 すべてのサービスが `Up (healthy)` になっていることを確認。
@@ -154,6 +154,29 @@ pnpm dev:all
 
 > **注意:** MinIO バケットは **private** です。画像表示は署名付き GET URL を使用します。CORS 設定はリポジトリ同梱のスクリプトで適用済みです。
 
+### ローカル環境更新時の標準手順（重要）
+
+最新コード取得後 / ZIP 入れ替え後 / schema 変更後は、以下の順で実行してください。
+
+```powershell
+# 依存変更がある場合
+pnpm install
+
+docker compose up -d
+pnpm db:status
+pnpm -C apps/api prisma:migrate
+pnpm -C apps/api prisma:generate
+pnpm -C apps/api build
+.\scripts\init-meilisearch.ps1
+
+# 必要な場合のみ
+pnpm search:reindex
+
+pnpm dev:all
+```
+
+`prisma migrate dev` が reset を要求した場合は、いったん止めて原因確認を優先してください。
+
 ---
 
 ## トラブルシュート
@@ -184,11 +207,19 @@ pnpm dev:all
 
 ```powershell
 # ログ確認
-docker-compose logs <service-name>
+docker compose logs <service-name>
 
 # 再起動
-docker-compose restart <service-name>
+docker compose restart <service-name>
 ```
+
+### Prisma generate で EPERM（Windows）
+
+`query_engine-windows.dll.node` rename 失敗は、実行中プロセスが DLL を掴んでいるケースがほとんどです。
+
+1. dev server / worker / Prisma Studio / node プロセスを停止
+2. `pnpm -C apps/api prisma:generate` を再実行
+3. 必要なら `pnpm -C apps/api build` も再実行
 
 ### 署名付き URL で 404 / 403
 
@@ -226,6 +257,8 @@ taskkill /PID <PID> /F
 .\scripts\init-meilisearch.ps1
 ```
 
+`init-meilisearch.ps1` は index 作成だけでなく、`assets` index の settings（filterable/sortable）も更新します。
+
 または手動で API Key を設定:
 
 ```powershell
@@ -260,8 +293,20 @@ cd apps/api
 pnpm prisma studio
 
 # Docker サービス停止
-docker-compose down
+docker compose down
 
 # Docker サービス完全削除 (ボリューム含む)
-docker-compose down -v
+docker compose down -v
 ```
+
+---
+
+## コミット前チェック（ログファイル）
+
+検証ログはコミットしません。
+
+- `build_out.txt`
+- `build_output.txt`
+- `test_out.txt`
+- `diff_out.txt`
+- `review.patch.txt`

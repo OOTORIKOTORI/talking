@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-13（キャラクター側の一覧UI統一MVP・素材詳細/キャラクター詳細レイアウト統一MVP・公開キャラクター一覧の検索/タグ/並び替え追加・キャラクター管理の検索/公開状態フィルタ/タグ/並び替え追加・キャラクター管理カードの公開/非公開バッジ追加・素材管理/キャラクター管理カードの操作導線 polish MVP）
+> 最終更新: 2026-05-14（RUNBOOK / migration / Meili手順整理MVP・再index安全化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -52,6 +52,11 @@
 
 **共通インフラ**
 - 共通ヘッダースマホ対応・`/my/games` SSR 由来エラー修正
+- RUNBOOK / migration / Meili手順整理MVP（運用ドキュメント整備）
+	- UI変更ではなく、ローカル環境更新時の事故低減を目的に手順を整理
+	- `docs/RUNBOOK.md` を現行運用に更新（migrate/generate/build、`init-meilisearch.ps1` 推奨、Meili復旧フロー、Windows EPERM 対策、検証ログ非コミット注意）
+	- `apps/api/scripts/reindex-search.ts` で `isPublic` / `thumbKey` をキュー payload へ渡すよう更新
+	- `search:reindex` script を追加（root と `apps/api`）
 
 次にやることは「[🎯 次にやる候補](#-次にやる候補)」を参照。
 
@@ -206,6 +211,8 @@
 ---
 
 ## 🎯 次にやる候補
+
+`RUNBOOK / migration / Meili手順整理MVP` は 2026-05-14 に完了済みのため、候補から除外済み。
 
 優先順（現時点のおすすめ順）:
 

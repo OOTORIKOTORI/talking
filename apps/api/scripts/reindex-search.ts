@@ -25,8 +25,10 @@ async function main() {
       primaryTag: true,
       contentType: true,
       url: true,
+      thumbKey: true,
       createdAt: true,
       ownerId: true,
+      isPublic: true,
     },
   });
 
@@ -41,8 +43,10 @@ async function main() {
       primaryTag: asset.primaryTag,
       contentType: asset.contentType,
       url: asset.url,
+      thumbKey: asset.thumbKey,
       createdAt: asset.createdAt.toISOString(),
       ownerId: asset.ownerId,
+      isPublic: asset.isPublic !== false,
     });
   }
 
