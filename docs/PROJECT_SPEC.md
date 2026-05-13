@@ -44,7 +44,7 @@
 - ページ見出し・タブ名の統一
 - ナビゲーションテキストの最小限整理
 - ドキュメント更新
-- 後続課題: 詳細 UI レイアウト統一、一覧 UI 検索/フィルタ機能統一、カード表示情報統一
+- 後続課題: 一覧 UI 検索/フィルタ機能統一、カード表示情報統一、管理画面側の詳細/編集レイアウト polish
 
 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`, `apps/frontend/app.vue`
 
@@ -72,8 +72,11 @@
     - 空状態: 既定時「公開キャラクターはまだありません。」、検索条件あり時「条件に一致するキャラクターはありません。」
     - 出典: `apps/frontend/pages/characters/index.vue`
   - 詳細（公開）: `/characters/[id]`
-    - 画像クリックで拡大モーダル
+    - 見出し「キャラクター詳細」と「← キャラクター一覧に戻る」を表示し、上部に「素材 / キャラクター」タブを配置
+    - `bg-white rounded-lg shadow` の白カード内に、キャラクター名 / 表示名 / 公開/非公開バッジ / ID / 作者リンク / お気に入りボタン / 説明 / タグリンク / 利用条件を整理表示
+    - 画像・表情セクションで感情フィルタ / パターンフィルタ / 画像グリッドを表示し、画像クリックで拡大モーダルを開く
     - 作者表示からプロフィールページ `/profiles/:userId` へ遷移可能（表示は `ownerDisplayName` 優先、未設定時は短縮 `ownerId` フォールバック）
+    - owner の場合のみ「管理」セクションと `/my/characters/:id` への「編集」ボタンを表示
     - 出典: `apps/frontend/pages/characters/[id].vue`, `apps/frontend/components/common/ImageLightbox.vue`
   - キャラクターカードに作者表示を追加し、作者名クリックでプロフィールページ `/profiles/:userId` へ遷移可能
     - カード本体の詳細遷移（`/characters/:id`）と干渉しないよう、作者リンククリックはイベント伝播を停止
@@ -90,7 +93,7 @@
     - 出典: `apps/frontend/pages/my/characters/new.vue`, `apps/frontend/components/common/UploadTabs.vue`
   - 編集: `/my/characters/[id]`（見出し: 「編集: キャラクター名」）
     - 基本情報・公開状態・利用条件・立ち絵画像を編集する
-    - 一覧UI統一MVPでは詳細/編集ページのレイアウト統一は未実施（後続課題）
+    - 公開キャラクター詳細 `/characters/[id]` の素材詳細寄せレイアウト統一は実施済み。`/my/characters/[id]` の編集画面側の大幅なレイアウト統一は後続課題
     - 立ち絵カードのレイアウト: 3カラム（md以上で3列）
     - 画像クリックで拡大モーダル（フォーム操作では開かない）
     - 編集可能フィールド: `emotion`（Enum選択＋`emotionLabel`自由ラベル）, `pattern`（任意文字列）, `sortOrder`（小さいほど先頭）
