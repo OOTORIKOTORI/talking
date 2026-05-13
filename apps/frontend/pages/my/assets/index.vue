@@ -214,26 +214,28 @@
           <div
             v-for="asset in displayAssets"
             :key="asset.id"
-            class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
+            class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
           >
-            <!-- Thumbnail (clickable to detail) -->
-            <NuxtLink :to="`/assets/${asset.id}`" class="block aspect-video">
+            <!-- Thumbnail -->
+            <NuxtLink :to="`/assets/${asset.id}`" class="block aspect-video flex-shrink-0">
               <AssetThumbnail :asset="asset" />
             </NuxtLink>
 
-            <!-- Info -->
-            <div class="p-4">
+            <!-- Info area -->
+            <div class="p-4 flex flex-col flex-1">
+              <!-- Title -->
               <NuxtLink :to="`/assets/${asset.id}`">
                 <h3 class="font-medium text-gray-900 truncate hover:text-blue-600">
                   {{ asset.title || 'Untitled' }}
                 </h3>
               </NuxtLink>
+              <!-- Description -->
               <p v-if="asset.description" class="mt-1 text-sm text-gray-600 truncate">
                 {{ asset.description }}
               </p>
-              
-              <!-- Primary Tag Badge -->
-              <div class="mt-2">
+
+              <!-- Badges -->
+              <div class="mt-2 flex flex-wrap gap-1.5 items-center">
                 <span
                   class="inline-block px-2 py-0.5 text-xs font-medium rounded"
                   :class="[
@@ -245,13 +247,13 @@
                   {{ getPrimaryTagLabel(asset.primaryTag) }}
                 </span>
                 <span
-                  class="ml-2 inline-block px-2 py-0.5 text-xs font-medium rounded"
+                  class="inline-block px-2 py-0.5 text-xs font-medium rounded"
                   :class="asset.isPublic === false ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'"
                 >
                   {{ asset.isPublic === false ? '非公開' : '公開' }}
                 </span>
               </div>
-              
+
               <!-- Tags -->
               <div v-if="asset.tags && asset.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
                 <span
@@ -265,24 +267,25 @@
                   +{{ asset.tags.length - 3 }}
                 </span>
               </div>
-              <p class="mt-1 text-sm text-gray-500">
-                {{ formatFileSize(asset.size) }}
-              </p>
-              <p class="mt-1 text-xs text-gray-400">
-                {{ formatDate(asset.createdAt) }}
-              </p>
 
-              <!-- Action Buttons -->
-              <div class="mt-4 flex gap-2">
+              <!-- Meta -->
+              <div class="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                <span>{{ formatFileSize(asset.size) }}</span>
+                <span aria-hidden="true">·</span>
+                <span>{{ formatDate(asset.createdAt) }}</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="mt-4 pt-3 border-t border-gray-100 flex gap-2">
                 <button
-                  @click="handleEdit(asset.id)"
-                  class="flex-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  @click.stop="handleEdit(asset.id)"
+                  class="flex-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   編集
                 </button>
                 <button
-                  @click="handleDelete(asset.id)"
-                  class="flex-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  @click.stop="handleDelete(asset.id)"
+                  class="flex-1 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   削除
                 </button>

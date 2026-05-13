@@ -108,22 +108,24 @@
         <div
           v-for="c in list"
           :key="c.id"
-          class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
+          class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
         >
-          <NuxtLink :to="`/my/characters/${c.id}`" class="block">
-            <div class="aspect-[3/4]">
-              <CharacterImageThumb :keyOrThumb="c.images?.[0]?.thumbKey || c.images?.[0]?.key || null" :alt="c.name" />
-            </div>
+          <!-- Thumbnail -->
+          <NuxtLink :to="`/my/characters/${c.id}`" class="block aspect-[3/4] flex-shrink-0">
+            <CharacterImageThumb :keyOrThumb="c.images?.[0]?.thumbKey || c.images?.[0]?.key || null" :alt="c.name" />
           </NuxtLink>
 
-          <div class="p-4">
+          <!-- Info area -->
+          <div class="p-4 flex flex-col flex-1">
+            <!-- Name -->
             <NuxtLink :to="`/my/characters/${c.id}`">
               <h3 class="font-medium text-gray-900 truncate hover:text-blue-600">{{ c.displayName || c.name }}</h3>
             </NuxtLink>
+            <!-- Description -->
+            <p class="mt-1 text-sm text-gray-600 truncate min-h-[1.25rem]">{{ c.description || '\u00A0' }}</p>
 
-            <p class="text-xs text-gray-500 line-clamp-1 min-h-[1.5em]">{{ c.description || '\u00A0' }}</p>
-
-            <div class="mt-2 flex gap-2 items-center">
+            <!-- Badges -->
+            <div class="mt-2 flex flex-wrap gap-1.5 items-center">
               <span
                 class="inline-block px-2 py-0.5 text-xs font-medium rounded"
                 :class="c.isPublic ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
@@ -131,13 +133,14 @@
                 {{ c.isPublic ? '公開' : '非公開' }}
               </span>
               <span
-                class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full"
+                class="inline-block px-2 py-0.5 text-xs font-medium rounded"
                 :class="c.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
               >
                 {{ c.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
               </span>
             </div>
 
+            <!-- Tags -->
             <div v-if="c.tags && c.tags.length > 0" class="mt-2 flex flex-wrap gap-1">
               <span
                 v-for="tag in c.tags.slice(0, 3)"
@@ -151,14 +154,17 @@
               </span>
             </div>
 
+            <!-- Meta -->
             <div class="mt-2 text-xs text-gray-400">
-              作成日: {{ formatDate(c.createdAt) }}
+              {{ formatDate(c.createdAt) }}
             </div>
 
-            <div class="mt-4 flex gap-2">
+            <!-- Actions -->
+            <div class="mt-4 pt-3 border-t border-gray-100">
               <NuxtLink
                 :to="`/my/characters/${c.id}`"
-                class="flex-1 px-3 py-2 text-center text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                class="block w-full px-3 py-2 text-center text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                @click.stop
               >
                 編集
               </NuxtLink>
