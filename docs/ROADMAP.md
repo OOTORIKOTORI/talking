@@ -49,7 +49,7 @@
   - フィルタカード内を `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3` レイアウトで構成（デスクトップでコンパクト、スマホで 1カラムスタック）
   - ボタン・チップ・入力欄の見た目を統一（label: `text-xs font-semibold`、button: `px-3 py-2 text-sm font-medium`、rounded-lg）
   - プライマリタグの checkbox を視覚的にボタン状に表示（`accent-blue-600` で focus 改善）
-  - 適用/リセットボタン行をグリッド全幅に配置（スマホで flex-col / デスクトップで full-width）
+	- 適用/リセットボタン行をグリッド全幅に配置し、スマホ幅でも押しやすい横並び2分割に整理
   - 既存の検索条件・URL query・API 仕様は維持（`q`, `contentType`, `primaryTag`, `tags`, `sort`, `visibility` のクエリ名変更なし）
   - `/assets` と `/my/assets` の `onSearchInput` debounce（300ms）維持
   - `/characters` と `/my/characters` の `applyFilters` / `resetFilters` 挙動維持

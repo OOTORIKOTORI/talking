@@ -210,9 +210,6 @@ import { useFavoriteToggle } from '@/composables/useFavoriteToggle'
 import { useAssetsApi } from '@/composables/useAssets'
 import TabsSwitch from '@/components/common/TabsSwitch.vue';
 const { toggle } = useFavoriteToggle()
-function toggleFavorite(asset: Asset) {
-  toggle(asset)
-}
 import type { Asset } from '@talking/types';
 
 const route = useRoute();
