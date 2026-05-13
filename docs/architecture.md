@@ -425,7 +425,7 @@ model FavoriteCharacter {
 ### 検索インデックス更新（Search Queue）
 1. Asset の作成・更新・削除時に `search-index` キューへジョブ投入する
 2. Worker が Meilisearch の `assets` インデックスへ upsert / remove を実行する
-3. `assets` インデックスの facets は `contentType`, `primaryTag`, `tags`
+3. `assets` インデックス settings は `filterableAttributes: contentType, primaryTag, tags, ownerId, isPublic`、`sortableAttributes: createdAt`
 4. 現行実装では Character 用の Meilisearch ジョブ投入や `characters` インデックス更新は未実装
 5. キャラクター一覧 / 詳細は `GET /characters` 系 API で Prisma を使って取得し、`deletedAt: null` と `isPublic` 条件で絞り込む
 6. 公開ギャラリー `/assets` のタブ切替 UI は共通だが、全文検索インデックスとして稼働しているのは現状 `assets` のみ

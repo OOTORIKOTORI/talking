@@ -259,14 +259,7 @@ taskkill /PID <PID> /F
 
 `init-meilisearch.ps1` は index 作成だけでなく、`assets` index の settings（filterable/sortable）も更新します。
 
-または手動で API Key を設定:
-
-```powershell
-curl -X POST http://localhost:7700/keys `
-  -H "Authorization: Bearer masterKey" `
-  -H "Content-Type: application/json" `
-  -d '{"actions":["search"],"indexes":["*"],"expiresAt":null}'
-```
+手動で API Key を作る運用は、`docker-compose.yml` / `.env` / スクリプトとの差分が出やすいため通常不要です。基本は `./scripts/init-meilisearch.ps1` を実行してください。
 
 ---
 
