@@ -106,12 +106,12 @@ talking/
 |------|------|------|------|
 | `/` | ホーム | 不要 | 公開トップページ |
 | `/assets` | 公開ギャラリー | 不要 | アセット/キャラクターをタブ切替で表示 |
-| `/assets/[id]` | アセット詳細 | 不要 | 管理ボタンはオーナーのみ表示 |
+| `/assets/[id]` | 素材詳細 | 不要 | 管理ボタンはオーナーのみ表示 |
 | `/characters` | キャラクター公開一覧 | 不要 | 公開キャラクターの一覧 |
 | `/characters/[id]` | キャラクター詳細 | 不要 | 立ち絵一覧・プロフィール表示 |
 | `/upload` | アップロード | **必須** | ログイン後のみアクセス可能 |
 | `/my/assets` | 素材管理 | **必須** | 本人の素材のみ表示（public/private 両方）・編集・削除 |
-| `/my/characters` | マイキャラクター管理 | **必須** | 自分のキャラクターのみ表示 |
+| `/my/characters` | キャラクター管理 | **必須** | 自分のキャラクターのみ表示 |
 | `/my/characters/new` | キャラクター新規作成 | **必須** | 作成フロー入口 |
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
 | `/my/favorites` | お気に入り素材 | **必須** | 公開ギャラリー準拠UI |
@@ -134,7 +134,7 @@ talking/
 
 #### 公開（認証不要）
 - `GET /assets` — 公開ギャラリー一覧（`deletedAt = null` かつ `isPublic = true`。ただし `ownerId=<自分>` 指定時は private も取得可）
-- `GET /assets/:id` — アセット詳細（public または owner のみ）
+- `GET /assets/:id` — 素材詳細（public または owner のみ）
 - `GET /search/assets` — 公開ギャラリー検索（Meilisearch）
 - `GET /uploads/signed-get` — 署名付き GET URL 取得
 - `GET /characters` — キャラクター公開一覧
@@ -150,9 +150,9 @@ talking/
 #### 要ログイン
 - `POST /uploads/signed-url` — 署名付き PUT URL 取得（アップロード開始）
 - `POST /assets` — finalize（DB保存）
-- `GET /assets/mine` — 本人のアセット一覧
-- `PATCH /assets/:id` — アセット更新（オーナー照合）
-- `DELETE /assets/:id` — アセット削除（オーナー照合）
+- `GET /assets/mine` — 本人の素材一覧
+- `PATCH /assets/:id` — 素材更新（オーナー照合）
+- `DELETE /assets/:id` — 素材削除（オーナー照合）
 - `GET /my/profile` — 自分のプロフィール
 - `PATCH /my/profile` — プロフィール更新
 - `GET /my/characters` — 自分のキャラクター一覧
@@ -164,9 +164,9 @@ talking/
 - `POST /my/characters/:id/images` — 立ち絵追加
 - `PATCH /my/characters/:id/images/:imageId` — 立ち絵更新（感情 / パターン / ラベル / sortOrder）
 - `DELETE /my/characters/:id/images/:imageId` — 立ち絵削除
-- `POST /assets/:id/favorite` / `DELETE /assets/:id/favorite` — アセットお気に入り
+- `POST /assets/:id/favorite` / `DELETE /assets/:id/favorite` — 素材お気に入り
 - `POST /characters/:id/favorite` / `DELETE /characters/:id/favorite` — キャラクターお気に入り
-- `GET /favorites` — お気に入りアセット一覧
+- `GET /favorites` — お気に入り素材一覧
 - `GET /my/favorites/characters` — お気に入りキャラクター一覧
 - `GET /games/my` — 自分のゲーム一覧
 - `GET /games/:id/edit` — ゲーム編集用データ取得（オーナーのみ）
@@ -260,12 +260,12 @@ talking/
 素材更新（本人のみ）
 
 #### `DELETE /assets/:id`
-アセット削除（本人のみ）
+素材削除（本人のみ）
 
 ### お気に入り関連 API
-- `GET /favorites`（要ログイン）: お気に入りアセット一覧
-- `POST /assets/:id/favorite`（要ログイン）: アセットお気に入り登録
-- `DELETE /assets/:id/favorite`（要ログイン）: アセットお気に入り解除
+- `GET /favorites`（要ログイン）: お気に入り素材一覧
+- `POST /assets/:id/favorite`（要ログイン）: 素材お気に入り登録
+- `DELETE /assets/:id/favorite`（要ログイン）: 素材お気に入り解除
 - `POST /characters/:id/favorite`（要ログイン）: キャラクターお気に入り登録
 - `DELETE /characters/:id/favorite`（要ログイン）: キャラクターお気に入り解除
 - `GET /my/favorites/characters`（要ログイン）: お気に入りキャラクター一覧

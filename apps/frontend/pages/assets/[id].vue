@@ -431,7 +431,7 @@ const handleDelete = async () => {
   try {
     deleting.value = true;
     const assetId = asset.value.id;
-    const assetTitle = asset.value.title || 'アセット';
+    const assetTitle = asset.value.title || '素材';
 
     await deleteAsset(asset.value.id);
     showDeleteModal.value = false;

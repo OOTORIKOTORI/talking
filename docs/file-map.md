@@ -40,7 +40,7 @@ apps/frontend/pages/
 │   │   ├── new.vue                          # キャラクター新規作成画面
 │   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新。公開→非公開保存時は usage-impact による保存前 warning 確認を表示
 │   ├── favorites/
-│   │   ├── index.vue                        # お気に入りアセット一覧
+│   │   ├── index.vue                        # お気に入り素材一覧
 │   │   └── characters.vue                   # お気に入りキャラクター一覧
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
@@ -100,7 +100,7 @@ apps/frontend/composables/
 ├── useAutoRefreshUrl.ts                     # 期限付きURLを自動更新して失効を防ぐ
 ├── useBacklog.ts                            # バックログ取得・表示の共通処理
 ├── useCharacters.ts                         # キャラクター API 呼び出しをまとめる
-├── useFavoriteToggle.ts                     # アセットお気に入りのトグル処理
+├── useFavoriteToggle.ts                     # 素材お気に入りのトグル処理
 ├── useFavoriteToggleCharacter.ts            # キャラクターお気に入りのトグル処理
 ├── useGames.ts                              # ゲーム API 呼び出し群。scene/node/save API の窓口
 ├── useIoOnce.ts                             # 一度だけ動かしたい処理の補助ユーティリティ
