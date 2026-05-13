@@ -158,11 +158,10 @@ import { EMOTION_JP_LABEL, emotionOptions } from '@/utils/characterLocales'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import TabsSwitch from '@/components/common/TabsSwitch.vue'
 import { formatCreatorLabel } from '@/utils/creatorDisplay'
-import { useHead } from '@vueuse/head'
-import { useSupabaseClient } from '@supabase/auth-helpers-nuxt'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useFavoriteToggleCharacter } from '@/composables/useFavoriteToggleCharacter'
+import { useSignedUrl } from '@/composables/useSignedUrl'
 
 const route = useRoute()
 const api = useCharactersApi()
@@ -175,13 +174,13 @@ const emotions = emotionOptions()
 const favoriteToggling = ref(false)
 const previewOpen = ref(false)
 const previewSrc = ref<string | null>(null)
-const supabase = useSupabaseClient()
 const currentUserId = ref<string | null>(null)
 
 const { toggle } = useFavoriteToggleCharacter()
 const isFavorited = computed(() => {
-  if (!data.value) return false
-  return !!(data.value.isFavorite ?? data.value.isFavorited)
+  const character = data.value as (Character & { isFavorited?: boolean }) | null
+  if (!character) return false
+  return !!(character.isFavorite ?? character.isFavorited)
 })
 
 const canManage = computed(() => {
@@ -217,34 +216,24 @@ const viewImages = computed(() => {
   return imgs.filter(i => (!emotion.value || i.emotion === emotion.value) && (!pattern.value || (i.pattern||'').includes(pattern.value)))
 })
 
-const { url: fullUrl, setKey: setFullKey, refresh: refreshFull } = useSupabaseImageUrl()
-watch(fullUrl, v => { if (v) previewSrc.value = v })
+const { url: fullUrl, setKey: setFullKey, refresh: refreshFull } = useSignedUrl(null)
+watch(fullUrl, (v) => {
+  if (v) previewSrc.value = v
+})
 const openPreview = async (img: any) => {
-  setFullKey(img.key); await refreshFull(); previewOpen.value = true
+  setFullKey(img.key)
+  await refreshFull()
+  previewOpen.value = true
 }
 
 onMounted(async () => {
-  // Supabaseのユーザー取得
-  const { data: user } = await supabase.auth.getUser()
-  currentUserId.value = user?.id || null
+  const supabase = useSupabaseClient() as any
+  const { data } = await supabase.auth.getSession()
+  currentUserId.value = data?.session?.user?.id ?? null
   await loadCharacter()
 })
 
 useHead({
   title: () => data.value ? `${data.value.name || 'キャラクター'} - Talking` : 'キャラクター - Talking',
 })
-
-// 画像URL取得用 composable（useSignedUrl から名称変更）
-function useSupabaseImageUrl() {
-  const url = ref<string | null>(null)
-  const setKey = (key: string) => { url.value = null; _key.value = key }
-  const _key = ref<string | null>(null)
-  const refresh = async () => {
-    if (!_key.value) return
-    // 既存の useSignedUrl と同等のAPI呼び出し
-    const { $getSignedUrl } = useNuxtApp()
-    url.value = await $getSignedUrl(_key.value)
-  }
-  return { url, setKey, refresh }
-}
 </script>
