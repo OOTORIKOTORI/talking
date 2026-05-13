@@ -45,7 +45,7 @@
 - ナビゲーションテキストの最小限整理
 - ドキュメント更新
 - 後続課題: 一覧 UI 検索/フィルタ機能統一、管理画面側の詳細/編集レイアウト polish
-- カード表示情報統一MVPは2026-05-13に実施済み。管理画面カードの操作導線 polish MVP（編集/削除ボタン統一・操作エリア分離）も2026-05-13に実施済み。後続は検索/フィルタUIの最終調整。
+- カード表示情報統一MVPは2026-05-13に実施済み。管理画面カードの操作導線 polish MVP（編集/削除ボタン統一・操作エリア分離）も2026-05-13に実施済み。**一覧ページ上部の検索・フィルタUI polish MVPは2026-05-14に実施済み**（デスクトップで grid レイアウト採用・スマホで 1カラムスタック・見出し「検索」「絞り込み」追加・ボタン/チップの見た目統一・プライマリタグ checkbox の視覚改善、DB/API/migration 変更なし）。
 
 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`, `apps/frontend/app.vue`
 

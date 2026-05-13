@@ -10,50 +10,63 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="mb-6 space-y-4">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="名前・説明・タグで検索"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+      <!-- Search and Filters -->
+      <div class="mb-8">
+        <!-- Search Section -->
+        <div class="mb-4">
+          <h2 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">検索</h2>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="名前・説明・タグで検索"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
 
-        <div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">タグ（カンマ区切り）</label>
-            <input
-              v-model="tagsInput"
-              type="text"
-              placeholder="例: 学園, 女の子"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+        <!-- Filters Section -->
+        <div class="bg-white p-4 sm:p-5 rounded-lg shadow-sm">
+          <h3 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-4">絞り込み</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Tags Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">タグ（カンマ区切り）</label>
+              <input
+                v-model="tagsInput"
+                type="text"
+                placeholder="例: 学園, 女の子"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">並び替え</label>
-            <select
-              v-model="sortOrder"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="createdAt:desc">新しい順</option>
-              <option value="createdAt:asc">古い順</option>
-              <option value="name:asc">名前順</option>
-            </select>
-          </div>
+            <!-- Sort Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">並び替え</label>
+              <select
+                v-model="sortOrder"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="createdAt:desc">新しい順</option>
+                <option value="createdAt:asc">古い順</option>
+                <option value="name:asc">名前順</option>
+              </select>
+            </div>
 
-          <div class="flex gap-2">
-            <button
-              @click="applyFilters"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-            >
-              フィルタを適用
-            </button>
-            <button
-              @click="resetFilters"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-            >
-              リセット
-            </button>
+            <!-- Apply/Reset Buttons -->
+            <div class="col-span-1 md:col-span-2 flex gap-2 pt-2">
+              <button
+                @click="applyFilters"
+                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+              >
+                フィルタを適用
+              </button>
+              <button
+                @click="resetFilters"
+                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm transition-colors"
+              >
+                リセット
+              </button>
+            </div>
           </div>
         </div>
       </div>

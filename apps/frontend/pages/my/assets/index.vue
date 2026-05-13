@@ -13,159 +13,167 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Search and Filters -->
-      <div class="mb-6 space-y-4">
-        <!-- Search Box -->
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="自分の投稿内を検索（タイトル・説明・タグ）"
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          @input="onSearchInput"
-        />
+      <div class="mb-8">
+        <!-- Search Section -->
+        <div class="mb-4">
+          <h2 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">検索</h2>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="自分の投稿内を検索（タイトル・説明・タグ）"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            @input="onSearchInput"
+          />
+        </div>
 
         <!-- Filters Section -->
-        <div class="bg-white p-4 rounded-lg shadow-sm space-y-4">
-          <!-- Content Type Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">コンテンツタイプ</label>
-            <div class="flex gap-2">
-              <button
-                @click="contentTypeFilter = undefined"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  contentTypeFilter === undefined
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
+        <div class="bg-white p-4 sm:p-5 rounded-lg shadow-sm">
+          <h3 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-4">絞り込み</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Content Type Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">コンテンツタイプ</label>
+              <div class="flex gap-2">
+                <button
+                  @click="contentTypeFilter = undefined"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    contentTypeFilter === undefined
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  すべて
+                </button>
+                <button
+                  @click="contentTypeFilter = 'image'"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    contentTypeFilter === 'image'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  画像
+                </button>
+                <button
+                  @click="contentTypeFilter = 'audio'"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    contentTypeFilter === 'audio'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  音声
+                </button>
+              </div>
+            </div>
+
+            <!-- Visibility Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">公開状態</label>
+              <div class="flex gap-2">
+                <button
+                  @click="visibilityFilter = 'all'"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    visibilityFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  すべて
+                </button>
+                <button
+                  @click="visibilityFilter = 'public'"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    visibilityFilter === 'public'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  公開
+                </button>
+                <button
+                  @click="visibilityFilter = 'private'"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    visibilityFilter === 'private'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ]"
+                >
+                  非公開
+                </button>
+              </div>
+            </div>
+
+            <!-- Primary Tag Filter -->
+            <div v-if="contentTypeFilter === 'image' || contentTypeFilter === 'audio' || contentTypeFilter === undefined" class="md:col-span-2 lg:col-span-1">
+              <label class="block text-xs font-semibold text-gray-600 mb-2">プライマリタグ</label>
+              <div class="flex flex-wrap gap-2">
+                <label
+                  v-for="tag in availablePrimaryTags"
+                  :key="tag.value"
+                  class="inline-flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm"
+                  :class="[
+                    primaryTagFilter.includes(tag.value)
+                      ? 'bg-blue-50 border-blue-500 text-blue-700'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                  ]"
+                >
+                  <input
+                    type="checkbox"
+                    :value="tag.value"
+                    v-model="primaryTagFilter"
+                    class="mr-2 rounded accent-blue-600"
+                  />
+                  {{ tag.label }}
+                </label>
+              </div>
+            </div>
+
+            <!-- Tags Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">タグ（カンマ区切り）</label>
+              <input
+                v-model="tagsInput"
+                type="text"
+                placeholder="例: 森, 夜, 戦闘"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            <!-- Sort Filter -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-2">並び替え</label>
+              <select
+                v-model="sortOrder"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                すべて
+                <option value="createdAt:desc">新しい順</option>
+                <option value="createdAt:asc">古い順</option>
+              </select>
+            </div>
+
+            <!-- Apply/Reset Buttons - spans full width on mobile, grid aligned on desktop -->
+            <div class="col-span-1 md:col-span-2 lg:col-span-3 flex gap-2 pt-2">
+              <button
+                @click="applyFilters"
+                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+              >
+                フィルタを適用
               </button>
               <button
-                @click="contentTypeFilter = 'image'"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  contentTypeFilter === 'image'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
+                @click="resetFilters"
+                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm transition-colors"
               >
-                画像
-              </button>
-              <button
-                @click="contentTypeFilter = 'audio'"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  contentTypeFilter === 'audio'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
-              >
-                音声
+                リセット
               </button>
             </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">公開状態</label>
-            <div class="flex gap-2">
-              <button
-                @click="visibilityFilter = 'all'"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  visibilityFilter === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
-              >
-                すべて
-              </button>
-              <button
-                @click="visibilityFilter = 'public'"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  visibilityFilter === 'public'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
-              >
-                公開
-              </button>
-              <button
-                @click="visibilityFilter = 'private'"
-                :class="[
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  visibilityFilter === 'private'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                ]"
-              >
-                非公開
-              </button>
-            </div>
-          </div>
-
-          <!-- Primary Tag Filter -->
-          <div v-if="contentTypeFilter === 'image' || contentTypeFilter === 'audio' || contentTypeFilter === undefined">
-            <label class="block text-sm font-medium text-gray-700 mb-2">プライマリタグ</label>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="tag in availablePrimaryTags"
-                :key="tag.value"
-                class="inline-flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-colors"
-                :class="[
-                  primaryTagFilter.includes(tag.value)
-                    ? 'bg-blue-50 border-blue-500 text-blue-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
-                ]"
-              >
-                <input
-                  type="checkbox"
-                  :value="tag.value"
-                  v-model="primaryTagFilter"
-                  class="mr-2 rounded"
-                />
-                {{ tag.label }}
-              </label>
-            </div>
-          </div>
-
-          <!-- Tags Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">タグ（カンマ区切り）</label>
-            <input
-              v-model="tagsInput"
-              type="text"
-              placeholder="例: 森, 夜, 戦闘"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <!-- Sort Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">並び替え</label>
-            <select
-              v-model="sortOrder"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="createdAt:desc">新しい順</option>
-              <option value="createdAt:asc">古い順</option>
-            </select>
-          </div>
-
-          <!-- Apply/Reset Buttons -->
-          <div class="flex gap-2">
-            <button
-              @click="applyFilters"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-            >
-              フィルタを適用
-            </button>
-            <button
-              @click="resetFilters"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
-            >
-              リセット
-            </button>
           </div>
         </div>
       </div>

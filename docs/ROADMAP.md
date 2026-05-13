@@ -1,12 +1,12 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-14（作者リンク/お気に入りボタンのHTML構造整理MVP、RUNBOOK / migration / Meili手順整理MVP・再index安全化）
+> 最終更新: 2026-05-14（作者リンク/お気に入りボタンのHTML構造整理MVP、RUNBOOK / migration / Meili手順整理MVP・再index安全化、一覧ページ上部の検索・フィルタUI polish MVP）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
 ---
 
-## 📍 現在地サマリ（2026-05-12）
+## 📍 現在地サマリ（2026-05-14）
 
 最新仕様確認コミット: `3a72339e9a189f3ff50623964d9a20701c9a208c`
 
@@ -42,6 +42,19 @@
 - CreatorProfile / ownerDisplayName / ownerDisplayNameSnapshot
 - 作者プロフィールページ・公開コンテンツ一覧（各最大6件）
 - 作者リンク/お気に入りボタンのHTML構造整理MVP（公開素材カード/公開キャラクターカードの詳細リンク・作者リンク・お気に入り導線をDOM上で分離、DB/API変更なし）
+
+**一覧ページ上部の検索・フィルタUI polish MVP**（2026-05-14 実装）
+- `/assets` / `/characters` / `/my/assets` / `/my/characters` の検索・フィルタ領域の見た目を統一
+  - 検索入力上部に「検索」「絞り込み」の軽い見出しを追加
+  - フィルタカード内を `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3` レイアウトで構成（デスクトップでコンパクト、スマホで 1カラムスタック）
+  - ボタン・チップ・入力欄の見た目を統一（label: `text-xs font-semibold`、button: `px-3 py-2 text-sm font-medium`、rounded-lg）
+  - プライマリタグの checkbox を視覚的にボタン状に表示（`accent-blue-600` で focus 改善）
+  - 適用/リセットボタン行をグリッド全幅に配置（スマホで flex-col / デスクトップで full-width）
+  - 既存の検索条件・URL query・API 仕様は維持（`q`, `contentType`, `primaryTag`, `tags`, `sort`, `visibility` のクエリ名変更なし）
+  - `/assets` と `/my/assets` の `onSearchInput` debounce（300ms）維持
+  - `/characters` と `/my/characters` の `applyFilters` / `resetFilters` 挙動維持
+  - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ）
+  - 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
 
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
