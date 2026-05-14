@@ -44,17 +44,17 @@
 - 作者リンク/お気に入りボタンのHTML構造整理MVP（公開素材カード/公開キャラクターカードの詳細リンク・作者リンク・お気に入り導線をDOM上で分離、DB/API変更なし）
 
 **一覧ページ上部の検索・フィルタUI polish MVP**（2026-05-14 実装）
-- `/assets` / `/characters` / `/my/assets` / `/my/characters` の検索・フィルタ領域の見た目を統一
-  - 検索入力上部に「検索」「絞り込み」の軽い見出しを追加
-  - フィルタカード内を `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3` レイアウトで構成（デスクトップでコンパクト、スマホで 1カラムスタック）
-  - ボタン・チップ・入力欄の見た目を統一（label: `text-xs font-semibold`、button: `px-3 py-2 text-sm font-medium`、rounded-lg）
-  - プライマリタグの checkbox を視覚的にボタン状に表示（`accent-blue-600` で focus 改善）
-	- 適用/リセットボタン行をグリッド全幅に配置し、スマホ幅でも押しやすい横並び2分割に整理
-  - 既存の検索条件・URL query・API 仕様は維持（`q`, `contentType`, `primaryTag`, `tags`, `sort`, `visibility` のクエリ名変更なし）
-  - `/assets` と `/my/assets` の `onSearchInput` debounce（300ms）維持
-  - `/characters` と `/my/characters` の `applyFilters` / `resetFilters` 挙動維持
-  - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ）
-  - 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
+ - `/assets` / `/characters` / `/my/assets` / `/my/characters` の検索・フィルタ領域の見た目を統一
+	 - 検索入力上部に「検索」「絞り込み」の軽い見出しを追加
+	 - フィルタカード内のレイアウトは、素材系（`/assets`, `/my/assets`）は `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3`、キャラクター系（`/characters`, `/my/characters`）は `grid grid-cols-1 md:grid-cols-2` を採用（いずれもスマホでは1カラム）。
+	 - ボタン・チップ・入力欄の見た目を統一（label: `text-xs font-semibold`、button: `px-3 py-2 text-sm font-medium`、rounded-lg）
+	 - プライマリタグの checkbox を視覚的にボタン状に表示（`accent-blue-600` で focus 改善）
+	 - 適用/リセットボタン行をグリッド全幅に配置し、スマホ幅でも押しやすい横並び2分割に整理
+	 - 既存の検索条件・URL query・API 仕様は維持（`q`, `contentType`, `primaryTag`, `tags`, `sort`, `visibility` のクエリ名変更なし）
+	 - `/assets` と `/my/assets` の `onSearchInput` debounce（300ms）維持
+	 - `/characters` と `/my/characters` の `applyFilters` / `resetFilters` 挙動維持
+	 - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ）
+	 - 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
 
 **管理側の空状態 / エラー状態 polish MVP**（2026-05-14 実装）
 - 対象: `/my/assets` と `/my/characters`
