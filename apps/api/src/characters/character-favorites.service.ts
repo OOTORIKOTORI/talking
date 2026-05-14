@@ -5,6 +5,42 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CharacterFavoritesService {
   constructor(private prisma: PrismaService) {}
 
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
+  }
+
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
   async add(userId: string, characterId: string) {
     const character = await this.prisma.character.findUnique({ where: { id: characterId } });
     if (!character || character.deletedAt) {
@@ -82,7 +118,20 @@ export class CharacterFavoritesService {
     const offset = opt?.offset ?? 0;
     characters = characters.slice(offset, offset + limit);
 
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(
+      characters.map((character) => character.ownerId),
+    );
+
+    const withOwnerDisplayName = characters.map((character) => ({
+      ...character,
+      ownerDisplayName: this.resolveOwnerDisplayName(
+        character.ownerId,
+        character.ownerDisplayNameSnapshot,
+        ownerDisplayNameMap,
+      ),
+    }));
+
     // Use isFavorited (past participle) to match frontend expectations
-    return characters;
+    return withOwnerDisplayName;
   }
 }

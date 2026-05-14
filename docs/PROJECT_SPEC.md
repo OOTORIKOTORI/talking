@@ -384,6 +384,7 @@
     - 返却形式: `{ items, total }`
     - 一覧表示は `deletedAt = null` かつ（`ownerId = userId` または `isPublic = true`）
     - 他者の非公開化後アセットは一覧から除外される
+    - `ownerDisplayName?: string | null` を返却（`ownerDisplayNameSnapshot` → `CreatorProfile.displayName` → `null` の順で解決）
     - `isFavorited: true`, `isFavorite: true` フラグ付与、`favoriteCount` フィールド付与
     - 空値（empty string, null）は送信しない
     - 出典: `apps/api/src/favorites/favorites.list.controller.ts`, `apps/api/src/favorites/favorites.service.ts`
@@ -422,6 +423,7 @@
       - `limit`, `offset`: ページネーション
     - 返却形式: 配列（既存形式維持）
     - 削除済み・非公開キャラクターは除外（`deletedAt = null` かつ（`ownerId = userId` または `isPublic = true`））
+    - `ownerDisplayName?: string | null` を返却（`ownerDisplayNameSnapshot` → `CreatorProfile.displayName` → `null` の順で解決）
     - `isFavorited: true`, `isFavorite: true` フラグ付与
     - 空値（empty string, null）は送信しない
     - 出典: `apps/api/src/characters/character-favorites.controller.ts`, `apps/api/src/characters/character-favorites.service.ts`

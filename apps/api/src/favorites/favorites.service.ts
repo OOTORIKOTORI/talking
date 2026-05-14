@@ -6,6 +6,42 @@ import { Prisma, AssetPrimaryTag } from '@prisma/client';
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
+  private async getOwnerDisplayNameMap(
+    ownerIds: Array<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        ownerIds.filter(
+          (id): id is string => typeof id === 'string' && id.trim().length > 0,
+        ),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+
+    const profiles = await this.prisma.creatorProfile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true },
+    });
+
+    const map = new Map<string, string>();
+    for (const p of profiles) {
+      const name = p.displayName.trim();
+      if (name.length > 0) map.set(p.userId, name);
+    }
+    return map;
+  }
+
+  private resolveOwnerDisplayName(
+    ownerId: string | null | undefined,
+    ownerDisplayNameSnapshot: string | null | undefined,
+    ownerDisplayNameMap: Map<string, string>,
+  ): string | null {
+    const snapshot = ownerDisplayNameSnapshot?.trim();
+    if (snapshot) return snapshot;
+    if (!ownerId) return null;
+    return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
   async add(userId: string, assetId: string) {
     const asset = await this.prisma.asset.findUnique({ where: { id: assetId } });
     if (!asset || asset.deletedAt) {
@@ -106,12 +142,21 @@ export class FavoritesService {
       .map((f) => f.asset)
       .filter((a): a is NonNullable<typeof a> => Boolean(a))
 
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(
+      assets.map((asset) => asset.ownerId),
+    );
+
     // Use isFavorited (past participle) to match frontend expectations
     return {
       items: assets.map((a: any) => {
         const { _count, ...asset } = a
         return {
           ...asset,
+          ownerDisplayName: this.resolveOwnerDisplayName(
+            asset.ownerId,
+            asset.ownerDisplayNameSnapshot,
+            ownerDisplayNameMap,
+          ),
           favoriteCount: _count?.favorites ?? 0,
           isFavorited: true,
           isFavorite: true,
