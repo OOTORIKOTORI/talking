@@ -140,18 +140,19 @@
     - `kind=all`: `/search/assets` と `/characters` API を並列呼び出し、`createdAt` で再ソート
     - `kind=asset`: `/search/assets` のみ呼び出し
     - `kind=character`: `/characters` API のみ呼び出し
-    - 各 API に `q`, `tags`, `sort` を渡す（既存 API で既にサポート済み、DB/API/migration 変更なし）
+    - 各 API に `q`, `tags`, `sort` を渡す（既存 API で既にサポート済み）
+    - `/search/assets` はログイン時に `isFavorited` / `isFavorite` を返す（後続の整合チェックで追加済み）
   - **カード・お気に入り挙動**: AssetCard / CharacterCard の既存責務・ASSET/CHAR ラベル維持、お気に入り解除してもカードは除去しない（`/my/favorites` のみ除去）
   - グリッド: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
   - 適用/リセット: `grid-cols-2 gap-3`
-  - DB/API/migration 変更なし（既存エンドポイント・クエリ仕様を活用）
+  - DB/migration 変更なし（検索/フィルタ MVP 自体は既存エンドポイント・クエリ仕様を活用。後続の整合チェックで `/search/assets` の返却にお気に入り状態を追加済み）
   - ゲーム表示なし（現在は素材・キャラクターのみ）
 - **スコープ制限**: 
   - contentType / primaryTag フィルタは追加しない（素材専用フィルタ）
   - キャラクター専用フィルタ（Emotion など）は追加しない
   - ルート `/explore` は変更しない
 	- グローバルナビ PC / スマホメニューに `/explore` への「見つける」導線あり
-- DB/API/migration 変更なし（既存スキーマ・filter ロジック再利用）
+- DB/migration 変更なし（検索/フィルタ MVP 自体は既存スキーマ・filter ロジック再利用。後続の整合チェックで `/search/assets` の返却にお気に入り状態を追加済み）
 - 出典: `apps/frontend/pages/explore.vue`, `apps/frontend/app.vue`, `apps/frontend/pages/index.vue`, `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`, `docs/`
 
 **ゲーム制作/編集基盤まわり**

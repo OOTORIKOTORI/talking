@@ -135,14 +135,15 @@
     - `kind=all`: `/search/assets` と `/characters` API を並列呼び出し、`createdAt` で再ソート
     - `kind=asset`: `/search/assets` のみ呼び出し
     - `kind=character`: `/characters` API のみ呼び出し
-    - 各 API に `q`, `tags`, `sort` を渡す（API側で既に対応済み、DB/migration変更なし）
+    - 各 API に `q`, `tags`, `sort` を渡す（既存 API で対応済み）
+    - `/search/assets` はログイン時に `isFavorited` / `isFavorite` を返す（後続の整合チェックで追加済み）
   - URL クエリ同期:
     - クエリパラメータ: `q`, `kind`, `tags`, `sort`
     - `sort` は active filter 判定に含めない
     - リセット時: `q=''`, `kind='all'`, `tags=''`, `sort='createdAt:desc'`
   - お気に入り挙動: AssetCard / CharacterCard のお気に入り操作は既存通り。Explore ではカード除去を行わない（`favorite-toggled` を購読しない）
   - ゲーム表示なし（現在は素材・キャラクターのみ）
-  - DB/API/migration 変更なし
+  - DB/migration 変更なし（検索/フィルタ MVP 自体は既存 API を活用。後続の整合チェックで `/search/assets` の返却にお気に入り状態を追加済み）
   - 出典: `apps/frontend/pages/explore.vue`
 
 - 公開ギャラリー（キャラクター）
@@ -518,9 +519,13 @@
 
 - 楽観的更新 → API 反映 → 失敗時ロールバック
   - 出典: アセット `apps/frontend/composables/useFavoriteToggle.ts`、キャラ `apps/frontend/composables/useFavoriteToggleCharacter.ts`
-- 表示同期
-  - 一覧フェッチ後に `applyFavorites()` で `isFavorited` を上書き
-  - 出典: `apps/frontend/composables/useAssets.ts#applyFavorites`
+- 表示同期（アセット）
+  - `GET /search/assets` はログイン時に `isFavorited` / `isFavorite` を返す（Prisma fallback / Meilisearch 経由の両方で `attachFavoriteStatus()` を通る）。未ログイン時は `false`
+  - フロントは `normalizeAssetFavorite()` で `isFavorited` / `isFavorite` / `favorited` 等の表記ゆれを吸収する
+  - `applyFavorites()` はクライアント側の補完用途として残し、既存の `isFavorited=true` / `isFavorite=true` を `false` で潰さない
+  - `/explore` の素材カードは `/search/assets` の返却 + `normalizeAssetFavorite()` で既存お気に入り状態を反映する
+  - `/explore` は `favorite-toggled` を購読しないため、お気に入り解除後もカード自体は残る
+  - 出典: `apps/frontend/composables/useAssets.ts`（`applyFavorites`, `normalizeAssetFavorite`）、`apps/api/src/search/search.service.ts`
 - 返却データの表記ゆれを正規化
   - `normalizeAssetFavorite()` で `isFavorited` を付与（`isFavorite`/`favorited` 等を吸収）
   - 出典: `apps/frontend/composables/useAssets.ts#normalizeAssetFavorite`
