@@ -52,6 +52,20 @@
 - タブナビ（共通）
   - 画面上部に「素材｜キャラクター」タブを表示（公開側・自作側共通）
   - 出典: `apps/frontend/components/common/TabsSwitch.vue`
+- トップページ（ホーム）
+  - パス: `/`
+  - 目的: 「公開コンテンツを見つける入口」と「制作を始める入口」を案内する軽量MVP（本格LP化はスコープ外）
+  - UI 構成（2026-05-14 polish MVP）:
+    - ページトーンを一覧ページ系に統一（`min-h-screen bg-gray-50`、`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8`、白カード + `shadow-sm` + `rounded-lg` + `border`）
+    - ヒーロー文言: `Talking` / 「素材・キャラクターを見つけて、会話ゲームを作って公開できる場所です。」
+    - CTA: `/explore`（素材・キャラクターを見つける）, `/games`（公開ゲームを見る）, `/my/games`（ゲームを作る）, `/upload`（素材をアップロード）
+    - 主要導線カード: 見つける（`/explore`）、公開ギャラリー（`/assets`）、キャラクター（`/characters`）、公開ゲーム（`/games`）、ゲーム制作（`/my/games`）、素材アップロード（`/upload`）
+    - レイアウト: スマホ1カラム、PCで2〜3カラム
+  - 開発状態表示（API状態）:
+    - health check の `useFetch(`${config.public.apiBase}/health`)` は維持
+    - `pending/error/data` の既存ロジック、エラー表示、`config.public.apiBase` 表示を維持
+    - API状態カードは主役から外し、ページ下部の「開発状態」として控えめに表示
+  - 出典: `apps/frontend/pages/index.vue`
 - 公開ギャラリー（素材）
   - パス: `/assets`（見出し: 「公開ギャラリー」、タブ: 素材｜キャラクター）
   - 検索/フィルタ: `q`, `contentType`, `primaryTag`, `tags`, `sort` をURLクエリに保持・復元

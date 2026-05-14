@@ -16,7 +16,7 @@
 
 ```text
 apps/frontend/pages/
-├── index.vue                                # トップページ。ヘルス確認と主要導線を表示
+├── index.vue                                # トップページ。見つける/公開ゲーム/制作/アップロードへの主要導線と、控えめなAPI状態表示を扱う
 ├── explore.vue                              # 「見つける」ページ。公開素材・公開キャラクターを横断発見。検索/フィルタUI（q, kind, tags, sort）で URL クエリ同期・復元対応。ASSET/CHARラベル付きカードgrid、loading/error/empty状態（条件なし vs 条件あり）を扱う
 ├── login.vue                                # Supabase ログイン画面
 ├── logout.vue                               # ログアウト処理を実行してトップへ戻すページ

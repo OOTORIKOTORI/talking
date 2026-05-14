@@ -85,6 +85,21 @@
   - 当該表示 polish 時点では検索/フィルタ機能は追加しない（後続の各検索/フィルタ追加 MVP で追加済み）
   - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/frontend/pages/explore.vue`
 
+**トップページ / ホーム導線 polish MVP**（2026-05-14 実装）
+- 対象: `/`（`apps/frontend/pages/index.vue`）
+- 目的: 一覧UI統一シリーズ後の軽量 polish として、トップを「公開コンテンツを見つける入口」と「制作を始める入口」に整理
+- 実装内容:
+	- レイアウトを `min-h-screen bg-gray-50` + `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8` に変更
+	- ヒーロー文言を更新し、主要CTAを配置（`/explore`, `/games`, `/my/games`, `/upload`）
+	- 主要導線カードを追加（見つける / 公開ギャラリー / キャラクター / 公開ゲーム / ゲーム制作 / 素材アップロード）
+	- `/explore` カードをやや強調し、横断入口として視認性を向上
+	- API状態カードは削除せず、ページ下部の「開発状態」として控えめに配置
+	- `useFetch(`${config.public.apiBase}/health`)` と `pending/error/data` の既存表示ロジックは維持
+- スコープ明記:
+	- 本格的なLP化は行わない（入口整理MVPに限定）
+	- DB/API/migration変更なし
+- 出典: `apps/frontend/pages/index.vue`, `docs/PROJECT_SPEC.md`, `docs/file-map.md`
+
 **お気に入り一覧の検索/フィルタUI追加 MVP**（2026-05-14 実装）
 - `/my/favorites`（素材お気に入り）に検索・フィルタUI追加
   - **検索/フィルタカード**: 白カード（`bg-white p-4 sm:p-5 rounded-lg shadow-sm`）、検索欄 + フィルタ項目 + 適用/リセットボタン
