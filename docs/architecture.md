@@ -467,8 +467,9 @@ model FavoriteCharacter {
 - `/my/favorites/characters` も検索/フィルタUIを持つ（`q` / `tags` / `sort`）
 - どちらも URL query 同期・復元に対応
 - 空状態は「お気に入り0件」と「条件あり0件」で分岐
-- お気に入り解除時はカード内のハート状態と `favoriteCount` を楽観更新する
-- 親一覧からカードを即時除去する処理は現時点で未実装（後続 polish 候補）
+- `AssetCard` / `CharacterCard` はカード内で optimistic update（ハート状態と `favoriteCount`）を維持し、API 成功時に `favorite-toggled` イベントを emit する
+- `/my/favorites` / `/my/favorites/characters` では親ページで `favorite-toggled` を受け取り、解除成功（`isFavorited=false`）時に親配列から対象カードを即時除去する
+- 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）では `favorite-toggled` イベントを購読しないため、カード自体は表示のまま残す
 
 ---
 
