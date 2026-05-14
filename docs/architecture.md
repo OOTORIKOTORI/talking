@@ -460,8 +460,12 @@ model FavoriteCharacter {
 
 **お気に入り（`/my/favorites` / `/my/favorites/characters`）**
 - 公開ギャラリーに近いカードgrid・余白・空状態UIを持つ
-- 検索/フィルタ UI は持たない
-- 解除時は楽観更新でカードを即時に消す
+- `/my/favorites` は検索/フィルタUIを持つ（`q` / `type` / `primaryTag` / `tags` / `sort`）
+- `/my/favorites/characters` も検索/フィルタUIを持つ（`q` / `tags` / `sort`）
+- どちらも URL query 同期・復元に対応
+- 空状態は「お気に入り0件」と「条件あり0件」で分岐
+- お気に入り解除時はカード内のハート状態と `favoriteCount` を楽観更新する
+- 親一覧からカードを即時除去する処理は現時点で未実装（後続 polish 候補）
 
 ---
 
