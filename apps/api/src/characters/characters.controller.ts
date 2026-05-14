@@ -34,6 +34,12 @@ export class CharactersController {
     return this.service.findPublic(id, req.user?.userId ?? null);
   }
 
+  @Get('/characters/:id/used-in-games')
+  @UseGuards(OptionalSupabaseAuthGuard)
+  async getUsedInGames(@Req() req: any, @Param('id') id: string, @Query('limit') limit?: string) {
+    return this.service.getUsedInGames(id, req.user?.userId ?? null, Number(limit));
+  }
+
   // 自分の一覧
   @Get('/my/characters')
   @UseGuards(SupabaseAuthGuard)

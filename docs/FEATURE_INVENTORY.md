@@ -763,11 +763,17 @@
 - ROADMAP出典: `docs/ROADMAP.md` ゲーム制作/編集基盤まわり「edit 画面の表示設定リセット導線MVP」
 - 概要: 編集画面から 3ペイン幅（`gameEditorPaneWidths`）、右ペインセクション開閉（`talking.editor.rightPaneSections.v1`）、現在ゲームの最後の選択位置（`talking.editor.lastSelection.v1:${gameId}`）をリセットできる導線。localStorage 由来の表示崩れや作業位置復元ミスから復旧しやすくする。ゲーム内容は変更しない。
 
+### FI-115: この素材/キャラクターが使われている作品
+
+- 状態: `MVP実装済み`
+- ROADMAP出典: `docs/ROADMAP.md` この素材/キャラクターが使われている作品MVP
+- 概要: 素材詳細/キャラクター詳細から、その素材/キャラクターを参照している公開ゲームを最大6件表示する。`GameAssetReference` / `GameCharacterReference` を使い、非公開ゲームは表示しない。詳細な参照位置・ランキング・ページネーションは未実装。
+
 ---
 
 ## 棚卸し対象セクション（参照元）
 
-- `docs/ROADMAP.md` 現在地サマリ（2026-05-14）
+- `docs/ROADMAP.md` 現在地サマリ（2026-05-15）
 - `docs/ROADMAP.md` 実装済み（主要）
 - `docs/ROADMAP.md` 🎯 次にやる候補
 - `docs/ROADMAP.md` 🔮 後回しにする大きめ課題

@@ -48,6 +48,16 @@ export class AssetsController {
     return asset;
   }
 
+  @Get(':id/used-in-games')
+  @UseGuards(OptionalSupabaseAuthGuard)
+  async getUsedInGames(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @CurrentUser() user?: AuthUser,
+  ) {
+    return this.assetsService.getUsedInGames(id, user?.userId, Number(limit));
+  }
+
   @Patch(':id')
   @UseGuards(SupabaseAuthGuard)
   async update(@Param('id') id: string, @Body() updateAssetDto: UpdateAssetDto, @CurrentUser() user: AuthUser) {

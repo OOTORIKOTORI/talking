@@ -104,6 +104,55 @@
             <dd class="mt-1 text-gray-400">—</dd>
           </div>
 
+          <div class="border-t pt-6 space-y-3">
+            <h3 class="text-lg font-semibold text-gray-900">この素材が使われている公開作品</h3>
+            <p class="text-sm text-gray-600">
+              公開中のゲームでこの素材が使われている作品を表示します。非公開ゲームは表示されません。
+            </p>
+
+            <div v-if="usedInGamesLoading" class="text-sm text-gray-500">使用作品を読み込み中...</div>
+            <div v-else-if="usedInGamesError" class="text-sm text-red-600">使用作品の取得に失敗しました</div>
+            <div v-else-if="usedInGames && usedInGames.total === 0" class="text-sm text-gray-500">
+              まだ公開作品では使われていません。
+            </div>
+            <div v-else-if="usedInGames && usedInGames.items?.length" class="space-y-3">
+              <p class="text-xs text-gray-500">公開作品 {{ usedInGames.total }}件</p>
+              <article
+                v-for="item in usedInGames.items"
+                :key="item.gameId"
+                class="rounded-lg border border-gray-200 bg-gray-50 p-4"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <NuxtLink :to="`/games/${item.gameId}`" class="text-base font-semibold text-blue-700 hover:underline">
+                    {{ item.title }}
+                  </NuxtLink>
+                  <span class="text-xs text-gray-500">更新: {{ new Date(item.updatedAt).toLocaleDateString('ja-JP') }}</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-600">
+                  作者:
+                  <NuxtLink
+                    v-if="item.ownerId"
+                    :to="`/profiles/${item.ownerId}`"
+                    class="text-blue-600 hover:underline"
+                  >
+                    {{ item.ownerDisplayName || item.ownerId }}
+                  </NuxtLink>
+                  <span v-else>unknown</span>
+                </p>
+                <p class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ item.summary || '概要なし' }}</p>
+                <div class="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-700 sm:grid-cols-2">
+                  <p>使用回数: {{ item.usageCount }}</p>
+                  <p>使用箇所: {{ formatUsedInGamesFields(item.fields) }}</p>
+                  <p>閲覧数: {{ item.viewCount }}</p>
+                  <p>プレイ数: {{ item.playCount }}</p>
+                </div>
+              </article>
+              <p v-if="usedInGames.hasMore" class="text-xs text-gray-500">
+                ほかにも使用されている公開作品があります。
+              </p>
+            </div>
+          </div>
+
           <!-- Owner Management -->
           <div class="border-t pt-6 space-y-4">
             <h3 class="text-lg font-semibold text-gray-900">管理</h3>
@@ -271,7 +320,7 @@ import { useFavoriteToggle } from '@/composables/useFavoriteToggle';
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient() as any;
-const { getAsset, deleteAsset, restoreAsset, getUsageImpact } = useAssets();
+const { getAsset, deleteAsset, restoreAsset, getUsageImpact, getAssetUsedInGames } = useAssets();
 const { toggle } = useFavoriteToggle();
 const toast = useToast();
 
@@ -290,6 +339,9 @@ const deleting = ref(false);
 const usageImpact = ref<any>(null);
 const usageImpactLoading = ref(false);
 const usageImpactError = ref(false);
+const usedInGames = ref<any>(null);
+const usedInGamesLoading = ref(false);
+const usedInGamesError = ref(false);
 
 const isFavorited = computed(() => {
   if (!asset.value) return false;
@@ -316,10 +368,13 @@ const loadAsset = async () => {
   try {
     loading.value = true;
     error.value = null;
+    usedInGames.value = null;
+    usedInGamesError.value = false;
     asset.value = await getAsset(id);
     if (asset.value) {
       signedUrl.value = await getSignedGetUrl(asset.value.key);
       mediaErrorRetried.value = false;
+      await loadUsedInGames(asset.value.id);
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load asset';
@@ -407,6 +462,34 @@ const formatByFieldShort = (byField: Record<string, number> | undefined) => {
     .filter(([, v]) => Number(v) > 0)
     .map(([k, v]) => `${labels[k] ?? k} ${v}参照`);
   return parts.join(' / ') || 'なし';
+};
+
+const formatUsedInGamesFields = (fields: Record<string, number> | undefined) => {
+  if (!fields) return 'なし';
+  const labels: Record<string, string> = {
+    coverAssetId: 'カバー',
+    bgAssetId: '背景',
+    musicAssetId: 'BGM',
+    sfxAssetId: 'SE',
+    portraitAssetId: '立ち絵',
+  };
+  const parts = Object.entries(fields)
+    .filter(([, v]) => Number(v) > 0)
+    .map(([k, v]) => `${labels[k] ?? k} ${v}`);
+  return parts.join(' / ') || 'なし';
+};
+
+const loadUsedInGames = async (id: string) => {
+  usedInGamesLoading.value = true;
+  usedInGamesError.value = false;
+  try {
+    usedInGames.value = await getAssetUsedInGames(id, { limit: 6 });
+  } catch {
+    usedInGamesError.value = true;
+    usedInGames.value = null;
+  } finally {
+    usedInGamesLoading.value = false;
+  }
 };
 
 const confirmDelete = async () => {

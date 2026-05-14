@@ -113,6 +113,9 @@ export const useAssets = () => {
   const getUsageImpact = (id: string) =>
     $api(`/assets/${id}/usage-impact`) as Promise<any>
 
+  const getAssetUsedInGames = (id: string, query: any = {}) =>
+    $api(`/assets/${id}/used-in-games`, { query }) as Promise<any>
+
   return {
     searchAssets,
     getAsset,
@@ -120,5 +123,6 @@ export const useAssets = () => {
     deleteAsset,
       restoreAsset,
     getUsageImpact,
+    getAssetUsedInGames,
   }
 }

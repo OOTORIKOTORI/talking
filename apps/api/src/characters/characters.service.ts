@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCharacterDto } from './dto/create-character.dto';
 import { UpdateCharacterDto } from './dto/update-character.dto';
 import { CreateCharacterImageDto } from './dto/create-image.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CharactersService {
@@ -71,6 +72,16 @@ export class CharactersService {
     return ownerDisplayNameMap.get(ownerId) ?? null;
   }
 
+  private normalizeReferenceFields(value: Prisma.JsonValue | null | undefined): Record<string, number> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const out: Record<string, number> = {};
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+      const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 0;
+      if (n > 0) out[key] = n;
+    }
+    return out;
+  }
+
   async create(ownerId: string, dto: CreateCharacterDto) {
     const tags = (dto.tags || []).map(t => t.trim()).filter(Boolean).slice(0, 20)
     const usageTerms = typeof dto.usageTerms === 'string' ? dto.usageTerms.trim() || null : null;
@@ -116,6 +127,91 @@ export class CharactersService {
     if (c.ownerId !== ownerId) throw new ForbiddenException();
     await this.prisma.character.update({ where: { id }, data: { deletedAt: new Date() } });
     return { success: true };
+  }
+
+  async getUsedInGames(id: string, userId: string | null = null, rawLimit = 6) {
+    const character = await this.prisma.character.findUnique({ where: { id } });
+    if (!character || character.deletedAt) {
+      throw new NotFoundException('Character not found');
+    }
+    if (!character.isPublic && character.ownerId !== userId) {
+      throw new NotFoundException('Character not found');
+    }
+
+    const limit = Math.min(Math.max(Number(rawLimit) || 6, 1), 20);
+    const where = {
+      characterId: id,
+      game: {
+        deletedAt: null,
+        isPublic: true,
+      },
+    };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.gameCharacterReference.count({ where }),
+      this.prisma.gameCharacterReference.findMany({
+        where,
+        take: limit + 1,
+        orderBy: [
+          { game: { updatedAt: 'desc' } },
+          { gameId: 'desc' },
+        ],
+        select: {
+          gameId: true,
+          usageCount: true,
+          fields: true,
+          game: {
+            select: {
+              id: true,
+              title: true,
+              summary: true,
+              coverAssetId: true,
+              ownerId: true,
+              ownerDisplayNameSnapshot: true,
+              isPublic: true,
+              viewCount: true,
+              playCount: true,
+              updatedAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(rows.map((row) => row.game.ownerId));
+
+    const hasMore = rows.length > limit;
+    const sliced = hasMore ? rows.slice(0, limit) : rows;
+    const items = sliced.map((row) => {
+      const ownerId = row.game.ownerId ?? null;
+      return {
+        gameId: row.game.id,
+        title: row.game.title,
+        summary: row.game.summary,
+        coverAssetId: row.game.coverAssetId,
+        ownerId,
+        ownerDisplayName: this.resolveOwnerDisplayName(
+          ownerId,
+          row.game.ownerDisplayNameSnapshot,
+          ownerDisplayNameMap,
+        ),
+        isPublic: true,
+        viewCount: row.game.viewCount,
+        playCount: row.game.playCount,
+        updatedAt: row.game.updatedAt.toISOString(),
+        usageCount: Math.max(0, Math.floor(row.usageCount ?? 0)),
+        fields: this.normalizeReferenceFields(row.fields),
+      };
+    });
+
+    return {
+      characterId: id,
+      total,
+      limit,
+      hasMore,
+      items,
+      checkedAt: new Date().toISOString(),
+    };
   }
 
   async list(params: {

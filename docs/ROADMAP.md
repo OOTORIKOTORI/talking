@@ -1,13 +1,13 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-14（公開前チェックサマリーMVP 反映、参照診断失敗時のサマリー状態を「注意あり」に補正、トップページ新着コンテンツ枠MVP 反映、IDEA_BACKLOG に AI提案アイデア・超長期構想「キャラと会話」追加）
+> 最終更新: 2026-05-15（この素材/キャラクターが使われている作品MVP 反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
 
 ---
 
-## 📍 現在地サマリ（2026-05-14）
+## 📍 現在地サマリ（2026-05-15）
 
 最新仕様確認コミット: `481e361392c4dc4a87db55ecae4ef304af609ece`
 
@@ -30,6 +30,7 @@
 - 非公開ゲームの公開前確認では現在参照のみ表示（削除済み locked credit の混入を防止）
 - Asset.isPublic MVP（Boolean）実装: 公開一覧/検索/プロフィール/お気に入りは `isPublic=true` を基準、自分の一覧と owner 自身の詳細は private 表示可
 - Asset/Character 非公開化時の利用影響表示MVP: 編集保存で `isPublic: true -> false` の場合のみ usage-impact を確認し、参照中ゲームがあるときは保存前 warning モーダルを表示（確認後続行可、保存ブロックなし）
+- この素材/キャラクターが使われている作品MVP: 公開素材/公開キャラクター詳細に、参照している公開ゲームを最大6件表示。`GameAssetReference` / `GameCharacterReference` を利用（詳細参照位置・ランキングは未実装）
 - GameCredit DB 分離・公開時点スナップショット固定・公開後即 lock 運用
 - 公開中編集時の注意バナー（折りたたみ状態 localStorage 保存）
 - 公開中ゲームの保存前再確認UX（`window.confirm`、キャンセルで保存中断）
@@ -213,6 +214,8 @@
 ## ✅ 実装済み（主要）
 
 ### 公開・クレジットまわり
+
+- **この素材/キャラクターが使われている作品MVP**（2026-05-15 実装）（公開素材詳細 `/assets/:id` と公開キャラクター詳細 `/characters/:id` に、参照している公開ゲーム一覧を表示。API は `GET /assets/:id/used-in-games` と `GET /characters/:id/used-in-games` を追加し、`GameAssetReference` / `GameCharacterReference` を利用。対象ゲームは `deletedAt: null` かつ `isPublic: true` のみ。デフォルト最大6件、`hasMore` あり。表示項目はタイトル/作者/概要/使用回数/使用箇所/閲覧数/プレイ数。ノード/シーン単位の詳細表示、ページネーション、ランキング、`usedInGameCount` カラム追加、Meilisearch連携は未実装。既存 `usage-impact` は削除/非公開影響確認用途として維持。）
 
 - **スタッフロール終了時挙動MVP**（2026-05-12 実装）（`GameProject.staffRollEndBehavior`（TEXT NOT NULL DEFAULT 'stop'）を追加（migration: `20260512130000_add_staff_roll_end_behavior`）。ゲーム単位で自動スクロール末尾到達時の挙動を「最後で停止（`stop`）/ 最後で閉じる（`close`）/ 先頭に戻ってループ（`loop`）」の3択で選択可能。設定場所は「ゲーム全体設定 > クレジット/スタッフロール」タブ内、スクロール速度設定の下。スマホ幅でも押しやすいUIにする（grid-cols-2 / sm:grid-cols-3）。自動スクロール末尾到達時だけ挙動を適用。手動スクロール/ホイール/タッチ操作による一時停止の既存挙動は維持。`stop` は末尾で停止、`close` は末尾でモーダル自動閉じ、`loop` は末尾から先頭へ戻り自動スクロール継続。`staffRollEnabled=false` でも設定値は保存される。公開中ゲーム側は共通confirm対象。`credits.counts.total === 0`（空表示）時は無理に終了時挙動を発火しない。ユーザーが明示的に一時停止中は末尾挙動を暴発させず、モーダル閉じ後に interval/timer が残らないようクリーンアップ。BGM/SE連動・より凝った演出は将来課題。）
 

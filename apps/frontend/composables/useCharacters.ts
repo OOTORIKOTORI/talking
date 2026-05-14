@@ -7,6 +7,8 @@ export const useCharactersApi = () => {
     listPublic: (q?: string, limit=20, offset=0, extra?: Record<string, any>) =>
       $api<Character[]>('/characters', { query: { q, limit, offset, ...(extra || {}) } }),
     getPublic: (id: string) => $api<Character>(`/characters/${id}`),
+    getUsedInGames: (id: string, query: any = {}) =>
+      $api<any>(`/characters/${id}/used-in-games`, { query }),
 
     // マイ（後方互換: 旧シグネチャ listMine(q?, limit?, offset?) も受け付ける）
     listMine: (arg1?: any, limit?: number, offset?: number) => {

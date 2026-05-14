@@ -30,10 +30,10 @@ apps/frontend/pages/
 ├── upload.vue                               # 素材アップロード画面。画像/音声の投稿入口（公開/非公開の初期設定を含む）
 ├── assets/
 │   ├── index.vue                            # 公開ギャラリー（素材）。検索・絞り込みの入口
-│   └── [id].vue                             # 素材詳細画面。内容確認や関連操作を提供（非公開は owner のみ閲覧可）
+│   └── [id].vue                             # 素材詳細画面。内容確認や関連操作を提供（非公開は owner のみ閲覧可）。「この素材が使われている公開作品」セクションを表示
 ├── characters/
 │   ├── index.vue                            # 公開ギャラリー（キャラクター）一覧。キーワード/タグ/並び替えのフィルタパネル（適用・リセット、URLクエリ同期）
-│   └── [id].vue                             # キャラクター公開詳細画面。素材詳細寄せのカード構成で基本情報・作者リンク・お気に入り・利用条件・画像/表情一覧・Lightbox・owner向け編集導線を扱う
+│   └── [id].vue                             # キャラクター公開詳細画面。素材詳細寄せのカード構成で基本情報・作者リンク・お気に入り・利用条件・「このキャラクターが使われている公開作品」・画像/表情一覧・Lightbox・owner向け編集導線を扱う
 ├── games/
 │   ├── index.vue                            # 公開ゲーム一覧ページ
 │   └── [id]/
@@ -102,11 +102,11 @@ apps/frontend/components/
 apps/frontend/composables/
 ├── useApi.ts                                # API クライアント取得。クライアント側は api-auth.client の $api、SSR側は $fetch.create() へフォールバック
 ├── useAssetMeta.ts                          # アセットIDからメタ情報や署名済みURLを取得
-├── useAssets.ts                             # アセット API 呼び出しをまとめたコンポーザブル
+├── useAssets.ts                             # アセット API 呼び出しをまとめたコンポーザブル（`/assets/:id/used-in-games` を含む）
 ├── useAudioConsent.ts                       # 音声再生の同意状態を localStorage と同期
 ├── useAutoRefreshUrl.ts                     # 期限付きURLを自動更新して失効を防ぐ
 ├── useBacklog.ts                            # バックログ取得・表示の共通処理
-├── useCharacters.ts                         # キャラクター API 呼び出しをまとめる
+├── useCharacters.ts                         # キャラクター API 呼び出しをまとめる（`/characters/:id/used-in-games` を含む）
 ├── useFavoriteToggle.ts                     # 素材お気に入りのトグル処理
 ├── useFavoriteToggleCharacter.ts            # キャラクターお気に入りのトグル処理
 ├── useGames.ts                              # ゲーム API 呼び出し群。scene/node/save API の窓口
@@ -160,9 +160,9 @@ apps/api/src/
 ├── app.module.ts                            # NestJS 全体モジュール。各 feature module を束ねる
 ├── main.ts                                  # API エントリポイント。Nest の起動設定を行う
 ├── assets/
-│   ├── assets.controller.ts                 # アセット CRUD と公開取得の HTTP 入口（詳細は任意認証で owner の private 閲覧を許可）
+│   ├── assets.controller.ts                 # アセット CRUD と公開取得の HTTP 入口（詳細は任意認証で owner の private 閲覧を許可）。`GET /assets/:id/used-in-games` を提供
 │   ├── assets.module.ts                     # assets 機能のモジュール定義
-│   ├── assets.service.ts                    # Prisma・検索キュー連携を含むアセット業務ロジック（公開条件: deletedAt=null かつ isPublic=true、owner は private 閲覧可）
+│   ├── assets.service.ts                    # Prisma・検索キュー連携を含むアセット業務ロジック（公開条件: deletedAt=null かつ isPublic=true、owner は private 閲覧可）。`GameAssetReference` 由来の使用公開作品集計を含む
 │   └── dto/
 │       ├── create-asset.dto.ts              # アセット作成リクエスト DTO
 │       ├── query-assets.dto.ts              # アセット検索/絞り込み用 DTO
@@ -175,9 +175,9 @@ apps/api/src/
 │   ├── character-favorites.controller.ts    # キャラクターお気に入り操作の API 入口（POST/DELETE /characters/:id/favorite、GET /my/favorites/characters q/tags/sort/limit/offset 対応、2026-05-14 MVP）
 │   ├── character-favorites.service.ts       # キャラクターお気に入り登録/解除・検索/フィルタロジック（q/tags/sort/limit/offset 対応、2026-05-14 MVP）
 │   ├── character-images.controller.ts       # キャラクター画像の追加・管理 API
-│   ├── characters.controller.ts             # キャラクター CRUD と公開取得 API（`q/tags/sort/visibility` クエリ対応）
+│   ├── characters.controller.ts             # キャラクター CRUD と公開取得 API（`q/tags/sort/visibility` クエリ対応）。`GET /characters/:id/used-in-games` を提供
 │   ├── characters.module.ts                 # characters 機能のモジュール定義
-│   ├── characters.service.ts                # キャラクター本体と画像関連の業務ロジック（公開/管理一覧の検索・タグ・並び替え・公開状態フィルタを含む）
+│   ├── characters.service.ts                # キャラクター本体と画像関連の業務ロジック（公開/管理一覧の検索・タグ・並び替え・公開状態フィルタを含む）。`GameCharacterReference` 由来の使用公開作品集計を含む
 │   └── dto/
 │       ├── create-character.dto.ts          # キャラクター作成 DTO
 │       ├── create-image.dto.ts              # キャラクター画像作成 DTO

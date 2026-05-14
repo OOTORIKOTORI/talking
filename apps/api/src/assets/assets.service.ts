@@ -9,7 +9,7 @@ import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { QueryAssetsDto } from './dto/query-assets.dto';
 import { meiliClient } from '../meili/meili.client';
-import { AssetPrimaryTag } from '@prisma/client';
+import { AssetPrimaryTag, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AssetsService {
@@ -94,6 +94,16 @@ export class AssetsService {
     if (snapshot) return snapshot;
     if (!ownerId) return null;
     return ownerDisplayNameMap.get(ownerId) ?? null;
+  }
+
+  private normalizeReferenceFields(value: Prisma.JsonValue | null | undefined): Record<string, number> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const out: Record<string, number> = {};
+    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+      const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 0;
+      if (n > 0) out[key] = n;
+    }
+    return out;
   }
 
   async create(createAssetDto: CreateAssetDto, ownerId: string) {
@@ -325,6 +335,93 @@ export class AssetsService {
     await this.searchProducer.enqueueAsset(asset);
 
     return;
+  }
+
+  async getUsedInGames(id: string, userId?: string, rawLimit = 6) {
+    const asset = await this.prisma.asset.findUnique({ where: { id } });
+    if (!asset || asset.deletedAt) {
+      throw new NotFoundException(`Asset with ID ${id} not found`);
+    }
+    if (!asset.isPublic && asset.ownerId !== userId) {
+      throw new NotFoundException(`Asset with ID ${id} not found`);
+    }
+
+    const limit = Math.min(Math.max(Number(rawLimit) || 6, 1), 20);
+    const where = {
+      assetId: id,
+      game: {
+        deletedAt: null,
+        isPublic: true,
+      },
+    };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.gameAssetReference.count({ where }),
+      this.prisma.gameAssetReference.findMany({
+        where,
+        take: limit + 1,
+        orderBy: [
+          { game: { updatedAt: 'desc' } },
+          { gameId: 'desc' },
+        ],
+        select: {
+          gameId: true,
+          usageCount: true,
+          fields: true,
+          game: {
+            select: {
+              id: true,
+              title: true,
+              summary: true,
+              coverAssetId: true,
+              ownerId: true,
+              ownerDisplayNameSnapshot: true,
+              isPublic: true,
+              viewCount: true,
+              playCount: true,
+              updatedAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const ownerDisplayNameMap = await this.getOwnerDisplayNameMap(
+      rows.map((row) => row.game.ownerId),
+    );
+
+    const hasMore = rows.length > limit;
+    const sliced = hasMore ? rows.slice(0, limit) : rows;
+    const items = sliced.map((row) => {
+      const ownerId = row.game.ownerId ?? null;
+      return {
+        gameId: row.game.id,
+        title: row.game.title,
+        summary: row.game.summary,
+        coverAssetId: row.game.coverAssetId,
+        ownerId,
+        ownerDisplayName: this.resolveOwnerDisplayName(
+          ownerId,
+          row.game.ownerDisplayNameSnapshot,
+          ownerDisplayNameMap,
+        ),
+        isPublic: true,
+        viewCount: row.game.viewCount,
+        playCount: row.game.playCount,
+        updatedAt: row.game.updatedAt.toISOString(),
+        usageCount: Math.max(0, Math.floor(row.usageCount ?? 0)),
+        fields: this.normalizeReferenceFields(row.fields),
+      };
+    });
+
+    return {
+      assetId: id,
+      total,
+      limit,
+      hasMore,
+      items,
+      checkedAt: new Date().toISOString(),
+    };
   }
 
   async getUsageImpact(id: string, userId: string) {

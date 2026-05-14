@@ -80,6 +80,13 @@
   - 公開素材カード表示: タイトル、説明、タグ（最大3件+`+N`）、作者、クレジット表記（必須/任意）、お気に入りボタン/件数
     - HTML構造: 詳細導線はサムネイル/タイトルのリンクに限定し、作者リンク・お気に入りボタンは詳細リンクとDOM上で分離
     - DB/API変更なし（UI構造整理のみ）
+  - 詳細（公開）: `/assets/[id]`
+    - 素材詳細に「この素材が使われている公開作品」セクションを表示
+    - `GameAssetReference` を使用し、`deletedAt: null` かつ `isPublic: true` のゲームのみを表示
+    - 表示件数は MVP で最大6件（`limit` 指定なし時）
+    - 表示項目: ゲームタイトル、作者、概要、`usageCount`、`fields`、`viewCount`、`playCount`
+    - 非公開ゲームは表示しない。ノード/シーン単位の詳細表示・ページネーション・ランキングは未実装
+    - 既存の `usage-impact` は削除/非公開影響確認用途として別扱いで維持
   - 出典: `apps/frontend/pages/assets/index.vue`（クエリ同期と検索）、`apps/frontend/composables/useAssets.ts`
 - コンテンツ管理（素材）
   - パス: `/my/assets`（見出し: 「コンテンツ管理」、タブ: 素材｜キャラクター）
@@ -180,6 +187,12 @@
   - 詳細（公開）: `/characters/[id]`
     - 見出し「キャラクター詳細」と「← キャラクター一覧に戻る」を表示し、上部に「素材 / キャラクター」タブを配置
     - `bg-white rounded-lg shadow` の白カード内に、キャラクター名 / 表示名 / 公開/非公開バッジ / ID / 作者リンク / お気に入りボタン / 説明 / タグリンク / 利用条件を整理表示
+    - 「このキャラクターが使われている公開作品」セクションを表示
+      - `GameCharacterReference` を使用し、`deletedAt: null` かつ `isPublic: true` のゲームのみを表示
+      - 表示件数は MVP で最大6件（`limit` 指定なし時）
+      - 表示項目: ゲームタイトル、作者、概要、`usageCount`、`fields`、`viewCount`、`playCount`
+      - 非公開ゲームは表示しない。ノード/シーン単位の詳細表示・ページネーション・ランキングは未実装
+      - 既存の `usage-impact`（`/my/characters/:id/usage-impact`）とは用途を分離して維持
     - 画像・表情セクションで感情フィルタ / パターンフィルタ / 画像グリッドを表示し、画像クリックで拡大モーダルを開く
     - 作者表示からプロフィールページ `/profiles/:userId` へ遷移可能（表示は `ownerDisplayName` 優先、未設定時は短縮 `ownerId` フォールバック）
     - owner の場合のみ「管理」セクションと `/my/characters/:id` への「編集」ボタンを表示
@@ -1224,6 +1237,42 @@ GET /games/:id/reference-diagnostics
 #### Asset.isPublic / visibility について
 `Asset.isPublic`（Boolean MVP）は導入済み。公開向けの一覧・検索・プロフィール・お気に入りでは `deletedAt: null` かつ `isPublic=true` を公開条件として扱う。owner は自分の `isPublic=false` を一覧/詳細で確認できる。
 将来課題として、`visibility`（public/private/unlisted など）へ段階拡張する。
+
+### 素材/キャラクター詳細の「使われている公開作品」MVP（2026-05-15）
+
+#### 概要
+公開素材詳細 `/assets/:id` と公開キャラクター詳細 `/characters/:id` に、対象素材/キャラクターを参照している公開ゲーム一覧を表示する。
+
+#### API
+- `GET /assets/:id/used-in-games`（`OptionalSupabaseAuthGuard`）
+- `GET /characters/:id/used-in-games`（`OptionalSupabaseAuthGuard`）
+
+共通仕様:
+- 対象素材/キャラクターが存在しない、または `deletedAt != null` の場合は `NotFoundException`
+- 対象が非公開の場合は owner のみ参照可能。owner 以外は `NotFoundException`
+- 返却対象のゲームは常に `GameProject.deletedAt = null` かつ `GameProject.isPublic = true` のみ
+- `limit` デフォルト6、最小1、最大20
+- ソート: `game.updatedAt desc`, `game.id desc`
+- `take = limit + 1` で `hasMore` を判定
+- `ownerDisplayName` は `ownerDisplayNameSnapshot` 優先、次に `CreatorProfile.displayName`、なければ `null`
+- `fields`（JSON）は正規化し、正の整数のみ返却
+
+レスポンスの主要項目:
+- `assetId` / `characterId`
+- `total`, `limit`, `hasMore`, `checkedAt`
+- `items[]`: `gameId`, `title`, `summary`, `coverAssetId`, `ownerId`, `ownerDisplayName`, `isPublic`, `viewCount`, `playCount`, `updatedAt`, `usageCount`, `fields`
+
+#### 非スコープ（MVP）
+- 非公開ゲームの表示
+- ノード/シーン単位の参照詳細表示
+- ページネーション
+- ランキング
+- `usedInGameCount` カラム追加
+- Meilisearch 連携
+
+#### 既存 usage-impact との関係
+- `GET /assets/:id/usage-impact` と `GET /my/characters/:id/usage-impact` は、削除/非公開化時の影響確認用途として継続
+- 今回の `used-in-games` は公開詳細ページの回遊用途であり、用途を分離する
 
 ### 共有素材の再アップロード/コピー問題（設計論点）
 
