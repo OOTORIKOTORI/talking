@@ -609,9 +609,9 @@
 
 ### FI-091: シナリオ Import/Export（JSON → Markdown/DSL）
 
-- 状態: `未着手`
-- ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「シナリオ・制作ツール」「シナリオ Import/Export（JSON → AI 向け Markdown/DSL）」
-- 概要: ゲームシナリオをJSON・Markdown・独自DSLでエクスポート/インポートできる機能。
+- 状態: `一部MVP実装済み`
+- ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「シナリオ・制作ツール」「シナリオ Import/Export（JSON → AI 向け Markdown/DSL）」及び 2026-05-15 実装「AIレビュー用 台本Markdown Export MVP」
+- 概要: ゲームシナリオをJSON・Markdown・独自DSLでエクスポート/インポートできる機能。AIレビュー用の最低限の台本Markdownのみ実装済み。Import、JSON Export、DSL、高度な解析付きExportは未実装。
 
 ### FI-092: シーン複製
 

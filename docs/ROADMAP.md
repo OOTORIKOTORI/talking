@@ -359,6 +359,23 @@
 - 削除系は公開中のみ、公開中警告 + 参照summary を1回のconfirmに統合して表示（通常削除confirmとの二重表示を回避）。非公開ゲームでは公開中向けconfirmは出さず、削除系は従来の削除confirmのみ表示。
 - **将来課題**: ノード追加・シーン追加へのconfirm拡張、差分検出、独自モーダル、公開版/下書き版分離。
 
+### AIレビュー用 台本Markdown Export MVP（2026-05-15 実装）
+
+- 編集画面（`/my/games/:id/edit`）右ペイン上部に「MDコピー」「MD保存」ボタンを追加。
+- MDコピー: AIレビュー用の台本Markdownをクリップボードにコピー。成功時 Toast: 「AIレビュー用Markdownをコピーしました」、失敗時 Toast: 「Markdownのコピーに失敗しました」、出力不能時 Toast: 「出力できるゲーム情報がありません」。
+- MD保存: AIレビュー用の台本Markdownを `.md` ファイルとしてダウンロード。ファイル名は `talking-ai-review-script-{gameId}-{timestamp}.md` 形式（`timestamp` は `YYYY-MM-DDTHH-mm-ss` 形式）。成功時 Toast: 「AIレビュー用Markdownを保存しました」、失敗時 Toast: 「Markdownの保存に失敗しました」。
+- 出力内容:
+  - ヘッダー: タイトル、ゲームID、シーン数、ノード数、開始シーン/ノードID
+  - Export Note: AIに渡す前提の注記
+  - Summary: 使用素材ID（BG/BGM/SFX/キャラクター画像）、使用キャラクターID
+  - Scene Index: シーン一覧
+  - Script: 各シーン、各ノードの詳細（ノードID、話者、テキスト、nextNode、choices、ポートレート情報）
+- データ源: `game.value`、`scenarioCheckScenes.value`（現在選択中ノードについては未保存の `nodeDraft` を反映）。
+- コードフェンスは ``` 重複に対応し、4バッコートへ自動切り替え。
+- 以下は含めない: 公開前チェック結果、未到達判定、クレジット詳細、素材/キャラクター詳細情報、Import、JSON Export。
+- DB/API 変更・migration 追加なし（フロント UI出力のみ）。出力操作でゲーム内容は保存・変更されない。
+- 詳細仕様: `docs/PROJECT_SPEC.md` 参照。
+
 ---
 
 ## 🎯 次にやる候補

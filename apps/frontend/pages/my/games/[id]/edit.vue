@@ -2255,6 +2255,219 @@ function onUp() {
   localStorage.setItem(PANE_WIDTHS_STORAGE_KEY, JSON.stringify(widths.value))
   window.removeEventListener('pointermove', onMove)
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// AIレビュー用 台本Markdown Export
+// ────────────────────────────────────────────────────────────────────────────
+
+function markdownCodeBlock(value: unknown, lang = 'text') {
+  const text = typeof value === 'string' ? value : ''
+  const fence = text.includes('```') ? '````' : '```'
+  return `${fence}${lang}\n${text || '(本文なし)'}\n${fence}`
+}
+
+function generateAiReviewMarkdown(): string {
+  if (!game.value) {
+    return ''
+  }
+
+  const gameId = game.value.id || 'unknown'
+  const gameTitle = game.value.title || 'Untitled'
+  const sceneCount = (scenarioCheckScenes.value ?? []).length
+  const nodeCount = (scenarioCheckScenes.value ?? [])
+    .reduce((acc: number, s: any) => acc + (Array.isArray(s.nodes) ? s.nodes.length : 0), 0)
+
+  const startSceneId = game.value.startSceneId || '未設定'
+  let startNodeId = '未設定'
+  if (game.value.startSceneId) {
+    const startScene = scenarioCheckScenes.value?.find((s: any) => s.id === game.value.startSceneId)
+    if (startScene?.startNodeId) {
+      startNodeId = startScene.startNodeId
+    }
+  }
+
+  const exportedAt = new Date().toISOString()
+
+  // ─── 1. ヘッダー ──
+  let md = ''
+  md += '# AI Review Script Export\n\n'
+  md += `- Exported At: ${exportedAt}\n`
+  md += `- Game Title: ${gameTitle}\n`
+  md += `- Game ID: ${gameId}\n`
+  md += `- Start Scene ID: ${startSceneId}\n`
+  md += `- Start Node ID: ${startNodeId}\n`
+  md += `- Scene Count: ${sceneCount}\n`
+  md += `- Node Count: ${nodeCount}\n`
+  md += '\n'
+
+  // ─── 2. Export Note ──
+  md += '## Export Note\n\n'
+  md += 'このMarkdownはTalkingの編集画面から出力されたAIレビュー用の台本です。\n'
+  md += '現在選択中のノードについては、未保存の編集内容が反映されている場合があります。\n'
+  md += '公開前チェック結果、未到達判定、クレジット詳細、素材/キャラクター詳細情報はこのMVPには含まれません。\n'
+  md += '\n'
+
+  // ─── 3. Summary ──
+  md += '## Summary\n\n'
+  md += `- Scenes: ${sceneCount}\n`
+  md += `- Nodes: ${nodeCount}\n`
+
+  // 使用素材IDを集計
+  const assetIds = {
+    bg: new Set<string>(),
+    music: new Set<string>(),
+    sfx: new Set<string>(),
+    characterImage: new Set<string>(),
+  }
+
+  const characterIds = new Set<string>()
+
+  for (const scene of scenarioCheckScenes.value ?? []) {
+    for (const node of scene.nodes ?? []) {
+      if (node.bgAssetId) assetIds.bg.add(node.bgAssetId)
+      if (node.musicAssetId) assetIds.music.add(node.musicAssetId)
+      if (node.sfxAssetId) assetIds.sfx.add(node.sfxAssetId)
+      if (node.speakerCharacterId) characterIds.add(node.speakerCharacterId)
+
+      if (Array.isArray(node.portraits)) {
+        for (const portrait of node.portraits) {
+          if (portrait.imageId) assetIds.characterImage.add(portrait.imageId)
+          if (portrait.characterId) characterIds.add(portrait.characterId)
+        }
+      }
+    }
+  }
+
+  md += '- Asset IDs:\n'
+  md += assetIds.bg.size > 0 ? `  - BG: ${Array.from(assetIds.bg).join(', ')}\n` : '  - BG: なし\n'
+  md += assetIds.music.size > 0 ? `  - BGM: ${Array.from(assetIds.music).join(', ')}\n` : '  - BGM: なし\n'
+  md += assetIds.sfx.size > 0 ? `  - SFX: ${Array.from(assetIds.sfx).join(', ')}\n` : '  - SFX: なし\n'
+  md += assetIds.characterImage.size > 0 ? `  - Character Image: ${Array.from(assetIds.characterImage).join(', ')}\n` : '  - Character Image: なし\n'
+
+  md += '- Character IDs:\n'
+  if (characterIds.size > 0) {
+    md += `  - ${Array.from(characterIds).join(', ')}\n`
+  } else {
+    md += '  - なし\n'
+  }
+  md += '\n'
+
+  // ─── 4. Scene Index ──
+  md += '## Scene Index\n\n'
+  for (let si = 0; si < (scenarioCheckScenes.value ?? []).length; si++) {
+    const scene = scenarioCheckScenes.value[si]
+    const sceneNodeCount = Array.isArray(scene.nodes) ? scene.nodes.length : 0
+    md += `${si + 1}. Scene ${si + 1}: ${scene.name || 'Untitled'}\n`
+    md += `   - Scene ID: ${scene.id}\n`
+    md += `   - Start Node ID: ${scene.startNodeId || '未設定'}\n`
+    md += `   - Node Count: ${sceneNodeCount}\n`
+  }
+  md += '\n'
+
+  // ─── 5. Script ──
+  md += '## Script\n\n'
+  for (let si = 0; si < (scenarioCheckScenes.value ?? []).length; si++) {
+    const scene = scenarioCheckScenes.value[si]
+    md += `### Scene ${si + 1}: ${scene.name || 'Untitled'}\n\n`
+    md += `- Scene ID: ${scene.id}\n`
+    md += `- Start Node ID: ${scene.startNodeId || '未設定'}\n`
+    md += '\n'
+
+    for (let ni = 0; ni < (scene.nodes ?? []).length; ni++) {
+      const node = scene.nodes[ni]
+      md += `#### Node ${si + 1}.${ni + 1}\n\n`
+      md += `- Node ID: ${node.id}\n`
+      md += `- Speaker: ${node.speakerDisplayName || '(話者なし)'}\n`
+      md += `- Speaker Character ID: ${node.speakerCharacterId || '未設定'}\n`
+      md += `- Next Node ID: ${node.nextNodeId || '未設定'}\n`
+      md += `- BG Asset ID: ${node.bgAssetId || '未設定'}\n`
+      md += `- BGM Asset ID: ${node.musicAssetId || '未設定'}\n`
+      md += `- SFX Asset ID: ${node.sfxAssetId || '未設定'}\n`
+      md += '\n'
+
+      md += 'Text:\n\n'
+      md += markdownCodeBlock(node.text) + '\n\n'
+
+      if (Array.isArray(node.portraits) && node.portraits.length > 0) {
+        md += 'Characters:\n\n'
+        for (const portrait of node.portraits) {
+          md += `- Character ID: ${portrait.characterId}\n`
+          md += `  - Image ID: ${portrait.imageId}\n`
+          md += `  - Name: ${portrait.characterName || '(名前なし)'}\n`
+          md += `  - Position: x=${portrait.x ?? 'undefined'}, y=${portrait.y ?? 'undefined'}, scale=${portrait.scale ?? 'undefined'}, z=${portrait.z ?? 'undefined'}\n`
+        }
+        md += '\n'
+      }
+
+      if (Array.isArray(node.choices) && node.choices.length > 0) {
+        md += 'Choices:\n\n'
+        for (let ci = 0; ci < node.choices.length; ci++) {
+          const choice = node.choices[ci]
+          md += `${ci + 1}. ${choice.label || '(ラベルなし)'}\n`
+          md += `   - Target Node ID: ${choice.targetNodeId || '未設定'}\n`
+          md += `   - Condition: ${choice.condition ? JSON.stringify(choice.condition) : 'なし'}\n`
+          if (choice.alternateTargetNodeId || choice.alternateCondition) {
+            md += `   - Alternate Target Node ID: ${choice.alternateTargetNodeId || '未設定'}\n`
+            md += `   - Alternate Condition: ${choice.alternateCondition ? JSON.stringify(choice.alternateCondition) : 'なし'}\n`
+          }
+        }
+        md += '\n'
+      }
+    }
+  }
+
+  return md
+}
+
+async function copyAiReviewMarkdown() {
+  if (!game.value) {
+    const toast = useToast()
+    toast.warning('出力できるゲーム情報がありません')
+    return
+  }
+
+  try {
+    const markdown = generateAiReviewMarkdown()
+    await navigator.clipboard.writeText(markdown)
+    const toast = useToast()
+    toast.success('AIレビュー用Markdownをコピーしました')
+  } catch (error) {
+    console.error('Failed to copy markdown:', error)
+    const toast = useToast()
+    toast.error('Markdownのコピーに失敗しました')
+  }
+}
+
+function downloadAiReviewMarkdown() {
+  if (!game.value) {
+    const toast = useToast()
+    toast.warning('出力できるゲーム情報がありません')
+    return
+  }
+
+  try {
+    const markdown = generateAiReviewMarkdown()
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const filename = `talking-ai-review-script-${game.value.id}-${timestamp}.md`
+
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    const toast = useToast()
+    toast.success('AIレビュー用Markdownを保存しました')
+  } catch (error) {
+    console.error('Failed to download markdown:', error)
+    const toast = useToast()
+    toast.error('Markdownの保存に失敗しました')
+  }
+}
 </script>
 
 <template>
@@ -2436,9 +2649,9 @@ function onUp() {
           class="pane pane-props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
           :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
         >
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 class="font-semibold text-lg">プロパティ</h2>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <!-- 幅プリセットボタン (通常表示のみ) -->
               <div v-if="!fullscreenProps" class="flex items-center gap-1 border rounded px-1">
                 <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(560)" title="やや広">S</button>
@@ -2455,7 +2668,21 @@ function onUp() {
               >
                 表示設定をリセット
               </button>
-              <button class="ml-2 px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
+              <button class="px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
+              <button
+                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                title="AIレビュー用の台本Markdownをクリップボードにコピーします"
+                @click="copyAiReviewMarkdown"
+              >
+                MDコピー
+              </button>
+              <button
+                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                title="AIレビュー用の台本Markdownを .md ファイルとして保存します"
+                @click="downloadAiReviewMarkdown"
+              >
+                MD保存
+              </button>
               <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
             </div>
           </div>
