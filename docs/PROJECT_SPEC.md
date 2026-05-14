@@ -113,19 +113,36 @@
     - API失敗時はロールバックし、一覧から除去しない
     - `/assets`, `/characters`, `/my/assets`, `/my/characters` ではカード除去を行わない
   - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*`, `apps/api/src/characters/character-favorites.*`
-- Explore
-  - パス: `/explore`（素材とキャラクターを混在表示）
-  - 説明文: 「最新の素材とキャラクターを一緒に表示します」
-  - UI 構成（2026-05-14 polish MVP）:
+- Explore（見つける）
+  - パス: `/explore`（公開素材・公開キャラクターを横断発見するページ）
+  - 見出し・説明: 「見つける」/「公開されている素材やキャラクターをまとめて探せます。」
+  - UI 構成（2026-05-14 検索/フィルタ MVP）:
     - ヘッダー背景白・shadow-sm、見出し・ホーム導線、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
+    - 検索/フィルタ白カード（`bg-white p-4 sm:p-5 rounded-lg shadow-sm`）:
+      - 検索欄: `q`、placeholder「素材・キャラクターを検索（名前・説明・タグ）」
+      - 種別フィルタ: `kind` = `all` / `asset` / `character`、表示「すべて / 素材 / キャラクター」
+      - タグフィルタ: `tags`、カンマ区切り
+      - 並び替え: `sort` = `createdAt:desc` / `createdAt:asc`、表示「新しい順 / 古い順」
+      - 適用・リセットボタン: `grid-cols-2 gap-3` で横並び
     - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
     - ASSET/CHAR ラベル表示: `absolute left-2 top-2 z-10 rounded bg-gray-900/80 px-2 py-0.5 text-[10px] font-semibold text-white`
-    - 読み込み状態: スピナー + 「読み込み中…」
-    - エラー状態: 赤背景エラーパネル（アイコン + 説明テキスト）
-    - 空状態: SVG アイコン + テキスト
+    - 読み込み状態: 白カード内スピナー + 「読み込み中...」
+    - エラー状態: 赤背景エラーパネル（アイコン + 「コンテンツの取得に失敗しました」+ 「再読み込み」ボタン）
+    - 空状態（条件なし）: 「公開コンテンツはまだありません」+ 「公開された素材やキャラクターがここに表示されます。」
+    - 空状態（条件あり）: 「条件に一致するコンテンツはありません」+ 「検索語や絞り込み条件を変えて試してください。」+ 「条件をリセット」ボタン
     - AssetCard（`showFavorite: true`）と CharacterCard の混在表示
-  - API: `searchAssets` + `listPublic`（キャラクター）の並列呼び出し、`createdAt` でソート
-  - カード表示・お気に入り ON/OFF 挙動維持、ASSET/CHAR ラベル維持、DB/API/migration 変更なし
+  - データ取得:
+    - `kind=all`: `/search/assets` と `/characters` API を並列呼び出し、`createdAt` で再ソート
+    - `kind=asset`: `/search/assets` のみ呼び出し
+    - `kind=character`: `/characters` API のみ呼び出し
+    - 各 API に `q`, `tags`, `sort` を渡す（API側で既に対応済み、DB/migration変更なし）
+  - URL クエリ同期:
+    - クエリパラメータ: `q`, `kind`, `tags`, `sort`
+    - `sort` は active filter 判定に含めない
+    - リセット時: `q=''`, `kind='all'`, `tags=''`, `sort='createdAt:desc'`
+  - お気に入り挙動: AssetCard / CharacterCard のお気に入り操作は既存通り。Explore ではカード除去を行わない（`favorite-toggled` を購読しない）
+  - ゲーム表示なし（現在は素材・キャラクターのみ）
+  - DB/API/migration 変更なし
   - 出典: `apps/frontend/pages/explore.vue`
 
 - 公開ギャラリー（キャラクター）
