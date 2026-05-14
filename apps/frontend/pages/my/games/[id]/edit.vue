@@ -2171,6 +2171,35 @@ function setPreviewWidth(w: number) {
   applyWidthClamp({ ...widths.value, props: w }, { persist: true })
 }
 
+function resetEditorViewState() {
+  if (!process.client) return
+
+  const ok = window.confirm(
+    '編集画面の表示設定をリセットします。\n\n3ペイン幅、右ペインの開閉状態、このゲームの最後に選択したシーン/ノードを初期化します。ゲーム内容は変更されません。'
+  )
+  if (!ok) return
+
+  const toast = useToast()
+
+  try {
+    localStorage.removeItem(PANE_WIDTHS_STORAGE_KEY)
+    localStorage.removeItem(RIGHT_PANE_SECTIONS_STORAGE_KEY)
+
+    const gameId = normalizeNodeId(game.value?.id)
+    if (gameId) {
+      clearLastSelection(gameId)
+    }
+
+    applyWidthClamp(defaultPaneWidths, { persist: true })
+    resetSectionOpen()
+
+    toast.success('編集画面の表示設定をリセットしました')
+  } catch (error) {
+    console.warn('Failed to reset editor view state', error)
+    toast.error('表示設定のリセットに失敗しました')
+  }
+}
+
 onMounted(() => {
   // 以前の幅を復元
   const saved = localStorage.getItem(PANE_WIDTHS_STORAGE_KEY)
@@ -2419,7 +2448,13 @@ function onUp() {
               <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
                 {{ fullscreenProps ? '通常表示' : '全画面' }}
               </button>
-              <button class="px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="resetSectionOpen">セクション開閉をリセット</button>
+              <button
+                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
+                title="3ペイン幅・セクション開閉・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
+                @click="resetEditorViewState"
+              >
+                表示設定をリセット
+              </button>
               <button class="ml-2 px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
               <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
             </div>

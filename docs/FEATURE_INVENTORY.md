@@ -757,6 +757,12 @@
 - ROADMAP出典: FI-060「状態インスペクタ」の対象として `flags / variables` が言及されているが、フラグ/変数システム自体の本格実装がROADMAPで独立した課題として明示されているか不明。
 - 概要: ゲームノードにフラグ・変数の設定/評価機能を追加する本格実装。`condition`/`alternateCondition` の評価強化（FI-089）と関連。
 
+### FI-114: 編集画面の表示設定リセット導線
+
+- 状態: `MVP実装済み`
+- ROADMAP出典: `docs/ROADMAP.md` ゲーム制作/編集基盤まわり「edit 画面の表示設定リセット導線MVP」
+- 概要: 編集画面から 3ペイン幅（`gameEditorPaneWidths`）、右ペインセクション開閉（`talking.editor.rightPaneSections.v1`）、現在ゲームの最後の選択位置（`talking.editor.lastSelection.v1:${gameId}`）をリセットできる導線。localStorage 由来の表示崩れや作業位置復元ミスから復旧しやすくする。ゲーム内容は変更しない。
+
 ---
 
 ## 棚卸し対象セクション（参照元）
