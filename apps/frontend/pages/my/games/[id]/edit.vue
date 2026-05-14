@@ -936,9 +936,10 @@ const scenarioCheckTotalCount = computed(() => scenarioCheckIssues.value.length)
 
 // ── 公開前チェックサマリー ─────────────────────────────────────────────────────
 const publishCheckStatus = computed((): 'loading' | 'error' | 'warning' | 'ok' => {
-  if (referenceDiagnosticsLoading.value) return 'loading'
   if (scenarioCheckCounts.value.error > 0) return 'error'
+  if (referenceDiagnosticsError.value) return 'warning'
   if (scenarioCheckCounts.value.warning > 0) return 'warning'
+  if (referenceDiagnosticsLoading.value) return 'loading'
   return 'ok'
 })
 
