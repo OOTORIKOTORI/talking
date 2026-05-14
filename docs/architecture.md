@@ -459,7 +459,8 @@ model FavoriteCharacter {
 - 並び替え（新しい順 / 古い順 / タイトル）
 
 **お気に入り（`/my/favorites` / `/my/favorites/characters`）**
-- 公開ギャラリーに近いフィルタ UI を持つ
+- 公開ギャラリーに近いカードgrid・余白・空状態UIを持つ
+- 検索/フィルタ UI は持たない
 - 解除時は楽観更新でカードを即時に消す
 
 ---
