@@ -9,6 +9,7 @@
           <NuxtLink to="/assets" class="text-gray-700 hover:text-gray-900">公開ギャラリー</NuxtLink>
           <NuxtLink to="/characters" class="text-gray-700 hover:text-gray-900">キャラクター</NuxtLink>
           <NuxtLink to="/games" class="text-gray-700 hover:text-gray-900">公開ゲーム</NuxtLink>
+          <NuxtLink to="/explore" class="text-gray-700 hover:text-gray-900">見つける</NuxtLink>
           <NuxtLink v-if="user" to="/my/games" class="text-gray-700 hover:text-gray-900">ゲーム制作</NuxtLink>
           <NuxtLink v-if="user" to="/upload" class="text-gray-700 hover:text-gray-900">アップロード</NuxtLink>
           <NuxtLink v-if="user" to="/my/assets" class="text-gray-700 hover:text-gray-900">素材管理</NuxtLink>
@@ -46,6 +47,7 @@
           <NuxtLink to="/assets" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">公開ギャラリー</NuxtLink>
           <NuxtLink to="/characters" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">キャラクター</NuxtLink>
           <NuxtLink to="/games" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">公開ゲーム</NuxtLink>
+          <NuxtLink to="/explore" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">見つける</NuxtLink>
           <template v-if="user">
             <NuxtLink to="/my/games" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">ゲーム制作</NuxtLink>
             <NuxtLink to="/upload" class="py-3 text-gray-700 hover:text-gray-900 border-b border-gray-100" @click="menuOpen = false">アップロード</NuxtLink>

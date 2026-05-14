@@ -117,7 +117,12 @@ const fetchData = async () => {
     }
 
     // Merge and sort by createdAt
-    items.value = [...aItems, ...cItems].sort((x, y) => y.createdAt - x.createdAt)
+    const merged = [...aItems, ...cItems]
+    items.value = merged.sort((x, y) =>
+      sort === 'createdAt:asc'
+        ? x.createdAt - y.createdAt
+        : y.createdAt - x.createdAt
+    )
   } catch (e: any) {
     error.value = e?.message || 'コンテンツの取得に失敗しました'
   } finally {
@@ -175,7 +180,7 @@ useHead({ title: '見つける - Talking' })
             id="kind"
             v-model="form.kind"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            @input="trackFormChange"
+            @change="trackFormChange"
           >
             <option value="all">すべて</option>
             <option value="asset">素材</option>
@@ -203,7 +208,7 @@ useHead({ title: '見つける - Talking' })
             id="sort"
             v-model="form.sort"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            @input="trackFormChange"
+            @change="trackFormChange"
           >
             <option value="createdAt:desc">新しい順</option>
             <option value="createdAt:asc">古い順</option>
@@ -282,9 +287,14 @@ useHead({ title: '見つける - Talking' })
           <span class="pointer-events-none absolute left-2 top-2 z-10 inline-block rounded bg-gray-900/80 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">
             {{ it.kind === 'ASSET' ? 'ASSET' : 'CHAR' }}
           </span>
-          <component
-            :is="it.kind === 'ASSET' ? 'AssetCard' : 'CharacterCard'"
-            v-bind="it.kind === 'ASSET' ? { asset: it.asset, showFavorite: true } : { character: it.character }"
+          <AssetCard
+            v-if="it.kind === 'ASSET'"
+            :asset="it.asset"
+            :show-favorite="true"
+          />
+          <CharacterCard
+            v-else
+            :character="it.character"
           />
         </div>
       </div>

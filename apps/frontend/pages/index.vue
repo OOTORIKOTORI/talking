@@ -20,7 +20,7 @@
             to="/assets"
             class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            素材一訳
+            素材一覧
           </NuxtLink>
         </div>
       </div>
