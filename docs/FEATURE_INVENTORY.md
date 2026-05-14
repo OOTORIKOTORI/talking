@@ -417,9 +417,9 @@
 
 ### FI-061: 高速確認設定の永続化
 
-- 状態: `後続拡張`
+- 状態: `MVP実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「高速確認設定の永続化」
-- 概要: テストプレイの高速確認ON/OFF設定をlocalStorageに永続化（現在はメモリのみ）。
+- 概要: 作者向けテストプレイの高速確認ON/OFF設定を localStorage (`talking.testPlay.fastConfirm.v1`) に保存・復元する。次回以降の作者向けテストプレイでも ON/OFF 状態が維持される。保存対象は高速確認ON/OFFのみ。全文表示の単発状態・testPlayInstantRevealNodeId・遷移ログは保存しない。
 
 ### FI-062: 遷移ログ永続化
 

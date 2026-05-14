@@ -657,6 +657,7 @@ const AUTO_ADVANCE_DELAY_MS = 1500
 const SKIP_ADVANCE_DELAY_MS = 80
 const SKIP_LOOP_GUARD_LIMIT = 100
 const TEST_PLAY_SKIP_TO_CHOICE_GUARD_LIMIT = 100
+const TEST_PLAY_FAST_CONFIRM_STORAGE_KEY = 'talking.testPlay.fastConfirm.v1'
 
 let progressTimer: ReturnType<typeof setTimeout> | null = null
 let skipAdvanceCount = 0
@@ -1144,9 +1145,35 @@ function skipToNextChoiceForTestPlay() {
   })
 }
 
+// テストプレイ用: 高速確認モードON/OFFをlocalStorageに保存
+function saveTestPlayFastConfirmMode(value: boolean) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(TEST_PLAY_FAST_CONFIRM_STORAGE_KEY, value ? '1' : '0')
+  } catch (e) {
+    console.warn('[play.vue] Failed to save test play fast confirm setting', e)
+  }
+}
+
+// テストプレイ用: 高速確認モードON/OFFをlocalStorageから復元
+function restoreTestPlayFastConfirmMode() {
+  if (typeof window === 'undefined') return
+  try {
+    const saved = window.localStorage.getItem(TEST_PLAY_FAST_CONFIRM_STORAGE_KEY)
+    if (saved === '1') {
+      testPlayFastConfirmMode.value = true
+    } else if (saved === '0') {
+      testPlayFastConfirmMode.value = false
+    }
+  } catch (e) {
+    console.warn('[play.vue] Failed to restore test play fast confirm setting', e)
+  }
+}
+
 // テストプレイ用: 高速確認モードをONにする
 function enableTestPlayFastConfirmMode() {
   testPlayFastConfirmMode.value = true
+  saveTestPlayFastConfirmMode(true)
   // 現在表示中のテキストも即座に全文表示
   revealCurrentTextImmediately()
 }
@@ -1154,6 +1181,7 @@ function enableTestPlayFastConfirmMode() {
 // テストプレイ用: 高速確認モードをOFFにする
 function disableTestPlayFastConfirmMode() {
   testPlayFastConfirmMode.value = false
+  saveTestPlayFastConfirmMode(false)
 }
 
 // テストプレイ用: 高速確認モードをトグル
@@ -2156,6 +2184,7 @@ function applyCameraForNode(prevNode: any | null, node: any | null) {
 onMounted(async () => {
   // 音声同意を確認
   initAudioConsent()
+  restoreTestPlayFastConfirmMode()
   backlog.reset()
   
   // ゲームプレイ用キー入力を登録
