@@ -172,7 +172,7 @@
           <p class="mt-1 text-sm text-gray-600">最近公開・追加されたゲームや素材をチェックできます。</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           <section class="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
             <div class="flex items-center justify-between gap-2 mb-3">
               <h3 class="text-sm font-semibold text-gray-900">最近公開されたゲーム</h3>
