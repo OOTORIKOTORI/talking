@@ -64,6 +64,12 @@
   - 検索/フィルタ: 上記と同等のクエリ同期
     - 素材編集モーダル（`EditAssetModal.vue`）で `isPublic: true -> false` の保存時のみ利用影響確認を実行し、参照中ゲームがある場合は保存前に確認モーダルを表示（0件時は確認なしで保存）
   - 公開中ゲームで参照がある場合は強い warning、非公開/下書きのみの場合は軽い notice を表示。確認後は保存を続行可能（非公開化をブロックしない）
+  - 一覧状態表示（2026-05-14 polish MVP）
+    - loading: スピナー + 「読み込み中...」を白カード（`bg-white border border-gray-200 rounded-lg shadow-sm p-8`）内に表示
+    - error: 赤背景パネル（アイコン + タイトル + 本文 `{{ error }}` + 「再読み込み」ボタン）。再読み込み時は `offset = 0` に戻して `performSearch()` を再実行
+    - empty（0件）: 白カード（`bg-white border border-gray-200 rounded-lg shadow-sm px-6 py-12 text-center`）で表示
+      - 条件なし0件: 「まだ素材がありません」+「ファイルをアップロードして、ゲームで使える素材を追加しましょう。」+ `/upload` 導線
+      - 条件あり0件: 「条件に一致する素材はありません」+「検索語や絞り込み条件を変えて試してください。」+ `resetFilters()` の「条件をリセット」導線
   - 出典: `apps/frontend/pages/my/assets/index.vue`
 - お気に入り
   - パス: `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）
@@ -116,6 +122,12 @@
     - 一覧カード: 公開/非公開バッジを表示（`Character.isPublic` を使用）
     - 管理キャラクターカード表示: キャラクター名、説明、公開状態、クレジット表記（必須/任意）、タグ、作成日、編集導線
     - 一覧カード: 編集導線を維持
+    - 一覧状態表示（2026-05-14 polish MVP）
+      - loading: スピナー + 「読み込み中...」を白カード（`bg-white border border-gray-200 rounded-lg shadow-sm p-8`）内に表示
+      - error: 赤背景パネル（アイコン + タイトル + 本文 `{{ error }}` + 「再読み込み」ボタン）。再読み込み時は `fetchCharacters()` を再実行
+      - empty（0件）: 白カード（`bg-white border border-gray-200 rounded-lg shadow-sm px-6 py-12 text-center`）で表示
+        - 条件なし0件: 「まだキャラクターがありません」+「キャラクターを作成して、ゲーム内で使える立ち絵や設定を管理しましょう。」+ `/my/characters/new` 導線
+        - 条件あり0件: 「条件に一致するキャラクターはありません」+「検索語や絞り込み条件を変えて試してください。」+ `resetFilters()` の「条件をリセット」導線
     - 出典: `apps/frontend/pages/my/characters/index.vue`
   - 新規作成: `/my/characters/new`
     - タブ `UploadTabs` を利用（「素材をアップロード｜キャラクターを作成」）

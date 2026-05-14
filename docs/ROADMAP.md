@@ -56,6 +56,20 @@
   - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ）
   - 出典: `apps/frontend/pages/assets/index.vue`, `apps/frontend/pages/characters/index.vue`, `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
 
+**管理側の空状態 / エラー状態 polish MVP**（2026-05-14 実装）
+- 対象: `/my/assets` と `/my/characters`
+- loading/error/empty を管理一覧で統一
+	- loading: 白カード調（`bg-white border border-gray-200 rounded-lg shadow-sm p-8`）
+	- error: 赤背景パネル（アイコン + タイトル + 本文 + 再読み込みボタン）
+	- empty: 白カード調（`bg-white border border-gray-200 rounded-lg shadow-sm px-6 py-12 text-center`）
+- 初回0件と検索/絞り込み結果0件で導線を分岐
+	- `/my/assets`: 初回0件は `/upload` へのアップロード導線、条件あり0件は `resetFilters()` の「条件をリセット」
+	- `/my/characters`: 初回0件は `/my/characters/new` への作成導線、条件あり0件は `resetFilters()` の「条件をリセット」
+- `/my/assets` のエラー再読み込みは `offset = 0` に戻して `performSearch()` を再実行
+- `/my/characters` のエラー再読み込みは `fetchCharacters()` を再実行
+- DB/API/migration 変更なし（ページ内UI整理のみ）
+- 出典: `apps/frontend/pages/my/assets/index.vue`, `apps/frontend/pages/my/characters/index.vue`
+
 **お気に入り一覧 / Explore 表示 polish MVP**（2026-05-14 実装）
 - `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）・`/explore` の UI 見た目・余白・見出し・カード配置を公開ギャラリー・コンテンツ管理に統一
   - **ページ構造の統一**:
@@ -187,6 +201,7 @@
 	- `/my/characters` の管理カードに説明・公開/非公開バッジ・クレジット表記バッジ・タグ・作成日・編集導線を整理表示
 	- DB/API変更なし
 - **素材管理・キャラクター管理カードの操作導線 polish MVP**（2026-05-13 実装）（`/my/assets` と `/my/characters` の管理カードのUI・操作導線を整理。カード内を「サムネイル → タイトル/説明 → バッジ → タグ → メタ → 操作エリア」の順に統一。編集ボタンを filled primary（`bg-blue-600 text-white`）に統一しカード下部にまとめ、削除ボタンを outline danger（`border border-red-200 text-red-600`）でカード本体クリックと競合しないよう `@click.stop` を追加。ファイルサイズ・作成日を1行のメタ行に集約。キャラクター管理カードも同じ操作エリア構造に揃え、編集ボタンは filled primary の NuxtLink に変更。カードに `flex flex-col` を追加してスマホ幅でもボタンが崩れにくい構造に。DB/API変更なし。）
+- **管理側の空状態 / エラー状態 polish MVP**（2026-05-14 実装）（`/my/assets` と `/my/characters` の loading / error / empty 表示を白カード/赤パネル/CTA付きに統一。初回0件は作成/アップロード導線、条件あり0件は `resetFilters()` のリセット導線を主導線に整理。`/my/assets` はエラー時に `offset=0` で `performSearch()` 再実行、`/my/characters` は `fetchCharacters()` 再実行。既存カード表示・検索/フィルタ・URL query・API呼び出しは維持。DB/API/migration 変更なし。）
 - **キャラクター側の一覧UI統一MVP**（2026-05-13 実装）（`/characters` に素材一覧と同思想のフィルタパネルを追加。キーワード検索・タグ検索・並び替え・適用/リセットに対応し、空状態文言を最適化。`/my/characters` にキーワード検索・公開状態フィルタ（すべて/公開/非公開）・タグ検索・並び替え・適用/リセットを追加。管理カードで `Character.isPublic` ベースの公開/非公開バッジを表示。route/API path/DB/migration 変更なしで既存導線を維持。）
 - **素材詳細 / キャラクター詳細のレイアウト統一 MVP**（2026-05-13 実装）（`/characters/:id` を `/assets/:id` に近い公開詳細レイアウトへ整理。見出し・タブ・白カード・基本情報・作者リンク・お気に入り・説明・タグ・利用条件・画像/表情一覧を統一感ある構成に変更。感情/パターンフィルタと画像 Lightbox を維持しつつ、owner の場合のみ管理セクションと `/my/characters/:id` への編集導線を表示。画像プレビューは既存 `useSignedUrl` を継続利用。DB/API変更なし。）
 - **キャラクター削除時の利用影響表示MVP**（`GET /my/characters/:id/usage-impact` API、削除確認モーダルへの影響表示統合、`speakerCharacterId` / `portraits[*].characterId` / `portraits[*].imageId` 診断、他人ゲームは件数のみ）

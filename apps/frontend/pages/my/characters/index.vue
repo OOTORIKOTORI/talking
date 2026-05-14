@@ -105,17 +105,63 @@
         </div>
       </div>
 
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span class="ml-3 text-gray-600">読み込み中...</span>
+      <div v-if="loading" class="bg-white border border-gray-200 rounded-lg shadow-sm p-8">
+        <div class="flex items-center justify-center py-4">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600">読み込み中...</span>
+        </div>
       </div>
 
-      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-sm text-red-700">
-        {{ error }}
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-3 flex-1">
+            <h3 class="text-sm font-medium text-red-800">キャラクターの取得に失敗しました</h3>
+            <p class="mt-1 text-sm text-red-700">{{ error }}</p>
+            <div class="mt-4">
+              <button
+                type="button"
+                @click="fetchCharacters"
+                class="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 transition-colors"
+              >
+                再読み込み
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div v-else-if="list.length === 0" class="text-center py-12">
-        <h3 class="mt-2 text-sm font-medium text-gray-900">条件に一致するキャラクターはありません。</h3>
+      <div v-else-if="list.length === 0" class="bg-white border border-gray-200 rounded-lg shadow-sm px-6 py-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">
+          {{ hasActiveFilters ? '条件に一致するキャラクターはありません' : 'まだキャラクターがありません' }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          {{ hasActiveFilters ? '検索語や絞り込み条件を変えて試してください。' : 'キャラクターを作成して、ゲーム内で使える立ち絵や設定を管理しましょう。' }}
+        </p>
+        <div class="mt-6">
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            @click="resetFilters"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            条件をリセット
+          </button>
+          <NuxtLink
+            v-else
+            to="/my/characters/new"
+            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            キャラクターを作成
+          </NuxtLink>
+        </div>
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -206,6 +252,13 @@ const sortOrder = ref<'createdAt:desc' | 'createdAt:asc' | 'name:asc'>('createdA
 const list = ref<any[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+const hasActiveFilters = computed(() => {
+  return (
+    searchQuery.value.trim().length > 0 ||
+    tagsInput.value.trim().length > 0 ||
+    visibilityFilter.value !== 'all'
+  )
+})
 
 const loadFromQuery = () => {
   const query = route.query
