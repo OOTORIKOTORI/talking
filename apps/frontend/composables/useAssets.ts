@@ -65,11 +65,15 @@ export const useAssetsApi = () => {
   const favorite   = (id: string) => $api(`/assets/${id}/favorite`, { method: 'POST' })
   const unfavorite = (id: string) => $api(`/assets/${id}/favorite`, { method: 'DELETE' })
 
-  // 取得済み配列にお気に入りを適用（クライアント側で上書き）
+  // 取得済み配列にお気に入りを適用（クライアント側で補完。API が既に true を返している場合は上書きしない）
   const applyFavorites = async (arr: AssetLike[] = []) => {
     const fav = await listFavorites()
     const set = new Set(fav.map((x: any) => x.id))
-    return arr.map((x: any) => ({ ...x, isFavorited: set.has(x.id) }))
+    return arr.map((x: any) => ({
+      ...x,
+      isFavorited: x.isFavorited || set.has(x.id),
+      isFavorite: x.isFavorited || x.isFavorite || set.has(x.id),
+    }))
   }
 
   return {

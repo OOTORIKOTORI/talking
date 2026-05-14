@@ -8,7 +8,7 @@
 
 ## 📍 現在地サマリ（2026-05-14）
 
-最新仕様確認コミット: `ac9b4a60bdc10d271275184e6d27f47b94d42510`
+最新仕様確認コミット: `d5c552ccf7535d5ec1ad9e3b8cd7e76bec293d99`
 
 以下の MVP が一区切り済みです。
 
@@ -75,14 +75,14 @@
   - **ページ構造の統一**:
     - ヘッダー: 白背景・shadow-sm、見出し・TabsSwitch 配置（`/my/favorites` / `/my/favorites/characters`）、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
     - メインコンテンツ: `min-h-screen bg-gray-50`、padding（`px-4 sm:px-6 lg:px-8 py-8`）
-    - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6（公開ギャラリー・コンテンツ管理と統一）
+    - グリッド列数: `/explore` は `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4` gap-6（公開ギャラリー・コンテンツ管理と統一）。`/my/favorites` ・ `/my/favorites/characters` は後続の検索/フィルタ追加 MVP でグリッドを調整（最終値は各 MVP のグリッド記載を参照）
   - **空状態・読み込み状態の改善**:
     - `/my/favorites` / `/my/favorites/characters`: SVG アイコン + テキスト（例: 「お気に入りの素材はまだありません」+ 補足説明）
     - `/explore`: 読み込み状態（スピナー + 「読み込み中…」）、エラー状態（赤背景パネル）、空状態（アイコン + テキスト）
   - **Explore の ASSET/CHAR ラベル維持**: 位置・サイズ・色を調整し、カードと視覚的に競合しない配置（`absolute left-2 top-2 z-10 rounded bg-gray-900/80 px-2 py-0.5 text-[10px] font-semibold text-white`）
   - **カード表示・お気に入り ON/OFF 挙動**: AssetCard / CharacterCard の既存責務は維持、詳細リンク・作者リンク・お気に入りボタンの DOM 構造は維持
   - DB/API/migration 変更なし（UI/Tailwind レイアウト調整のみ、既存クエリ・導線維持）
-  - 新規検索/フィルタ機能は追加しない
+  - 当該表示 polish 時点では検索/フィルタ機能は追加しない（後続の各検索/フィルタ追加 MVP で追加済み）
   - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/frontend/pages/explore.vue`
 
 **お気に入り一覧の検索/フィルタUI追加 MVP**（2026-05-14 実装）
@@ -141,7 +141,7 @@
     - `kind=asset`: `/search/assets` のみ呼び出し
     - `kind=character`: `/characters` API のみ呼び出し
     - 各 API に `q`, `tags`, `sort` を渡す（既存 API で既にサポート済み、DB/API/migration 変更なし）
-  - **カード・お気に入り挙動**: AssetCard / CharacterCard の既存責務・ASSET/CHAR ラベル維持、お気に入い解除してもカードは除去しない（`/my/favorites` のみ除去）
+  - **カード・お気に入り挙動**: AssetCard / CharacterCard の既存責務・ASSET/CHAR ラベル維持、お気に入り解除してもカードは除去しない（`/my/favorites` のみ除去）
   - グリッド: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
   - 適用/リセット: `grid-cols-2 gap-3`
   - DB/API/migration 変更なし（既存エンドポイント・クエリ仕様を活用）
@@ -152,7 +152,7 @@
   - ルート `/explore` は変更しない
 	- グローバルナビ PC / スマホメニューに `/explore` への「見つける」導線あり
 - DB/API/migration 変更なし（既存スキーマ・filter ロジック再利用）
-- 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`
+- 出典: `apps/frontend/pages/explore.vue`, `apps/frontend/app.vue`, `apps/frontend/pages/index.vue`, `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`, `docs/`
 
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック

@@ -37,10 +37,12 @@
   - アセット: `POST/DELETE /assets/:id/favorite`, 一覧: `GET /favorites`（クエリ: `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset`）
   - キャラ: `POST/DELETE /characters/:id/favorite`, 一覧: `GET /my/favorites/characters`（クエリ: `q`, `tags`, `sort`, `limit`, `offset`）
 - UI
-  - 公開ギャラリー・お気に入り・管理一覧で **♡トグル** が可能
+  - **♡トグル対象ページ**: `/assets`, `/characters`, `/my/favorites`, `/my/favorites/characters`, `/explore`
+  - **♡トグル非対象**: `/my/assets`, `/my/characters` は管理専用カードのため `favorite-toggled` を購読せず、お気に入り操作はカード除去にも影響しない
   - `AssetCard` / `CharacterCard` はカード内で optimistic update（ハート状態更新）を維持し、API 成功時に `favorite-toggled` イベントを emit する
-  - お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）では `favorite-toggled` を親ページで受け取り、解除成功（`isFavorited=false`）時に親配列から対象カードを即時除去する
-  - 公開ギャラリー（`/assets`, `/characters`）と管理一覧（`/my/assets`, `/my/characters`）ではカード除去を行わず、一覧表示は維持する
+  - お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）では `favorite-toggled` を親ページで受け取り、解除成功（`isFavorited=false`）時に親配列から対象カードを**即時除去**する
+  - 公開ギャラリー（`/assets`, `/characters`）ではカード除去を行わず、一覧表示は維持する
+  - `/explore` は `favorite-toggled` を購読しないため、お気に入り解除後もカードは除去されず一覧に残る
   - 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）・**お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）** は URL クエリにフィルタ状態を保持し、共有や再訪時の復元に対応
 
 ## 画面構成 / 導線
@@ -124,6 +126,7 @@ talking/
 | `/my/characters/[id]` | キャラクター編集 | **必須** | 立ち絵編集・ライトボックス・順序調整 |
 | `/my/favorites` | お気に入り素材 | **必須** | 公開ギャラリー準拠UI |
 | `/my/favorites/characters` | お気に入りキャラクター | **必須** | キャラクター専用お気に入り一覧 |
+| `/explore` | 見つける | 不要 | 公開素材・公開キャラクターを横断表示。検索/フィルタ `q`, `kind`, `tags`, `sort` 対応。現時点ではゲームは表示しない |
 | `/games` | 公開ゲーム一覧 | 不要 | 検索・並び替え対応。公開ゲームのみ表示 |
 | `/games/[id]` | 公開ゲーム詳細 | 不要 | クレジット表示、viewCount/playCount 表示 |
 | `/games/[id]/play` | ゲームプレイ / テストプレイ | 不要 | 音声同意オーバーレイ付き |

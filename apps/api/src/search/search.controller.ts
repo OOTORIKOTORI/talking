@@ -86,6 +86,26 @@ export class SearchController {
     }));
   }
 
+  private async attachFavoriteStatus<T extends { id: string }>(
+    items: T[],
+    userId: string | null,
+  ): Promise<(T & { isFavorited: boolean; isFavorite: boolean })[]> {
+    if (!userId || items.length === 0) {
+      return items.map((item) => ({ ...item, isFavorited: false, isFavorite: false }));
+    }
+    const ids = items.map((item) => item.id);
+    const favorites = await this.prisma.favorite.findMany({
+      where: { userId, assetId: { in: ids } },
+      select: { assetId: true },
+    });
+    const favoriteSet = new Set(favorites.map((f) => f.assetId));
+    return items.map((item) => ({
+      ...item,
+      isFavorited: favoriteSet.has(item.id),
+      isFavorite: favoriteSet.has(item.id),
+    }));
+  }
+
   private buildPrismaWhere(dto: SearchAssetsDto, userId?: string | null): Prisma.AssetWhereInput {
     const where: Prisma.AssetWhereInput = this.buildPrismaAccessWhere(dto, userId);
     const q = (dto.q || '').trim();
@@ -223,8 +243,9 @@ export class SearchController {
     });
 
     const withOwnerDisplayName = await this.attachOwnerDisplayName(mapped);
+    const withFavorites = await this.attachFavoriteStatus(withOwnerDisplayName, userId ?? null);
 
-    return { items: withOwnerDisplayName, limit, offset, total };
+    return { items: withFavorites, limit, offset, total };
   }
 
   private async searchWithMeiliAndFallback(dto: SearchAssetsDto, userId: string | null) {
@@ -277,8 +298,10 @@ export class SearchController {
         return this.searchAssetsWithPrisma(dto, userId);
       }
 
+      const withFavorites = await this.attachFavoriteStatus(withOwnerDisplayName, userId);
+
       return {
-        items: withOwnerDisplayName,
+        items: withFavorites,
         limit,
         offset,
         total: searchResult.estimatedTotalHits || 0,

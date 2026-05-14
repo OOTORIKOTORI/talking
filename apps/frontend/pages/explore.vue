@@ -99,7 +99,7 @@ const fetchData = async () => {
         kind: 'ASSET' as const,
         key: `a:${a.id}`,
         createdAt: new Date(a.createdAt as any).getTime(),
-        asset: a,
+        asset: normalizeAssetFavorite(a),
       })))
     }
 
