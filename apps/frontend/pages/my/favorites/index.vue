@@ -84,13 +84,8 @@ async function load() {
   error.value = null
   try {
     const result = await api.listFavoriteAssets(qs.value)
-    if (result && typeof result === 'object') {
-      favorites.value = result.items || []
-      total.value = result.total || 0
-    } else if (Array.isArray(result)) {
-      favorites.value = result
-      total.value = result.length
-    }
+    favorites.value = result.items || []
+    total.value = result.total || 0
   } catch (err: any) {
     console.error('Failed to load favorites:', err)
     error.value = 'お気に入り素材の取得に失敗しました'
@@ -124,9 +119,6 @@ const trackFormChange = () => {
 onBeforeUnmount(() => {
   if (loadTimer) clearTimeout(loadTimer)
 })
-
-// Asset primary tags
-const assetPrimaryTags = ['背景', '一枚絵', 'その他', 'BGM', '効果音', 'ボイス', 'その他']
 </script>
 
 <template>
@@ -184,13 +176,13 @@ const assetPrimaryTags = ['背景', '一枚絵', 'その他', 'BGM', '効果音'
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">すべて</option>
-                <option value="背景">背景</option>
-                <option value="一枚絵">一枚絵</option>
-                <option value="その他">その他（画像）</option>
-                <option value="BGM">BGM</option>
-                <option value="効果音">効果音</option>
-                <option value="ボイス">ボイス</option>
-                <option value="その他">その他（音声）</option>
+                <option value="IMAGE_BG">背景</option>
+                <option value="IMAGE_CG">一枚絵</option>
+                <option value="IMAGE_OTHER">その他（画像）</option>
+                <option value="AUDIO_BGM">BGM</option>
+                <option value="AUDIO_SE">効果音</option>
+                <option value="AUDIO_VOICE">ボイス</option>
+                <option value="AUDIO_OTHER">その他（音声）</option>
               </select>
             </div>
 

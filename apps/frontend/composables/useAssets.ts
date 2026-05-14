@@ -1,6 +1,7 @@
 // apps/frontend/composables/useAssets.ts
 // 単一の composable に統一（公開一覧／自分の一覧／お気に入り／トグル）
 export type AssetLike = { id: string; name?: string; isFavorited?: boolean; [k: string]: any }
+export type AssetListResult = { items: AssetLike[]; total: number }
 
 // isFavorited の表記ゆれを吸収
 export const normalizeAssetFavorite = (a: any): AssetLike => {
@@ -47,14 +48,17 @@ export const useAssetsApi = () => {
   }
 
   // お気に入り一覧（クエリパラメータ付き・サーバ側フィルタ）
-  const listFavoriteAssets = async (query: any = {}): Promise<AssetLike[]> => {
+  const listFavoriteAssets = async (query: any = {}): Promise<AssetListResult> => {
     // 空値を除外
     const params: any = { ...query }
     Object.keys(params).forEach(k => {
       if (params[k] === '' || params[k] == null) delete params[k]
     })
     const res: any = await $api('/favorites', { query: params })
-    return Array.isArray(res?.items) ? res.items.map(normalizeAssetFavorite) : []
+    const items = Array.isArray(res?.items) ? res.items.map(normalizeAssetFavorite) : []
+    const rawTotal = Number(res?.total)
+    const total = Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : items.length
+    return { items, total }
   }
 
   // お気に入りトグル

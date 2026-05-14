@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Favorite, Asset } from '@prisma/client';
+import { Prisma, AssetPrimaryTag } from '@prisma/client';
 
 @Injectable()
 export class FavoritesService {
@@ -35,61 +35,76 @@ export class FavoritesService {
       offset: number
       q?: string
       type?: 'image' | 'audio'
-      primaryTag?: any[]
+      primaryTag?: AssetPrimaryTag[]
       tags?: string[]
       sort?: 'createdAt:desc' | 'createdAt:asc'
     },
   ) {
-    const favs = await this.prisma.favorite.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: opt.limit,
-      skip: opt.offset,
-      select: { assetId: true },
-    })
-    const ids = favs.map((f) => f.assetId)
-    if (!ids.length) return { items: [], total: 0 }
-
-    // Build where clause with filters
-    const where: any = {
-      id: { in: ids },
+    const q = String(opt.q ?? '').trim()
+    const qTags = q.split(/\s+/).filter(Boolean)
+    const assetWhere: Prisma.AssetWhereInput = {
       deletedAt: null,
-      AND: [
-        { OR: [{ ownerId: userId }, { isPublic: true }] },
-      ],
+      OR: [{ ownerId: userId }, { isPublic: true }],
     }
 
-    if (opt.q) {
-      const qTags = opt.q.split(/\s+/).filter(Boolean)
-      where.AND.push({
-        OR: [
-          { title: { contains: opt.q, mode: 'insensitive' } },
-          { description: { contains: opt.q, mode: 'insensitive' } },
-          { tags: { hasSome: qTags } },
-        ],
-      })
+    if (q) {
+      assetWhere.AND = [
+        {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
+            { tags: { hasSome: qTags } },
+          ],
+        },
+      ]
     }
 
     if (opt.type === 'image') {
-      where.contentType = { startsWith: 'image/' }
+      assetWhere.contentType = { startsWith: 'image/' }
     } else if (opt.type === 'audio') {
-      where.contentType = { startsWith: 'audio/' }
+      assetWhere.contentType = { startsWith: 'audio/' }
     }
 
     if (opt.primaryTag?.length) {
-      where.primaryTag = { in: opt.primaryTag }
+      assetWhere.primaryTag = { in: opt.primaryTag }
     }
 
     if (opt.tags?.length) {
-      where.tags = { hasSome: opt.tags }
+      assetWhere.tags = { hasSome: opt.tags }
     }
 
-    const orderBy = opt.sort === 'createdAt:asc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const }
-    const assets = await this.prisma.asset.findMany({
-      where,
-      orderBy,
-      include: { _count: { select: { favorites: true } } },
-    })
+    const favoriteWhere: Prisma.FavoriteWhereInput = {
+      userId,
+      asset: assetWhere,
+    }
+
+    const orderBy: Prisma.FavoriteOrderByWithRelationInput =
+      opt.sort === 'createdAt:asc'
+        ? { asset: { createdAt: 'asc' } }
+        : { asset: { createdAt: 'desc' } }
+
+    const [favs, total] = await this.prisma.$transaction([
+      this.prisma.favorite.findMany({
+        where: favoriteWhere,
+        orderBy,
+        take: opt.limit,
+        skip: opt.offset,
+        include: {
+          asset: {
+            include: {
+              _count: { select: { favorites: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.favorite.count({ where: favoriteWhere }),
+    ])
+
+    if (!favs.length) return { items: [], total }
+
+    const assets = favs
+      .map((f) => f.asset)
+      .filter((a): a is NonNullable<typeof a> => Boolean(a))
 
     // Use isFavorited (past participle) to match frontend expectations
     return {
@@ -102,7 +117,7 @@ export class FavoritesService {
           isFavorite: true,
         }
       }),
-      total: assets.length,
+      total,
     }
   }
 }
