@@ -40,8 +40,8 @@ apps/frontend/pages/
 │   │   ├── new.vue                          # キャラクター新規作成画面
 │   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新。公開→非公開保存時は usage-impact による保存前 warning 確認を表示
 │   ├── favorites/
-│   │   ├── index.vue                        # お気に入り素材一覧
-│   │   └── characters.vue                   # お気に入りキャラクター一覧
+│   │   ├── index.vue                        # お気に入り素材一覧。検索/フィルタUI（q, type, primaryTag, tags, sort）で URL クエリ同期・復元対応。loading/error/empty（条件なし vs 条件あり）状態分岐（2026-05-14 MVP）
+│   │   └── characters.vue                   # お気に入りキャラクター一覧。検索/フィルタUI（q, tags, sort）で URL クエリ同期・復元対応。loading/error/empty（条件なし vs 条件あり）状態分岐（2026-05-14 MVP）
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
@@ -165,8 +165,8 @@ apps/api/src/
 │   ├── optional-supabase-auth.guard.ts      # 認証任意 API 用の Supabase Guard
 │   └── supabase-auth.guard.ts               # 認証必須 API 用の Supabase Guard
 ├── characters/
-│   ├── character-favorites.controller.ts    # キャラクターお気に入り操作の API 入口
-│   ├── character-favorites.service.ts       # キャラクターお気に入り登録/解除ロジック
+│   ├── character-favorites.controller.ts    # キャラクターお気に入り操作の API 入口（POST/DELETE /characters/:id/favorite、GET /my/favorites/characters q/tags/sort/limit/offset 対応、2026-05-14 MVP）
+│   ├── character-favorites.service.ts       # キャラクターお気に入り登録/解除・検索/フィルタロジック（q/tags/sort/limit/offset 対応、2026-05-14 MVP）
 │   ├── character-images.controller.ts       # キャラクター画像の追加・管理 API
 │   ├── characters.controller.ts             # キャラクター CRUD と公開取得 API（`q/tags/sort/visibility` クエリ対応）
 │   ├── characters.module.ts                 # characters 機能のモジュール定義
@@ -177,13 +177,13 @@ apps/api/src/
 │       ├── query-characters.dto.ts          # キャラクター検索 DTO（`q/tags/sort/visibility`）
 │       └── update-character.dto.ts          # キャラクター更新 DTO
 ├── favorites/
-│   ├── favorites.controller.ts              # お気に入り関連 API の共通入口
-│   ├── favorites.list.controller.ts         # お気に入り一覧取得 API
-│   ├── favorites.module.ts                  # favorites 機能のモジュール定義
-│   ├── favorites.service.ts                 # アセットお気に入りの保存/取得ロジック（他者privateは登録/一覧表示不可）
-│   ├── favorites.toggle.controller.ts       # お気に入り ON/OFF 切り替え API
+│   ├── favorites.controller.ts              # お気に入り関連 API 定義（旧版・実装時に使用、FavoritesModule では未登録）
+│   ├── favorites.list.controller.ts         # お気に入り一覧取得 API（GET /favorites、q/type/primaryTag/tags/sort/limit/offset 対応、2026-05-14 MVP）
+│   ├── favorites.module.ts                  # favorites 機能のモジュール定義（FavoritesListController / FavoritesToggleController を登録）
+│   ├── favorites.service.ts                 # アセットお気に入りの保存/取得ロジック。フィルタ・ソート・limit/offset 対応。他者private は登録/一覧表示不可（2026-05-14 MVP）
+│   ├── favorites.toggle.controller.ts       # お気に入り ON/OFF 切り替え API（POST/DELETE /assets/:id/favorite）
 │   └── dto/
-│       └── favorites.query.dto.ts           # お気に入り一覧取得用 DTO
+│       └── favorites.query.dto.ts           # お気に入り一覧取得用 DTO（q, type, primaryTag, tags, sort, limit, offset）
 ├── games/
 │   ├── games.controller.ts                  # ゲーム/シーン/ノード/セーブ API の HTTP 入口
 │   ├── games.module.ts                      # games 機能のモジュール定義

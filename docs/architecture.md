@@ -34,11 +34,11 @@
 ## お気に入り
 
 - エンドポイント
-  - アセット: `POST/DELETE /assets/:id/favorite`, 一覧: `GET /favorites`
-  - キャラ: `POST/DELETE /characters/:id/favorite`, 一覧: `GET /my/favorites/characters`
+  - アセット: `POST/DELETE /assets/:id/favorite`, 一覧: `GET /favorites`（クエリ: `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset`）
+  - キャラ: `POST/DELETE /characters/:id/favorite`, 一覧: `GET /my/favorites/characters`（クエリ: `q`, `tags`, `sort`, `limit`, `offset`）
 - UI
   - 公開ギャラリー・お気に入り・管理一覧で **♡トグル** が可能
-  - 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）は URL クエリにフィルタ状態を保持し、共有や再訪時の復元に対応（`/my/favorites` / `/my/favorites/characters` にはフィルタ UI なし）
+  - 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）・**お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）** は URL クエリにフィルタ状態を保持し、共有や再訪時の復元に対応
 
 ## 画面構成 / 導線
 
@@ -267,12 +267,12 @@ talking/
 素材削除（本人のみ）
 
 ### お気に入り関連 API
-- `GET /favorites`（要ログイン）: お気に入り素材一覧
+- `GET /favorites`（要ログイン）: お気に入り素材一覧（クエリ: `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset`）
 - `POST /assets/:id/favorite`（要ログイン）: 素材お気に入り登録
 - `DELETE /assets/:id/favorite`（要ログイン）: 素材お気に入り解除
 - `POST /characters/:id/favorite`（要ログイン）: キャラクターお気に入り登録
 - `DELETE /characters/:id/favorite`（要ログイン）: キャラクターお気に入り解除
-- `GET /my/favorites/characters`（要ログイン）: お気に入りキャラクター一覧
+- `GET /my/favorites/characters`（要ログイン）: お気に入りキャラクター一覧（クエリ: `q`, `tags`, `sort`, `limit`, `offset`）
 
 ### キャラクター関連 API
 

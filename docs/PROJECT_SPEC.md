@@ -74,13 +74,41 @@
 - お気に入り
   - パス: `/my/favorites`（素材）・`/my/favorites/characters`（キャラクター）
   - タブ: 素材｜キャラクター
-  - UI 構成（2026-05-14 polish MVP）:
+  - UI 構成（2026-05-14 検索/フィルタ MVP）:
     - ヘッダー背景白・shadow-sm、TabsSwitch 配置、padding 統一（`px-4 sm:px-6 lg:px-8 py-4`）
-    - グリッド列数: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`、gap-6
-    - 空状態: SVG アイコン + テキスト（「お気に入りの素材/キャラクターはまだありません」+ 補足説明）
+    - 検索/フィルタ白カード（`bg-white p-4 sm:p-5 rounded-lg shadow-sm mb-6`）を見出しの下に配置
+      - 素材お気に入り（`/my/favorites`）:
+        - 検索欄: placeholder 「お気に入り素材を検索（タイトル・説明・タグ）」
+        - フィルタ: コンテンツタイプ（すべて/画像/音声）、プライマリタグ、タグ（カンマ区切り）、並び替え（新しい順/古い順）
+        - URL クエリ同期: `q`, `type`, `primaryTag`, `tags`, `sort`
+        - `sort` だけは active filter 判定に含めない
+      - キャラクターお気に入り（`/my/favorites/characters`）:
+        - 検索欄: placeholder 「お気に入りキャラクターを検索（名前・説明・タグ）」
+        - フィルタ: タグ（カンマ区切り）、並び替え（新しい順/古い順/名前順）
+        - URL クエリ同期: `q`, `tags`, `sort`
+        - `sort` だけは active filter 判定に含めない
+      - 適用・リセットボタン: `grid-cols-2 gap-3` で並列配置、スマホでも横並び
+    - グリッド列数（素材）: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`
+    - グリッド列数（キャラクター）: `grid-cols-1 md:grid-cols-2 gap-4`
+    - loading 状態: スピナー + 「読み込み中...」を白カード内に表示
+    - error 状態: 赤背景パネル（アイコン + タイトル + 「再読み込み」ボタン）
+    - 空状態（条件なし）:
+      - 素材: 「お気に入りの素材はまだありません」+ 「素材をお気に入りに追加すると、ここに表示されます。」+ `/assets` 導線（「公開ギャラリーで素材を探す」）
+      - キャラクター: 「お気に入りのキャラクターはまだありません」+ 「キャラクターをお気に入りに追加すると、ここに表示されます。」+ `/characters` 導線（「公開キャラクターを探す」）
+    - 空状態（条件あり）:
+      - 素材: 「条件に一致するお気に入り素材はありません」+ 「検索語や絞り込み条件を変えて試してください。」+ 「条件をリセット」ボタン
+      - キャラクター: 「条件に一致するお気に入りキャラクターはありません」+ 「検索語や絞り込み条件を変えて試してください。」+ 「条件をリセット」ボタン
     - 公開ギャラリー・コンテンツ管理と見た目・余白・タブ配置を揃える
-  - カード表示・お気に入り ON/OFF 挙動維持、DB/API/migration 変更なし
-  - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`
+  - API クエリパラメータ:
+    - 素材 `GET /favorites`: `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset`
+    - キャラクター `GET /my/favorites/characters`: `q`, `tags`, `sort`, `limit`, `offset`
+    - 空値は送信しない（composable で除外処理）
+    - 返却形式: 素材は `{ items, total }`、キャラクターは配列（返却形式維持）
+    - `isFavorited: true`, `isFavorite: true` フラグ維持
+    - `favoriteCount` フィールド維持（素材のみ）
+  - DB/API/migration 変更なし（既存スキーマ・フィルタロジック活用）
+  - カード表示・お気に入り ON/OFF 挙動維持
+  - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*`, `apps/api/src/characters/character-favorites.*`
 - Explore
   - パス: `/explore`（素材とキャラクターを混在表示）
   - 説明文: 「最新の素材とキャラクターを一緒に表示します」
@@ -345,9 +373,20 @@
     - `isPublic=false` は owner のみ取得可能（他者には 404）
   - 自分の一覧（管理）: `GET /my/assets`
     - `ownerId = userId` かつ `deletedAt = null` を返却し、`isPublic=true/false` の両方を含む
-  - お気に入り一覧: `GET /favorites`（配列は `normalizeAssetFavorite` で正規化）
+  - お気に入り一覧: `GET /favorites`（2026-05-14 検索/フィルタ MVP）
+    - クエリパラメータ: `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset`
+      - `q`: 検索語（タイトル・説明・タグ対象）
+      - `type`: `'image'` / `'audio'`
+      - `primaryTag`: プライマリタグ（カンマ区切り可）
+      - `tags`: タグ（カンマ区切り）
+      - `sort`: `'createdAt:desc'`（デフォルト） / `'createdAt:asc'`
+      - `limit`, `offset`: ページネーション
+    - 返却形式: `{ items, total }`
     - 一覧表示は `deletedAt = null` かつ（`ownerId = userId` または `isPublic = true`）
     - 他者の非公開化後アセットは一覧から除外される
+    - `isFavorited: true`, `isFavorite: true` フラグ付与、`favoriteCount` フィールド付与
+    - 空値（empty string, null）は送信しない
+    - 出典: `apps/api/src/favorites/favorites.list.controller.ts`, `apps/api/src/favorites/favorites.service.ts`
   - お気に入り登録: `POST /assets/:id/favorite`
     - 登録条件は「未削除」かつ（自分のアセット または `isPublic=true`）
   - お気に入り解除: `DELETE /assets/:id/favorite`
@@ -375,8 +414,17 @@
     - 出典: `apps/frontend/composables/useCharacters.ts` と `apps/api/src/characters/*.controller.ts`
   - お気に入り登録: `POST /characters/:id/favorite`
   - お気に入り解除: `DELETE /characters/:id/favorite`
-  - お気に入り一覧（キャラ）: `GET /my/favorites/characters`
-    - 出典: フロント `apps/frontend/composables/useCharacters.ts`（`favorite`, `unfavorite`, `listFavorites`）/ サーバ `apps/api/src/characters/character-favorites.*`
+  - お気に入り一覧（キャラ）: `GET /my/favorites/characters`（2026-05-14 検索/フィルタ MVP）
+    - クエリパラメータ: `q`, `tags`, `sort`, `limit`, `offset`
+      - `q`: 検索語（名前・表示名・説明・タグ対象）
+      - `tags`: タグ（カンマ区切り）
+      - `sort`: `'createdAt:desc'`（デフォルト） / `'createdAt:asc'` / `'name:asc'`
+      - `limit`, `offset`: ページネーション
+    - 返却形式: 配列（既存形式維持）
+    - 削除済み・非公開キャラクターは除外（`deletedAt = null` かつ（`ownerId = userId` または `isPublic = true`））
+    - `isFavorited: true`, `isFavorite: true` フラグ付与
+    - 空値（empty string, null）は送信しない
+    - 出典: `apps/api/src/characters/character-favorites.controller.ts`, `apps/api/src/characters/character-favorites.service.ts`
 - 公開ゲーム
   - 公開一覧: `GET /games`
     - クエリ: `limit`, `offset`, `q`, `sort`

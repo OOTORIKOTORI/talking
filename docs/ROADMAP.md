@@ -85,6 +85,34 @@
   - 新規検索/フィルタ機能は追加しない
   - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/frontend/pages/explore.vue`
 
+**お気に入り一覧の検索/フィルタUI追加 MVP**（2026-05-14 実装）
+- `/my/favorites`（素材お気に入り）に検索・フィルタUI追加
+  - **検索/フィルタカード**: 白カード（`bg-white p-4 sm:p-5 rounded-lg shadow-sm`）、検索欄 + フィルタ項目 + 適用/リセットボタン
+  - **フィルタ項目**: コンテンツタイプ（すべて/画像/音声）、プライマリタグ（背景/一枚絵/その他/BGM/効果音/ボイス/その他）、タグ（カンマ区切り）、並び替え（新しい順/古い順）
+  - **URL クエリ同期**: `q`, `type`, `primaryTag`, `tags`, `sort` を保有し復元（`sort` は active filter 判定から除外）
+  - **loading/error/empty 状態**: スピナー + 「読み込み中...」、エラーパネル（再読み込みボタン付き）、条件なし0件 vs 条件あり0件で導線分岐
+  - グリッド: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4`、適用/リセット: `grid-cols-2 gap-3`
+- `/my/favorites/characters`（キャラクターお気に入り）に検索・フィルタUI追加
+  - **検索/フィルタカード**: 素材と同じ白カード構成
+  - **フィルタ項目**: タグ（カンマ区切り）、並び替え（新しい順/古い順/名前順）
+  - **URL クエリ同期**: `q`, `tags`, `sort` を保有し復元（`sort` は active filter 判定から除外）
+  - **loading/error/empty 状態**: 素材と同じ構成・言葉遣い
+  - グリッド: `grid-cols-1 md:grid-cols-2 gap-4`、適用/リセット: `grid-cols-2 gap-3`
+- **API側対応**:
+  - 素材: `FavoritesModule` に `FavoritesListController` / `FavoritesToggleController` を登録し、`GET /favorites` で `q`, `type`, `primaryTag`, `tags`, `sort`, `limit`, `offset` をサポート
+  - キャラクター: `CharacterFavoritesController.list` で `q`, `tags`, `sort`, `limit`, `offset` をサポート
+  - 既存 `FavoritesService.list()` / `CharacterFavoritesService.list()` の filter ロジック活用、DB/migration 変更なし
+  - 返却形式: 素材 `{ items, total }`、キャラクター配列維持
+- **型・composable 更新**:
+  - `packages/types/src/favorites.ts` の `FavoritesQuery`: `primary` → `primaryTag` に修正
+  - `useAssetsApi().listFavoriteAssets(query)` / `useCharactersApi().listFavoriteCharacters(query)` は空値を送信しない（既存動作継続）
+- **ドキュメント更新**:
+  - `docs/PROJECT_SPEC.md`: UI構成・フィルタ項目・API仕様記載
+  - `docs/ROADMAP.md`: 実装済み MVP 追記
+- **スコープ制限**: DB/migration 変更なし、既存お気に入り導線・toggle 挙動維持、お気に入り解除時の自動削除は未実装（簡易的な実装検討は可能だが今回は見送り）
+- DB/API/migration 変更なし（既存スキーマ・filter ロジック再利用）
+- 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`
+
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）

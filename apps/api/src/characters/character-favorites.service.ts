@@ -28,7 +28,7 @@ export class CharacterFavoritesService {
     });
   }
 
-  async list(userId: string, opt?: { q?: string; tags?: string[] }) {
+  async list(userId: string, opt?: { q?: string; tags?: string[]; sort?: string; limit?: number; offset?: number }) {
     const favs = await this.prisma.favoriteCharacter.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -49,7 +49,7 @@ export class CharacterFavoritesService {
       .filter((c) => c.ownerId === userId || c.isPublic)
       .map((c) => ({ ...c, isFavorited: true, isFavorite: true }));
 
-    // Apply filters
+    // Apply q filter
     if (opt?.q) {
       const qLower = opt.q.toLowerCase();
       characters = characters.filter(c => 
@@ -60,11 +60,27 @@ export class CharacterFavoritesService {
       );
     }
 
+    // Apply tags filter
     if (opt?.tags?.length) {
       characters = characters.filter(c => 
         opt.tags.some(tag => (c.tags || []).includes(tag))
       );
     }
+
+    // Apply sorting
+    if (opt?.sort === 'createdAt:asc') {
+      characters = characters.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (opt?.sort === 'name:asc') {
+      characters = characters.sort((a, b) => ((a.name || a.displayName) || '').localeCompare((b.name || b.displayName) || ''));
+    } else {
+      // default: createdAt:desc (newest first)
+      characters = characters.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    // Apply limit/offset
+    const limit = opt?.limit ?? Number.MAX_SAFE_INTEGER;
+    const offset = opt?.offset ?? 0;
+    characters = characters.slice(offset, offset + limit);
 
     // Use isFavorited (past participle) to match frontend expectations
     return characters;

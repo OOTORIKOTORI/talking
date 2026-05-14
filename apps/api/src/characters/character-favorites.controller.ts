@@ -22,9 +22,15 @@ export class CharacterFavoritesController {
   }
 
   @Get('/my/favorites/characters')
-  async list(@Req() req: any, @Query('q') q?: string, @Query('tags') tags?: string) {
+  async list(@Req() req: any, @Query('q') q?: string, @Query('tags') tags?: string, @Query('sort') sort?: string, @Query('limit') limit?: string, @Query('offset') offset?: string) {
     const userId = req.user?.userId;
     const tagArray = tags ? tags.split(',').filter(Boolean) : undefined;
-    return await this.favoritesService.list(userId, { q, tags: tagArray });
+    return await this.favoritesService.list(userId, { 
+      q, 
+      tags: tagArray,
+      sort,
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+    });
   }
 }

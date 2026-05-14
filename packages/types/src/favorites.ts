@@ -2,7 +2,7 @@
 export type FavoritesQuery = {
   q?: string
   type?: 'image' | 'audio' | ''
-  primary?: string | ''
+  primaryTag?: string | ''
   tags?: string | '' // カンマ区切り
   sort?: 'createdAt:desc' | 'createdAt:asc'
   limit?: number
