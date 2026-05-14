@@ -63,3 +63,5 @@ cd apps/api && pnpm prisma migrate dev
 ```
 
 詳細は [開発環境セットアップ](./dev-setup.md) を参照。
+
+- [FEATURE_INVENTORY.md](FEATURE_INVENTORY.md): ROADMAP由来の機能・課題・アイデアを実装状態つきで棚卸しする台帳。

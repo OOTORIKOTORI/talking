@@ -318,4 +318,6 @@ packages/types/src/
 
 - review 観点では、ゲーム再生ロジックは 1 ファイル集中型で、UI テーマ・進行・音声・セーブが play.vue にまとまっています。
 - テーマ仕様は packages/types/src/index.ts を基準に、描画は MessageWindow.vue、保存は MessageThemeModal.vue と games.service.ts が受け持ちます。
-- 状態分岐ロジックを追うときは、play.vue → gameState.ts → useVisualEffects.ts の順に読むと把握しやすいです。
+- 状態分岐ロジックを追うときは、play.vue → gameState.ts → useVisualEffects.ts の順に読むと把握しやすいです.
+
+- FEATURE_INVENTORY.md: ROADMAPに記載された機能・課題・アイデアを棚卸しし、実装状態を管理する台帳。
