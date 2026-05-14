@@ -85,7 +85,7 @@ apps/frontend/components/
 │   ├── MiniStage.vue                        # エディタ用の簡易ステージプレビュー
 │   ├── NodePicker.vue                       # 遷移先ノード選択ダイアログ
 │   ├── StageCanvas.vue                      # 背景・立ち絵・カメラ・演出を描くステージキャンバス
-│   └── TestPlayPanel.vue                    # テストプレイ専用パネル。現在地・操作・ノード情報・遷移ログの4セクション構成
+│   └── TestPlayPanel.vue                    # テストプレイ専用パネル。現在地・操作・ノード情報・遷移ログの4セクション構成。遷移ログはテキストコピー/JSONエクスポート可能
 ├── pickers/
 │   ├── AssetPicker.vue                      # アセット選択モーダル。背景/BGM/SFX選択に利用
 │   ├── CharacterImagePicker.vue             # キャラクター画像差分の選択モーダル

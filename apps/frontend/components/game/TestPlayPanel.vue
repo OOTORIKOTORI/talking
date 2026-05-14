@@ -116,14 +116,48 @@
       </section>
 
       <section :class="['rounded-lg border border-emerald-200/15 bg-black/20', isFullscreen ? 'p-2.5' : 'p-2']">
-        <div :class="['flex items-center justify-between', isFullscreen ? 'gap-2' : 'gap-1.5']">
+        <div :class="['flex items-center justify-between flex-wrap', isFullscreen ? 'gap-2' : 'gap-1.5']">
           <h4 class="text-[10px] font-semibold tracking-[0.16em] text-emerald-100/90">遷移ログ</h4>
-          <button
-            class="rounded border border-emerald-200/25 px-2 py-1 text-[10px] text-emerald-50/90 transition-colors hover:bg-emerald-500/20"
-            @click="emit('clear-transition-logs')"
-          >
-            ログクリア
-          </button>
+          <div :class="['flex flex-wrap', isFullscreen ? 'gap-2' : 'gap-1.5']">
+            <button
+              :disabled="transitionLogs.length === 0"
+              :class="[
+                'rounded border text-[10px] px-2 py-1 transition-colors',
+                transitionLogs.length === 0
+                  ? 'border-emerald-200/15 text-emerald-50/50 cursor-not-allowed'
+                  : 'border-emerald-200/25 text-emerald-50/90 hover:bg-emerald-500/20'
+              ]"
+              @click="emit('copy-transition-logs')"
+              title="遷移ログをテキストでコピー"
+            >
+              コピー
+            </button>
+            <button
+              :disabled="transitionLogs.length === 0"
+              :class="[
+                'rounded border text-[10px] px-2 py-1 transition-colors',
+                transitionLogs.length === 0
+                  ? 'border-emerald-200/15 text-emerald-50/50 cursor-not-allowed'
+                  : 'border-emerald-200/25 text-emerald-50/90 hover:bg-emerald-500/20'
+              ]"
+              @click="emit('export-transition-logs-json')"
+              title="遷移ログをJSONで保存"
+            >
+              JSON保存
+            </button>
+            <button
+              :disabled="transitionLogs.length === 0"
+              :class="[
+                'rounded border text-[10px] px-2 py-1 transition-colors',
+                transitionLogs.length === 0
+                  ? 'border-emerald-200/15 text-emerald-50/50 cursor-not-allowed'
+                  : 'border-emerald-200/25 text-emerald-50/90 hover:bg-emerald-500/20'
+              ]"
+              @click="emit('clear-transition-logs')"
+            >
+              ログクリア
+            </button>
+          </div>
         </div>
         <p :class="['text-[10px] text-emerald-100/60', isFullscreen ? 'mt-2' : 'mt-1.5']">最大30件をメモリ保持。最新ログは下に追加されます。</p>
         <p
@@ -201,6 +235,8 @@ const emit = defineEmits<{
   (e: 'skip-to-next-choice'): void
   (e: 'toggle-fast-confirm'): void
   (e: 'reveal-current-text'): void
+  (e: 'copy-transition-logs'): void
+  (e: 'export-transition-logs-json'): void
   (e: 'clear-transition-logs'): void
   (e: 'update:collapsed', value: boolean): void
 }>()

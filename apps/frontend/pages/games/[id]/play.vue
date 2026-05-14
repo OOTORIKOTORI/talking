@@ -46,6 +46,8 @@
             @skip-to-next-choice="skipToNextChoiceForTestPlay"
             @toggle-fast-confirm="toggleTestPlayFastConfirmMode"
             @reveal-current-text="revealCurrentTextImmediately"
+            @copy-transition-logs="copyTestPlayTransitionLogs"
+            @export-transition-logs-json="exportTestPlayTransitionLogsJson"
             @clear-transition-logs="clearTestPlayTransitionLogs"
           />
           
@@ -198,6 +200,8 @@
           @skip-to-next-choice="skipToNextChoiceForTestPlay"
           @toggle-fast-confirm="toggleTestPlayFastConfirmMode"
           @reveal-current-text="revealCurrentTextImmediately"
+          @copy-transition-logs="copyTestPlayTransitionLogs"
+          @export-transition-logs-json="exportTestPlayTransitionLogsJson"
           @clear-transition-logs="clearTestPlayTransitionLogs"
         />
 
@@ -919,6 +923,92 @@ function formatTestPlayTransitionLogLine(log: TestPlayTransitionLogEntry) {
     return `${log.fromLabel} → 不明な遷移先 ${shortNodeId(log.toNodeId)}`
   }
   return `${log.fromLabel} → ${log.toLabel}`
+}
+
+async function copyTestPlayTransitionLogs() {
+  if (testPlayTransitionLogs.value.length === 0) {
+    toast.warning('コピーできる遷移ログがありません')
+    return
+  }
+
+  try {
+    // ログをテキスト化
+    const lines: string[] = []
+    lines.push('Talking Test Play Transition Log')
+    lines.push('=' .repeat(40))
+    lines.push('')
+    lines.push(`Game Title: ${game.value?.title || '(無題)'}`)
+    lines.push(`Game ID: ${game.value?.id || '(不明)'}`)
+    lines.push(`Exported At: ${new Date().toISOString()}`)
+    lines.push(`Log Count: ${testPlayTransitionLogs.value.length}`)
+    lines.push('')
+    lines.push('-'.repeat(40))
+    lines.push('')
+
+    for (const log of testPlayTransitionLogs.value) {
+      lines.push(`[${String(log.seq).padStart(3)}] [${log.kind.toUpperCase()}]`)
+      lines.push(`  ${formatTestPlayTransitionLogLine(log)}`)
+      if (log.fromNodeId) lines.push(`  From: ${log.fromNodeId}`)
+      if (log.toNodeId) lines.push(`  To: ${log.toNodeId}`)
+      lines.push('')
+    }
+
+    const textContent = lines.join('\n')
+    await navigator.clipboard.writeText(textContent)
+    toast.success('遷移ログをコピーしました')
+  } catch (e) {
+    toast.error('遷移ログのコピーに失敗しました')
+  }
+}
+
+function exportTestPlayTransitionLogsJson() {
+  if (testPlayTransitionLogs.value.length === 0) {
+    toast.warning('保存できる遷移ログがありません')
+    return
+  }
+
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const filename = `talking-transition-log-${game.value?.id || 'unknown'}-${timestamp}.json`
+
+    const logData = testPlayTransitionLogs.value.map((log) => ({
+      seq: log.seq,
+      kind: log.kind,
+      fromNodeId: log.fromNodeId,
+      toNodeId: log.toNodeId,
+      fromLabel: log.fromLabel,
+      toLabel: log.toLabel,
+      choiceIndex: log.choiceIndex,
+      choicePreview: log.choicePreview,
+      occurredAt: log.occurredAt,
+      occurredAtIso: new Date(log.occurredAt).toISOString(),
+      line: formatTestPlayTransitionLogLine(log),
+    }))
+
+    const json = {
+      format: 'talking-test-play-transition-log',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      game: {
+        id: game.value?.id || null,
+        title: game.value?.title || '(無題)',
+      },
+      count: testPlayTransitionLogs.value.length,
+      logs: logData,
+    }
+
+    const jsonString = JSON.stringify(json, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('遷移ログJSONを保存しました')
+  } catch (e) {
+    toast.error('遷移ログJSONの保存に失敗しました')
+  }
 }
 
 function slotLabel(slotType: SaveSlotType, slotIndex: number) {
