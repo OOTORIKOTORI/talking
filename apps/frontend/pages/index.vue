@@ -166,6 +166,104 @@
         </NuxtLink>
       </section>
 
+      <section class="mt-6 bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5">
+        <div class="mb-4">
+          <h2 class="text-base sm:text-lg font-semibold text-gray-900">新着コンテンツ</h2>
+          <p class="mt-1 text-sm text-gray-600">最近公開・追加されたゲームや素材をチェックできます。</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <section class="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="text-sm font-semibold text-gray-900">最近公開されたゲーム</h3>
+              <NuxtLink to="/games" class="text-xs text-blue-600 hover:underline">一覧へ</NuxtLink>
+            </div>
+
+            <div v-if="latestGamesLoading" class="text-sm text-gray-500 py-3">読み込み中...</div>
+            <p v-else-if="latestGamesError" class="text-sm text-red-600 py-3">取得できませんでした</p>
+            <p v-else-if="latestGames.length === 0" class="text-sm text-gray-500 py-3">まだ公開コンテンツがありません</p>
+            <div v-else class="space-y-3">
+              <article
+                v-for="game in latestGames"
+                :key="game.id"
+                class="rounded-lg border border-gray-200 bg-white p-3"
+              >
+                <NuxtLink :to="`/games/${game.id}`" class="text-sm font-semibold text-gray-900 hover:underline line-clamp-1">
+                  {{ game.title || '（無題）' }}
+                </NuxtLink>
+                <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ gameSummary(game) }}</p>
+                <p class="mt-1 text-xs text-gray-500">
+                  作者:
+                  <NuxtLink
+                    v-if="game.ownerId"
+                    :to="`/profiles/${game.ownerId}`"
+                    class="text-blue-600 hover:underline"
+                  >
+                    {{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}
+                  </NuxtLink>
+                  <span v-else>{{ formatCreatorLabel(game.ownerDisplayName, game.ownerId) }}</span>
+                </p>
+                <p v-if="hasGameCounts(game)" class="mt-1 text-xs text-gray-500">
+                  閲覧 {{ Number(game.viewCount || 0) }} / プレイ {{ Number(game.playCount || 0) }}
+                </p>
+                <div class="mt-2 flex items-center gap-2">
+                  <NuxtLink
+                    :to="`/games/${game.id}`"
+                    class="px-2.5 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    詳細
+                  </NuxtLink>
+                  <NuxtLink
+                    :to="`/games/${game.id}/play`"
+                    class="px-2.5 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    プレイする
+                  </NuxtLink>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="text-sm font-semibold text-gray-900">最近追加された素材</h3>
+              <NuxtLink to="/assets" class="text-xs text-blue-600 hover:underline">一覧へ</NuxtLink>
+            </div>
+
+            <div v-if="latestAssetsLoading" class="text-sm text-gray-500 py-3">読み込み中...</div>
+            <p v-else-if="latestAssetsError" class="text-sm text-red-600 py-3">取得できませんでした</p>
+            <p v-else-if="latestAssets.length === 0" class="text-sm text-gray-500 py-3">まだ素材がありません</p>
+            <div v-else class="space-y-3">
+              <AssetCard
+                v-for="asset in latestAssets"
+                :key="asset.id"
+                :asset="asset"
+                :showFavorite="false"
+              />
+            </div>
+          </section>
+
+          <section class="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <h3 class="text-sm font-semibold text-gray-900">最近追加されたキャラクター</h3>
+              <NuxtLink to="/characters" class="text-xs text-blue-600 hover:underline">一覧へ</NuxtLink>
+            </div>
+
+            <div v-if="latestCharactersLoading" class="text-sm text-gray-500 py-3">読み込み中...</div>
+            <p v-else-if="latestCharactersError" class="text-sm text-red-600 py-3">取得できませんでした</p>
+            <p v-else-if="latestCharacters.length === 0" class="text-sm text-gray-500 py-3">まだキャラクターがありません</p>
+            <div v-else class="space-y-3">
+              <CharacterCard
+                v-for="character in latestCharacters"
+                :key="character.id"
+                :character="character"
+                :showFavorite="false"
+              />
+            </div>
+          </section>
+        </div>
+      </section>
+
       <section class="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-5">
         <div class="flex items-center justify-between gap-3 mb-3">
           <h2 class="text-base sm:text-lg font-semibold text-gray-800">
@@ -236,7 +334,45 @@
 
 <script setup lang="ts">
 import { useRuntimeConfig } from '#imports'
+import { formatCreatorLabel } from '~/utils/creatorDisplay'
+
+type HomeGame = {
+  id: string
+  title?: string | null
+  summary?: string | null
+  description?: string | null
+  ownerId?: string | null
+  ownerDisplayName?: string | null
+  viewCount?: number | null
+  playCount?: number | null
+}
+
+type HomeAsset = {
+  id: string
+  [key: string]: any
+}
+
+type HomeCharacter = {
+  id: string
+  [key: string]: any
+}
+
 const config = useRuntimeConfig()
+const gamesApi = useGamesApi()
+const assetsApi = useAssetsApi()
+const charactersApi = useCharactersApi()
+
+const latestGames = ref<HomeGame[]>([])
+const latestGamesLoading = ref(true)
+const latestGamesError = ref<string | null>(null)
+
+const latestAssets = ref<HomeAsset[]>([])
+const latestAssetsLoading = ref(true)
+const latestAssetsError = ref<string | null>(null)
+
+const latestCharacters = ref<HomeCharacter[]>([])
+const latestCharactersLoading = ref(true)
+const latestCharactersError = ref<string | null>(null)
 
 const { data, pending, error } = await useFetch(`${config.public.apiBase}/health`, {
   method: 'GET'
@@ -247,5 +383,63 @@ const healthStatus = computed(() => {
     return { ok: data.value.ok }
   }
   return { ok: !error.value && !pending.value }
+})
+
+const hasGameCounts = (game: HomeGame) => {
+  return game.viewCount != null || game.playCount != null
+}
+
+const gameSummary = (game: HomeGame) => {
+  const raw = game.summary || game.description
+  const text = typeof raw === 'string' ? raw.trim() : ''
+  return text || '説明はありません。'
+}
+
+const fetchLatestGames = async () => {
+  latestGamesLoading.value = true
+  latestGamesError.value = null
+  try {
+    const res = await gamesApi.listPublic({ limit: 3, offset: 0, sort: 'new' }) as any
+    latestGames.value = Array.isArray(res?.items) ? res.items : []
+  } catch (e: any) {
+    latestGamesError.value = e?.message || 'ゲームの取得に失敗しました'
+    latestGames.value = []
+  } finally {
+    latestGamesLoading.value = false
+  }
+}
+
+const fetchLatestAssets = async () => {
+  latestAssetsLoading.value = true
+  latestAssetsError.value = null
+  try {
+    const res = await assetsApi.listPublic({ limit: 3, offset: 0, sort: 'createdAt:desc' }) as any
+    latestAssets.value = Array.isArray(res?.items) ? res.items : []
+  } catch (e: any) {
+    latestAssetsError.value = e?.message || '素材の取得に失敗しました'
+    latestAssets.value = []
+  } finally {
+    latestAssetsLoading.value = false
+  }
+}
+
+const fetchLatestCharacters = async () => {
+  latestCharactersLoading.value = true
+  latestCharactersError.value = null
+  try {
+    const res = await charactersApi.listPublic(undefined, 3, 0, { sort: 'createdAt:desc' }) as any
+    latestCharacters.value = Array.isArray(res) ? res : []
+  } catch (e: any) {
+    latestCharactersError.value = e?.message || 'キャラクターの取得に失敗しました'
+    latestCharacters.value = []
+  } finally {
+    latestCharactersLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void fetchLatestGames()
+  void fetchLatestAssets()
+  void fetchLatestCharacters()
 })
 </script>

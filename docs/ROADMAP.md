@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-14（公開ギャラリー / 管理 / お気に入り / Explore 横断 docs/code 整合チェック）
+> 最終更新: 2026-05-14（トップページ新着コンテンツ枠MVP 反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 
@@ -97,6 +97,24 @@
 	- `useFetch(`${config.public.apiBase}/health`)` と `pending/error/data` の既存表示ロジックは維持
 - スコープ明記:
 	- 本格的なLP化は行わない（入口整理MVPに限定）
+	- DB/API/migration変更なし
+- 出典: `apps/frontend/pages/index.vue`, `docs/PROJECT_SPEC.md`, `docs/file-map.md`
+
+**トップページ 新着コンテンツ枠MVP**（2026-05-14 実装）
+- 対象: `/`（`apps/frontend/pages/index.vue`）
+- 目的: トップページから公開コンテンツへの導線を増やすため、新着表示を追加
+- 実装内容:
+	- 主要導線カードと「開発状態」カードの間に「新着コンテンツ」セクションを追加
+	- 3カテゴリを最大3件ずつ表示
+		- 最近公開されたゲーム（`listPublic({ limit: 3, offset: 0, sort: 'new' })`）
+		- 最近追加された素材（`listPublic({ limit: 3, offset: 0, sort: 'createdAt:desc' })`）
+		- 最近追加されたキャラクター（`listPublic(undefined, 3, 0, { sort: 'createdAt:desc' })`）
+	- 各カテゴリは独立取得として実装し、1カテゴリ失敗時もトップ全体は表示継続
+	- 各カテゴリに empty / error 表示を実装（0件時文言、取得失敗時「取得できませんでした」）
+	- レイアウト: PCで3カラム、スマホで1カラム縦積み
+- スコープ明記:
+	- 今回は新着順表示のみ（ランキングではない）
+	- 既存のランキング/人気順/プレイ数順/使用数順、今遊ばれている/今使われている系の実装は後続課題として維持
 	- DB/API/migration変更なし
 - 出典: `apps/frontend/pages/index.vue`, `docs/PROJECT_SPEC.md`, `docs/file-map.md`
 

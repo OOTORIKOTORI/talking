@@ -55,11 +55,18 @@
 - トップページ（ホーム）
   - パス: `/`
   - 目的: 「公開コンテンツを見つける入口」と「制作を始める入口」を案内する軽量MVP（本格LP化はスコープ外）
-  - UI 構成（2026-05-14 polish MVP）:
+  - UI 構成（2026-05-14 polish MVP + 新着コンテンツ枠MVP）:
     - ページトーンを一覧ページ系に統一（`min-h-screen bg-gray-50`、`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8`、白カード + `shadow-sm` + `rounded-lg` + `border`）
     - ヒーロー文言: `Talking` / 「素材・キャラクターを見つけて、会話ゲームを作って公開できる場所です。」
     - CTA: `/explore`（素材・キャラクターを見つける）, `/games`（公開ゲームを見る）, `/my/games`（ゲームを作る）, `/upload`（素材をアップロード）
     - 主要導線カード: 見つける（`/explore`）、公開ギャラリー（`/assets`）、キャラクター（`/characters`）、公開ゲーム（`/games`）、ゲーム制作（`/my/games`）、素材アップロード（`/upload`）
+    - 新着コンテンツ枠（主要導線カードと開発状態カードの間）:
+      - 最近公開されたゲーム（`useGamesApi().listPublic({ limit: 3, offset: 0, sort: 'new' })`）
+      - 最近追加された素材（`useAssetsApi().listPublic({ limit: 3, offset: 0, sort: 'createdAt:desc' })`）
+      - 最近追加されたキャラクター（`useCharactersApi().listPublic(undefined, 3, 0, { sort: 'createdAt:desc' })`）
+    - 新着枠はカテゴリごとに独立取得し、1カテゴリの失敗でトップ全体を壊さない（カテゴリ内で「取得できませんでした」を表示）
+    - 新着枠はランキング/人気/トレンドではなく、既存APIの新着順表示に限定
+    - ランキング系（人気順・プレイ数順・使用数順、「今遊ばれている」「今使われている」など）は後続課題
     - レイアウト: スマホ1カラム、PCで2〜3カラム
   - 開発状態表示（API状態）:
     - health check の `useFetch(`${config.public.apiBase}/health`)` は維持
