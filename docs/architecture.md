@@ -38,6 +38,9 @@
   - キャラ: `POST/DELETE /characters/:id/favorite`, 一覧: `GET /my/favorites/characters`（クエリ: `q`, `tags`, `sort`, `limit`, `offset`）
 - UI
   - 公開ギャラリー・お気に入り・管理一覧で **♡トグル** が可能
+  - `AssetCard` / `CharacterCard` はカード内で optimistic update（ハート状態更新）を維持し、API 成功時に `favorite-toggled` イベントを emit する
+  - お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）では `favorite-toggled` を親ページで受け取り、解除成功（`isFavorited=false`）時に親配列から対象カードを即時除去する
+  - 公開ギャラリー（`/assets`, `/characters`）と管理一覧（`/my/assets`, `/my/characters`）ではカード除去を行わず、一覧表示は維持する
   - 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）・**お気に入り一覧（`/my/favorites`, `/my/favorites/characters`）** は URL クエリにフィルタ状態を保持し、共有や再訪時の復元に対応
 
 ## 画面構成 / 導線

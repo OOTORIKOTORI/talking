@@ -77,6 +77,9 @@ const props = defineProps({
   character: { type: Object, required: true },
   showFavorite: { type: Boolean, default: true },
 })
+const emit = defineEmits<{
+  (e: 'favorite-toggled', payload: { id: string; isFavorited: boolean }): void
+}>()
 const thumbKey = computed(() => props.character.images?.[0]?.thumbKey || props.character.images?.[0]?.key || null)
 
 const api = useCharactersApi()
@@ -97,6 +100,10 @@ const onToggleFav = async () => {
     // 成功したら親のcharacter.isFavoriteも更新
     props.character.isFavorite = isFav.value
     props.character.isFavorited = isFav.value
+    emit('favorite-toggled', {
+      id: props.character.id,
+      isFavorited: isFav.value,
+    })
   } catch (err) {
     isFav.value = prev
     console.error('Failed to toggle favorite:', err)

@@ -33,6 +33,12 @@ const formSort = ref('createdAt:desc')
 // Track if form has unsaved changes
 const hasUnsavedChanges = ref(false)
 
+type AssetFavoriteToggledPayload = {
+  id: string
+  isFavorited: boolean
+  favoriteCount: number
+}
+
 // Computed: check if filters are active (sort doesn't count)
 const hasActiveFilters = computed(() => {
   return formQ.value.trim() || formType.value || formPrimaryTag.value || formTags.value.trim()
@@ -114,6 +120,15 @@ watch(
 
 const trackFormChange = () => {
   hasUnsavedChanges.value = true
+}
+
+const handleFavoriteToggled = (payload: AssetFavoriteToggledPayload) => {
+  if (payload.isFavorited) return
+  const prevLength = favorites.value.length
+  favorites.value = favorites.value.filter((asset) => asset.id !== payload.id)
+  if (favorites.value.length !== prevLength) {
+    total.value = Math.max(0, total.value - 1)
+  }
 }
 
 onBeforeUnmount(() => {
@@ -262,7 +277,13 @@ onBeforeUnmount(() => {
       <!-- Content -->
       <div v-else-if="favorites.length">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AssetCard v-for="asset in favorites" :key="asset.id" :asset="asset" :showFavorite="true" />
+          <AssetCard
+            v-for="asset in favorites"
+            :key="asset.id"
+            :asset="asset"
+            :showFavorite="true"
+            @favorite-toggled="handleFavoriteToggled"
+          />
         </div>
       </div>
 

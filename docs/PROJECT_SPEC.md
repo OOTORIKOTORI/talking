@@ -108,6 +108,10 @@
     - `favoriteCount` フィールド維持（素材のみ）
   - DB/API/migration 変更なし（既存スキーマ・フィルタロジック活用）
   - カード表示・お気に入り ON/OFF 挙動維持
+  - 一覧上での解除成功時はカードを親配列から即時除去する（`/my/favorites`, `/my/favorites/characters`）
+    - カード内の optimistic update は維持
+    - API失敗時はロールバックし、一覧から除去しない
+    - `/assets`, `/characters`, `/my/assets`, `/my/characters` ではカード除去を行わない
   - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*`, `apps/api/src/characters/character-favorites.*`
 - Explore
   - パス: `/explore`（素材とキャラクターを混在表示）

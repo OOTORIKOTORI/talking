@@ -28,6 +28,11 @@ const formSort = ref('createdAt:desc')
 // Track if form has unsaved changes
 const hasUnsavedChanges = ref(false)
 
+type CharacterFavoriteToggledPayload = {
+  id: string
+  isFavorited: boolean
+}
+
 // Computed: check if filters are active (sort doesn't count)
 const hasActiveFilters = computed(() => {
   return formQ.value.trim() || formTags.value.trim()
@@ -100,6 +105,11 @@ watch(
 
 const trackFormChange = () => {
   hasUnsavedChanges.value = true
+}
+
+const handleFavoriteToggled = (payload: CharacterFavoriteToggledPayload) => {
+  if (payload.isFavorited) return
+  list.value = list.value.filter((character) => character.id !== payload.id)
 }
 
 onBeforeUnmount(() => {
@@ -216,7 +226,12 @@ onBeforeUnmount(() => {
       <!-- Content -->
       <div v-else-if="list.length">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CharacterCard v-for="c in list" :key="c.id" :character="c" />
+          <CharacterCard
+            v-for="c in list"
+            :key="c.id"
+            :character="c"
+            @favorite-toggled="handleFavoriteToggled"
+          />
         </div>
       </div>
 

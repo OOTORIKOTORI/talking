@@ -109,7 +109,15 @@
 - **ドキュメント更新**:
   - `docs/PROJECT_SPEC.md`: UI構成・フィルタ項目・API仕様記載
   - `docs/ROADMAP.md`: 実装済み MVP 追記
-- **スコープ制限**: DB/migration 変更なし、既存お気に入り導線・toggle 挙動維持、お気に入り解除時の自動削除は未実装（簡易的な実装検討は可能だが今回は見送り）
+- **お気に入り解除時の一覧即時除去 polish**（2026-05-14 実装）
+	- 対象: `/my/favorites` と `/my/favorites/characters`
+	- `AssetCard` / `CharacterCard` はお気に入り切り替え成功時に `favorite-toggled` を emit
+	- favorites 親ページで `favorite-toggled` を受け、`isFavorited=false` のときだけ親配列から該当カードを即時除去
+	- `/my/favorites` は `total` も `Math.max(0, total - 1)` で調整
+	- 公開ギャラリー（`/assets`, `/characters`）・管理一覧（`/my/assets`, `/my/characters`）ではカードを除去しない
+	- カード内の optimistic update は維持し、API失敗時はロールバックして emit しない
+	- DB/API/migration 変更なし（カードイベント経由のフロント親配列除去のみ）
+- **スコープ制限**: DB/migration 変更なし、既存お気に入り導線・toggle 挙動維持
 - DB/API/migration 変更なし（既存スキーマ・filter ロジック再利用）
 - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`
 

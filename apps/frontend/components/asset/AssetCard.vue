@@ -108,6 +108,10 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits<{
+  (e: 'favorite-toggled', payload: { id: string; isFavorited: boolean; favoriteCount: number }): void
+}>()
+
 const api = useAssetsApi()
 const isFav = ref(!!props.asset?.isFavorited)
 watch(() => props.asset?.isFavorited, v => (isFav.value = !!v))
@@ -137,6 +141,11 @@ const toggleFavorite = async () => {
       props.asset.isFavorite = isFav.value
       props.asset.favoriteCount = favoriteCount.value
     }
+    emit('favorite-toggled', {
+      id: props.asset.id,
+      isFavorited: isFav.value,
+      favoriteCount: favoriteCount.value,
+    })
   } catch (err) {
     isFav.value = prev // ロールバック
     favoriteCount.value = prevCount

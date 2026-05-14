@@ -40,8 +40,8 @@ apps/frontend/pages/
 │   │   ├── new.vue                          # キャラクター新規作成画面
 │   │   └── [id].vue                         # キャラクター編集画面。画像や公開設定の更新。公開→非公開保存時は usage-impact による保存前 warning 確認を表示
 │   ├── favorites/
-│   │   ├── index.vue                        # お気に入り素材一覧。検索/フィルタUI（q, type, primaryTag, tags, sort）で URL クエリ同期・復元対応。loading/error/empty（条件なし vs 条件あり）状態分岐（2026-05-14 MVP）
-│   │   └── characters.vue                   # お気に入りキャラクター一覧。検索/フィルタUI（q, tags, sort）で URL クエリ同期・復元対応。loading/error/empty（条件なし vs 条件あり）状態分岐（2026-05-14 MVP）
+│   │   ├── index.vue                        # お気に入り素材一覧。検索/フィルタUI（q, type, primaryTag, tags, sort）で URL クエリ同期・復元対応。favorite-toggled受信時は解除成功カードを親配列から即時除去（2026-05-14 polish）
+│   │   └── characters.vue                   # お気に入りキャラクター一覧。検索/フィルタUI（q, tags, sort）で URL クエリ同期・復元対応。favorite-toggled受信時は解除成功カードを親配列から即時除去（2026-05-14 polish）
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
@@ -57,9 +57,9 @@ apps/frontend/components/
 ├── AssetThumbnail.vue                       # アセットのサムネイル表示。署名URLやフォールバック表示を吸収
 ├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）。公開→非公開保存時は usage-impact を確認し、参照中ゲームがある場合に保存前 warning モーダルを表示
 ├── asset/
-│   └── AssetCard.vue                        # 素材一覧用カード。詳細遷移（サムネイル/タイトル）と作者リンク・お気に入り操作をDOM構造で分離しつつ、説明・タグ・クレジット表記・お気に入り件数を表示（UI整理のみ、API変更なし）
+│   └── AssetCard.vue                        # 素材一覧用カード。詳細遷移（サムネイル/タイトル）と作者リンク・お気に入り操作をDOM構造で分離しつつ、説明・タグ・クレジット表記・お気に入り件数を表示。お気に入り成功時はfavorite-toggledをemit（API変更なし）
 ├── character/
-│   ├── CharacterCard.vue                    # キャラクター一覧用カード。詳細遷移（サムネイル/タイトル）と作者リンク・お気に入り操作をDOM構造で分離しつつ、名称・説明・タグ・クレジット表記を表示。公開一覧/お気に入り/探索で利用（UI整理のみ、API変更なし）
+│   ├── CharacterCard.vue                    # キャラクター一覧用カード。詳細遷移（サムネイル/タイトル）と作者リンク・お気に入り操作をDOM構造で分離しつつ、名称・説明・タグ・クレジット表記を表示。お気に入り成功時はfavorite-toggledをemit（API変更なし）
 │   └── CharacterImageThumb.vue              # キャラクター差分画像のサムネイル表示
 ├── common/
 │   ├── CrossNavTabs.vue                     # 画面横断ナビゲーション用タブ
