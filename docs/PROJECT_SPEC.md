@@ -525,7 +525,7 @@
   - `applyFavorites()` はクライアント側の補完用途として残し、既存の `isFavorited=true` / `isFavorite=true` を `false` で潰さない
   - `/explore` の素材カードは `/search/assets` の返却 + `normalizeAssetFavorite()` で既存お気に入り状態を反映する
   - `/explore` は `favorite-toggled` を購読しないため、お気に入り解除後もカード自体は残る
-  - 出典: `apps/frontend/composables/useAssets.ts`（`applyFavorites`, `normalizeAssetFavorite`）、`apps/api/src/search/search.service.ts`
+  - 出典: `apps/frontend/composables/useAssets.ts`（`applyFavorites`, `normalizeAssetFavorite`）、`apps/api/src/search/search.controller.ts`
 - 返却データの表記ゆれを正規化
   - `normalizeAssetFavorite()` で `isFavorited` を付与（`isFavorite`/`favorited` 等を吸収）
   - 出典: `apps/frontend/composables/useAssets.ts#normalizeAssetFavorite`
