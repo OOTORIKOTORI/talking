@@ -1337,6 +1337,37 @@ GET /games/:id/reference-diagnostics
 - **F**: プロパティペインの全画面⇔通常表示を切替
 - **Esc**: 全画面プロパティペインを閉じる
 
+#### AIレビュー用 台本Markdown Export MVP（2026-05-15 実装）
+<!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->
+- 編集画面 `/my/games/:id/edit` の右ペイン上部から、AIレビュー用の台本Markdownを出力できる。
+- UIボタン:
+  - `MDコピー`: クリップボードへコピー
+  - `MD保存`: `.md` ファイル保存
+- 保存ファイル名:
+  - `talking-ai-review-script-{gameId}-{timestamp}.md`
+  - `timestamp` は `YYYY-MM-DDTHH-mm-ss` 形式（`toISOString()` ベース）
+- 出力対象（MVP）:
+  - ゲーム基本情報（タイトル、ゲームID、開始シーン/開始ノード、シーン数、ノード数、Export時刻）
+  - シーン一覧（Scene Index）
+  - ノード本文（Text）
+  - `nextNodeId`
+  - `choices`
+  - 使用素材ID（BG/BGM/SFX/Character Image）
+  - 使用キャラクターID
+- データ源は `scenarioCheckScenes` を使用し、現在選択中ノードは未保存の `nodeDraft` が反映される場合がある。
+- この出力操作でゲーム内容は保存/変更されない（DB/API保存なし）。
+- 今回含めないもの（将来課題）:
+  - Import
+  - JSON Export
+  - 独自DSL
+  - 公開前チェック結果
+  - 未到達判定
+  - クレジット詳細
+  - 素材/キャラクター詳細情報のAPI追加取得
+  - DB/API保存
+  - 自動AIレビュー実行
+- 補足: 既存の「シナリオ Import/Export（JSON → AI向けMarkdown/DSL）は将来課題」という方針とは矛盾しない。今回実装は AIレビュー用Markdown出力の最小版（MVP）のみであり、Import/高度Export/DSLは未実装。
+
 - **テストプレイ**: `/games/:id/play`
   - クエリ `?sceneId=&nodeId=` を受け取り、指定がない場合は **scene.startNodeId → 先頭ノード**の順で自動補完
   - 初回は **音声同意オーバーレイ**を表示。クリックで `AudioContext.resume()` を呼び出し、BGM自動再生を試みる（失敗時は次の操作で再試行）
@@ -2089,7 +2120,9 @@ interface GameNode {
   - ノード移動（別シーン移動時のID維持方針、参照維持/警告、`startNodeId` 影響整理）
   - シーン間ノードコピー（コピー先で新nodeId発行、参照関係の扱い）
   - 付随課題: undo/redo、操作前確認ダイアログ、コピー先選択UI、大量ノード操作、シーン/ノードテンプレート化、シナリオImport/Export連携
-- シナリオのエクスポート/インポート（JSON → 将来的にAI向けMarkdown/DSL）は将来課題
+- シナリオのエクスポート/インポートは将来課題
+  - AIレビュー用台本Markdownの最小Export MVP（編集画面の `MDコピー` / `MD保存`）は実装済み
+  - Import、JSON Export、独自DSL、公開前チェック結果/未到達判定/クレジット詳細の同梱、素材/キャラクター詳細情報の追加取得、自動AIレビュー実行は未実装
 - キーコンフィグ・AUTO再生・Skip機能・プレイヤーごとのセーブデータ設計は将来課題
 - スマホ/タブレット向けプレイ操作最適化は将来課題
 - 画像の遅延読込・AVIF/WebP 最適化は別タスク

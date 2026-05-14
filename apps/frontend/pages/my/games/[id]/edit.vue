@@ -2391,10 +2391,10 @@ function generateAiReviewMarkdown(): string {
       if (Array.isArray(node.portraits) && node.portraits.length > 0) {
         md += 'Characters:\n\n'
         for (const portrait of node.portraits) {
-          md += `- Character ID: ${portrait.characterId}\n`
-          md += `  - Image ID: ${portrait.imageId}\n`
+          md += `- Character ID: ${portrait.characterId || '未設定'}\n`
+          md += `  - Image ID: ${portrait.imageId || '未設定'}\n`
           md += `  - Name: ${portrait.characterName || '(名前なし)'}\n`
-          md += `  - Position: x=${portrait.x ?? 'undefined'}, y=${portrait.y ?? 'undefined'}, scale=${portrait.scale ?? 'undefined'}, z=${portrait.z ?? 'undefined'}\n`
+          md += `  - Position: x=${portrait.x ?? '未設定'}, y=${portrait.y ?? '未設定'}, scale=${portrait.scale ?? '未設定'}, z=${portrait.z ?? '未設定'}\n`
         }
         md += '\n'
       }
