@@ -150,7 +150,7 @@
   - contentType / primaryTag フィルタは追加しない（素材専用フィルタ）
   - キャラクター専用フィルタ（Emotion など）は追加しない
   - ルート `/explore` は変更しない
-  - グローバルナビ「見つける」追加は不要（ナビに Explore リンクが無いため）
+	- グローバルナビ PC / スマホメニューに `/explore` への「見つける」導線あり
 - DB/API/migration 変更なし（既存スキーマ・filter ロジック再利用）
 - 出典: `apps/frontend/pages/my/favorites/index.vue`, `apps/frontend/pages/my/favorites/characters.vue`, `apps/api/src/favorites/*.ts`, `apps/api/src/characters/character-favorites.*`, `packages/types/src/favorites.ts`
 
