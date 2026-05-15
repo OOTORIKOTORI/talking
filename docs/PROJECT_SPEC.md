@@ -1797,7 +1797,8 @@ interface MessageTheme {
 - `演出` セクションには `カメラ` / `カメラ演出` / `ビジュアルエフェクト` / `カラーフィルター` を配置する
 - `遷移・分岐` セクションには `次ノードID`、`次ノード作成時のコピー対象`、`選択肢` を含める
 - `危険操作` セクションにはノード削除導線を配置する
-- 今回はフォーム共通コンポーネント化までは行わず、通常表示/全画面表示のフォーム重複は将来課題として扱う
+- 当該セクション実装時点ではフォーム共通コンポーネント化は未実施で、通常表示/全画面表示のフォーム重複を将来課題として扱っていた
+- その後 2026-05-15 に Phase 1（演出系フォーム共通化MVP）を実装し、`NodeEffectsFields.vue` で演出系フォームの重複を解消済み（残りは Phase 2 以降）
 
 #### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）
 - 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
@@ -1811,6 +1812,7 @@ interface MessageTheme {
   - Phase 3: 素材・キャラクター参照UI
   - Phase 4: 保存ボタン / 危険操作 / 公開前チェック周辺
 - 最初の実装候補: Phase 1（演出系フォーム共通化MVP）。副作用が比較的小さく、今回の再発領域に直接効く。
+- 実装状況: 2026-05-15 に Phase 1 は実装済み。`apps/frontend/components/editor/NodeEffectsFields.vue` を通常表示/全画面表示で共通利用している。
 - 注意点: `v-model` と computed setter の責務整理、`nodeDraft` nullタイミング、数値input型維持、`backgroundFilter` null正規化、localStorage key追加回避、保存payload正規化責務の維持。
 - 詳細: `docs/editor-property-form-refactor-plan.md`
 

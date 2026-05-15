@@ -171,6 +171,11 @@
 - 状態: `実装済み（2026-05-15）`
 - ROADMAP出典: （未出典、2026-05-15実装）
 - 概要: AI生成背景などで細部の粗が気になる場合に、背景画像だけをぼかして「場所の雰囲気は分かるが細部は目立たない」表現を実現。ノード単位で背景画像に blur と dim オーバーレイを設定可能。blurPx（0-24px）と dimOpacity（0-60%）の2パラメータで制御。キャラクター・メッセージウィンドウ・colorFilter には影響しない。CSS filter + scale で背景画像端の透けを防止。テストプレイ・公開プレイで即座に確認可能。「保存して次のノードへ」で背景引き継ぎ時に backgroundFilter も維持。
+- DB/API実装メモ:
+	- Prisma: `GameNode.backgroundFilter`（Json）を追加（migration: `20260515100000_add_background_filter`）。
+	- API: `GamesService.normalizeBackgroundFilter` で `blurPx` を `0..24`、`dimOpacity` を `0..60` に clamp し、`0/0` は `null` 正規化。
+	- `upsertNode`（create/update）と `duplicate` の双方で `backgroundFilter` を正規化して保存/複製。
+	- `GameAssetReference` / `GameCharacterReference` の集計対象は素材/キャラ参照のみで、`backgroundFilter` 自体は集計対象外。
 - 後続候補: pixelate/preset/シーン単位デフォルト/背景フィルタープリセット（FI-022b参照）
 
 ### FI-022b: 背景フィルター拡張（pixelate/preset/シーン単位デフォルト）

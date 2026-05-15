@@ -76,7 +76,7 @@ apps/frontend/components/
 │   ├── ToastContainer.vue                   # トースト通知の描画コンテナ
 │   └── UploadTabs.vue                       # アップロード画面の種別切り替えタブ
 ├── editor/
-│   └── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI をまとめて実装。通常表示・全画面表示の両方で再利用
+│   └── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
 ├── game/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
 │   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題カードで参照診断issueの使用箇所一覧（最大5件）を表示し、各行から直接ジャンプ可能。issue未特定時はカテゴリ単位編集導線にフォールバック
