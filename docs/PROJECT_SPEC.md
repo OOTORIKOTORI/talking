@@ -2079,6 +2079,8 @@ NodePicker の「シーン → ノード」二段階選択UIは**実装済み**�
 - **カメラ** … 編集UIは実装済み（倍率 zoom 100–300%、中心 cx,cy 0–100%）。StageCanvas への反映済み（MiniStage にも適用済み）
 - **カメラ演出（cameraFx）** … エディタで「カメラ演出」セクションから設定可能。テストプレイでは `requestAnimationFrame` で滑らかなカメラアニメーションを実現
 - **ビジュアルエフェクト（visualFx）** … 「ビジュアルエフェクト」セクションで設定。画面揺れ（shake）とフラッシュ（flash）の2種類、それぞれ小・中・大の3段階強度を選択可能。エディタではプレビューボタンで即座に確認でき、テストプレイではノード表示時に自動再生。画面全体（背景・キャラクター・メッセージウィンドウ含む）に適用され、`requestAnimationFrame` ベースの滑らかなアニメーション
+- **カラーフィルター（colorFilter）** … 「カラーフィルター（画面全体）」セクションで設定。画面全体に色被せフィルターを適用。セピア・モノクロ・暗転・夜・夢などのプリセットタイプから選択可能。不透明度（0-100%）とフェード時間（ms）で制御。次ノードで解除するまで継続
+- **背景フィルター（backgroundFilter）** … 「背景フィルター（背景画像のみ）」セクションで設定。AI生成背景などの粗さが気になる場合に、背景画像だけをぼかして「場所の雰囲気は分かるが細部は目立たない」表現を実現。ぼかし強度（blurPx: 0-24px）と暗さオーバーレイ（dimOpacity: 0-60%）の2つのパラメータで制御。キャラクター立ち絵・メッセージウィンドウ・既存のカラーフィルターはぼかされない。CSS `filter: blur()` と `scale()` で背景画像端の透けを防止。ノード単位で設定し、次ノードで新しい値を指定するまで適用されない（colorFilter と異なり継続しない）
 - **セリフ継続表示（continuesPreviousText）** … 「前ノードのセリフを消さずに続ける」チェックボックスで設定。会話の流れを維持した演出が可能
 
 **プレビュー**:
@@ -2132,6 +2134,15 @@ interface GameNode {
   visualFx?: {
     type: 'shake' | 'flash';
     intensity: 'small' | 'medium' | 'large';
+  };
+  colorFilter?: {
+    type: 'none' | 'sepia' | 'monochrome' | 'dark' | 'night' | 'dream';
+    opacity?: number;  // 0-100, default 50
+    durationMs?: number;  // フェード時間
+  };
+  backgroundFilter?: {
+    blurPx?: number;  // 0-24, 背景画像のみぼかし
+    dimOpacity?: number;  // 0-60%, 背景画像のみ暗化
   };
   choices?: Array<{
     id: string;

@@ -138,6 +138,23 @@
 - 関連docs: `docs/IDEA_BACKLOG.md`（本ファイル先頭「要注意 埋もれやすいアイデア」）、`docs/ROADMAP.md`
 - 次に切るならどんなMVP: 先頭セクションのMVP候補を参照。
 
+## B-2. ゲーム演出 / ビジュアルエフェクト / 背景フィルター
+
+### 背景フィルター拡張（pixelate/preset/シーン単位デフォルト）
+
+- 状態: `後続拡張`
+- 概要: MVP の blur + dim に加え、より高度な背景フィルターを提供する。MVPは2026-05-15実装済み（FI-022a参照）。
+- 実現済みの部分: 背景フィルターMVP（blurPx 0-24px, dimOpacity 0-60%）、ノード単位での設定、テストプレイ/公開プレイでの動作確認、セーブロード時の保持。
+- 未実装の部分:
+  - `pixelate`（モザイク化）
+  - フィルタープリセット（vintage, warm, cool, retro, dreamlike 等）
+  - シーン単位/ゲーム単位での既定値設定
+  - 背景フィルタープリセット集（よく使う組み合わせの保存・選択）
+  - AIレビューMarkdown内への軽い出力（「Background Filter: blur 12px / dim 20%」形式）
+- 必要になりそうな基盤: preset定義テーブル、ユーザープリセット保存、画像処理ライブラリ（pixelate用）。
+- 関連docs: `docs/FEATURE_INVENTORY.md` FI-022a / FI-022b、`docs/PROJECT_SPEC.md`（GameNodeデータ構造）
+- 次に切るならどんなMVP: `pixelate MVP`（ブロックサイズ指定） or `プリセット MVP`（3-4種のプリセット）。
+
 ## C. お気に入り / 素材棚 / 採用 / クレジット
 
 ### Like / Shelf DB分離

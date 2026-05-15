@@ -3,7 +3,9 @@
   <div ref="stageRef" class="stage" :style="stageStyle">
     <!-- ワールド（背景＋キャラ）: カメラ変換をここに適用 -->
     <div class="world" :style="worldStyle">
-      <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" />
+      <img v-if="backgroundUrl" class="bg" :src="backgroundUrl" alt="" :style="backgroundImageStyle" />
+      <!-- 背景暗化オーバーレイ（背景の上、キャラの下） -->
+      <div v-if="backgroundFilter?.dimOpacity && backgroundFilter.dimOpacity > 0" class="bg-dim" :style="backgroundDimStyle"></div>
       <img
         v-for="c in characters"
         :key="c.key"
@@ -48,6 +50,7 @@ const props = defineProps<{
   camera?: { zoom?: number; cx?: number; cy?: number } | null
   effectState?: EffectState
   colorFilter?: ColorFilter | null
+  backgroundFilter?: any | null
 }>()
 
 const stageRef = ref<HTMLElement | null>(null)
@@ -126,6 +129,44 @@ const filterStyle = computed<CSSProperties>(() => {
   }
 })
 
+// 背景フィルター（背景画像のみ）のスタイル
+const backgroundImageStyle = computed<CSSProperties>(() => {
+  const bgFilter = props.backgroundFilter
+  if (!bgFilter) return {}
+
+  const blurPx = bgFilter.blurPx ?? 0
+  const dimOpacity = bgFilter.dimOpacity ?? 0
+
+  // blur 量に応じて背景をスケールして透けを防ぐ
+  let scale = 1
+  if (blurPx > 0) {
+    // blurPx が大きいほどスケールを上げる（大体 0.04 ~ 0.05 / px）
+    scale = Math.max(1, 1 + blurPx * 0.0035)
+  }
+
+  const filters = []
+  if (blurPx > 0) {
+    filters.push(`blur(${blurPx}px)`)
+  }
+
+  return {
+    transform: `scale(${scale})`,
+    filter: filters.length > 0 ? filters.join(' ') : undefined,
+  }
+})
+
+// 背景暗化オーバーレイのスタイル
+const backgroundDimStyle = computed<CSSProperties>(() => {
+  const bgFilter = props.backgroundFilter
+  if (!bgFilter || !bgFilter.dimOpacity || bgFilter.dimOpacity <= 0) return {}
+
+  const opacity = Math.max(0, Math.min(60, bgFilter.dimOpacity)) / 100
+
+  return {
+    backgroundColor: `rgba(0, 0, 0, ${opacity})`,
+  }
+})
+
 // キャラクター配置スタイル
 function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   // y は足元の位置（0=上端、100=下端）
@@ -158,6 +199,13 @@ function charStyle(c: { x:number; y:number; scale:number; z?:number }) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.bg-dim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  will-change: background-color;
 }
 .ch {
   position: absolute;

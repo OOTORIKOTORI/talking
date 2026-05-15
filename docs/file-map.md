@@ -252,8 +252,8 @@ packages/types/src/
 ## 重点ファイルの詳細メモ
 
 ### apps/frontend/pages/games/[id]/play.vue
-- ゲーム実行の中心ファイルです。現在ノード、選択肢、カメラ、色フィルター、BGM/SFX、セーブ/ロードモーダルまで 1 画面で管理します。
-- 主な状態は game、current、gameState、saveListData、currentColorFilter、saveLoadOpen です。
+- ゲーム実行の中心ファイルです。現在ノード、選択肢、カメラ、色フィルター、背景フィルター、BGM/SFX、セーブ/ロードモーダルまで 1 画面で管理します。
+- 主な状態は game、current、gameState、saveListData、currentColorFilter、currentBackgroundFilter、saveLoadOpen です。
 - 主な関数は start、restart、go、advanceWithinNodeOrNext、selectChoice、saveToSelectedSlot、loadFromSelectedSlot、refreshSaves です。
 - ※ MessageWindow と StageCanvas を組み合わせて表示し、useVisualEffects と gameState.ts を使って進行と演出を制御します。
 
@@ -264,8 +264,9 @@ packages/types/src/
 - ※ v1 / v2 両方の messageTheme を受けられる互換レイヤーです。
 
 ### apps/frontend/components/game/StageCanvas.vue
-- 背景、立ち絵、カメラズーム、shake / flash、色フィルターをまとめて描画するステージ表示コンポーネントです。
-- 公開 props は backgroundUrl、characters、message、theme、camera、effectState、colorFilter です。
+- 背景、立ち絵、カメラズーム、shake / flash、色フィルター、背景フィルターをまとめて描画するステージ表示コンポーネントです。
+- 公開 props は backgroundUrl、characters、message、theme、camera、effectState、colorFilter、backgroundFilter です。
+- 背景フィルター（backgroundFilter）では、背景画像のみに CSS filter: blur() と dim オーバーレイ（暗化）を適用。キャラクターと既存 colorFilter には影響しません。
 - 内部で MessageWindow を再利用し、プレビュー画面と本番画面の見た目を揃えています。
 
 ### apps/frontend/components/game/MessageThemeModal.vue

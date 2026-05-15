@@ -1789,6 +1789,10 @@ function selectNode(n: any, options?: { skipPersist?: boolean }) {
   if (!nodeDraft.colorFilter) {
     nodeDraft.colorFilter = { type: 'none', opacity: 50, durationMs: 500 }
   }
+  // backgroundFilter デフォルト補完
+  if (!nodeDraft.backgroundFilter) {
+    nodeDraft.backgroundFilter = { blurPx: 0, dimOpacity: 0 }
+  }
   // 既存データを開いたときに p.thumb を補完
   // watch が自動的に実行されるので明示的に呼ぶ必要はないが、
   // 互換性のため残しておく
@@ -1882,6 +1886,16 @@ async function saveNode() {
     if (payload.colorFilter && payload.colorFilter.type === 'none') {
       payload.colorFilter = null
     }
+    // backgroundFilter を正規化（blurPx/dimOpacity を clamp し、両方0なら null）
+    if (payload.backgroundFilter) {
+      const blurPx = Math.max(0, Math.min(24, payload.backgroundFilter.blurPx ?? 0))
+      const dimOpacity = Math.max(0, Math.min(60, payload.backgroundFilter.dimOpacity ?? 0))
+      if (blurPx <= 0 && dimOpacity <= 0) {
+        payload.backgroundFilter = null
+      } else {
+        payload.backgroundFilter = { blurPx, dimOpacity }
+      }
+    }
     await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // scenes.valueも更新して次ノードラベル表示を最新に
@@ -1927,13 +1941,29 @@ async function saveAndCreateNext() {
     if (payload.colorFilter && payload.colorFilter.type === 'none') {
       payload.colorFilter = null
     }
+    // backgroundFilter を正規化（blurPx/dimOpacity を clamp し、両方0なら null）
+    if (payload.backgroundFilter) {
+      const blurPx = Math.max(0, Math.min(24, payload.backgroundFilter.blurPx ?? 0))
+      const dimOpacity = Math.max(0, Math.min(60, payload.backgroundFilter.dimOpacity ?? 0))
+      if (blurPx <= 0 && dimOpacity <= 0) {
+        payload.backgroundFilter = null
+      } else {
+        payload.backgroundFilter = { blurPx, dimOpacity }
+      }
+    }
     await api.upsertNode(scene.value.id, payload)
     
     // 2) コピー元の抽出（thumb除去）
     const src = JSON.parse(JSON.stringify(nodeDraft))
     const inherit: any = {}
     
-    if (copyOpts.bg) inherit.bgAssetId = src.bgAssetId || null
+    if (copyOpts.bg) {
+      inherit.bgAssetId = src.bgAssetId || null
+      // 背景を引き継ぐ場合、backgroundFilter も一緒に引き継ぐ
+      if (src.backgroundFilter) {
+        inherit.backgroundFilter = src.backgroundFilter
+      }
+    }
     if (copyOpts.bgm) inherit.musicAssetId = src.musicAssetId || null
     if (copyOpts.camera) inherit.camera = src.camera || null
     if (copyOpts.chars && Array.isArray(src.portraits)) {
@@ -2880,6 +2910,7 @@ function downloadAiReviewMarkdown() {
                   :camera="stageCamera"
                   :effectState="effectState"
                   :colorFilter="nodeDraft.colorFilter"
+                  :backgroundFilter="nodeDraft.backgroundFilter"
                 />
               </div>
             </div>
@@ -3411,6 +3442,7 @@ function downloadAiReviewMarkdown() {
                   :camera="stageCamera"
                   :effectState="effectState"
                   :colorFilter="nodeDraft.colorFilter"
+                  :backgroundFilter="nodeDraft.backgroundFilter"
                 />
               </div>
             </div>
@@ -3701,6 +3733,38 @@ function downloadAiReviewMarkdown() {
                       <p class="text-xs text-gray-500">
                         フィルターは次ノードで解除するまで継続されます
                       </p>
+                    </div>
+                  </div>
+
+                  <!-- 背景フィルター（背景画像のみ） -->
+                  <div v-if="sectionOpen.effects" class="mt-3 border-t pt-3">
+                    <div class="font-semibold mb-2">背景フィルター（背景画像のみ）</div>
+                    <div class="space-y-2">
+                      <p class="text-xs text-gray-600 mb-2">
+                        背景画像だけをぼかします。キャラクターや文章はぼかしません。
+                      </p>
+                      <div>
+                        <label class="block text-xs font-medium mb-1">ぼかし強度: {{ nodeDraft.backgroundFilter?.blurPx ?? 0 }}px</label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="24"
+                          v-model.number="nodeDraft.backgroundFilter.blurPx"
+                          class="w-full"
+                        />
+                        <span class="text-xs text-gray-500">0～24px</span>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-medium mb-1">暗さ: {{ nodeDraft.backgroundFilter?.dimOpacity ?? 0 }}%</label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="60"
+                          v-model.number="nodeDraft.backgroundFilter.dimOpacity"
+                          class="w-full"
+                        />
+                        <span class="text-xs text-gray-500">0～60%</span>
+                      </div>
                     </div>
                   </div>
 

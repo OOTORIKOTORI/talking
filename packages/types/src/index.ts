@@ -338,6 +338,12 @@ export interface ColorFilter {
   durationMs?: number; // フェード時間、default 500ms
 }
 
+// === Background Filter (Background image only) ====
+export interface BackgroundFilter {
+  blurPx?: number; // 0-24, blur amount in pixels
+  dimOpacity?: number; // 0-60, dim overlay opacity in percent
+}
+
 
 // === Creator Profiles ===================
 export interface CreatorProfile {

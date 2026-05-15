@@ -23,6 +23,7 @@
           :camera="stageCamera"
           :effectState="effectState"
           :colorFilter="currentColorFilter"
+          :backgroundFilter="currentBackgroundFilter"
         />
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -178,6 +179,7 @@
         :camera="stageCamera"
         :effectState="effectState"
         :colorFilter="currentColorFilter"
+        :backgroundFilter="currentBackgroundFilter"
       />
       
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
@@ -1468,6 +1470,7 @@ function buildSavePayload() {
       accumulatedText: accumulatedText.value,
       showEndScreen: showEndScreen.value,
       colorFilter: currentColorFilter.value ?? null,
+      backgroundFilter: currentBackgroundFilter.value ?? null,
       state: { ...gameState.value },
     },
     context: {
@@ -1541,6 +1544,12 @@ async function loadFromSelectedSlot() {
       currentColorFilter.value = progress.colorFilter
     } else {
       currentColorFilter.value = node.colorFilter ?? null
+    }
+    // 背景フィルターの復元
+    if (progress?.backgroundFilter !== undefined) {
+      currentBackgroundFilter.value = progress.backgroundFilter
+    } else {
+      currentBackgroundFilter.value = node.backgroundFilter ?? null
     }
 
     applyCameraForNode(prevNode, node)
@@ -1655,6 +1664,9 @@ function applyStart() {
 
     // カラーフィルターを初期化
     currentColorFilter.value = node.colorFilter || null
+
+    // 背景フィルターを初期化
+    currentBackgroundFilter.value = node.backgroundFilter || null
 
     // ノード開始時にカメラを適用（前ノードは無し）
     applyCameraForNode(null, node)
@@ -2055,6 +2067,9 @@ const currentCamera = ref<Camera>({ zoom: 100, cx: 50, cy: 50 })
 // StageCanvas 用のカラーフィルター（継続管理）
 const currentColorFilter = ref<any>(null)
 
+// StageCanvas 用の背景フィルター（ノード単位）
+const currentBackgroundFilter = ref<any>(null)
+
 // StageCanvas に渡すカメラ（アニメの結果を反映）
 const stageCamera = computed(() => currentCamera.value)
 
@@ -2287,6 +2302,7 @@ function restart() {
   highlightedChoiceIndex.value = 0
   current.value = null
   currentColorFilter.value = null // カラーフィルターをリセット
+  currentBackgroundFilter.value = null // 背景フィルターをリセット
   applyStart()
   ensureBgm()
 }
@@ -2343,6 +2359,9 @@ function go(targetNodeId: string | null, meta?: TestPlayTransitionMeta) {
       currentColorFilter.value = nextNode.colorFilter
     }
     // colorFilter が undefined の場合は現在のフィルターを継続（何もしない）
+
+    // 背景フィルターの更新（ノード単位で設定される）
+    currentBackgroundFilter.value = nextNode.backgroundFilter || null
 
     // ノード遷移時にカメラ演出を適用
     applyCameraForNode(prevNode, nextNode)
