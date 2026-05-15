@@ -531,6 +531,12 @@
     - 非作者/未ログインが URL に `testPlay=1` を付けても通常プレイとしてカウントする
     - セーブ/ロード、ノード進行では増やさない
     - 出典: `apps/api/src/games/games.controller.ts`, `apps/api/src/games/games.service.ts`
+  - 公開プレイの終端では、現在ノードに `nextNodeId` がなく選択肢もないとき、本文表示完了後に読了後カードを表示する
+    - カードから `もう一度遊ぶ` / `作品詳細へ戻る` / `作者プロフィールを見る` / `クレジットを見る` / `公開ゲームを探す` に回遊できる
+    - `クレジットを見る` はスタッフロール有効時に既存のスタッフロール表示へつなぎ、無効時は作品詳細のクレジット位置へ戻す
+    - 既存のスタッフロール自動表示・速度・終了時挙動・表示/非表示設定は変更しない
+    - 高速確認モードとテストプレイも同じ終端判定を使う
+    - 出典: `apps/frontend/pages/games/[id]/play.vue`, `apps/frontend/components/game/EndCard.vue`
   - 自作一覧（管理）: `GET /games/my`
     - クエリ: `q`, `sort`, `status`
     - `q`: 空白trim後に空でなければ `title` / `summary` の部分一致検索（大文字小文字非区別）

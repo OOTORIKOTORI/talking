@@ -141,35 +141,21 @@
           </div>
           
           <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-          <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
-            <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-            <div class="flex items-center justify-center gap-2">
-              <button
-                v-if="game?.staffRollEnabled !== false"
-                @click="openStaffRoll()"
-                class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
-              >
-                スタッフロール
-              </button>
-              <button
-                @click="restart(); ensureBgm()"
-                class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-              >
-                最初から
-              </button>
-            </div>
+          <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm pointer-events-auto">
+            <GameEndCard
+              class="w-full max-w-2xl"
+              :game-title="game?.title"
+              :creator-label="endCardCreatorLabel"
+              :owner-id="game?.ownerId"
+              :show-staff-roll="game?.staffRollEnabled !== false"
+              :credits-to="endCardCreditsTo"
+              @restart="restart"
+              @open-credits="openCreditsFromEndCard"
+              @go-detail="goToGameDetail"
+              @go-profile="goToCreatorProfile"
+              @go-explore="goToExplore"
+            />
           </div>
-        </div>
-      </div>
-
-      <!-- BGM/SFXはモード切替時にも継続させるため常時マウント -->
-      <audio ref="bgmRef" :src="bgmElementUrl || undefined" :autoplay="soundOk" loop class="hidden" controls></audio>
-      <audio ref="sfxRef" :src="sfxUrl || undefined" class="hidden" />
-  
-  <!-- Fullscreen Overlay -->
-  <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">
-    <div class="relative w-full h-full">
-      <!-- フルスクリーンも StageCanvas で統一 (背景とキャラのみ) -->
       <StageCanvas 
         style="width: 100%; height: 100%"
         :backgroundUrl="bgUrl"
@@ -296,23 +282,20 @@
         </div>
         
         <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-        <div v-if="showEndScreen" class="absolute left-[7%] right-[7%] bottom-[5%] text-center pointer-events-auto z-[150]">
-          <p class="text-white text-lg mb-4 bg-black bg-opacity-70 py-2 px-4 rounded">おわり</p>
-          <div class="flex items-center justify-center gap-2">
-            <button
-              v-if="game?.staffRollEnabled !== false"
-              @click="openStaffRoll()"
-              class="px-6 py-2 bg-slate-700 rounded hover:bg-slate-600 transition-colors text-white"
-            >
-              スタッフロール
-            </button>
-            <button
-              @click="restart(); ensureBgm()"
-              class="px-6 py-2 bg-green-500 rounded hover:bg-green-600 transition-colors text-white"
-            >
-              最初から
-            </button>
-          </div>
+        <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm pointer-events-auto">
+          <GameEndCard
+            class="w-full max-w-2xl"
+            :game-title="game?.title"
+            :creator-label="endCardCreatorLabel"
+            :owner-id="game?.ownerId"
+            :show-staff-roll="game?.staffRollEnabled !== false"
+            :credits-to="endCardCreditsTo"
+            @restart="restart"
+            @open-credits="openCreditsFromEndCard"
+            @go-detail="goToGameDetail"
+            @go-profile="goToCreatorProfile"
+            @go-explore="goToExplore"
+          />
         </div>
       </div>
       
@@ -479,6 +462,7 @@ function closeFs(){ fullscreen.value = false; document.documentElement.classList
 import StageCanvas from '@/components/game/StageCanvas.vue'
 import MessageWindow from '@/components/game/MessageWindow.vue'
 import BacklogModal from '@/components/game/BacklogModal.vue'
+import GameEndCard from '@/components/game/EndCard.vue'
 import GameStaffRollModal from '@/components/game/GameStaffRollModal.vue'
 import TestPlayPanel from '@/components/game/TestPlayPanel.vue'
 import { computed, ref, watch, onMounted } from 'vue'
@@ -491,6 +475,7 @@ import { useVisualEffects } from '@/composables/useVisualEffects'
 import { useBacklog } from '@/composables/useBacklog'
 import { useToast } from '@/composables/useToast'
 import { appendBacklogEntry, applyChoiceEffects, filterVisibleChoices, resolveChoiceTarget } from '@/utils/gameState'
+import { formatCreatorLabel } from '@/utils/creatorDisplay'
 
 const { signedFromId } = useAssetMeta()
 
@@ -593,6 +578,7 @@ function lerp(a: number, b: number, t: number): number {
 const isDev = ref(runtimeConfig.public.isDev || false)
 const showStartScreen = ref(true) // スタート画面の表示制御
 const showEndScreen = ref(false) // 終了画面の表示制御
+const gameId = computed(() => String(route.params.id as string))
 
 // ゲームUI設定（セーブロード画面テーマ）
 const gameUiTheme = computed(() => (game.value as any)?.gameUiTheme ?? {})
@@ -2258,6 +2244,7 @@ onBeforeUnmount(() => {
   if (el) {
     hardStopBgmElement(el)
   }
+  document.documentElement.classList.remove('overflow-hidden')
 })
 
 // クエリパラメータが変わったときも再解決(ゲームロード完了後のみ)
@@ -2305,6 +2292,34 @@ function restart() {
   currentBackgroundFilter.value = null // 背景フィルターをリセット
   applyStart()
   ensureBgm()
+}
+
+const endCardCreatorLabel = computed(() => formatCreatorLabel(game.value?.ownerDisplayName, game.value?.ownerId))
+const endCardCreditsTo = computed(() => `/games/${gameId.value}#credits`)
+
+async function goToGameDetail() {
+  closeFs()
+  await router.push(`/games/${gameId.value}`)
+}
+
+async function goToCreatorProfile() {
+  const ownerId = String(game.value?.ownerId ?? '')
+  if (!ownerId) return
+  closeFs()
+  await router.push(`/profiles/${ownerId}`)
+}
+
+async function goToExplore() {
+  closeFs()
+  await router.push('/explore')
+}
+
+async function openCreditsFromEndCard() {
+  if (game.value?.staffRollEnabled === false) {
+    await goToGameDetail()
+    return
+  }
+  await openStaffRoll()
 }
 
 function selectChoice(choice: any) {
@@ -2599,6 +2614,26 @@ const isEndNode = computed(() => {
   
   return true // すべての遷移先が無い = 終了
 })
+
+watch(
+  () => [current.value?.id, isEndNode.value, messageTypingComplete.value, showStartScreen.value],
+  () => {
+    if (!current.value || showStartScreen.value) {
+      showEndScreen.value = false
+      return
+    }
+
+    if (!isEndNode.value) {
+      showEndScreen.value = false
+      return
+    }
+
+    if (!messageTypingComplete.value) return
+
+    showEndScreen.value = true
+  },
+  { immediate: true }
+)
 
 watch(
   () => [
