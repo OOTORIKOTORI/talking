@@ -1,61 +1,63 @@
 <template>
-  <section class="rounded-3xl border border-white/15 bg-slate-950/95 p-5 text-slate-100 shadow-2xl sm:p-8">
-    <div class="space-y-4 text-center">
-      <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">End Card</p>
-      <h2 class="text-2xl font-bold tracking-wide sm:text-3xl">読了ありがとう！</h2>
-      <div class="space-y-1 text-sm text-slate-300">
+  <section class="rounded-3xl border border-white/15 bg-slate-950/95 p-4 sm:p-6 text-slate-100 shadow-2xl">
+    <div class="space-y-3 text-center">
+      <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-400">End Card</p>
+      <h2 class="text-xl font-bold tracking-wide sm:text-2xl">読了ありがとう！</h2>
+      <div class="space-y-0.5 text-xs sm:text-sm text-slate-300">
         <p class="font-medium text-slate-100">{{ gameTitle || '（タイトルなし）' }}</p>
         <p>
           作者:
           <span class="font-medium text-slate-100">{{ creatorLabel || 'unknown' }}</span>
         </p>
       </div>
-      <p class="text-sm leading-6 text-slate-300">
+      <p class="text-xs sm:text-sm leading-5 text-slate-300">
         ここからは、作品詳細・プロフィール・クレジット・公開ゲーム一覧へ回れます。
       </p>
     </div>
 
-    <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="mt-4 flex flex-col gap-2">
       <button
         type="button"
-        class="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-emerald-400"
+        class="rounded-lg bg-emerald-500 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 transition-colors hover:bg-emerald-400 w-full"
         @click="$emit('restart')"
       >
         もう一度遊ぶ
       </button>
       <button
         type="button"
-        class="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+        class="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-white/10 w-full"
         @click="$emit('goDetail')"
       >
         作品詳細へ戻る
       </button>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button
+          v-if="ownerId"
+          type="button"
+          class="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-white/10"
+          @click="$emit('goProfile')"
+        >
+          作者プロフィール
+        </button>
+        <button
+          v-if="showStaffRoll"
+          type="button"
+          class="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-white/10"
+          @click="$emit('openCredits')"
+        >
+          クレジットを見る
+        </button>
+        <NuxtLink
+          v-else
+          :to="creditsTo"
+          class="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-center text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-white/10 col-span-1"
+        >
+          クレジットを見る
+        </NuxtLink>
+      </div>
       <button
-        v-if="ownerId"
         type="button"
-        class="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-        @click="$emit('goProfile')"
-      >
-        作者プロフィールを見る
-      </button>
-      <button
-        v-if="showStaffRoll"
-        type="button"
-        class="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-        @click="$emit('openCredits')"
-      >
-        クレジットを見る
-      </button>
-      <NuxtLink
-        v-else
-        :to="creditsTo"
-        class="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/10 sm:col-span-2"
-      >
-        クレジットを見る
-      </NuxtLink>
-      <button
-        type="button"
-        class="rounded-xl border border-sky-400/40 bg-sky-500/15 px-4 py-3 text-sm font-semibold text-sky-100 transition-colors hover:bg-sky-500/25 sm:col-span-2"
+        class="rounded-lg border border-sky-400/40 bg-sky-500/15 px-3 py-2 text-xs sm:text-sm font-semibold text-sky-100 transition-colors hover:bg-sky-500/25 w-full"
         @click="$emit('goExplore')"
       >
         公開ゲームを探す

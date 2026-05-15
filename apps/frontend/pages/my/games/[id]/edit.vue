@@ -2926,22 +2926,23 @@ function downloadAiReviewMarkdown() {
 
               <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
                 <p class="mb-1 text-[10px] font-semibold text-gray-500">設定</p>
-                <div class="flex flex-wrap items-center gap-1.5">
+                <div class="flex flex-wrap items-center gap-1">
                   <button
-                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50"
                     title="3ペイン幅・セクション開閉・制作ガイドの表示状態・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
                     @click="resetEditorViewState"
                   >
-                    表示設定をリセット
+                    リセット
                   </button>
                   <button
                     v-if="creationGuideHidden || !sectionOpen.guide"
-                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50"
                     @click="showCreationGuide"
+                    title="制作ガイドを表示"
                   >
-                    制作ガイドを表示
+                    📋 ガイド
                   </button>
-                  <button class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
+                  <button class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true" title="全体設定">⚙️ 設定</button>
                 </div>
               </div>
 
@@ -2967,36 +2968,36 @@ function downloadAiReviewMarkdown() {
             </div>
           </div>
 
-          <div v-if="!creationGuideHidden && sectionOpen.guide" class="mb-4 rounded-lg border border-slate-200 bg-white">
-            <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-2">
+          <div v-if="!creationGuideHidden && sectionOpen.guide" class="mb-3 rounded-lg border border-slate-200 bg-white">
+            <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-1.5">
               <div>
-                <div class="font-semibold text-sm">制作ガイド</div>
-                <div class="text-[11px] text-slate-500">次に確認すると良さそうな項目です。不要なら非表示にできます。</div>
+                <div class="font-semibold text-xs">制作ガイド</div>
               </div>
               <button
                 type="button"
-                class="px-2 py-1 text-xs border border-slate-300 rounded bg-white hover:bg-slate-100"
+                class="shrink-0 px-1.5 py-0.5 text-[11px] border border-slate-300 rounded bg-white hover:bg-slate-100"
                 @click="sectionOpen.guide = false"
+                title="折りたたむ"
               >
-                折りたたむ
+                ▲
               </button>
             </div>
-            <div class="px-3 py-3">
-              <div v-if="creationGuideVisibleItems.length > 0" class="space-y-2">
+            <div class="px-2 py-2">
+              <div v-if="creationGuideVisibleItems.length > 0" class="space-y-1.5">
                 <article
                   v-for="item in creationGuideVisibleItems"
                   :key="item.id"
-                  class="rounded border px-2.5 py-2 text-xs"
+                  class="rounded border px-2 py-1.5 text-[11px]"
                   :class="creationGuideActionToneClass[item.tone]"
                 >
-                  <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start justify-between gap-1.5">
                     <div class="min-w-0 flex-1">
-                      <div class="font-semibold text-sm leading-tight">{{ item.title }}</div>
-                      <p class="mt-0.5 leading-relaxed">{{ item.description }}</p>
+                      <div class="font-semibold text-xs leading-tight">{{ item.title }}</div>
+                      <p class="mt-0.5 text-[10px] leading-snug opacity-90">{{ item.description }}</p>
                     </div>
                     <button
                       type="button"
-                      class="shrink-0 rounded border border-current/20 bg-white/80 px-2 py-1 text-[11px] font-medium hover:bg-white"
+                      class="shrink-0 rounded border border-current/20 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium hover:bg-white whitespace-nowrap"
                       @click="handleCreationGuideAction(item)"
                     >
                       {{ item.actionLabel }}
@@ -3004,19 +3005,22 @@ function downloadAiReviewMarkdown() {
                   </div>
                 </article>
               </div>
-              <div v-else class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                制作の基本項目はだいたい整っています。必要になったら公開前チェックで細部を確認できます。
+              <div v-else class="rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[11px] text-emerald-700">
+                基本項目はだいたい整っています。詳細は公開前チェックで確認できます。
               </div>
-              <p v-if="creationGuideRemainingCount > 0" class="mt-2 text-[11px] text-slate-500">
-                ほか {{ creationGuideRemainingCount }} 件は公開前チェックで確認できます。
-              </p>
-              <button
-                type="button"
-                class="mt-2 text-[11px] text-slate-500 underline hover:text-slate-700"
-                @click="setCreationGuideHidden(true)"
-              >
-                非表示
-              </button>
+              <div class="mt-1.5 flex items-center justify-between gap-1">
+                <p v-if="creationGuideRemainingCount > 0" class="text-[10px] text-slate-500">
+                  ほか {{ creationGuideRemainingCount }} 件
+                </p>
+                <button
+                  type="button"
+                  class="text-[10px] text-slate-500 hover:text-slate-700 underline"
+                  @click="setCreationGuideHidden(true)"
+                  title="非表示にする"
+                >
+                  ✕ 非表示
+                </button>
+              </div>
             </div>
           </div>
 

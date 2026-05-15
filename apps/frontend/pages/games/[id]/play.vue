@@ -30,7 +30,7 @@
         <div v-if="!fullscreen" class="absolute inset-0 pointer-events-none">
           <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
           <TestPlayPanel
-            v-if="isTestPlay"
+            v-if="isTestPlay && !showEndScreen"
             v-model:collapsed="testPlayPanelCollapsed"
             class="absolute left-3 top-3 z-30 pointer-events-auto"
             variant="normal"
@@ -141,7 +141,7 @@
           </div>
           
           <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-          <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm pointer-events-auto">
+          <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/70 px-4 py-6 pointer-events-auto">
             <GameEndCard
               class="w-full max-w-2xl"
               :game-title="game?.title"
@@ -177,7 +177,7 @@
       <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
       <div class="absolute inset-0 pointer-events-none">
         <TestPlayPanel
-          v-if="isTestPlay"
+          v-if="isTestPlay && !showEndScreen"
           v-model:collapsed="testPlayPanelCollapsed"
           class="absolute left-4 top-4 z-[60] pointer-events-auto"
           variant="fullscreen"
@@ -288,7 +288,7 @@
         </div>
         
         <!-- 終了画面（showEndScreenがtrueの場合のみ） -->
-        <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/55 px-4 py-6 backdrop-blur-sm pointer-events-auto">
+        <div v-if="showEndScreen" class="absolute inset-0 z-[150] flex items-center justify-center bg-black/70 px-4 py-6 pointer-events-auto">
           <GameEndCard
             class="w-full max-w-2xl"
             :game-title="game?.title"

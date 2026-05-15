@@ -38,7 +38,7 @@ apps/frontend/pages/
 │   ├── index.vue                            # 公開ゲーム一覧ページ
 │   └── [id]/
 │       ├── index.vue                        # 公開ゲーム詳細ページ。通常クレジット表示、スタッフロール表示、`useStaffRollCredits` 経由のスタッフロール用クレジット取得を扱う
-│       └── play.vue                         # ゲームプレイ画面。ノード進行、選択肢分岐、音声、カメラ、セーブ/ロード、終端時の読了後カード表示を統括
+│       └── play.vue                         # ゲームプレイ画面。ノード進行、選択肢分岐、音声、カメラ、セーブ/ロード、終端時の読了後カード表示を統括。エンドカード表示中は背景UIを制限（2026-05-16 polish）
 ├── my/
 │   ├── assets/
 │   │   └── index.vue                        # 自分の素材管理一覧。投稿物の確認・整理用（公開/非公開バッジ・フィルタ対応）
@@ -52,7 +52,7 @@ apps/frontend/pages/
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
-│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。現状は通常表示/全画面表示でプロパティフォーム重複があり、段階的共通化計画あり（`docs/editor-property-form-refactor-plan.md`、候補: `NodeEffectsFields.vue` / `NodeTransitionFields.vue` / `NodeAssetReferenceFields.vue` / `NodeSaveActions.vue`）
+│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。現状は通常表示/全画面表示でプロパティフォーム重複があり、段階的共通化計画あり（`docs/editor-property-form-refactor-plan.md`、候補: `NodeEffectsFields.vue` / `NodeTransitionFields.vue` / `NodeAssetReferenceFields.vue` / `NodeSaveActions.vue`）
 ```
 
 ---
@@ -79,7 +79,7 @@ apps/frontend/components/
 │   └── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
 ├── game/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
-│   ├── EndCard.vue                          # クリア後エンドカード。作品詳細・作者プロフィール・スタッフロール・公開ゲーム探索への回遊導線をまとめる
+│   ├── EndCard.vue                          # クリア後エンドカード。作品詳細・作者プロフィール・スタッフロール・公開ゲーム探索への回遊導線をまとめる。2026-05-16 polish でボタンレイアウト最適化（スマホ幅対応）
 │   ├── GameCreditConfirmModal.vue           # 公開前クレジット確認モーダル。削除済み・非公開素材などの問題カードで参照診断issueの使用箇所一覧（最大5件）を表示し、各行から直接ジャンプ可能。issue未特定時はカテゴリ単位編集導線にフォールバック
 │   ├── GameManualCreditsEditor.vue          # ゲーム単位の手動クレジット編集コンポーネント。個別保存フローで動作する
 │   ├── GameStaffRollModal.vue               # スタッフロール表示モーダル。速度プリセット・セクション表示順・終了時挙動に従い自動スクロール再生する
