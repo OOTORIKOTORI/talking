@@ -28,7 +28,7 @@
         
         <!-- UI オーバーレイ（StageCanvas の上に絶対配置） -->
         <div v-if="!fullscreen" class="absolute inset-0 pointer-events-none">
-          <button class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
+          <button v-if="!showEndScreen" class="absolute right-3 top-3 z-30 px-2 py-1 text-xs bg-black/50 text-white rounded pointer-events-auto" @click="openFs()">全画面</button>
           <TestPlayPanel
             v-if="isTestPlay && !showEndScreen"
             v-model:collapsed="testPlayPanelCollapsed"
@@ -75,7 +75,7 @@
           ></button>
 
           <!-- message window (only when current exists and not on start screen) -->
-          <div v-if="current && !showStartScreen && !fullscreen">
+          <div v-if="current && !showStartScreen && !showEndScreen && !fullscreen">
             <!-- 選択肢がある場合（クリック後に表示） -->
             <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
               <div class="space-y-3 w-[min(600px,80vw)]">
@@ -222,7 +222,7 @@
         ></button>
 
         <!-- message window (only when current exists and not on start screen) -->
-        <div v-if="current && !showStartScreen">
+        <div v-if="current && !showStartScreen && !showEndScreen">
           <!-- 選択肢がある場合（クリック後に表示） -->
           <div v-if="hasChoices && showChoices" class="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto">
             <div class="space-y-3 w-[min(600px,80vw)]">
@@ -305,7 +305,7 @@
         </div>
       </div>
       
-      <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2 z-[60]" @click="closeFs()">閉じる（Esc）</button>
+      <button v-if="!showEndScreen" class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2 z-[60]" @click="closeFs()">閉じる（Esc）</button>
         </div>
       </div>
 
