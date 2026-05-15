@@ -52,7 +52,7 @@ apps/frontend/pages/
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
-│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置）あり。現状は通常表示/全画面表示でプロパティフォーム重複があり、段階的共通化計画あり（`docs/editor-property-form-refactor-plan.md`、候補: `NodeEffectsFields.vue` / `NodeTransitionFields.vue` / `NodeAssetReferenceFields.vue` / `NodeSaveActions.vue`）
+│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。現状は通常表示/全画面表示でプロパティフォーム重複があり、段階的共通化計画あり（`docs/editor-property-form-refactor-plan.md`、候補: `NodeEffectsFields.vue` / `NodeTransitionFields.vue` / `NodeAssetReferenceFields.vue` / `NodeSaveActions.vue`）
 ```
 
 ---

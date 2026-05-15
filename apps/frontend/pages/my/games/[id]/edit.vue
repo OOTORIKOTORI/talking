@@ -73,6 +73,7 @@ const copyOpts = reactive({
 
 const RIGHT_PANE_SECTIONS_STORAGE_KEY = 'talking.editor.rightPaneSections.v1'
 const LAST_SELECTION_STORAGE_KEY_PREFIX = 'talking.editor.lastSelection.v1:'
+const CREATION_GUIDE_HIDDEN_STORAGE_KEY_PREFIX = 'talking.editor.creationGuideHidden.v1:'
 const PUBLISHED_EDIT_BANNER_COLLAPSED_STORAGE_KEY = 'talking.editor.publishedEditBannerCollapsed.v1'
 
 const publishedEditBannerCollapsed = ref(false)
@@ -94,6 +95,7 @@ const defaultSectionOpen = {
   materials: true,
   effects: false,
   transitions: true,
+  guide: true,
   scenarioCheck: true,
   dangerous: false
 } as const
@@ -142,6 +144,52 @@ function persistSectionOpen() {
 function resetSectionOpen() {
   Object.assign(sectionOpen, defaultSectionOpen)
 }
+
+const creationGuideHidden = ref(false)
+
+function buildCreationGuideHiddenStorageKey(gameId: string) {
+  return `${CREATION_GUIDE_HIDDEN_STORAGE_KEY_PREFIX}${gameId}`
+}
+
+function restoreCreationGuideHidden() {
+  if (!process.client) return
+
+  const gameId = normalizeNodeId(game.value?.id)
+  if (!gameId) {
+    creationGuideHidden.value = false
+    return
+  }
+
+  creationGuideHidden.value = localStorage.getItem(buildCreationGuideHiddenStorageKey(gameId)) === 'true'
+}
+
+function setCreationGuideHidden(next: boolean) {
+  creationGuideHidden.value = next
+  if (!process.client) return
+
+  const gameId = normalizeNodeId(game.value?.id)
+  if (!gameId) return
+
+  const storageKey = buildCreationGuideHiddenStorageKey(gameId)
+  if (next) {
+    localStorage.setItem(storageKey, 'true')
+  } else {
+    localStorage.removeItem(storageKey)
+  }
+}
+
+function showCreationGuide() {
+  sectionOpen.guide = true
+  setCreationGuideHidden(false)
+}
+
+watch(
+  () => game.value?.id,
+  () => {
+    restoreCreationGuideHidden()
+  },
+  { immediate: true }
+)
 
 function buildLastSelectionStorageKey(gameId: string) {
   return `${LAST_SELECTION_STORAGE_KEY_PREFIX}${gameId}`
@@ -904,6 +952,210 @@ const scenarioCheckCounts = computed(() => {
   }
 })
 const scenarioCheckTotalCount = computed(() => scenarioCheckIssues.value.length)
+
+const projectNodeCount = computed(() => {
+  return scenarioCheckScenes.value.reduce((total, sceneItem: any) => {
+    return total + (Array.isArray(sceneItem?.nodes) ? sceneItem.nodes.length : 0)
+  }, 0)
+})
+
+const hasAnyNodeBackground = computed(() => {
+  return scenarioCheckScenes.value.some((sceneItem: any) => {
+    return (Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []).some((nodeItem: any) => normalizeNodeId(nodeItem?.bgAssetId))
+  })
+})
+
+const hasAnyCharacterAttachment = computed(() => {
+  return scenarioCheckScenes.value.some((sceneItem: any) => {
+    return (Array.isArray(sceneItem?.nodes) ? sceneItem.nodes : []).some((nodeItem: any) => {
+      if (normalizeNodeId(nodeItem?.speakerCharacterId)) return true
+      return Array.isArray(nodeItem?.portraits) && nodeItem.portraits.some((portrait: any) => normalizeNodeId(portrait?.characterId))
+    })
+  })
+})
+
+type CreationGuideTone = 'error' | 'warning' | 'info' | 'ok'
+type CreationGuideAction = 'focus-start' | 'add-node' | 'open-theme' | 'open-publish-check' | 'open-node-editor'
+
+type CreationGuideItem = {
+  id: string
+  title: string
+  description: string
+  actionLabel: string
+  action: CreationGuideAction
+  tone: CreationGuideTone
+}
+
+function findCreationGuideIssue(predicate: (issue: ScenarioCheckIssue) => boolean) {
+  return scenarioCheckIssues.value.find((issue) => predicate(issue)) ?? null
+}
+
+function findCreationGuideStartIssue() {
+  return findCreationGuideIssue((issue) => {
+    if (issue.severity !== 'error') return false
+    return issue.message.includes('開始シーン') || issue.message.includes('開始ノード')
+  })
+}
+
+function findCreationGuidePublishIssue() {
+  return scenarioCheckIssues.value.find((issue) => issue.severity === 'error' || issue.severity === 'warning') ?? null
+}
+
+const creationGuideItems = computed<CreationGuideItem[]>(() => {
+  const items: CreationGuideItem[] = []
+
+  if (!normalizeNodeId(game.value?.startSceneId) || findCreationGuideStartIssue()) {
+    items.push({
+      id: 'start',
+      title: '開始地点を決めよう',
+      description: 'プレイヤーが最初に見るシーンとノードを設定しよう。',
+      actionLabel: '開始設定を確認',
+      action: 'focus-start',
+      tone: 'error',
+    })
+  }
+
+  if (projectNodeCount.value <= 1) {
+    items.push({
+      id: 'node-count',
+      title: '会話ノードを増やそう',
+      description: 'まずは2〜3個のノードをつないで、短い流れを作ってみよう。',
+      actionLabel: 'ノード追加',
+      action: 'add-node',
+      tone: 'warning',
+    })
+  }
+
+  if (!normalizeNodeId(game.value?.coverAssetId)) {
+    items.push({
+      id: 'cover',
+      title: 'カバー画像を設定しよう',
+      description: '公開ギャラリーで見つけてもらいやすくなります。',
+      actionLabel: '全体設定を開く',
+      action: 'open-theme',
+      tone: 'info',
+    })
+  }
+
+  if (scenarioCheckCounts.value.error > 0 || scenarioCheckCounts.value.warning > 0 || referenceDiagnosticsError.value) {
+    items.push({
+      id: 'publish-check',
+      title: '公開前チェックを確認しよう',
+      description: '構成・素材参照・キャラクター参照に確認項目があります。',
+      actionLabel: 'チェックを見る',
+      action: 'open-publish-check',
+      tone: scenarioCheckCounts.value.error > 0 ? 'error' : 'warning',
+    })
+  }
+
+  if (
+    projectNodeCount.value >= 2
+    && (!hasAnyNodeBackground.value || !hasAnyCharacterAttachment.value)
+  ) {
+    items.push({
+      id: 'visuals',
+      title: '背景やキャラを置いてみよう',
+      description: '会話画面に素材を置くと、作品の雰囲気を出しやすくなります。',
+      actionLabel: '編集欄を開く',
+      action: 'open-node-editor',
+      tone: 'info',
+    })
+  }
+
+  return items
+})
+
+const creationGuideVisibleItems = computed(() => {
+  return creationGuideItems.value.slice(0, 3)
+})
+
+const creationGuideRemainingCount = computed(() => {
+  return Math.max(0, creationGuideItems.value.length - creationGuideVisibleItems.value.length)
+})
+
+const creationGuideActionToneClass: Record<CreationGuideTone, string> = {
+  error: 'border-red-200 bg-red-50 text-red-700',
+  warning: 'border-amber-200 bg-amber-50 text-amber-700',
+  info: 'border-sky-200 bg-sky-50 text-sky-700',
+  ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+}
+
+async function openCreationGuideStartSetting() {
+  const issue = findCreationGuideStartIssue()
+  if (!issue) {
+    sectionOpen.scenarioCheck = true
+    await nextTick()
+    document.getElementById('publish-check-issues')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  sectionOpen.scenarioCheck = true
+  scenarioCheckFilter.value = issue.severity
+  scenarioCategoryFilter.value = categorizeIssue(issue as any)
+  highlightedScenarioIssueId.value = issue.id
+
+  if (issue.sceneId || issue.nodeId) {
+    await focusScenarioIssue(issue)
+  }
+
+  await nextTick()
+  scenarioIssueCardRefs.value[issue.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+async function openCreationGuidePublishCheck() {
+  const issue = findCreationGuidePublishIssue()
+  sectionOpen.scenarioCheck = true
+
+  if (!issue) {
+    await nextTick()
+    document.getElementById('publish-check-issues')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  scenarioCheckFilter.value = issue.severity
+  scenarioCategoryFilter.value = categorizeIssue(issue as any)
+  highlightedScenarioIssueId.value = issue.id
+
+  if (issue.sceneId || issue.nodeId) {
+    await focusScenarioIssue(issue)
+  }
+
+  await nextTick()
+  scenarioIssueCardRefs.value[issue.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function openCreationGuideNodeEditor() {
+  sectionOpen.basic = true
+  sectionOpen.materials = true
+  sectionOpen.effects = true
+  sectionOpen.transitions = true
+}
+
+async function handleCreationGuideAction(item: CreationGuideItem) {
+  if (item.action === 'focus-start') {
+    await openCreationGuideStartSetting()
+    return
+  }
+  if (item.action === 'add-node') {
+    if (scene.value) {
+      await addNode()
+    } else {
+      await addScene()
+    }
+    return
+  }
+  if (item.action === 'open-theme') {
+    openThemeModal.value = true
+    return
+  }
+  if (item.action === 'open-publish-check') {
+    await openCreationGuidePublishCheck()
+    return
+  }
+  if (item.action === 'open-node-editor') {
+    openCreationGuideNodeEditor()
+  }
+}
 
 // ── 公開前チェックサマリー ─────────────────────────────────────────────────────
 const publishCheckStatus = computed((): 'loading' | 'error' | 'warning' | 'ok' => {
@@ -2176,7 +2428,7 @@ function resetEditorViewState() {
   if (!process.client) return
 
   const ok = window.confirm(
-    '編集画面の表示設定をリセットします。\n\n3ペイン幅、右ペインの開閉状態、このゲームの最後に選択したシーン/ノードを初期化します。ゲーム内容は変更されません。'
+    '編集画面の表示設定をリセットします。\n\n3ペイン幅、右ペインの開閉状態、制作ガイドの表示状態、このゲームの最後に選択したシーン/ノードを初期化します。ゲーム内容は変更されません。'
   )
   if (!ok) return
 
@@ -2189,7 +2441,10 @@ function resetEditorViewState() {
     const gameId = normalizeNodeId(game.value?.id)
     if (gameId) {
       clearLastSelection(gameId)
+      localStorage.removeItem(buildCreationGuideHiddenStorageKey(gameId))
     }
+
+    creationGuideHidden.value = false
 
     applyWidthClamp(defaultPaneWidths, { persist: true })
     resetSectionOpen()
@@ -2674,10 +2929,17 @@ function downloadAiReviewMarkdown() {
                 <div class="flex flex-wrap items-center gap-1.5">
                   <button
                     class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
-                    title="3ペイン幅・セクション開閉・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
+                    title="3ペイン幅・セクション開閉・制作ガイドの表示状態・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
                     @click="resetEditorViewState"
                   >
                     表示設定をリセット
+                  </button>
+                  <button
+                    v-if="creationGuideHidden || !sectionOpen.guide"
+                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    @click="showCreationGuide"
+                  >
+                    制作ガイドを表示
                   </button>
                   <button class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
                 </div>
@@ -2702,6 +2964,59 @@ function downloadAiReviewMarkdown() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div v-if="!creationGuideHidden && sectionOpen.guide" class="mb-4 rounded-lg border border-slate-200 bg-white">
+            <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-2">
+              <div>
+                <div class="font-semibold text-sm">制作ガイド</div>
+                <div class="text-[11px] text-slate-500">次に確認すると良さそうな項目です。不要なら非表示にできます。</div>
+              </div>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs border border-slate-300 rounded bg-white hover:bg-slate-100"
+                @click="sectionOpen.guide = false"
+              >
+                折りたたむ
+              </button>
+            </div>
+            <div class="px-3 py-3">
+              <div v-if="creationGuideVisibleItems.length > 0" class="space-y-2">
+                <article
+                  v-for="item in creationGuideVisibleItems"
+                  :key="item.id"
+                  class="rounded border px-2.5 py-2 text-xs"
+                  :class="creationGuideActionToneClass[item.tone]"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                      <div class="font-semibold text-sm leading-tight">{{ item.title }}</div>
+                      <p class="mt-0.5 leading-relaxed">{{ item.description }}</p>
+                    </div>
+                    <button
+                      type="button"
+                      class="shrink-0 rounded border border-current/20 bg-white/80 px-2 py-1 text-[11px] font-medium hover:bg-white"
+                      @click="handleCreationGuideAction(item)"
+                    >
+                      {{ item.actionLabel }}
+                    </button>
+                  </div>
+                </article>
+              </div>
+              <div v-else class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                制作の基本項目はだいたい整っています。必要になったら公開前チェックで細部を確認できます。
+              </div>
+              <p v-if="creationGuideRemainingCount > 0" class="mt-2 text-[11px] text-slate-500">
+                ほか {{ creationGuideRemainingCount }} 件は公開前チェックで確認できます。
+              </p>
+              <button
+                type="button"
+                class="mt-2 text-[11px] text-slate-500 underline hover:text-slate-700"
+                @click="setCreationGuideHidden(true)"
+              >
+                非表示
+              </button>
             </div>
           </div>
 
