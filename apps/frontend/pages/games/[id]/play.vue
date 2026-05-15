@@ -156,6 +156,12 @@
               @go-explore="goToExplore"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Fullscreen Overlay -->
+      <div v-if="fullscreen" class="fixed inset-0 z-50 bg-black">
+        <div class="relative w-full h-full">
       <StageCanvas 
         style="width: 100%; height: 100%"
         :backgroundUrl="bgUrl"
@@ -300,8 +306,8 @@
       </div>
       
       <button class="absolute right-4 top-4 bg-white/10 text-white rounded px-3 py-2 z-[60]" @click="closeFs()">閉じる（Esc）</button>
-    </div>
-  </div>
+        </div>
+      </div>
 
       <!-- Save/Load Modal -->
       <div v-if="saveLoadOpen" class="fixed inset-0 z-[220] flex items-center justify-center p-4" :style="uiModalOverlayStyle">
@@ -2591,49 +2597,13 @@ const nextNodeId = computed(() => {
   return current.value.nextNodeId || null
 })
 
-// 終了ノードかどうかを判定（次のノードも選択肢もシーン内の次も無い）
+// 終了ノードかどうかを判定（nextNodeIdも選択肢も無い）
 const isEndNode = computed(() => {
   if (!current.value) return false
-  
-  // 選択肢がある場合は終了ではない
   if (hasChoices.value) return false
-  
-  // nextNodeIdがある場合は終了ではない
   if (current.value.nextNodeId) return false
-  
-  // シーン内に次のノードがあるかチェック
-  const scene = game.value?.scenes?.find((s: any) => 
-    s.nodes?.some((n: any) => n.id === current.value.id)
-  )
-  if (scene) {
-    const idx = scene.nodes?.findIndex((n: any) => n.id === current.value.id)
-    if (idx !== undefined && idx >= 0 && scene.nodes[idx + 1]) {
-      return false // 次のノードがある
-    }
-  }
-  
-  return true // すべての遷移先が無い = 終了
+  return true
 })
-
-watch(
-  () => [current.value?.id, isEndNode.value, messageTypingComplete.value, showStartScreen.value],
-  () => {
-    if (!current.value || showStartScreen.value) {
-      showEndScreen.value = false
-      return
-    }
-
-    if (!isEndNode.value) {
-      showEndScreen.value = false
-      return
-    }
-
-    if (!messageTypingComplete.value) return
-
-    showEndScreen.value = true
-  },
-  { immediate: true }
-)
 
 watch(
   () => [
