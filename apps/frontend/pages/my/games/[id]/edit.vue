@@ -3206,6 +3206,38 @@ function downloadAiReviewMarkdown() {
                   </div>
                 </div>
 
+                <!-- 背景フィルター（背景画像のみ） -->
+                <div v-if="sectionOpen.effects" class="mt-3 border-t pt-3">
+                  <div class="font-semibold mb-2">背景フィルター（背景画像のみ）</div>
+                  <div class="space-y-2">
+                    <p class="text-xs text-gray-600 mb-2">
+                      背景画像だけをぼかします。キャラクターや文章はぼかしません。
+                    </p>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">ぼかし強度: {{ nodeDraft.backgroundFilter?.blurPx ?? 0 }}px</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="24"
+                        v-model.number="nodeDraft.backgroundFilter.blurPx"
+                        class="w-full"
+                      />
+                      <span class="text-xs text-gray-500">0～24px</span>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium mb-1">暗さ: {{ nodeDraft.backgroundFilter?.dimOpacity ?? 0 }}%</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="60"
+                        v-model.number="nodeDraft.backgroundFilter.dimOpacity"
+                        class="w-full"
+                      />
+                      <span class="text-xs text-gray-500">0～60%</span>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 遷移・分岐セクション -->
                 <div class="editor-section-header" @click="sectionOpen.transitions = !sectionOpen.transitions">
                   <span class="editor-section-title">
