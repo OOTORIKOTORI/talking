@@ -350,7 +350,16 @@
 
 ### edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `未着手`
+- 状態: `設計メモ作成済み / 実装未着手`
+- 背景: `apps/frontend/pages/my/games/[id]/edit.vue` の通常表示フォームと全画面フォームに同種UIの二重実装があり、背景フィルター / 背景ぼかしMVPで通常表示側のみUI追加される反映漏れが再発。
+- 方針: 一括改修ではなく段階的移行。
+  - Phase 1: 演出系（カメラ / カメラ演出 / ビジュアルエフェクト / カラーフィルター / 背景フィルター）
+  - Phase 2: 遷移・分岐 / 次ノード作成時コピー対象 / 選択肢
+  - Phase 3: 素材・キャラクター参照UI
+  - Phase 4: 保存ボタン / 危険操作 / 公開前チェック周辺
+- 最初の実装候補: Phase 1（演出系フォーム共通化MVP）
+- 実装時注意点: `v-model`/computed setter責務、`nodeDraft` nullタイミング、range input の number化、`backgroundFilter` null正規化、localStorage keyを増やさない、保存payload正規化責務を崩さない。
+- 関連docs: `docs/editor-property-form-refactor-plan.md`, `docs/PROJECT_SPEC.md`, `docs/ROADMAP.md`, `docs/FEATURE_INVENTORY.md`
 
 ### 3ペイン構造の情報設計v2
 

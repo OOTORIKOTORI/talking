@@ -1799,6 +1799,21 @@ interface MessageTheme {
 - `危険操作` セクションにはノード削除導線を配置する
 - 今回はフォーム共通コンポーネント化までは行わず、通常表示/全画面表示のフォーム重複は将来課題として扱う
 
+#### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）
+- 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
+- 現状: 通常表示フォームと全画面フォームで、同種のプロパティ編集UIを二重実装している。
+- 実害: 背景フィルター / 背景ぼかしMVPで、通常表示側のみUI追加され全画面側へ漏れる差分事故が発生した。
+- リスク: 将来、ライブ編集など第3の編集UIが増えると差分漏れがさらに起きやすくなる。
+- 方針: `edit.vue` 全体の一括大改造は避け、段階的に小さな共通コンポーネントへ切り出す。
+- 段階案:
+  - Phase 1: 演出系（カメラ / カメラ演出 / ビジュアルエフェクト / カラーフィルター / 背景フィルター）
+  - Phase 2: 遷移・分岐 / 次ノード作成時コピー対象 / 選択肢
+  - Phase 3: 素材・キャラクター参照UI
+  - Phase 4: 保存ボタン / 危険操作 / 公開前チェック周辺
+- 最初の実装候補: Phase 1（演出系フォーム共通化MVP）。副作用が比較的小さく、今回の再発領域に直接効く。
+- 注意点: `v-model` と computed setter の責務整理、`nodeDraft` nullタイミング、数値input型維持、`backgroundFilter` null正規化、localStorage key追加回避、保存payload正規化責務の維持。
+- 詳細: `docs/editor-property-form-refactor-plan.md`
+
 <!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->
 #### 次ノードの設定
 - 次ノードID欄はフォーカス可能（`tabindex="0"`）で、クリックまたは **Ctrl/⌘+K** で **NodePicker** を起動
