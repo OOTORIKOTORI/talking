@@ -194,6 +194,7 @@
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）
 - 右ペインセクション化・localStorage 保存・作業位置復元
+- edit 画面右ペイン上部アクション群の整理MVP（表示 / 設定 / 出力で軽くグルーピング。既存ボタン挙動は不変、狭い幅では flex-wrap で自然に折り返し）
 - 作者向けテストプレイ支援MVP一区切り（テストプレイパネルUI整理・選択肢までスキップ・`/games/:id/play` のクエリなし開始時に `startSceneId` 優先へ修正）
 - テストプレイパネル小コンポーネント化MVP（`apps/frontend/components/game/TestPlayPanel.vue` 抽出。通常表示/フルスクリーン表示の両方で同一コンポーネントを利用し、挙動変更なし）
 - edit 画面3ペイン幅 localStorage 復元のクランプ修正（`gameEditorPaneWidths`。過大/過小/壊れ値を安全値へ補正し、ウィンドウリサイズ時も再補正）

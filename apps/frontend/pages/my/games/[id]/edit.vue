@@ -2649,41 +2649,58 @@ function downloadAiReviewMarkdown() {
           class="pane pane-props border border-gray-200 rounded-lg p-4 bg-white overflow-y-auto"
           :class="fullscreenProps ? 'props-fullscreen' : 'props-normal'"
         >
-          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <h2 class="font-semibold text-lg">プロパティ</h2>
-            <div class="flex items-center gap-2 flex-wrap">
-              <!-- 幅プリセットボタン (通常表示のみ) -->
-              <div v-if="!fullscreenProps" class="flex items-center gap-1 border rounded px-1">
-                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(560)" title="やや広">S</button>
-                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(720)" title="ワイド">M</button>
-                <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(900)" title="最大">L</button>
+            <div class="flex flex-wrap items-start gap-2">
+              <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
+                <p class="mb-1 text-[10px] font-semibold text-gray-500">表示</p>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <!-- 幅プリセットボタン (通常表示のみ) -->
+                  <div v-if="!fullscreenProps" class="flex items-center gap-1 rounded border bg-white px-1 py-0.5">
+                    <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(560)" title="やや広">S</button>
+                    <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(720)" title="ワイド">M</button>
+                    <button class="px-1.5 py-0.5 text-xs rounded hover:bg-gray-100" @click="setPreviewWidth(900)" title="最大">L</button>
+                  </div>
+                  <button class="px-2 py-1 border rounded text-sm bg-white" @click="fullscreenProps=!fullscreenProps">
+                    {{ fullscreenProps ? '通常表示' : '全画面' }}
+                  </button>
+                  <span class="text-[11px] text-gray-500">Fで切替 / Escで閉じる</span>
+                </div>
               </div>
-              <button class="px-2 py-1 border rounded text-sm" @click="fullscreenProps=!fullscreenProps">
-                {{ fullscreenProps ? '通常表示' : '全画面' }}
-              </button>
-              <button
-                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
-                title="3ペイン幅・セクション開閉・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
-                @click="resetEditorViewState"
-              >
-                表示設定をリセット
-              </button>
-              <button class="px-2 py-1 text-xs border rounded hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
-              <button
-                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
-                title="AIレビュー用の台本Markdownをクリップボードにコピーします"
-                @click="copyAiReviewMarkdown"
-              >
-                MDコピー
-              </button>
-              <button
-                class="px-2 py-1 text-xs border rounded hover:bg-gray-50"
-                title="AIレビュー用の台本Markdownを .md ファイルとして保存します"
-                @click="downloadAiReviewMarkdown"
-              >
-                MD保存
-              </button>
-              <span class="text-xs text-gray-500 hidden md:inline">Fで切替 / Escで閉じる</span>
+
+              <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
+                <p class="mb-1 text-[10px] font-semibold text-gray-500">設定</p>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button
+                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    title="3ペイン幅・セクション開閉・このゲームの最後の選択位置をリセットします。ゲーム内容は変更されません。"
+                    @click="resetEditorViewState"
+                  >
+                    表示設定をリセット
+                  </button>
+                  <button class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true">全体設定</button>
+                </div>
+              </div>
+
+              <div class="rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
+                <p class="mb-1 text-[10px] font-semibold text-gray-500">出力</p>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button
+                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    title="AIレビュー用の台本Markdownをクリップボードにコピーします"
+                    @click="copyAiReviewMarkdown"
+                  >
+                    MDコピー
+                  </button>
+                  <button
+                    class="px-2 py-1 text-xs border rounded bg-white hover:bg-gray-50"
+                    title="AIレビュー用の台本Markdownを .md ファイルとして保存します"
+                    @click="downloadAiReviewMarkdown"
+                  >
+                    MD保存
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

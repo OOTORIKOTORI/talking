@@ -1361,6 +1361,11 @@ GET /games/:id/reference-diagnostics
 - **エディタ**: `/my/games/:id/edit`
   - 左:シーン一覧、中央:ノード一覧、右:プロパティ(プレビュー含む)
   - 右ペインは「通常表示 / 全画面」をトグル(UI: *全画面 / 通常表示*, F で切替・Esc で閉じる)
+  - 右ペイン上部アクション群は軽量グルーピングで配置する（表示 / 設定 / 出力）
+    - 表示: `S/M/L`、`全画面 / 通常表示`、補助テキスト `Fで切替 / Escで閉じる`
+    - 設定: `表示設定をリセット`、`全体設定`
+    - 出力: `MDコピー`、`MD保存`
+    - 既存挙動（`setPreviewWidth`、`fullscreenProps`、confirm/toast、Markdown出力仕様）は変更しない
   - ステージは 16:9 比率で **StageCanvas** に統一。通常・全画面・テストプレイすべてで**同一スケール・比率**で描画（`useStageScale` で実高さpxをCSS変数 `--stage-h-px` に流し、フォント・余白を clamp() でスケール）
   - **「全体設定」**ボタンから**ゲーム全体設定モーダル**を開ける
     - 基本情報タブで `title` / `summary` / `coverAssetId` を同時編集
