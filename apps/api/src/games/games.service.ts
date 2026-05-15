@@ -850,6 +850,27 @@ export class GamesService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
+  private normalizeBackgroundFilter(value: unknown): Prisma.InputJsonValue | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    const obj = value as Record<string, unknown>;
+    const blurRaw = Number(obj.blurPx);
+    const dimRaw = Number(obj.dimOpacity);
+    const blurPx = Number.isFinite(blurRaw) ? Math.min(Math.max(blurRaw, 0), 24) : 0;
+    const dimOpacity = Number.isFinite(dimRaw) ? Math.min(Math.max(dimRaw, 0), 60) : 0;
+
+    if (blurPx <= 0 && dimOpacity <= 0) {
+      return null;
+    }
+
+    return {
+      blurPx,
+      dimOpacity,
+    } as Prisma.InputJsonObject;
+  }
+
   private normalizeGameTitle(value: unknown, opts?: { required?: boolean }): string | null {
     if (typeof value !== 'string') {
       if (opts?.required) {
@@ -1043,8 +1064,13 @@ export class GamesService {
 
     // Validate and normalize portraits (also normalizes canonical keys)
     const normalizedPortraits = await this.validateAndNormalizePortraits(userId, node?.portraits);
+    const normalizedBackgroundFilter = this.normalizeBackgroundFilter(node?.backgroundFilter);
 
-    return { ...node, portraits: normalizedPortraits };
+    return {
+      ...node,
+      portraits: normalizedPortraits,
+      backgroundFilter: normalizedBackgroundFilter,
+    };
   }
 
   private normalizeChoiceInput(choice: any) {
@@ -1520,6 +1546,7 @@ export class GamesService {
               cameraFx: sourceNode.cameraFx,
               visualFx: sourceNode.visualFx,
               colorFilter: sourceNode.colorFilter,
+              backgroundFilter: this.normalizeBackgroundFilter(sourceNode.backgroundFilter),
               continuesPreviousText: sourceNode.continuesPreviousText,
             },
           });

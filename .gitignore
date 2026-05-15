@@ -49,6 +49,8 @@ Thumbs.db
 apps/api/prisma/migrations/*_*
 !apps/api/prisma/migrations/20260512130000_add_staff_roll_end_behavior/
 !apps/api/prisma/migrations/20260512130000_add_staff_roll_end_behavior/migration.sql
+!apps/api/prisma/migrations/20260515100000_add_background_filter/
+!apps/api/prisma/migrations/20260515100000_add_background_filter/migration.sql
 
 # Misc
 .cache/
