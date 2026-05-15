@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useVisualEffects } from '@/composables/useVisualEffects'
 import type { VisualEffect } from '@talking/types'
 
 interface Props {
   nodeDraft: any | null
+  onPreviewVisualEffect?: (effect: VisualEffect | null | undefined) => void
 }
 
 const props = defineProps<Props>()
-
-// ビジュアルエフェクト機能
-const { playEffect } = useVisualEffects()
 
 // nodeDraft が null のときは安全に処理
 const draftOrDefault = computed(() => {
@@ -53,9 +50,7 @@ const cameraFxEnabled = computed({
 
 // ビジュアルエフェクトのプレビュー
 function previewVisualEffect() {
-  if (props.nodeDraft?.visualFx) {
-    playEffect(props.nodeDraft.visualFx)
-  }
+  props.onPreviewVisualEffect?.(props.nodeDraft?.visualFx)
 }
 </script>
 

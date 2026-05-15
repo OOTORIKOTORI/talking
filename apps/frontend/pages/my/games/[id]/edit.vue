@@ -61,7 +61,7 @@ const referenceDiagnosticsLoading = ref(false)
 const referenceDiagnosticsError = ref<string | null>(null)
 
 // ビジュアルエフェクト
-const { effectState, playEffect, stopEffect } = useVisualEffects()
+const { effectState, playEffect } = useVisualEffects()
 
 // コピー対象トグル（localStorage永続化）
 const copyOpts = reactive({
@@ -309,36 +309,6 @@ async function selectInitialSceneAndNode() {
   }
 
   persistCurrentSelection()
-}
-
-const cameraFxEnabled = computed({
-  get() {
-    const fx = (nodeDraft as any).cameraFx as any | undefined
-    if (!fx) return false
-    const duration = typeof fx.durationMs === 'number' ? fx.durationMs : 0
-    // duration>0 かつ mode が cut 以外なら「有効」とみなす
-    return duration > 0 && fx.mode !== 'cut'
-  },
-  set(enabled: boolean) {
-    if (!enabled) {
-      ;(nodeDraft as any).cameraFx = null
-      return
-    }
-    const fx = ((nodeDraft as any).cameraFx ||= {}) as any
-    if (typeof fx.durationMs !== 'number' || fx.durationMs <= 0) {
-      fx.durationMs = 800
-    }
-    if (!fx.mode) {
-      fx.mode = 'together'
-    }
-  },
-})
-
-// ビジュアルエフェクトのプレビュー
-function previewVisualEffect() {
-  if (nodeDraft.visualFx) {
-    playEffect(nodeDraft.visualFx)
-  }
 }
 
 function buildTestPlayUrl(sceneId?: string | null, nodeId?: string | null): string | null {
@@ -3031,7 +3001,11 @@ function downloadAiReviewMarkdown() {
                   </span>
                 </div>
 
-                <NodeEffectsFields v-if="sectionOpen.effects" :node-draft="nodeDraft" />
+                <NodeEffectsFields
+                  v-if="sectionOpen.effects"
+                  :node-draft="nodeDraft"
+                  :on-preview-visual-effect="playEffect"
+                />
 
                 <!-- 遷移・分岐セクション -->
                 <div class="editor-section-header" @click="sectionOpen.transitions = !sectionOpen.transitions">
@@ -3388,7 +3362,11 @@ function downloadAiReviewMarkdown() {
                     </span>
                   </div>
 
-                  <NodeEffectsFields v-if="sectionOpen.effects" :node-draft="nodeDraft" />
+                  <NodeEffectsFields
+                    v-if="sectionOpen.effects"
+                    :node-draft="nodeDraft"
+                    :on-preview-visual-effect="playEffect"
+                  />
 
                   <!-- 遷移・分岐セクション -->
                   <div class="editor-section-header" @click="sectionOpen.transitions = !sectionOpen.transitions">
