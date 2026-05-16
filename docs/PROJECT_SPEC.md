@@ -1395,7 +1395,7 @@ GET /games/:id/reference-diagnostics
 - **Ctrl/⌘+Enter**: 「保存して次のノードへ」を実行（保存→新規作成→nextNodeId連結→遷移、`saving` 状態で連打防止）
 - **Ctrl/⌘+K**: `NodeTransitionFields.vue` の次ノードID欄にフォーカス中に NodePicker を即起動（通常表示/全画面表示で共通）
 - **F**: プロパティペインの全画面⇔通常表示を切替
-- **Esc**: 全画面プロパティペインを閉じる
+- **Esc**: NodePicker 表示中は NodePicker を閉じる。NodePicker が開いていない全画面表示中は全画面プロパティペインを閉じる
 
 #### AIレビュー用 台本Markdown Export MVP（2026-05-15 実装）
 <!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->

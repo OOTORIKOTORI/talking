@@ -2299,6 +2299,20 @@ function closeNodePicker() {
   editingChoiceTargetField.value = 'targetNodeId'
 }
 
+function handleEditorEscape(e: KeyboardEvent) {
+  if (openNodePicker.value) {
+    closeNodePicker()
+    e.preventDefault()
+    e.stopPropagation()
+    return
+  }
+
+  if (fullscreenProps.value) {
+    fullscreenProps.value = false
+    e.preventDefault()
+  }
+}
+
 function onNodeSelected(nodeId: string) {
   if (editingChoiceIndex.value !== null) {
     // 選択肢の遷移先を設定
@@ -2476,8 +2490,15 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onWindowResize)
 })
 function onKey(e: KeyboardEvent) {
-  if (e.key.toLowerCase() === 'f') { e.preventDefault(); fullscreenProps.value = !fullscreenProps.value }
-  if (e.key === 'Escape') { fullscreenProps.value = false }
+  if (e.key.toLowerCase() === 'f') {
+    e.preventDefault()
+    fullscreenProps.value = !fullscreenProps.value
+    return
+  }
+
+  if (e.key === 'Escape') {
+    handleEditorEscape(e)
+  }
 }
 
 let resizing: 'left' | 'right' | null = null
@@ -2794,7 +2815,7 @@ function downloadAiReviewMarkdown() {
         class="editor-grid"
         :style="gridStyle"
         tabindex="0"
-        @keydown.esc.prevent.stop="fullscreenProps=false"
+        @keydown.esc.prevent.stop="handleEditorEscape"
       >
         <!-- シーン一覧 (左) -->
         <aside v-show="!fullscreenProps" class="pane pane-scenes border border-gray-200 rounded-lg p-4 bg-white" aria-label="scenes">
