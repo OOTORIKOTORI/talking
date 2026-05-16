@@ -2079,40 +2079,49 @@ function extractApiErrorMessage(error: any): string | null {
   return null
 }
 
+/**
+ * nodeDraft を deep copy し、API 保存前の正規化処理をまとめて適用する。
+ * - portraits の thumb（署名URL）を除去（TTL切れ防止）
+ * - choices を sanitizeChoicesForSave で正規化
+ * - visualFx が空オブジェクト / type 未設定なら null
+ * - colorFilter type=none なら null
+ * - backgroundFilter の blurPx/dimOpacity を clamp し、両方 0 なら null
+ */
+function buildNodePayloadForSave(draft: any): any {
+  const payload = JSON.parse(JSON.stringify(draft))
+  if (Array.isArray(payload.portraits)) {
+    payload.portraits = payload.portraits.map((p: any) => {
+      const { thumb, ...rest } = p
+      return rest
+    })
+  }
+  if (Array.isArray(payload.choices)) {
+    payload.choices = sanitizeChoicesForSave(payload.choices)
+  }
+  if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
+    payload.visualFx = null
+  }
+  if (payload.colorFilter && payload.colorFilter.type === 'none') {
+    payload.colorFilter = null
+  }
+  if (payload.backgroundFilter) {
+    const blurPx = Math.max(0, Math.min(24, payload.backgroundFilter.blurPx ?? 0))
+    const dimOpacity = Math.max(0, Math.min(60, payload.backgroundFilter.dimOpacity ?? 0))
+    if (blurPx <= 0 && dimOpacity <= 0) {
+      payload.backgroundFilter = null
+    } else {
+      payload.backgroundFilter = { blurPx, dimOpacity }
+    }
+  }
+  return payload
+}
+
 async function saveNode() {
   if (!scene.value || !node.value) return
   if (!confirmSavePublishedGame()) return
   saving.value = true
   try {
-    // 署名URLはDBに保存しない(TTL切れ防止)
-    const payload = JSON.parse(JSON.stringify(nodeDraft))
-    if (Array.isArray(payload.portraits)) {
-      payload.portraits = payload.portraits.map((p: any) => {
-        const { thumb, ...rest } = p
-        return rest
-      })
-    }
-    if (Array.isArray(payload.choices)) {
-      payload.choices = sanitizeChoicesForSave(payload.choices)
-    }
-    // visualFx が空オブジェクトまたは type が未設定なら null にする
-    if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
-      payload.visualFx = null
-    }
-    // colorFilter が 'none' なら null にする
-    if (payload.colorFilter && payload.colorFilter.type === 'none') {
-      payload.colorFilter = null
-    }
-    // backgroundFilter を正規化（blurPx/dimOpacity を clamp し、両方0なら null）
-    if (payload.backgroundFilter) {
-      const blurPx = Math.max(0, Math.min(24, payload.backgroundFilter.blurPx ?? 0))
-      const dimOpacity = Math.max(0, Math.min(60, payload.backgroundFilter.dimOpacity ?? 0))
-      if (blurPx <= 0 && dimOpacity <= 0) {
-        payload.backgroundFilter = null
-      } else {
-        payload.backgroundFilter = { blurPx, dimOpacity }
-      }
-    }
+    const payload = buildNodePayloadForSave(nodeDraft)
     await api.upsertNode(scene.value.id, payload)
     nodes.value = (await api.listNodes(scene.value.id)) as any[]
     // scenes.valueも更新して次ノードラベル表示を最新に
@@ -2140,36 +2149,9 @@ async function saveAndCreateNext() {
   saving.value = true
   try {
     // 1) 現在ノードを保存
-    const payload = JSON.parse(JSON.stringify(nodeDraft))
-    if (Array.isArray(payload.portraits)) {
-      payload.portraits = payload.portraits.map((p: any) => {
-        const { thumb, ...rest } = p
-        return rest
-      })
-    }
-    if (Array.isArray(payload.choices)) {
-      payload.choices = sanitizeChoicesForSave(payload.choices)
-    }
-    // visualFx が空オブジェクトまたは type が未設定なら null にする
-    if (payload.visualFx && (!payload.visualFx.type || Object.keys(payload.visualFx).length === 0)) {
-      payload.visualFx = null
-    }
-    // colorFilter が 'none' なら null にする
-    if (payload.colorFilter && payload.colorFilter.type === 'none') {
-      payload.colorFilter = null
-    }
-    // backgroundFilter を正規化（blurPx/dimOpacity を clamp し、両方0なら null）
-    if (payload.backgroundFilter) {
-      const blurPx = Math.max(0, Math.min(24, payload.backgroundFilter.blurPx ?? 0))
-      const dimOpacity = Math.max(0, Math.min(60, payload.backgroundFilter.dimOpacity ?? 0))
-      if (blurPx <= 0 && dimOpacity <= 0) {
-        payload.backgroundFilter = null
-      } else {
-        payload.backgroundFilter = { blurPx, dimOpacity }
-      }
-    }
+    const payload = buildNodePayloadForSave(nodeDraft)
     await api.upsertNode(scene.value.id, payload)
-    
+
     // 2) コピー元の抽出（thumb除去）
     const src = JSON.parse(JSON.stringify(nodeDraft))
     const inherit: any = {}
