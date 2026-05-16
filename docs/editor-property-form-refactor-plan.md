@@ -177,7 +177,32 @@ Phase 2 以降で以下を継続的に共通化：
 
 - `copyOpts` の localStorage 保存責務は `edit.vue` の既存 watch を維持。
 - NodePicker 本体と選択処理（`@select` / `@close` / `:current-id`）は既存責務を維持。
-- 選択肢UI / 条件分岐UI は Phase 2-b へ持ち越し（`edit.vue` 側に残置）。
+- 選択肢UI / 条件分岐UI は Phase 2-b-1 で `NodeChoicesFields.vue` へ分離（詳細は下記）。
+
+## Phase 2-b-1 実装状況（2026-05-16）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodeChoicesFields.vue` を新規作成。
+- 通常表示 / 全画面表示の「遷移・分岐」セクション内で、選択肢UIを共通化。
+	- 選択肢セクション見出し
+	- 選択肢追加ボタン
+	- 注意文（選択肢優先）
+	- 選択肢なし表示
+	- 選択肢リスト（表示テキスト / 削除）
+	- 通常遷移先（表示 / 選択 / クリア / 未設定バッジ）
+	- 状態操作（effects）
+	- 特別選択肢条件（condition）
+	- 条件分岐先（alternateCondition / 特殊遷移先の選択・クリア）
+
+### 今回の責務分離
+
+- `nodeDraft` 本体、`showChoiceNextPriorityNotice`、`getChoiceTargetLabel` などの表示ロジックは `edit.vue` 側に維持。
+- `addChoice` / `removeChoice` / `addChoiceEffect` / `removeChoiceEffect` / `enableChoiceCondition` / `openChoiceNodePicker` は `edit.vue` 側責務を維持し、`NodeChoicesFields.vue` から emit で呼び出す。
+- NodePicker 本体、open/close 状態、`editingChoiceIndex` / `editingChoiceTargetField`、保存処理、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側に維持。
+- 全画面側だけにあった「条件分岐先 > 特殊遷移先」クリアボタンを共通化後に統一した。
 
 ## 参照
 

@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-16（FI-055 Phase 2-a / NodePicker Esc挙動修正 反映）
+> 最終更新: 2026-05-16（FI-055 Phase 2-b-1 / NodePicker Esc挙動修正 反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -197,6 +197,7 @@
 **ゲーム制作/編集基盤まわり**
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
 - FI-055 Phase 2-a: `NodeTransitionFields.vue` による次ノード選択 / 次ノード作成時コピー対象フォーム共通化MVP
+- FI-055 Phase 2-b-1: `NodeChoicesFields.vue` による選択肢UI（通常遷移先/状態操作/条件分岐先）共通化MVP
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）
 - 右ペインセクション化・localStorage 保存・作業位置復元
 - edit 画面右ペイン上部アクション群の整理MVP（表示 / 設定 / 出力で軽くグルーピング。既存ボタン挙動は不変、狭い幅では flex-wrap で自然に折り返し）
