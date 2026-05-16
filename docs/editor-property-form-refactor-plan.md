@@ -161,6 +161,24 @@ Phase 2 以降で以下を継続的に共通化：
 - 素材・キャラクター参照UI（背景、BGM、SE、キャラクター配置）
 - 保存・削除アクション周辺
 
+## Phase 2-a 実装状況（2026-05-16）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodeTransitionFields.vue` を新規作成。
+- 通常表示 / 全画面表示の「遷移・分岐」セクション内で、以下を共通化。
+	- 次ノードID表示・選択・クリア
+	- 次ノード作成時のコピー対象（背景 / キャラ / BGM / カメラ）
+- `Ctrl/⌘+K` は `NodeTransitionFields.vue` 内の次ノード欄フォーカス中のみで処理し、NodePicker起動体感を維持。
+
+### 今回の責務分離
+
+- `copyOpts` の localStorage 保存責務は `edit.vue` の既存 watch を維持。
+- NodePicker 本体と選択処理（`@select` / `@close` / `:current-id`）は既存責務を維持。
+- 選択肢UI / 条件分岐UI は Phase 2-b へ持ち越し（`edit.vue` 側に残置）。
+
 ## 参照
 
 - `docs/PROJECT_SPEC.md`

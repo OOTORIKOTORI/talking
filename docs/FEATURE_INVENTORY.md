@@ -402,11 +402,14 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 演出系フォーム共通化MVP実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a 実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
-- 実装内容: `apps/frontend/components/editor/NodeEffectsFields.vue` を新規作成。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターを統合。2026-05-15 実装完了。
+- 実装内容:
+	- 2026-05-15: `apps/frontend/components/editor/NodeEffectsFields.vue` を新規作成。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターを統合。
+	- 2026-05-16: `apps/frontend/components/editor/NodeTransitionFields.vue` を新規作成。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を統合。
+	- 選択肢UI・条件分岐UIは `edit.vue` に残置（Phase 2-b 以降）。
 
 ### FI-056: 右ペインセクション要約表示
 

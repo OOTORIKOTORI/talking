@@ -1393,7 +1393,7 @@ GET /games/:id/reference-diagnostics
 <!-- impl: apps/frontend/pages/my/games/[id]/edit.vue, apps/frontend/components/game/NodePicker.vue -->
 #### エディタのキーボードショートカット
 - **Ctrl/⌘+Enter**: 「保存して次のノードへ」を実行（保存→新規作成→nextNodeId連結→遷移、`saving` 状態で連打防止）
-- **Ctrl/⌘+K**: 次ノードID欄にフォーカス中に NodePicker を即起動（既存の選択処理と統合）
+- **Ctrl/⌘+K**: `NodeTransitionFields.vue` の次ノードID欄にフォーカス中に NodePicker を即起動（通常表示/全画面表示で共通）
 - **F**: プロパティペインの全画面⇔通常表示を切替
 - **Esc**: 全画面プロパティペインを閉じる
 
@@ -1810,6 +1810,8 @@ interface MessageTheme {
 - `危険操作` セクションにはノード削除導線を配置する
 - 当該セクション実装時点ではフォーム共通コンポーネント化は未実施で、通常表示/全画面表示のフォーム重複を将来課題として扱っていた
 - その後 2026-05-15 に Phase 1（演出系フォーム共通化MVP）を実装し、`NodeEffectsFields.vue` で演出系フォームの重複を解消済み（残りは Phase 2 以降）
+- 2026-05-16 に Phase 2-a（遷移・分岐の一部）を実装し、`NodeTransitionFields.vue` で「次ノード選択UI」と「次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）」を共通化した
+- 選択肢UI・条件分岐UIは現時点では `edit.vue` 側に残し、Phase 2-b 以降で対応する
 
 #### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）
 - 対象: `apps/frontend/pages/my/games/[id]/edit.vue`

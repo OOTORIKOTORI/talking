@@ -8,6 +8,7 @@ import CharacterImagePicker from '@/components/pickers/CharacterImagePicker.vue'
 import MiniStage from '@/components/game/MiniStage.vue'
 import MessageThemeModal from '@/components/game/MessageThemeModal.vue'
 import NodeEffectsFields from '@/components/editor/NodeEffectsFields.vue'
+import NodeTransitionFields from '@/components/editor/NodeTransitionFields.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -1616,18 +1617,7 @@ function onGlobalKeydown(e: KeyboardEvent) {
       saveAndCreateNext()
     }
   }
-  
-  // Ctrl/⌘+K で次ノードID欄からNodePicker起動
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    const el = nextNodeInputRef.value
-    if (el && document.activeElement === el) {
-      e.preventDefault()
-      openNodePicker.value = true
-    }
-  }
 }
-
-const nextNodeInputRef = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
   try {
@@ -2318,6 +2308,14 @@ function onNodeSelected(nodeId: string) {
     nodeDraft.nextNodeId = nodeId
   }
   closeNodePicker()
+}
+
+function openNextNodePicker() {
+  openNodePicker.value = true
+}
+
+function clearNextNode() {
+  nodeDraft.nextNodeId = null
 }
 
 // ---------- 3ペイン可変 & 全画面 ----------
@@ -3335,44 +3333,13 @@ function downloadAiReviewMarkdown() {
                 </div>
 
                 <div v-if="sectionOpen.transitions">
-                  <label class="block text-sm font-medium mb-1">次ノードID</label>
-                  <div class="flex items-center gap-2">
-                    <div
-                      ref="nextNodeInputRef"
-                      tabindex="0"
-                      class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
-                      @click="openNodePicker=true"
-                      @keydown.enter.prevent="openNodePicker=true"
-                      title="クリックまたは Ctrl/⌘+K で選択"
-                    >
-                      {{ nextNodeLabel }}
-                    </div>
-                    <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
-                    <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=null">クリア</button>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">次ノードID欄にフォーカス中は Ctrl/⌘+K でも選択できます</p>
-
-                  <div class="border-t pt-3 mt-3">
-                    <div class="text-sm font-medium mb-2">次ノード作成時のコピー対象</div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" v-model="copyOpts.bg" class="rounded" />
-                        背景
-                      </label>
-                      <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" v-model="copyOpts.chars" class="rounded" />
-                        キャラ
-                      </label>
-                      <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" v-model="copyOpts.bgm" class="rounded" />
-                        BGM
-                      </label>
-                      <label class="flex items-center gap-2 text-sm">
-                        <input type="checkbox" v-model="copyOpts.camera" class="rounded" />
-                        カメラ
-                      </label>
-                    </div>
-                  </div>
+                  <NodeTransitionFields
+                    :node-draft="nodeDraft"
+                    :next-node-label="nextNodeLabel"
+                    :copy-opts="copyOpts"
+                    @open-node-picker="openNextNodePicker"
+                    @clear-next-node="clearNextNode"
+                  />
 
                   <div>
                     <div class="mb-2 flex items-center justify-between gap-2">
@@ -3695,44 +3662,13 @@ function downloadAiReviewMarkdown() {
                     </span>
                   </div>
                   <div v-if="sectionOpen.transitions">
-                    <label class="block text-sm font-medium mb-1">次ノードID</label>
-                    <div class="flex items-center gap-2">
-                      <div 
-                        ref="nextNodeInputRef"
-                        tabindex="0"
-                        class="flex-1 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-text"
-                        @click="openNodePicker=true"
-                        @keydown.enter.prevent="openNodePicker=true"
-                        title="クリックまたは Ctrl/⌘+K で選択"
-                      >
-                        {{ nextNodeLabel }}
-                      </div>
-                      <button class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="openNodePicker=true">選択</button>
-                      <button v-if="nodeDraft.nextNodeId" class="px-2 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200" @click="nodeDraft.nextNodeId=null">クリア</button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">次ノードID欄にフォーカス中は Ctrl/⌘+K でも選択できます</p>
-
-                    <div class="border-t pt-3 mt-3">
-                      <div class="text-sm font-medium mb-2">次ノード作成時のコピー対象</div>
-                      <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 text-sm">
-                          <input type="checkbox" v-model="copyOpts.bg" class="rounded" />
-                          背景
-                        </label>
-                        <label class="flex items-center gap-2 text-sm">
-                          <input type="checkbox" v-model="copyOpts.chars" class="rounded" />
-                          キャラ
-                        </label>
-                        <label class="flex items-center gap-2 text-sm">
-                          <input type="checkbox" v-model="copyOpts.bgm" class="rounded" />
-                          BGM
-                        </label>
-                        <label class="flex items-center gap-2 text-sm">
-                          <input type="checkbox" v-model="copyOpts.camera" class="rounded" />
-                          カメラ
-                        </label>
-                      </div>
-                    </div>
+                    <NodeTransitionFields
+                      :node-draft="nodeDraft"
+                      :next-node-label="nextNodeLabel"
+                      :copy-opts="copyOpts"
+                      @open-node-picker="openNextNodePicker"
+                      @clear-next-node="clearNextNode"
+                    />
 
                     <div>
                       <div class="mb-2 flex items-center justify-between gap-2">

@@ -52,7 +52,7 @@ apps/frontend/pages/
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
-│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。現状は通常表示/全画面表示でプロパティフォーム重複があり、段階的共通化計画あり（`docs/editor-property-form-refactor-plan.md`、候補: `NodeEffectsFields.vue` / `NodeTransitionFields.vue` / `NodeAssetReferenceFields.vue` / `NodeSaveActions.vue`）
+│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。遷移系フォームは一部 `NodeTransitionFields.vue` へ委譲済み（次ノード選択 / 次ノード作成時コピー対象）。段階的共通化計画は `docs/editor-property-form-refactor-plan.md` を参照
 ```
 
 ---
@@ -76,7 +76,8 @@ apps/frontend/components/
 │   ├── ToastContainer.vue                   # トースト通知の描画コンテナ
 │   └── UploadTabs.vue                       # アップロード画面の種別切り替えタブ
 ├── editor/
-│   └── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
+│   ├── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
+│   └── NodeTransitionFields.vue             # ノード編集画面で使用される「遷移・分岐（一部）」共通コンポーネント。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を担当。NodePicker本体と選択肢UIは edit.vue 側責務のまま維持
 ├── game/
 │   ├── BacklogModal.vue                     # バックログ表示モーダル
 │   ├── EndCard.vue                          # クリア後エンドカード。作品詳細・作者プロフィール・スタッフロール・公開ゲーム探索への回遊導線をまとめる。2026-05-16 polish でボタンレイアウト最適化（スマホ幅対応）
