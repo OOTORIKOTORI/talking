@@ -204,6 +204,39 @@ Phase 2 以降で以下を継続的に共通化：
 - NodePicker 本体、open/close 状態、`editingChoiceIndex` / `editingChoiceTargetField`、保存処理、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側に維持。
 - 全画面側だけにあった「条件分岐先 > 特殊遷移先」クリアボタンを共通化後に統一した。
 
+## Phase 2-b-2 実装状況（2026-05-17）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `edit.vue` script 内に `buildNodePayloadForSave(draft: any): any` を追加。
+- `saveNode` と `saveAndCreateNext` に重複していた保存前正規化処理（約30行）を同関数に一元化。
+
+#### buildNodePayloadForSave が担当する正規化
+
+| 処理 | 内容 |
+| --- | --- |
+| deep copy | `JSON.parse(JSON.stringify(draft))` で draft を複製 |
+| portraits.thumb 除去 | 署名URL（TTL付き）をDBに保存しないよう thumb フィールドを除去 |
+| choices 正規化 | 既存の `sanitizeChoicesForSave` を適用 |
+| visualFx null 化 | 空オブジェクト / type 未設定なら null |
+| colorFilter null 化 | type=none なら null |
+| backgroundFilter clamp | blurPx を [0,24]、dimOpacity を [0,60] にクランプし、両方 0 なら null |
+
+#### 変更ファイル
+
+- `apps/frontend/pages/my/games/[id]/edit.vue`（script のみ、テンプレート変更なし）
+
+### 保存payload生成結果の等価性
+
+`saveNode` と `saveAndCreateNext` は従来それぞれ同一の正規化ブロックをコピーしていたため、どちらも同関数を呼ぶ形に変えても出力は変わらない。`buildNodePayloadForSave` は純粋に draft を受け取って正規化済みオブジェクトを返すだけであり、外部 ref / 副作用を持たない。
+
+### 今回変更しなかった箇所
+
+- `saveAndCreateNext` の **2) コピー元の抽出**（`src = JSON.parse(…)` / `inherit` / `copyOpts`）は別の目的（次ノードへの引き継ぎ）であり、今回は触らない。
+- テンプレート、localStorage 責務、NodePicker、ScenarioCheck は一切変更なし。
+
 ## 参照
 
 - `docs/PROJECT_SPEC.md`
