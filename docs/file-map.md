@@ -52,7 +52,7 @@ apps/frontend/pages/
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
-│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。基本情報フォームは `NodeBasicInfoFields.vue`（台詞/継続チェック/話者キャラ/話者表記）へ移譲済み。遷移・分岐フォームは `NodeTransitionFields.vue`（次ノード/コピー対象）と `NodeChoicesFields.vue`（選択肢UI）へ段階移譲済み。保存payload正規化は `buildNodePayloadForSave` ヘルパーに一元化。NodePicker本体・選択状態・保存処理・`selectedCharLabel` computedは edit.vue 側責務を維持。段階的共通化計画は `docs/editor-property-form-refactor-plan.md` を参照
+│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。基本情報フォームは `NodeBasicInfoFields.vue`（台詞/継続チェック/話者キャラ/話者表記）へ移譲済み。表示・素材（背景/BGM/SE）フォームは `NodeMaterialsFields.vue` へ移譲済み（キャラクター配置は edit.vue 側に残置）。遷移・分岐フォームは `NodeTransitionFields.vue`（次ノード/コピー対象）と `NodeChoicesFields.vue`（選択肢UI）へ段階移譲済み。保存payload正規化は `buildNodePayloadForSave` ヘルパーに一元化。NodePicker本体・選択状態・保存処理・`selectedCharLabel` computedは edit.vue 側責務を維持。段階的共通化計画は `docs/editor-property-form-refactor-plan.md` を参照
 ```
 
 ---
@@ -78,6 +78,7 @@ apps/frontend/components/
 ├── editor/
 │   ├── NodeBasicInfoFields.vue              # ノード編集画面の「基本情報」セクション共通コンポーネント。台詞テキストエリア・前ノード継続チェック・話者キャラ選択・話者表記inputを担当。通常表示・全画面表示の両方で再利用。CharacterPicker本体・保存処理・selectedCharLabel computedは edit.vue 側責務を維持
 │   ├── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
+│   ├── NodeMaterialsFields.vue              # ノード編集画面の「表示・素材」セクション（背景/BGM/SE）共通コンポーネント。bgUrl/musicTitle/musicUrl/sfxUrlをpropsで受け取り、選択・クリアをemitで通知。AssetPicker本体・キャラクター配置UIは edit.vue 側責務を維持
 │   ├── NodeTransitionFields.vue             # ノード編集画面で使用される「遷移・分岐（一部）」共通コンポーネント。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を担当。NodePicker本体は edit.vue 側責務のまま維持
 │   └── NodeChoicesFields.vue                # ノード編集画面で使用される「選択肢UI」共通コンポーネント。選択肢一覧/通常遷移先/状態操作/effects/条件分岐先UIを担当。NodePicker本体・選択状態・保存処理・正規化は edit.vue 側責務を維持
 ├── game/
