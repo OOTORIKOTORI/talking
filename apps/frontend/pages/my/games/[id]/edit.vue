@@ -12,6 +12,7 @@ import NodeTransitionFields from '@/components/editor/NodeTransitionFields.vue'
 import NodeChoicesFields from '@/components/editor/NodeChoicesFields.vue'
 import NodeBasicInfoFields from '@/components/editor/NodeBasicInfoFields.vue'
 import NodeMaterialsFields from '@/components/editor/NodeMaterialsFields.vue'
+import NodePortraitsFields from '@/components/editor/NodePortraitsFields.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -3239,28 +3240,13 @@ function downloadAiReviewMarkdown() {
                   @clear-sfx="nodeDraft.sfxAssetId=''"
                 />
 
-                <!-- 立ち絵（複数配置） -->
-                <div v-if="sectionOpen.materials" class="mt-3">
-                  <div class="flex items-center justify-between">
-                    <label class="block text-sm font-semibold">キャラクター配置</label>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="addPortrait">追加</button>
-                  </div>
-                  <div v-if="(nodeDraft.portraits||[]).length===0" class="text-xs text-gray-500 mt-1">未配置</div>
-                  <div v-for="(p, i) in (nodeDraft.portraits ||= [])" :key="i" class="mt-2 p-2 border rounded">
-                    <div class="flex items-center gap-2">
-                      <img v-if="p.thumb" :src="p.thumb" class="w-12 h-12 object-cover rounded-full border" />
-                      <span class="text-xs text-gray-700 truncate flex-1">{{ p.characterName || p.characterId }}</span>
-                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(Number(i))">画像変更</button>
-                      <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(Number(i))">削除</button>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 mt-2">
-                      <label class="text-xs">X%<input type="number" v-model.number="p.x" class="w-full border rounded px-1 py-0.5" /></label>
-                      <label class="text-xs">Y%<input type="number" v-model.number="p.y" class="w-full border rounded px-1 py-0.5" /></label>
-                      <label class="text-xs">Scale%<input type="number" v-model.number="p.scale" class="w-full border rounded px-1 py-0.5" /></label>
-                      <label class="text-xs">Z<input type="number" v-model.number="p.z" class="w-full border rounded px-1 py-0.5" /></label>
-                    </div>
-                  </div>
-                </div>
+                <NodePortraitsFields
+                  :node-draft="nodeDraft"
+                  :section-open="sectionOpen"
+                  @add-portrait="addPortrait"
+                  @change-portrait="changePortrait"
+                  @remove-portrait="removePortrait"
+                />
 
                 <!-- 演出セクション -->
                 <div class="editor-section-header" @click="sectionOpen.effects = !sectionOpen.effects">
@@ -3395,28 +3381,13 @@ function downloadAiReviewMarkdown() {
                     @clear-sfx="nodeDraft.sfxAssetId=''"
                   />
 
-                  <!-- 立ち絵（複数配置） -->
-                  <div v-if="sectionOpen.materials" class="mt-3">
-                    <div class="flex items-center justify-between">
-                      <label class="block text-sm font-semibold">キャラクター配置</label>
-                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="addPortrait">追加</button>
-                    </div>
-                    <div v-if="(nodeDraft.portraits||[]).length===0" class="text-xs text-gray-500 mt-1">未配置</div>
-                    <div v-for="(p, i) in (nodeDraft.portraits ||= [])" :key="i" class="mt-2 p-2 border rounded">
-                      <div class="flex items-center gap-2">
-                        <img v-if="p.thumb" :src="p.thumb" class="w-12 h-12 object-cover rounded-full border" />
-                        <span class="text-xs text-gray-700 truncate flex-1">{{ p.characterName || p.characterId }}</span>
-                        <button type="button" class="px-2 py-1 border rounded text-xs" @click="changePortrait(i)">画像変更</button>
-                        <button type="button" class="px-2 py-1 border rounded text-xs" @click="removePortrait(i)">削除</button>
-                      </div>
-                      <div class="grid grid-cols-4 gap-2 mt-2">
-                        <label class="text-xs">X%<input type="number" v-model.number="p.x" class="w-full border rounded px-1 py-0.5" /></label>
-                        <label class="text-xs">Y%<input type="number" v-model.number="p.y" class="w-full border rounded px-1 py-0.5" /></label>
-                        <label class="text-xs">Scale%<input type="number" v-model.number="p.scale" class="w-full border rounded px-1 py-0.5" /></label>
-                        <label class="text-xs">Z<input type="number" v-model.number="p.z" class="w-full border rounded px-1 py-0.5" /></label>
-                      </div>
-                    </div>
-                  </div>
+                  <NodePortraitsFields
+                    :node-draft="nodeDraft"
+                    :section-open="sectionOpen"
+                    @add-portrait="addPortrait"
+                    @change-portrait="changePortrait"
+                    @remove-portrait="removePortrait"
+                  />
 
                   <!-- 演出セクション -->
                   <div class="editor-section-header" @click="sectionOpen.effects = !sectionOpen.effects">

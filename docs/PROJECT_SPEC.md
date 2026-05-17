@@ -1816,7 +1816,8 @@ interface MessageTheme {
 - 2026-05-16 に Phase 2-b-1（選択肢UI共通化MVP）を実装し、`NodeChoicesFields.vue` で「選択肢・状態操作・条件分岐先」UIを共通化した
 - 2026-05-17 に Phase 2-b-2 を実装し、`edit.vue` script 内に `buildNodePayloadForSave` 共通ヘルパーを抽出。`saveNode` / `saveAndCreateNext` の保存payload正規化を一元化した
 - 2026-05-17 に Phase 2-c を実装し、`NodeBasicInfoFields.vue` で「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化した
-- 2026-05-17 に Phase 2-d-1 を実装し、`NodeMaterialsFields.vue` で「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化した。キャラクター配置（portraits）は `edit.vue` 側に残置。`bgUrl` / `musicTitle` / `musicUrl` / `sfxUrl` の watch・`AssetPicker` 本体・保存処理も `edit.vue` 側に維持
+- 2026-05-17 に Phase 2-d-1 を実装し、`NodeMaterialsFields.vue` で「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化した。`bgUrl` / `musicTitle` / `musicUrl` / `sfxUrl` の watch・`AssetPicker` 本体・保存処理も `edit.vue` 側に維持
+- 2026-05-17 に Phase 2-d-2 を実装し、`NodePortraitsFields.vue` でキャラクター配置UI（portraits）を共通化した。`addPortrait` / `changePortrait` / `removePortrait` / `CharacterPicker` / `CharacterImagePicker` / portraits thumb 補完は `edit.vue` 側に維持
 - NodePicker 本体、NodePicker の選択状態管理、保存処理（`buildNodePayloadForSave` を含む）、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側責務のまま維持
 
 #### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）
