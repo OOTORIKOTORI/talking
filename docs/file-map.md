@@ -82,6 +82,7 @@ apps/frontend/components/
 │   ├── NodePortraitsFields.vue              # ノード編集画面の「表示・素材」セクション内キャラクター配置UI共通コンポーネント。portrait一覧・追加/画像変更/削除ボタン・X/Y/Scale/Z入力を担当。addPortrait/changePortrait/removePortrait/CharacterPicker/CharacterImagePicker/thumb補完は edit.vue 側責務を維持
 │   ├── NodeSaveActions.vue                  # ノード編集画面の保存ボタン共通コンポーネント。saving prop で disabled/ラベル切り替え。saveNode/saveAndCreateNext をemitで通知
 │   ├── NodeDangerZone.vue                   # ノード編集画面の「危険操作」セクション共通コンポーネント。セクション見出し開閉トグル + ノード削除ボタン。toggle-dangerous/delete-current-node をemitで通知
+│   ├── EditorPublishCheckSummaryCard.vue    # 公開前チェックパネル内のサマリーカード共通コンポーネント。状態バッジ・参照確認中スピナー・issue一覧アンカーリンク・severity別/カテゴリ別件数・優先問題最大3件を担当。issue一覧・フィルタ・参照診断取得処理は edit.vue 側責務を維持
 │   ├── NodeTransitionFields.vue             # ノード編集画面で使用される「遷移・分岐（一部）」共通コンポーネント。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を担当。NodePicker本体は edit.vue 側責務のまま維持
 │   └── NodeChoicesFields.vue                # ノード編集画面で使用される「選択肢UI」共通コンポーネント。選択肢一覧/通常遷移先/状態操作/effects/条件分岐先UIを担当。NodePicker本体・選択状態・保存処理・正規化は edit.vue 側責務を維持
 ├── game/

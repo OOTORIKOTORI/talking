@@ -1,6 +1,6 @@
 # edit画面プロパティフォーム共通化 設計メモMVP
 
-最終更新: 2026-05-17（Phase 2-e 反映）
+最終更新: 2026-05-18（Phase 2-f 反映）
 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ## 背景
@@ -446,6 +446,56 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ 通常表示側に統合
 - ✅ frontend build 済み
 - ✅ 手動確認済み
+
+## Phase 2-f 実装状況（2026-05-18）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/EditorPublishCheckSummaryCard.vue` を新規作成。
+- `edit.vue` 公開前チェックパネル内の「公開前チェックサマリーカード」（`<!-- ── 公開前チェックサマリーカード ── -->` 以下のカードブロック）を共通コンポーネント化。
+- 以下の表示用 computed を `edit.vue` からコンポーネント側へ移譲:
+  - `publishCheckStatus` / `publishCheckStatusLabel` / `publishCheckStatusMessage`
+  - `publishCheckStatusCardClass` / `publishCheckStatusBadgeClass` / `publishCheckStatusTextClass`
+  - `publishCheckTopIssues` / `publishCheckTopIssuesRemainder`
+
+#### このコンポーネントが担当する範囲
+
+- 状態バッジ（公開準備OK / 要修正 / 注意あり / チェック中…）
+- 参照確認中スピナー表示
+- issue一覧アンカーリンク（`href="#publish-check-issues"`）
+- 状態メッセージ
+- severity 別件数（要修正 / 注意 / 情報）
+- カテゴリ別件数（構成 / 素材参照 / キャラクター参照）
+- 優先して修正する問題（error 最大3件）と「ほか N件」
+
+#### props
+
+| 名前 | 型 | 役割 |
+|---|---|---|
+| `counts` | `{ error: number; warning: number; info: number }` | severity 別件数 |
+| `totalCount` | `number` | 全件数（アンカーリンク表示制御） |
+| `categoryCounts` | `{ structure: number; assetReference: number; characterReference: number }` | カテゴリ別件数 |
+| `issues` | `Array<{ id: string; severity: string; message: string }>` | 優先問題抽出用 issue 一覧 |
+| `referenceDiagnosticsLoading` | `boolean` | 参照確認中スピナー表示 |
+| `referenceDiagnosticsError` | `string \| null` | 参照診断エラー（warning 状態への影響） |
+
+#### edit.vue 側に残した責務
+
+- `scenarioCheckIssues` / `scenarioCheckCounts` / `scenarioCategoryCounts` / `scenarioCheckTotalCount` の算出
+- `referenceDiagnosticsLoading` / `referenceDiagnosticsError` の状態管理・参照診断 API 取得処理
+- issue フィルタ / カテゴリフィルタ UI
+- `focusScenarioIssue` / クエリパラメータからの公開前チェック誘導
+- 公開前チェックパネル全体の開閉状態（`sectionOpen.scenarioCheck`）
+- 公開前チェックパネル全体のコンポーネント化（未着手）
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ edit.vue への統合（import + テンプレート置き換え）
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
 
 ## 参照
 
