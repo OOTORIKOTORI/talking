@@ -402,7 +402,7 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c 実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
