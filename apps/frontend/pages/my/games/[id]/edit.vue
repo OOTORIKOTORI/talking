@@ -2509,7 +2509,8 @@ function generateAiReviewMarkdown(): string {
   md += '## Export Note\n\n'
   md += 'このMarkdownはTalkingの編集画面から出力されたAIレビュー用の台本です。\n'
   md += '現在選択中のノードについては、未保存の編集内容が反映されている場合があります。\n'
-  md += '公開前チェック結果、未到達判定、クレジット詳細、素材/キャラクター詳細情報はこのMVPには含まれません。\n'
+  md += '公開前チェック結果（未到達警告・素材/キャラクター参照警告を含む）も同梱されます。\n'
+  md += 'クレジット詳細、素材/キャラクター詳細情報、Import/JSON Export/独自DSLはこのMVPには含まれません。\n'
   md += '\n'
 
   // ─── 3. Summary ──
@@ -2557,7 +2558,71 @@ function generateAiReviewMarkdown(): string {
   }
   md += '\n'
 
-  // ─── 4. Scene Index ──
+  // ─── 4. Pre-publish Check ──
+  {
+    const counts = scenarioCheckCounts.value
+    const catCounts = scenarioCategoryCounts.value
+    const issues = scenarioCheckIssues.value
+    const loading = referenceDiagnosticsLoading.value
+    const diagError = referenceDiagnosticsError.value
+
+    const status = (() => {
+      if (counts.error > 0) return '要修正'
+      if (diagError) return '注意あり'
+      if (counts.warning > 0) return '注意あり'
+      if (loading) return 'チェック中'
+      return '公開準備OK'
+    })()
+
+    md += '## Pre-publish Check\n\n'
+    md += `- Status: ${status}\n`
+    md += `- Total Issues: ${issues.length}\n`
+    md += '- Counts:\n'
+    md += `  - Error: ${counts.error}\n`
+    md += `  - Warning: ${counts.warning}\n`
+    md += `  - Info: ${counts.info}\n`
+    md += '- Categories:\n'
+    md += `  - 構成: ${catCounts.structure}\n`
+    md += `  - 素材参照: ${catCounts.assetReference}\n`
+    md += `  - キャラクター参照: ${catCounts.characterReference}\n`
+    md += '- Reference Diagnostics:\n'
+    if (loading) {
+      md += '  - Status: Loading\n'
+    } else if (diagError) {
+      md += '  - Status: Error\n'
+      md += `  - Message: ${diagError}\n`
+    } else {
+      md += '  - Status: OK\n'
+    }
+    md += '\n'
+
+    if (issues.length === 0) {
+      md += '公開前チェックで重大な問題は見つかりませんでした。\n'
+    } else {
+      md += '### Issues\n\n'
+      for (let idx = 0; idx < issues.length; idx++) {
+        const issue = issues[idx]
+        const cat = categorizeIssue(issue as any)
+        const catLabel = prepublishCategoryLabel(cat)
+        const sceneLabel = issue.sceneOrder != null
+          ? `Scene ${issue.sceneOrder}: ${issue.sceneName}`
+          : '未設定'
+        const nodeLabel = issue.nodeOrder != null ? `Node ${issue.nodeOrder}` : '未設定'
+        md += `${idx + 1}. [${issue.severity}] ${catLabel}\n`
+        md += `   - Message: ${issue.message}\n`
+        md += `   - Scene: ${sceneLabel}\n`
+        md += `   - Node: ${nodeLabel}\n`
+        md += `   - Field: ${issue.field || '未設定'}\n`
+        md += `   - Code: ${issue.code || '未設定'}\n`
+        md += `   - Ref ID: ${issue.refId || '未設定'}\n`
+        md += `   - Node Preview: ${issue.nodePreview || '未設定'}\n`
+        md += '\n'
+      }
+    }
+    md += '\n'
+  }
+
+  // ─── 5. Scene Index ──
   md += '## Scene Index\n\n'
   for (let si = 0; si < (scenarioCheckScenes.value ?? []).length; si++) {
     const scene = scenarioCheckScenes.value[si]
@@ -2569,7 +2634,7 @@ function generateAiReviewMarkdown(): string {
   }
   md += '\n'
 
-  // ─── 5. Script ──
+  // ─── 6. Script ──
   md += '## Script\n\n'
   for (let si = 0; si < (scenarioCheckScenes.value ?? []).length; si++) {
     const scene = scenarioCheckScenes.value[si]

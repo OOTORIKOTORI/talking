@@ -1414,14 +1414,19 @@ GET /games/:id/reference-diagnostics
   - `choices`
   - 使用素材ID（BG/BGM/SFX/Character Image）
   - 使用キャラクターID
+  - 公開前チェック結果（`## Pre-publish Check` セクション）（2026-05-18 追加）:
+    - Status（公開準備OK / 注意あり / 要修正 / チェック中）
+    - Total Issues / severity別件数（Error/Warning/Info）/ カテゴリ別件数（構成/素材参照/キャラクター参照）
+    - Reference Diagnostics の状態（OK / Loading / Error）
+    - issue 一覧（severity / カテゴリ / message / scene / node / field / code / refId / nodePreview）
+    - 未到達警告・素材/キャラクター参照警告は公開前チェック結果の issue として含まれる
 - データ源は `scenarioCheckScenes` を使用し、現在選択中ノードは未保存の `nodeDraft` が反映される場合がある。
+- 公開前チェック結果のデータ源: `scenarioCheckIssues` / `scenarioCheckCounts` / `scenarioCategoryCounts` / `referenceDiagnosticsLoading` / `referenceDiagnosticsError`（いずれも `edit.vue` の既存 computed/ref）
 - この出力操作でゲーム内容は保存/変更されない（DB/API保存なし）。
-- 今回含めないもの（将来課題）:
+- 含めないもの（将来課題）:
   - Import
   - JSON Export
   - 独自DSL
-  - 公開前チェック結果
-  - 未到達判定
   - クレジット詳細
   - 素材/キャラクター詳細情報のAPI追加取得
   - DB/API保存
@@ -2225,7 +2230,7 @@ interface GameNode {
   - 付随課題: undo/redo、操作前確認ダイアログ、コピー先選択UI、大量ノード操作、シーン/ノードテンプレート化、シナリオImport/Export連携
 - シナリオのエクスポート/インポートは将来課題
   - AIレビュー用台本Markdownの最小Export MVP（編集画面の `MDコピー` / `MD保存`）は実装済み
-  - Import、JSON Export、独自DSL、公開前チェック結果/未到達判定/クレジット詳細の同梱、素材/キャラクター詳細情報の追加取得、自動AIレビュー実行は未実装
+  - Import、JSON Export、独自DSL、クレジット詳細の同梱、素材/キャラクター詳細情報のAPI追加取得、自動AIレビュー実行は未実装（公開前チェック結果・未到達警告は 2026-05-18 に実装済み）
 - キーコンフィグ・AUTO再生・Skip機能・プレイヤーごとのセーブデータ設計は将来課題
 - スマホ/タブレット向けプレイ操作最適化は将来課題
 - 画像の遅延読込・AVIF/WebP 最適化は別タスク

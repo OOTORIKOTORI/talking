@@ -654,7 +654,10 @@
 
 - 状態: `一部MVP実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「シナリオ・制作ツール」「シナリオ Import/Export（JSON → AI 向け Markdown/DSL）」及び 2026-05-15 実装「AIレビュー用 台本Markdown Export MVP」
-- 概要: ゲームシナリオをJSON・Markdown・独自DSLでエクスポート/インポートできる機能。AIレビュー用の最低限の台本Markdownのみ実装済み。Import、JSON Export、DSL、高度な解析付きExportは未実装。
+- 概要: ゲームシナリオをJSON・Markdown・独自DSLでエクスポート/インポートできる機能。AIレビュー用の台本Markdown（公開前チェック結果同梱）は実装済み。Import、JSON Export、DSL、高度な解析付きExportは未実装。
+- 実装内容:
+	- 2026-05-15: 台本Markdown Export MVP（ゲーム基本情報・シーン一覧・ノード本文・選択肢・使用素材/キャラクターID）
+	- 2026-05-18: 公開前チェック結果の同梱（`## Pre-publish Check` セクション追加。未到達警告・参照診断警告を含む severity別/カテゴリ別件数・issue一覧）
 
 ### FI-092: シーン複製
 
