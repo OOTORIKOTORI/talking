@@ -299,7 +299,7 @@ Phase 2 以降で以下を継続的に共通化：
 
 Phase 2-d 以降で以下を継続的に共通化候補として検討：
 - ~~素材・キャラクター参照UI（背景、BGM、SE）~~ → Phase 2-d-1 で完了
-- キャラクター配置 → 次フェーズ（`NodePortraitsFields.vue` など）
+- ~~キャラクター配置~~ → Phase 2-d-2 で完了
 - 保存・削除アクション周辺 → `NodeSaveActions.vue` / `NodeDangerZone.vue`
 
 ## Phase 2-d-1 実装状況（2026-05-17）
@@ -341,7 +341,7 @@ Phase 2-d 以降で以下を継続的に共通化候補として検討：
 - `nodeDraft` 本体・`sectionOpen` 本体
 - `bgUrl` / `musicTitle` / `musicUrl` / `sfxUrl` の ref + watch
 - `openBgPicker` / `openMusicPicker` / `openSfxPicker` の開閉フラグ
-- `AssetPicker` 本体・キャラクター配置UI・保存処理
+- `AssetPicker` 本体・保存処理（キャラクター配置UI は Phase 2-d-2 で `NodePortraitsFields.vue` へ移譲）
 
 ### 後続修正（2026-05-17）
 
@@ -355,6 +355,52 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ 通常表示側に統合
 - ✅ frontend build 済み
 - ✅ 手動確認済み（PR #5 + import修正コミット 175e5cd 適用後）
+
+## Phase 2-d-2 実装状況（2026-05-17）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodePortraitsFields.vue` を新規作成。
+- 通常表示 / 全画面表示の「表示・素材」セクション内キャラクター配置UI（2箇所）を共通化。
+- `edit.vue` の `script setup` に `import NodePortraitsFields` を追加。
+- 既存の全画面側 `changePortrait(Number(i))` / 通常側 `changePortrait(i)` の表記揺れを、コンポーネント側で `Number(i)` に統一。
+
+#### このコンポーネントが担当する範囲
+
+- キャラクター配置ラベル + 追加ボタン
+- 未配置メッセージ
+- portrait 一覧（サムネイル・名前・画像変更ボタン・削除ボタン・X/Y/Scale/Z 入力）
+- `sectionOpen.materials` が false のときは非表示
+
+「表示・素材」セクション見出し / 開閉は `NodeMaterialsFields.vue` が引き続き担当。
+
+#### props / emits
+
+| 種別 | 名前 | 役割 |
+|---|---|---|
+| prop | `nodeDraft` | `.portraits` 配列を直接 `v-model.number` で編集 |
+| prop | `sectionOpen` | `.materials` が false のとき非表示 |
+| emit | `add-portrait` | 「追加」ボタン押下 |
+| emit | `change-portrait(index: number)` | 「画像変更」ボタン押下（index は Number に変換済み） |
+| emit | `remove-portrait(index: number)` | 「削除」ボタン押下（index は Number に変換済み） |
+
+#### edit.vue 側に残した責務
+
+- `nodeDraft` 本体・`sectionOpen` 本体
+- `addPortrait` / `changePortrait` / `removePortrait` の実装
+- `CharacterPicker` / `CharacterImagePicker` 本体
+- `pendingIndex` / `onCharPicked` / `onImagePicked`
+- portraits の thumb 補完処理・保存処理
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ 全画面側に統合
+- ✅ 通常表示側に統合
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
 
 ## 参照
 

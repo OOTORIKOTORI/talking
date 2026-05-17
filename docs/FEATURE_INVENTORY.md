@@ -402,7 +402,7 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 + Phase 2-d-2 実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
@@ -413,7 +413,8 @@
 	- 2026-05-17: `edit.vue` script 内に `buildNodePayloadForSave` を共通ヘルパーとして抽出。`saveNode` / `saveAndCreateNext` の重複していた保存payload正規化処理を一元化。NodePicker・保存処理・正規化の責務は引き続き `edit.vue` 側に集約。
 	- 2026-05-17: `apps/frontend/components/editor/NodeBasicInfoFields.vue` を新規作成。通常表示/全画面表示の「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化。
 	- 2026-05-17: `selectedCharLabel` の話者キャラクリア表示修正。`speakerCharacterId` が空のとき「未選択」を返すよう修正。`speakerDisplayName` は独立して保持。
-	- 2026-05-17: `apps/frontend/components/editor/NodeMaterialsFields.vue` を新規作成。通常表示/全画面表示の「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化。キャラクター配置（portraits）は `edit.vue` 側に残置。あわせて `edit.vue` の script setup に NodeMaterialsFields の import を追加（表示不具合修正）。
+	- 2026-05-17: `apps/frontend/components/editor/NodeMaterialsFields.vue` を新規作成。通常表示/全画面表示の「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化。あわせて import 追加（表示不具合修正）。
+	- 2026-05-17: `apps/frontend/components/editor/NodePortraitsFields.vue` を新規作成。通常表示/全画面表示のキャラクター配置UI（portraits）を共通化。`addPortrait` / `changePortrait` / `removePortrait` / `CharacterPicker` / `CharacterImagePicker` は `edit.vue` 側に残置。
 
 ### FI-056: 右ペインセクション要約表示
 
