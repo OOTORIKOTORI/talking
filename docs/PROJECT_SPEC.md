@@ -1818,6 +1818,7 @@ interface MessageTheme {
 - 2026-05-17 に Phase 2-c を実装し、`NodeBasicInfoFields.vue` で「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化した
 - 2026-05-17 に Phase 2-d-1 を実装し、`NodeMaterialsFields.vue` で「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化した。`bgUrl` / `musicTitle` / `musicUrl` / `sfxUrl` の watch・`AssetPicker` 本体・保存処理も `edit.vue` 側に維持
 - 2026-05-17 に Phase 2-d-2 を実装し、`NodePortraitsFields.vue` でキャラクター配置UI（portraits）を共通化した。`addPortrait` / `changePortrait` / `removePortrait` / `CharacterPicker` / `CharacterImagePicker` / portraits thumb 補完は `edit.vue` 側に維持
+- 2026-05-17 に Phase 2-e を実装し、`NodeSaveActions.vue` で保存ボタン（保存/保存して次のノードへ）を、`NodeDangerZone.vue` で「危険操作」セクション（セクション見出し + ノード削除ボタン）を共通化した。`saving` ref・`saveNode` / `saveAndCreateNext` / `deleteCurrentNode` の実装・`sectionOpen.dangerous` 状態は `edit.vue` 側に維持
 - NodePicker 本体、NodePicker の選択状態管理、保存処理（`buildNodePayloadForSave` を含む）、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側責務のまま維持
 
 #### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）

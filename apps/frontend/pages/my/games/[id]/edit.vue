@@ -13,6 +13,8 @@ import NodeChoicesFields from '@/components/editor/NodeChoicesFields.vue'
 import NodeBasicInfoFields from '@/components/editor/NodeBasicInfoFields.vue'
 import NodeMaterialsFields from '@/components/editor/NodeMaterialsFields.vue'
 import NodePortraitsFields from '@/components/editor/NodePortraitsFields.vue'
+import NodeSaveActions from '@/components/editor/NodeSaveActions.vue'
+import NodeDangerZone from '@/components/editor/NodeDangerZone.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -3296,41 +3298,17 @@ function downloadAiReviewMarkdown() {
                 </div>
               </div>
 
-              <div class="flex gap-2 border-t pt-3">
-                <button
-                  class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-400"
-                  :disabled="saving"
-                  @click="saveNode"
-                >
-                  {{ saving ? '保存中...' : '保存' }}
-                </button>
-                <button
-                  class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-400"
-                  :disabled="saving"
-                  @click="saveAndCreateNext"
-                >
-                  {{ saving ? '保存中...' : '保存して次のノードへ' }}
-                </button>
-              </div>
+              <NodeSaveActions
+                :saving="saving"
+                @save="saveNode"
+                @save-and-create-next="saveAndCreateNext"
+              />
 
-              <!-- 危険操作セクション -->
-              <div class="editor-section-header" @click="sectionOpen.dangerous = !sectionOpen.dangerous">
-                <span class="editor-section-title">
-                  <span class="editor-section-toggle">{{ sectionOpen.dangerous ? '▼' : '▶' }}</span>
-                  危険操作
-                </span>
-              </div>
-
-              <div v-if="sectionOpen.dangerous" class="border-t pt-3">
-                <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
-                <button
-                  class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  @click="deleteCurrentNode"
-                  aria-label="このノードを削除"
-                >
-                  このノードを削除
-                </button>
-              </div>
+              <NodeDangerZone
+                :section-open="sectionOpen"
+                @toggle-dangerous="sectionOpen.dangerous = !sectionOpen.dangerous"
+                @delete-current-node="deleteCurrentNode"
+              />
 
               </div>
             </div>
@@ -3436,40 +3414,17 @@ function downloadAiReviewMarkdown() {
                   </div>
                 </div>
 
-                <div class="flex gap-2 border-t pt-3">
-                  <button
-                    class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-400"
-                    :disabled="saving"
-                    @click="saveNode"
-                  >
-                    {{ saving ? '保存中...' : '保存' }}
-                  </button>
-                  <button
-                    class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:bg-gray-400"
-                    :disabled="saving"
-                    @click="saveAndCreateNext"
-                  >
-                    {{ saving ? '保存中...' : '保存して次のノードへ' }}
-                  </button>
-                </div>
+                <NodeSaveActions
+                  :saving="saving"
+                  @save="saveNode"
+                  @save-and-create-next="saveAndCreateNext"
+                />
 
-                <!-- 危険操作セクション -->
-                <div class="editor-section-header" @click="sectionOpen.dangerous = !sectionOpen.dangerous">
-                  <span class="editor-section-title">
-                    <span class="editor-section-toggle">{{ sectionOpen.dangerous ? '▼' : '▶' }}</span>
-                    危険操作
-                  </span>
-                </div>
-                <div v-if="sectionOpen.dangerous" class="border-t pt-3">
-                  <div class="text-sm font-medium mb-2 text-gray-700">ノード操作</div>
-                  <button
-                    class="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                    @click="deleteCurrentNode"
-                    aria-label="このノードを削除"
-                  >
-                    このノードを削除
-                  </button>
-                </div>
+                <NodeDangerZone
+                  :section-open="sectionOpen"
+                  @toggle-dangerous="sectionOpen.dangerous = !sectionOpen.dangerous"
+                  @delete-current-node="deleteCurrentNode"
+                />
 
               </div>
             </div>

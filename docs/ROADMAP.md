@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-17（FI-055 Phase 2-d-2 反映）
+> 最終更新: 2026-05-17（FI-055 Phase 2-e 反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -203,6 +203,7 @@
 - 話者キャラクリア後の表示修正: `speakerCharacterId` が空のとき `selectedCharLabel` が「未選択」を返すよう修正（`speakerDisplayName` は独立して保持）
 - FI-055 Phase 2-d-1: `NodeMaterialsFields.vue` を新規作成し、通常表示/全画面表示の「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化
 - FI-055 Phase 2-d-2: `NodePortraitsFields.vue` を新規作成し、通常表示/全画面表示のキャラクター配置UIを共通化（表示・素材セクション内の残り重複を解消）
+- FI-055 Phase 2-e: `NodeSaveActions.vue` / `NodeDangerZone.vue` を新規作成し、通常表示/全画面表示の保存ボタン・危険操作セクションを共通化
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）
 - 右ペインセクション化・localStorage 保存・作業位置復元
 - edit 画面右ペイン上部アクション群の整理MVP（表示 / 設定 / 出力で軽くグルーピング。既存ボタン挙動は不変、狭い幅では flex-wrap で自然に折り返し）
