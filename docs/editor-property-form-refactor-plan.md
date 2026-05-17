@@ -298,8 +298,58 @@ Phase 2 以降で以下を継続的に共通化：
 ### 今後の課題（残課題）
 
 Phase 2-d 以降で以下を継続的に共通化候補として検討：
-- 素材・キャラクター参照UI（背景、BGM、SE、キャラクター配置） → `NodeMaterialsFields.vue`
+- ~~素材・キャラクター参照UI（背景、BGM、SE）~~ → Phase 2-d-1 で完了
+- キャラクター配置 → 次フェーズ（`NodePortraitsFields.vue` など）
 - 保存・削除アクション周辺 → `NodeSaveActions.vue` / `NodeDangerZone.vue`
+
+## Phase 2-d-1 実装状況（2026-05-17）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodeMaterialsFields.vue` を新規作成。
+- 通常表示 / 全画面表示の「表示・素材」セクションのうち、背景 / BGM / SE（3項目）を共通化。
+- キャラクター配置（portraits）は今回対象外。
+
+#### このコンポーネントが担当する範囲
+
+- 「表示・素材」セクション見出し（開閉トグル付き）
+- 背景 サムネイル表示・変更ボタン・クリアボタン
+- BGM タイトル表示・変更ボタン・クリアボタン・試聴 audio
+- 効果音(SE) ID表示・変更ボタン・クリアボタン・試聴 audio
+
+#### props / emits
+
+| 種別 | 名前 | 役割 |
+|---|---|---|
+| prop | `nodeDraft` | `.bgAssetId` / `.musicAssetId` / `.sfxAssetId` の有無でクリアボタン表示を制御 |
+| prop | `sectionOpen` | `.materials` を開閉トグルで直接変更 |
+| prop | `bgUrl` | 署名済み背景画像URL（null = 未選択） |
+| prop | `musicTitle` | BGMのタイトル文字列（未選択なら空文字） |
+| prop | `musicUrl` | 署名済みBGM音声URL（null = 未選択） |
+| prop | `sfxUrl` | 署名済みSE音声URL（null = 未選択） |
+| emit | `open-bg-picker` | 背景「変更」ボタン押下 |
+| emit | `open-music-picker` | BGM「変更」ボタン押下 |
+| emit | `open-sfx-picker` | SE「変更」ボタン押下 |
+| emit | `clear-bg` | 背景「クリア」ボタン押下 → edit.vue 側で `nodeDraft.bgAssetId=''` |
+| emit | `clear-music` | BGM「クリア」ボタン押下 → edit.vue 側で `nodeDraft.musicAssetId=''` |
+| emit | `clear-sfx` | SE「クリア」ボタン押下 → edit.vue 側で `nodeDraft.sfxAssetId=''` |
+
+#### edit.vue 側に残した責務
+
+- `nodeDraft` 本体・`sectionOpen` 本体
+- `bgUrl` / `musicTitle` / `musicUrl` / `sfxUrl` の ref + watch
+- `openBgPicker` / `openMusicPicker` / `openSfxPicker` の開閉フラグ
+- `AssetPicker` 本体・キャラクター配置UI・保存処理
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ 全画面側に統合
+- ✅ 通常表示側に統合
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
 
 ## 参照
 

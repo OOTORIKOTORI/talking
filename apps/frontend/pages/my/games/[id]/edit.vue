@@ -3223,41 +3223,20 @@ function downloadAiReviewMarkdown() {
                 />
 
               <div class="space-y-3">
-                <!-- 表示・素材セクション -->
-                <div class="editor-section-header" @click="sectionOpen.materials = !sectionOpen.materials">
-                  <span class="editor-section-title">
-                    <span class="editor-section-toggle">{{ sectionOpen.materials ? '▼' : '▶' }}</span>
-                    表示・素材
-                  </span>
-                </div>
-
-                <div v-if="sectionOpen.materials">
-                  <label class="block text-sm font-medium mb-1">背景</label>
-                  <div class="flex items-center gap-2">
-                    <img v-if="bgUrl" :src="bgUrl" class="w-16 h-10 object-cover rounded border" />
-                    <span v-else class="text-xs text-gray-500">未選択</span>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openBgPicker=true">変更</button>
-                    <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
-                  </div>
-                </div>
-                <div v-if="sectionOpen.materials">
-                  <label class="block text-sm font-medium mb-1">BGM</label>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-700 truncate flex-1">{{ musicTitle || '未選択' }}</span>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openMusicPicker=true">変更</button>
-                    <button v-if="nodeDraft.musicAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.musicAssetId=''">クリア</button>
-                  </div>
-                  <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
-                </div>
-                <div v-if="sectionOpen.materials">
-                  <label class="block text-sm font-medium mb-1">効果音(SE)</label>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
-                    <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
-                    <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
-                  </div>
-                  <audio v-if="sfxUrl" :src="sfxUrl" controls preload="none" class="mt-1 w-full"></audio>
-                </div>
+                <NodeMaterialsFields
+                  :node-draft="nodeDraft"
+                  :section-open="sectionOpen"
+                  :bg-url="bgUrl"
+                  :music-title="musicTitle"
+                  :music-url="musicUrl"
+                  :sfx-url="sfxUrl"
+                  @open-bg-picker="openBgPicker=true"
+                  @open-music-picker="openMusicPicker=true"
+                  @open-sfx-picker="openSfxPicker=true"
+                  @clear-bg="nodeDraft.bgAssetId=''"
+                  @clear-music="nodeDraft.musicAssetId=''"
+                  @clear-sfx="nodeDraft.sfxAssetId=''"
+                />
 
                 <!-- 立ち絵（複数配置） -->
                 <div v-if="sectionOpen.materials" class="mt-3">
@@ -3400,40 +3379,20 @@ function downloadAiReviewMarkdown() {
                 />
 
                 <div class="space-y-3">
-                  <!-- 表示・素材セクション -->
-                  <div class="editor-section-header" @click="sectionOpen.materials = !sectionOpen.materials">
-                    <span class="editor-section-title">
-                      <span class="editor-section-toggle">{{ sectionOpen.materials ? '▼' : '▶' }}</span>
-                      表示・素材
-                    </span>
-                  </div>
-                  <div v-if="sectionOpen.materials">
-                    <label class="block text-sm font-medium mb-1">背景</label>
-                    <div class="flex items-center gap-2">
-                      <img v-if="bgUrl" :src="bgUrl" class="w-16 h-10 object-cover rounded border" />
-                      <span v-else class="text-xs text-gray-500">未選択</span>
-                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openBgPicker=true">変更</button>
-                      <button v-if="nodeDraft.bgAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.bgAssetId=''">クリア</button>
-                    </div>
-                  </div>
-                  <div v-if="sectionOpen.materials">
-                    <label class="block text-sm font-medium mb-1">BGM</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs text-gray-700 truncate flex-1">{{ musicTitle || '未選択' }}</span>
-                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openMusicPicker=true">変更</button>
-                      <button v-if="nodeDraft.musicAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.musicAssetId=''">クリア</button>
-                    </div>
-                    <audio v-if="musicUrl" :src="musicUrl" controls preload="none" class="mt-1 w-full"></audio>
-                  </div>
-                  <div v-if="sectionOpen.materials">
-                    <label class="block text-sm font-medium mb-1">効果音(SE)</label>
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs text-gray-700 truncate flex-1">{{ nodeDraft.sfxAssetId || '未選択' }}</span>
-                      <button type="button" class="px-2 py-1 border rounded text-sm" @click="openSfxPicker=true">変更</button>
-                      <button v-if="nodeDraft.sfxAssetId" type="button" class="px-2 py-1 border rounded text-sm" @click="nodeDraft.sfxAssetId=''">クリア</button>
-                    </div>
-                    <audio v-if="sfxUrl" :src="sfxUrl" controls preload="none" class="mt-1 w-full"></audio>
-                  </div>
+                  <NodeMaterialsFields
+                    :node-draft="nodeDraft"
+                    :section-open="sectionOpen"
+                    :bg-url="bgUrl"
+                    :music-title="musicTitle"
+                    :music-url="musicUrl"
+                    :sfx-url="sfxUrl"
+                    @open-bg-picker="openBgPicker=true"
+                    @open-music-picker="openMusicPicker=true"
+                    @open-sfx-picker="openSfxPicker=true"
+                    @clear-bg="nodeDraft.bgAssetId=''"
+                    @clear-music="nodeDraft.musicAssetId=''"
+                    @clear-sfx="nodeDraft.sfxAssetId=''"
+                  />
 
                   <!-- 立ち絵（複数配置） -->
                   <div v-if="sectionOpen.materials" class="mt-3">
