@@ -1,6 +1,6 @@
 # edit画面プロパティフォーム共通化 設計メモMVP
 
-最終更新: 2026-05-17
+最終更新: 2026-05-17（Phase 2-e 反映）
 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ## 背景
@@ -300,7 +300,7 @@ Phase 2 以降で以下を継続的に共通化：
 Phase 2-d 以降で以下を継続的に共通化候補として検討：
 - ~~素材・キャラクター参照UI（背景、BGM、SE）~~ → Phase 2-d-1 で完了
 - ~~キャラクター配置~~ → Phase 2-d-2 で完了
-- 保存・削除アクション周辺 → `NodeSaveActions.vue` / `NodeDangerZone.vue`
+- ~~保存・削除アクション周辺~~ → Phase 2-e で完了（`NodeSaveActions.vue` / `NodeDangerZone.vue`）
 
 ## Phase 2-d-1 実装状況（2026-05-17）
 
@@ -393,6 +393,51 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - `CharacterPicker` / `CharacterImagePicker` 本体
 - `pendingIndex` / `onCharPicked` / `onImagePicked`
 - portraits の thumb 補完処理・保存処理
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ 全画面側に統合
+- ✅ 通常表示側に統合
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
+
+## Phase 2-e 実装状況（2026-05-17）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodeSaveActions.vue` を新規作成。
+- `apps/frontend/components/editor/NodeDangerZone.vue` を新規作成。
+- 通常表示 / 全画面表示の保存ボタン（2箇所）と危険操作セクション（2箇所）を共通化。
+- `edit.vue` の `script setup` に `import NodeSaveActions` / `import NodeDangerZone` を追加。
+
+#### NodeSaveActions が担当する範囲
+
+- 保存ボタン・保存して次のノードへボタン（saving 状態の disabled + ラベル切り替え含む）
+
+#### NodeDangerZone が担当する範囲
+
+- 「危険操作」セクション見出し（開閉トグル付き）
+- 「このノードを削除」ボタン
+
+#### props / emits
+
+| コンポーネント | 種別 | 名前 | 役割 |
+|---|---|---|---|
+| NodeSaveActions | prop | `saving` | ボタンの disabled + ラベル切り替え |
+| NodeSaveActions | emit | `save` | 保存ボタン押下 |
+| NodeSaveActions | emit | `save-and-create-next` | 保存して次へボタン押下 |
+| NodeDangerZone | prop | `sectionOpen` | `.dangerous` で開閉制御 |
+| NodeDangerZone | emit | `toggle-dangerous` | セクション見出しクリック |
+| NodeDangerZone | emit | `delete-current-node` | 削除ボタン押下 |
+
+#### edit.vue 側に残した責務
+
+- `saving` ref 本体
+- `saveNode` / `saveAndCreateNext` / `deleteCurrentNode` の実装
+- `sectionOpen.dangerous` の状態管理
 
 ### 検証状況
 
