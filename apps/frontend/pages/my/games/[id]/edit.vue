@@ -668,7 +668,8 @@ function scaleToHeight(s: number | undefined) {
 }
 
 const selectedCharLabel = computed(() => {
-  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || '未選択'
+  if (!nodeDraft.speakerCharacterId) return '未選択'
+  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || nodeDraft.speakerCharacterId
 })
 
 const nodePickerScenes = computed(() => {
