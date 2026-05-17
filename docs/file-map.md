@@ -76,6 +76,7 @@ apps/frontend/components/
 │   ├── ToastContainer.vue                   # トースト通知の描画コンテナ
 │   └── UploadTabs.vue                       # アップロード画面の種別切り替えタブ
 ├── editor/
+│   ├── NodeBasicInfoFields.vue              # ノード編集画面の「基本情報」セクション共通コンポーネント。台詞テキストエリア・前ノード継続チェック・話者キャラ選択・話者表記inputを担当。通常表示・全画面表示の両方で再利用。CharacterPicker本体・保存処理・selectedCharLabel computedは edit.vue 側責務を維持
 │   ├── NodeEffectsFields.vue                # ノード編集画面で使用される「演出系フォーム」の共通コンポーネント。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターの UI と nodeDraft 編集に責務を限定。ステージ表示状態（effectState/playEffect/StageCanvas反映）は edit.vue 側が担当。通常表示・全画面表示の両方で再利用
 │   ├── NodeTransitionFields.vue             # ノード編集画面で使用される「遷移・分岐（一部）」共通コンポーネント。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を担当。NodePicker本体は edit.vue 側責務のまま維持
 │   └── NodeChoicesFields.vue                # ノード編集画面で使用される「選択肢UI」共通コンポーネント。選択肢一覧/通常遷移先/状態操作/effects/条件分岐先UIを担当。NodePicker本体・選択状態・保存処理・正規化は edit.vue 側責務を維持
