@@ -15,7 +15,7 @@
  *   - nodeDraft 本体・sectionOpen 本体
  *   - bgUrl / musicTitle / musicUrl / sfxUrl
  *   - openBgPicker / openMusicPicker / openSfxPicker
- *   - AssetPicker 本体・キャラクター配置UI・保存処理
+ *   - AssetPicker 本体・保存処理（キャラクター配置UI は NodePortraitsFields.vue へ移譲済み）
  */
 defineProps<{
   nodeDraft: any

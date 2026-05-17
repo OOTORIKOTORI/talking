@@ -400,7 +400,7 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ 全画面側に統合
 - ✅ 通常表示側に統合
 - ✅ frontend build 済み
-- ⏳ 手動確認待ち
+- ✅ 手動確認済み
 
 ## Phase 2-e 実装状況（2026-05-17）
 
