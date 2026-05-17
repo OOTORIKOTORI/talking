@@ -413,6 +413,7 @@
 	- 2026-05-17: `edit.vue` script 内に `buildNodePayloadForSave` を共通ヘルパーとして抽出。`saveNode` / `saveAndCreateNext` の重複していた保存payload正規化処理を一元化。NodePicker・保存処理・正規化の責務は引き続き `edit.vue` 側に集約。
 	- 2026-05-17: `apps/frontend/components/editor/NodeBasicInfoFields.vue` を新規作成。通常表示/全画面表示の「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化。
 	- 2026-05-17: `selectedCharLabel` の話者キャラクリア表示修正。`speakerCharacterId` が空のとき「未選択」を返すよう修正。`speakerDisplayName` は独立して保持。
+	- 2026-05-17: `apps/frontend/components/editor/NodeMaterialsFields.vue` を新規作成。通常表示/全画面表示の「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化。キャラクター配置（portraits）は `edit.vue` 側に残置。あわせて `edit.vue` の script setup に NodeMaterialsFields の import を追加（表示不具合修正）。
 
 ### FI-056: 右ペインセクション要約表示
 

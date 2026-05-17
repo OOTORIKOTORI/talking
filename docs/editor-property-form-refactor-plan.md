@@ -343,13 +343,18 @@ Phase 2-d 以降で以下を継続的に共通化候補として検討：
 - `openBgPicker` / `openMusicPicker` / `openSfxPicker` の開閉フラグ
 - `AssetPicker` 本体・キャラクター配置UI・保存処理
 
+### 後続修正（2026-05-17）
+
+PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の import が漏れていたため、表示・素材セクションが描画されない不具合が発生。
+`import NodeMaterialsFields from '@/components/editor/NodeMaterialsFields.vue'` を追加するコミット（175e5cd）で修正済み。
+
 ### 検証状況
 
 - ✅ コンポーネント作成
 - ✅ 全画面側に統合
 - ✅ 通常表示側に統合
 - ✅ frontend build 済み
-- ✅ 手動確認済み（PR #5 マージ）
+- ✅ 手動確認済み（PR #5 + import修正コミット 175e5cd 適用後）
 
 ## 参照
 
