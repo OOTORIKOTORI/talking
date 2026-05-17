@@ -1741,6 +1741,8 @@ interface MessageTheme {
 <!-- impl: apps/frontend/pages/my/games/[id]/edit.vue -->
 - 台詞（text）
 - 話者キャラ（speakerCharacterId）と **話者表記（自由入力）** …匿名演出（`???` 等）やあだ名に対応
+  - 話者キャラ欄の表示ラベル（`selectedCharLabel`）: `speakerCharacterId` が空の場合は「未選択」を表示する
+  - 話者表記（`speakerDisplayName`）は話者キャラとは独立して保持され、キャラクターをクリアしても値は消去されない
 - 背景（bgAssetId） … サムネ表示
 - BGM（musicAssetId） … `<audio controls>` で再生/停止可
 - 効果音（SE, sfxAssetId） … エディタ上のラベルは「効果音(SE)」。`<audio controls>` で試聴可
@@ -1812,7 +1814,9 @@ interface MessageTheme {
 - その後 2026-05-15 に Phase 1（演出系フォーム共通化MVP）を実装し、`NodeEffectsFields.vue` で演出系フォームの重複を解消済み（残りは Phase 2 以降）
 - 2026-05-16 に Phase 2-a（遷移・分岐の一部）を実装し、`NodeTransitionFields.vue` で「次ノード選択UI」と「次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）」を共通化した
 - 2026-05-16 に Phase 2-b-1（選択肢UI共通化MVP）を実装し、`NodeChoicesFields.vue` で「選択肢・状態操作・条件分岐先」UIを共通化した
-- NodePicker 本体、NodePicker の選択状態管理、保存処理、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側責務のまま維持
+- 2026-05-17 に Phase 2-b-2 を実装し、`edit.vue` script 内に `buildNodePayloadForSave` 共通ヘルパーを抽出。`saveNode` / `saveAndCreateNext` の保存payload正規化を一元化した
+- 2026-05-17 に Phase 2-c を実装し、`NodeBasicInfoFields.vue` で「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化した
+- NodePicker 本体、NodePicker の選択状態管理、保存処理（`buildNodePayloadForSave` を含む）、`normalizeChoiceDrafts` / `sanitizeChoicesForSave` は `edit.vue` 側責務のまま維持
 
 #### edit画面プロパティフォーム共通化 設計メモMVP（2026-05-15）
 - 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
