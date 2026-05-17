@@ -52,7 +52,7 @@ apps/frontend/pages/
 │   └── games/
 │       ├── index.vue                        # ゲーム管理一覧。新規プロジェクト作成と再編集導線
 │       └── [id]/
-│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。遷移・分岐フォームは `NodeTransitionFields.vue`（次ノード/コピー対象）と `NodeChoicesFields.vue`（選択肢UI）へ段階移譲済み。NodePicker本体・選択状態・保存/正規化は edit.vue 側責務を維持。段階的共通化計画は `docs/editor-property-form-refactor-plan.md` を参照
+│           └── edit.vue                     # ゲームエディタ。シーン/ノード/演出/テーマ設定を編集。右ペインに制作ガイドカード（折りたたみ・非表示・再表示可。2026-05-16 polish でコンパクト化）と公開前チェックパネル（サマリーカード・severity別件数・優先issue・カテゴリフィルタ・issue一覧）を内包。右ペイン上部アクションは表示/設定/出力で軽くグルーピングし、狭い幅では折り返し表示。表示設定リセット導線（3ペイン幅・右ペイン開閉・最後の選択位置・制作ガイド非表示状態）あり。基本情報フォームは `NodeBasicInfoFields.vue`（台詞/継続チェック/話者キャラ/話者表記）へ移譲済み。遷移・分岐フォームは `NodeTransitionFields.vue`（次ノード/コピー対象）と `NodeChoicesFields.vue`（選択肢UI）へ段階移譲済み。保存payload正規化は `buildNodePayloadForSave` ヘルパーに一元化。NodePicker本体・選択状態・保存処理・`selectedCharLabel` computedは edit.vue 側責務を維持。段階的共通化計画は `docs/editor-property-form-refactor-plan.md` を参照
 ```
 
 ---

@@ -402,7 +402,7 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c 実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
@@ -410,7 +410,9 @@
 	- 2026-05-15: `apps/frontend/components/editor/NodeEffectsFields.vue` を新規作成。カメラ・カメラ演出・ビジュアルエフェクト・カラーフィルター・背景フィルターを統合。
 	- 2026-05-16: `apps/frontend/components/editor/NodeTransitionFields.vue` を新規作成。次ノード選択UIと次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）を統合。
 	- 2026-05-16: `apps/frontend/components/editor/NodeChoicesFields.vue` を新規作成。選択肢UI（通常遷移先・状態操作・特別選択肢条件・条件分岐先）を統合。
-	- NodePicker本体、NodePicker状態管理、保存処理、正規化処理は `edit.vue` 側に残置（責務維持）。
+	- 2026-05-17: `edit.vue` script 内に `buildNodePayloadForSave` を共通ヘルパーとして抽出。`saveNode` / `saveAndCreateNext` の重複していた保存payload正規化処理を一元化。NodePicker・保存処理・正規化の責務は引き続き `edit.vue` 側に集約。
+	- 2026-05-17: `apps/frontend/components/editor/NodeBasicInfoFields.vue` を新規作成。通常表示/全画面表示の「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化。
+	- 2026-05-17: `selectedCharLabel` の話者キャラクリア表示修正。`speakerCharacterId` が空のとき「未選択」を返すよう修正。`speakerDisplayName` は独立して保持。
 
 ### FI-056: 右ペインセクション要約表示
 

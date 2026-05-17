@@ -1,15 +1,15 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-16（FI-055 Phase 2-b-1 / NodePicker Esc挙動修正 反映）
+> 最終更新: 2026-05-17（FI-055 Phase 2-b-2 + Phase 2-c + 話者キャラクリア表示修正 反映）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
 
 ---
 
-## 📍 現在地サマリ（2026-05-16）
+## 📍 現在地サマリ（2026-05-17）
 
-最新仕様確認コミット: 03a29a1dafbf8ea7b41270cfe71adf11be8a14ae
+最新仕様確認コミット: de268a27a296dd010869df3b90bea052a44701a1
 
 以下の MVP が一区切り済みです。
 
@@ -198,6 +198,9 @@
 - ゲーム複製・公開前チェック（error ブロック/warning 確認）・参照診断・シナリオチェック
 - FI-055 Phase 2-a: `NodeTransitionFields.vue` による次ノード選択 / 次ノード作成時コピー対象フォーム共通化MVP
 - FI-055 Phase 2-b-1: `NodeChoicesFields.vue` による選択肢UI（通常遷移先/状態操作/条件分岐先）共通化MVP
+- FI-055 Phase 2-b-2: `buildNodePayloadForSave` を `edit.vue` script 内に抽出し、`saveNode` / `saveAndCreateNext` の保存payload正規化を一元化
+- FI-055 Phase 2-c: `NodeBasicInfoFields.vue` を新規作成し、通常表示/全画面表示の「基本情報」セクション（台詞/継続チェック/話者キャラ/話者表記）を共通化
+- 話者キャラクリア後の表示修正: `speakerCharacterId` が空のとき `selectedCharLabel` が「未選択」を返すよう修正（`speakerDisplayName` は独立して保持）
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）
 - 右ペインセクション化・localStorage 保存・作業位置復元
 - edit 画面右ペイン上部アクション群の整理MVP（表示 / 設定 / 出力で軽くグルーピング。既存ボタン挙動は不変、狭い幅では flex-wrap で自然に折り返し）
