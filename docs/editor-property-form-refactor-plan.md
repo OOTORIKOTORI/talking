@@ -237,6 +237,65 @@ Phase 2 以降で以下を継続的に共通化：
 - `saveAndCreateNext` の **2) コピー元の抽出**（`src = JSON.parse(…)` / `inherit` / `copyOpts`）は別の目的（次ノードへの引き継ぎ）であり、今回は触らない。
 - テンプレート、localStorage 責務、NodePicker、ScenarioCheck は一切変更なし。
 
+## Phase 2-c 実装状況（2026-05-17）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/NodeBasicInfoFields.vue` を新規作成。
+- 通常表示 / 全画面表示の「基本情報」セクション（重複 2 箇所）を同コンポーネントで統一。
+
+#### このコンポーネントが担当する範囲
+
+- 「基本情報」セクション見出し（開閉トグル付き）
+- 台詞 textarea
+- 前ノードのセリフを継続するチェックボックス
+- 話者キャラ 表示欄・変更ボタン・クリアボタン
+- 話者表記 input
+
+#### edit.vue での使用箇所
+
+- 全画面編集モード（fs-form）内の「基本情報セクション」
+- 通常表示モード（pane-props）内の「基本情報セクション」
+
+どちらも同じ `<NodeBasicInfoFields :node-draft="nodeDraft" :section-open="sectionOpen" ... />` で統一されている。
+
+#### props / emits
+
+| 種別 | 名前 | 役割 |
+|---|---|---|
+| prop | `nodeDraft` | `reactive` オブジェクト。`.text` / `.continuesPreviousText` / `.speakerCharacterId` / `.speakerDisplayName` を直接編集 |
+| prop | `sectionOpen` | `reactive` オブジェクト。`.basic` を開閉トグルで直接変更（既存コンポーネントと同パターン） |
+| prop | `selectedCharLabel` | 話者キャラの表示名（computed から渡す） |
+| emit | `open-char-picker` | 「変更」ボタン押下時。edit.vue 側の `openSpeakerCharPicker()` を呼び出す |
+| emit | `clear-char` | 「クリア」ボタン押下時。edit.vue 側の `clearChar()` を呼び出す |
+
+#### CSS スタイルについて
+
+`editor-section-*` クラスは edit.vue の `<style scoped>` で定義されているため、NodeBasicInfoFields.vue 内に同内容を `<style scoped>` で再定義した。
+
+#### edit.vue 側に残した責務
+
+- `nodeDraft` 本体・`sectionOpen` 本体
+- `selectedCharLabel` computed
+- `openSpeakerCharPicker()` / `clearChar()` 実装
+- `CharacterPicker` 本体・保存処理・その他ページ状態
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ 全画面側に統合
+- ✅ 通常表示側に統合
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
+
+### 今後の課題（残課題）
+
+Phase 2-d 以降で以下を継続的に共通化候補として検討：
+- 素材・キャラクター参照UI（背景、BGM、SE、キャラクター配置） → `NodeMaterialsFields.vue`
+- 保存・削除アクション周辺 → `NodeSaveActions.vue` / `NodeDangerZone.vue`
+
 ## 参照
 
 - `docs/PROJECT_SPEC.md`
