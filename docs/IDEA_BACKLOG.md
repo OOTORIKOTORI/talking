@@ -350,7 +350,7 @@
 
 ### edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a〜2-e 実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a〜2-f 実装済み`
 - 背景: `apps/frontend/pages/my/games/[id]/edit.vue` の通常表示フォームと全画面フォームに同種UIの二重実装があり、背景フィルター / 背景ぼかしMVPで通常表示側のみUI追加される反映漏れが再発。
 - 実現済みの部分:
   - Phase 1: `NodeEffectsFields.vue`（演出系: カメラ / カメラ演出 / ビジュアルエフェクト / カラーフィルター / 背景フィルター）
@@ -361,7 +361,8 @@
   - Phase 2-d-1: `NodeMaterialsFields.vue`（表示・素材: 背景 / BGM / SE）
   - Phase 2-d-2: `NodePortraitsFields.vue`（キャラクター配置UI）
   - Phase 2-e: `NodeSaveActions.vue` / `NodeDangerZone.vue`（保存ボタン / 危険操作セクション）
-- 未実装の部分: 公開前チェック周辺の共通化（未着手）。
+  - Phase 2-f: `EditorPublishCheckSummaryCard.vue`（公開前チェックサマリーカード）
+- 未実装の部分: 公開前チェックパネル全体の共通化（issue一覧・フィルタ・対象移動など）は未着手。サマリーカードは Phase 2-f で実装済み。
 - 関連docs: `docs/editor-property-form-refactor-plan.md`, `docs/PROJECT_SPEC.md`, `docs/ROADMAP.md`, `docs/FEATURE_INVENTORY.md`
 
 ### 3ペイン構造の情報設計v2

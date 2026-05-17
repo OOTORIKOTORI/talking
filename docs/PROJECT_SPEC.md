@@ -1811,7 +1811,7 @@ interface MessageTheme {
 - `遷移・分岐` セクションには `次ノードID`、`次ノード作成時のコピー対象`、`選択肢` を含める
 - `危険操作` セクションにはノード削除導線を配置する
 - 当該セクション実装時点ではフォーム共通コンポーネント化は未実施で、通常表示/全画面表示のフォーム重複を将来課題として扱っていた
-- その後 2026-05-15 に Phase 1（演出系フォーム共通化MVP）を実装し、`NodeEffectsFields.vue` で演出系フォームの重複を解消。続いて Phase 2-a〜2-e で遷移・分岐 / 素材・キャラ参照 / 保存・危険操作も順次共通化済み
+- その後 2026-05-15 に Phase 1（演出系フォーム共通化MVP）を実装し、`NodeEffectsFields.vue` で演出系フォームの重複を解消。続いて Phase 2-a〜2-f で遷移・分岐 / 素材・キャラ参照 / 保存・危険操作 / 公開前チェックサマリーカードも順次共通化済み
 - 2026-05-16 に Phase 2-a（遷移・分岐の一部）を実装し、`NodeTransitionFields.vue` で「次ノード選択UI」と「次ノード作成時コピー対象（背景/キャラ/BGM/カメラ）」を共通化した
 - 2026-05-16 に Phase 2-b-1（選択肢UI共通化MVP）を実装し、`NodeChoicesFields.vue` で「選択肢・状態操作・条件分岐先」UIを共通化した
 - 2026-05-17 に Phase 2-b-2 を実装し、`edit.vue` script 内に `buildNodePayloadForSave` 共通ヘルパーを抽出。`saveNode` / `saveAndCreateNext` の保存payload正規化を一元化した
@@ -1828,11 +1828,12 @@ interface MessageTheme {
 - 実害: 背景フィルター / 背景ぼかしMVPで、通常表示側のみUI追加され全画面側へ漏れる差分事故が発生した。
 - リスク: 将来、ライブ編集など第3の編集UIが増えると差分漏れがさらに起きやすくなる。
 - 方針: `edit.vue` 全体の一括大改造は避け、段階的に小さな共通コンポーネントへ切り出す。
-- 段階案（策定時点の構想。現在は Phase 2-e まで実装済み）:
+- 段階案（策定時点の構想。現在は Phase 2-f まで実装済み）:
   - Phase 1: 演出系（カメラ / カメラ演出 / ビジュアルエフェクト / カラーフィルター / 背景フィルター）✅
   - Phase 2-a〜2-e: 遷移・分岐 / 選択肢 / 基本情報 / 素材・キャラ参照 / 保存・危険操作 ✅
-  - 残: 公開前チェック周辺（未着手）
-- 実装状況: Phase 1〜Phase 2-e まで実装済み（詳細は `docs/editor-property-form-refactor-plan.md` を参照）。
+  - Phase 2-f: 公開前チェックサマリーカード（`EditorPublishCheckSummaryCard.vue`）✅
+  - 残: 公開前チェックパネル全体の共通化（issue一覧・フィルタ・対象移動など）
+- 実装状況: Phase 1〜Phase 2-f まで実装済み（詳細は `docs/editor-property-form-refactor-plan.md` を参照）。
 - 注意点: `v-model` と computed setter の責務整理、`nodeDraft` nullタイミング、数値input型維持、`backgroundFilter` null正規化、localStorage key追加回避、保存payload正規化責務の維持。
 - 詳細: `docs/editor-property-form-refactor-plan.md`
 

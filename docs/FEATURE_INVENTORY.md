@@ -417,7 +417,7 @@
 	- 2026-05-17: `apps/frontend/components/editor/NodePortraitsFields.vue` を新規作成。通常表示/全画面表示のキャラクター配置UI（portraits）を共通化。`addPortrait` / `changePortrait` / `removePortrait` / `CharacterPicker` / `CharacterImagePicker` は `edit.vue` 側に残置。
 	- 2026-05-17: `apps/frontend/components/editor/NodeSaveActions.vue` を新規作成。通常表示/全画面表示の保存ボタン（「保存」「保存して次のノードへ」）を共通化。
 	- 2026-05-17: `apps/frontend/components/editor/NodeDangerZone.vue` を新規作成。通常表示/全画面表示の「危険操作」セクション（セクション見出し + ノード削除ボタン）を共通化。
-		- 2026-05-18: `apps/frontend/components/editor/EditorPublishCheckSummaryCard.vue` を新規作成。公開前チェックパネル内のサマリーカード（状態バッジ・件数・優先問題）を共通コンポーネント化。公開前チェックパネル全体のコンポーネント化は未着手。
+	- 2026-05-18: `apps/frontend/components/editor/EditorPublishCheckSummaryCard.vue` を新規作成。公開前チェックパネル内のサマリーカード（状態バッジ・件数・優先問題）を共通コンポーネント化。公開前チェックパネル全体のコンポーネント化は未着手。
 
 ### FI-056: 右ペインセクション要約表示
 
