@@ -156,6 +156,9 @@ function resetSectionOpen() {
 
 const creationGuideHidden = ref(false)
 
+// 話者キャラ欄に表示するキャラ名（speakerDisplayName とは独立）
+const speakerCharacterLabel = ref('')
+
 function buildCreationGuideHiddenStorageKey(gameId: string) {
   return `${CREATION_GUIDE_HIDDEN_STORAGE_KEY_PREFIX}${gameId}`
 }
@@ -675,7 +678,7 @@ function scaleToHeight(s: number | undefined) {
 
 const selectedCharLabel = computed(() => {
   if (!nodeDraft.speakerCharacterId) return '未選択'
-  return nodeDraft.speakerDisplayName || node.value?.speakerDisplayName || nodeDraft.speakerCharacterId
+  return speakerCharacterLabel.value || '選択済み'
 })
 
 const nodePickerScenes = computed(() => {
@@ -1526,24 +1529,28 @@ const isPortraitMode = computed(() => pendingIndex.value !== null)
 
 function clearChar() {
   nodeDraft.speakerCharacterId = ''
-  if (!nodeDraft.speakerDisplayName) nodeDraft.speakerDisplayName = ''
+  speakerCharacterLabel.value = ''
+  // speakerDisplayName はクリアしない（表記だけ残したいケースに対応）
 }
 
 function onCharPicked(c: any) {
+  const charName = c.displayName || c.name || ''
   // ポートレートモードの場合
   if (isPortraitMode.value) {
     // キャラIDを一時保存して画像選択へ
     nodeDraft.speakerCharacterId = c.id
     if (!nodeDraft.speakerDisplayName) {
-      nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+      nodeDraft.speakerDisplayName = charName
     }
     openCharImagePicker.value = true
   } else {
     // 話者選択モードの場合
     nodeDraft.speakerCharacterId = c.id
     if (!nodeDraft.speakerDisplayName) {
-      nodeDraft.speakerDisplayName = c.displayName || c.name || ''
+      nodeDraft.speakerDisplayName = charName
     }
+    // 話者キャラ欄の表示はキャラ名を独立して保持（speakerDisplayName の手入力に引っ張られない）
+    speakerCharacterLabel.value = charName
   }
 }
 
@@ -1975,6 +1982,7 @@ async function setStartSceneFromScene(targetScene: any) {
 function selectNode(n: any, options?: { skipPersist?: boolean }) {
   node.value = n
   Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
+  speakerCharacterLabel.value = n.speakerDisplayName || ''
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
   }
@@ -2997,12 +3005,12 @@ function downloadAiReviewMarkdown() {
                     リセット
                   </button>
                   <button
-                    v-if="creationGuideHidden || !sectionOpen.guide"
                     class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50"
-                    @click="showCreationGuide"
-                    title="制作ガイドを表示"
+                    :class="(!creationGuideHidden && sectionOpen.guide) ? 'border-slate-400 bg-slate-50' : ''"
+                    @click="(!creationGuideHidden && sectionOpen.guide) ? (sectionOpen.guide = false) : showCreationGuide()"
+                    :title="(!creationGuideHidden && sectionOpen.guide) ? '制作ガイドを折りたたむ' : '制作ガイドを表示'"
                   >
-                    📋 ガイド
+                    {{ (!creationGuideHidden && sectionOpen.guide) ? '📋 ガイドを閉じる' : '📋 ガイド' }}
                   </button>
                   <button class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true" title="全体設定">⚙️ 設定</button>
                 </div>
@@ -3041,7 +3049,7 @@ function downloadAiReviewMarkdown() {
                 @click="sectionOpen.guide = false"
                 title="折りたたむ"
               >
-                ▲
+                閉じる
               </button>
             </div>
             <div class="px-2 py-2">
