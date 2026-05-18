@@ -413,6 +413,7 @@
 	- 2026-05-17: `edit.vue` script 内に `buildNodePayloadForSave` を共通ヘルパーとして抽出。`saveNode` / `saveAndCreateNext` の重複していた保存payload正規化処理を一元化。NodePicker・保存処理・正規化の責務は引き続き `edit.vue` 側に集約。
 	- 2026-05-17: `apps/frontend/components/editor/NodeBasicInfoFields.vue` を新規作成。通常表示/全画面表示の「基本情報」セクション（台詞・前ノード継続チェック・話者キャラ・話者表記）を共通化。
 	- 2026-05-17: `selectedCharLabel` の話者キャラクリア表示修正。`speakerCharacterId` が空のとき「未選択」を返すよう修正。`speakerDisplayName` は独立して保持。
+	- 2026-05-19: 話者キャラ欄と話者表記の独立性修正。`speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正（表記だけ残したいケースに対応）。
 	- 2026-05-17: `apps/frontend/components/editor/NodeMaterialsFields.vue` を新規作成。通常表示/全画面表示の「表示・素材」セクションのうち背景/BGM/効果音(SE) UIを共通化。あわせて import 追加（表示不具合修正）。
 	- 2026-05-17: `apps/frontend/components/editor/NodePortraitsFields.vue` を新規作成。通常表示/全画面表示のキャラクター配置UI（portraits）を共通化。`addPortrait` / `changePortrait` / `removePortrait` / `CharacterPicker` / `CharacterImagePicker` は `edit.vue` 側に残置。
 	- 2026-05-17: `apps/frontend/components/editor/NodeSaveActions.vue` を新規作成。通常表示/全画面表示の保存ボタン（「保存」「保存して次のノードへ」）を共通化。
@@ -824,10 +825,11 @@
 
 ### FI-117: 制作ガイドカードMVP
 
-- 状態: `実装済み（2026-05-16 軽polish含む）`
+- 状態: `実装済み（2026-05-16 軽polish含む。2026-05-19 トグルUX修正）`
 - ROADMAP出典: `docs/ROADMAP.md` 制作ガイドカードMVP
 - 概要: 編集画面右ペインに、開始地点・ノード数・カバー画像・公開前チェックなどから次のアクションを案内する制作ガイドを表示する。折りたたみ・非表示・再表示に対応し、右ペインの圧迫を抑える。
 - 補足: 軽polish では縦幅抑制・完了状態表示コンパクト化・余白削減・ボタン配置最適化・補足文言出すぎ抑制を実装。
+- 2026-05-19 軽微UX修正: 上部「📋 ガイド」ボタンを常時表示のトグルボタン化（表示中は「📋 ガイドを閉じる」に変化、active スタイル付与）。カード内 `▲` ボタンを「閉じる」に変更。
 - 出典: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ---
