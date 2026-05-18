@@ -836,6 +836,29 @@ const effectsSummaryText = computed(() => {
   ].join(' / ')
 })
 
+const transitionsSummaryText = computed(() => {
+  const hasNext = !!normalizeChoiceTargetId(nodeDraft.nextNodeId)
+  const choices: any[] = Array.isArray(nodeDraft.choices) ? nodeDraft.choices : []
+  const choiceCount = choices.length
+
+  const parts: string[] = []
+  parts.push(hasNext ? '次ノードあり' : '次ノードなし')
+
+  if (choiceCount === 0) {
+    parts.push('選択肢なし')
+  } else {
+    parts.push(`選択肢${choiceCount}件`)
+    const unsetCount = choices.filter((c) => !hasConfiguredChoiceTarget(c, 'targetNodeId')).length
+    parts.push(`未設定${unsetCount}件`)
+    const condCount = choices.filter(
+      (c) => hasConfiguredChoiceTarget(c, 'alternateTargetNodeId') || !!c.alternateCondition,
+    ).length
+    parts.push(`条件分岐${condCount}件`)
+  }
+
+  return parts.join(' / ')
+})
+
 // 選択肢の遷移先ノードラベルを取得
 function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
   return findNodeLabel(targetNodeId)
@@ -3265,6 +3288,9 @@ function downloadAiReviewMarkdown() {
                     遷移・分岐
                   </span>
                 </div>
+                <div v-if="!sectionOpen.transitions" class="text-xs text-gray-500 truncate mb-1">
+                  {{ transitionsSummaryText }}
+                </div>
 
                 <div v-if="sectionOpen.transitions">
                   <NodeTransitionFields
@@ -3384,6 +3410,9 @@ function downloadAiReviewMarkdown() {
                       <span class="editor-section-toggle">{{ sectionOpen.transitions ? '▼' : '▶' }}</span>
                       遷移・分岐
                     </span>
+                  </div>
+                  <div v-if="!sectionOpen.transitions" class="text-xs text-gray-500 truncate mb-1">
+                    {{ transitionsSummaryText }}
                   </div>
                   <div v-if="sectionOpen.transitions">
                     <NodeTransitionFields
