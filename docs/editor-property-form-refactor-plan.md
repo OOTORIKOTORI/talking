@@ -495,7 +495,7 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ コンポーネント作成
 - ✅ edit.vue への統合（import + テンプレート置き換え）
 - ✅ frontend build 済み
-- ⏳ 手動確認待ち
+- ✅ 手動確認済み
 
 ## 参照
 
