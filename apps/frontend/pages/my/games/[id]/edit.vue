@@ -813,13 +813,26 @@ const nextNodeLabel = computed(() => {
 })
 
 const effectsSummaryText = computed(() => {
-  const effectCount = Array.isArray(nodeDraft.visualEffects) ? nodeDraft.visualEffects.length : 0
-  const blurOn = nodeDraft.backgroundBlur != null && Number(nodeDraft.backgroundBlur) > 0
+  const cam = (nodeDraft as any).camera
+  const cameraFx = (nodeDraft as any).cameraFx
+  const cameraFxActive = !!cameraFx && Number(cameraFx.durationMs) > 0 && cameraFx.mode !== 'cut'
+  const cameraChanged =
+    Number(cam?.zoom) !== 100 || Number(cam?.cx) !== 50 || Number(cam?.cy) !== 50 || cameraFxActive
+
+  const hasVisualFx = !!(nodeDraft as any).visualFx?.type
+
+  const colorFilterActive =
+    (nodeDraft as any).colorFilter?.type && (nodeDraft as any).colorFilter.type !== 'none'
+  const dimActive = Number((nodeDraft as any).backgroundFilter?.dimOpacity) > 0
+  const filterActive = colorFilterActive || dimActive
+
+  const blurActive = Number((nodeDraft as any).backgroundFilter?.blurPx) > 0
+
   return [
-    nodeDraft.camera ? 'カメラ設定あり' : 'カメラ標準',
-    effectCount > 0 ? `エフェクト${effectCount}件` : 'エフェクトなし',
-    nodeDraft.backgroundFilter ? 'フィルターあり' : 'フィルターなし',
-    blurOn ? 'ぼかしあり' : 'ぼかしなし',
+    cameraChanged ? 'カメラ設定あり' : 'カメラ標準',
+    hasVisualFx ? 'エフェクト1件' : 'エフェクトなし',
+    filterActive ? 'フィルターあり' : 'フィルターなし',
+    blurActive ? 'ぼかしあり' : 'ぼかしなし',
   ].join(' / ')
 })
 
