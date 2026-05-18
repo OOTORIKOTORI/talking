@@ -812,6 +812,30 @@ const nextNodeLabel = computed(() => {
   return findNodeLabel(nodeDraft.nextNodeId)
 })
 
+const effectsSummaryText = computed(() => {
+  const cam = (nodeDraft as any).camera
+  const cameraFx = (nodeDraft as any).cameraFx
+  const cameraFxActive = !!cameraFx && Number(cameraFx.durationMs) > 0 && cameraFx.mode !== 'cut'
+  const cameraChanged =
+    Number(cam?.zoom) !== 100 || Number(cam?.cx) !== 50 || Number(cam?.cy) !== 50 || cameraFxActive
+
+  const hasVisualFx = !!(nodeDraft as any).visualFx?.type
+
+  const colorFilterActive =
+    (nodeDraft as any).colorFilter?.type && (nodeDraft as any).colorFilter.type !== 'none'
+  const dimActive = Number((nodeDraft as any).backgroundFilter?.dimOpacity) > 0
+  const filterActive = colorFilterActive || dimActive
+
+  const blurActive = Number((nodeDraft as any).backgroundFilter?.blurPx) > 0
+
+  return [
+    cameraChanged ? 'カメラ設定あり' : 'カメラ標準',
+    hasVisualFx ? 'エフェクト1件' : 'エフェクトなし',
+    filterActive ? 'フィルターあり' : 'フィルターなし',
+    blurActive ? 'ぼかしあり' : 'ぼかしなし',
+  ].join(' / ')
+})
+
 // 選択肢の遷移先ノードラベルを取得
 function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
   return findNodeLabel(targetNodeId)
@@ -3224,6 +3248,9 @@ function downloadAiReviewMarkdown() {
                     演出
                   </span>
                 </div>
+                <div v-if="!sectionOpen.effects" class="text-xs text-gray-500 truncate mb-1">
+                  {{ effectsSummaryText }}
+                </div>
 
                 <NodeEffectsFields
                   v-if="sectionOpen.effects"
@@ -3340,6 +3367,9 @@ function downloadAiReviewMarkdown() {
                       <span class="editor-section-toggle">{{ sectionOpen.effects ? '▼' : '▶' }}</span>
                       演出
                     </span>
+                  </div>
+                  <div v-if="!sectionOpen.effects" class="text-xs text-gray-500 truncate mb-1">
+                    {{ effectsSummaryText }}
                   </div>
 
                   <NodeEffectsFields
