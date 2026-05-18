@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-19（基本情報 speakerCharacterLabel 独立性修正・制作ガイドトグルUX修正）
+> 最終更新: 2026-05-19（話者キャラ名の非同期復元（refreshSpeakerCharacterLabel）・制作ガイドボタン文言固定）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。

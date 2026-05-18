@@ -1527,6 +1527,20 @@ function onChoiceNodeSelected(nodeId: string) {
 // ポートレート選択モードかどうか（nullなら話者選択モード）
 const isPortraitMode = computed(() => pendingIndex.value !== null)
 
+async function refreshSpeakerCharacterLabel(characterId: string | null | undefined) {
+  if (!characterId) { speakerCharacterLabel.value = ''; return }
+  try {
+    const char = await $api<any>(`/my/characters/${characterId}`)
+      .catch(() => $api<any>(`/characters/${characterId}`))
+    if (nodeDraft.speakerCharacterId !== characterId) return
+    speakerCharacterLabel.value = char?.displayName || char?.name || '選択済み'
+  } catch {
+    if (nodeDraft.speakerCharacterId === characterId) {
+      speakerCharacterLabel.value = '選択済み'
+    }
+  }
+}
+
 function clearChar() {
   nodeDraft.speakerCharacterId = ''
   speakerCharacterLabel.value = ''
@@ -1982,7 +1996,7 @@ async function setStartSceneFromScene(targetScene: any) {
 function selectNode(n: any, options?: { skipPersist?: boolean }) {
   node.value = n
   Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
-  speakerCharacterLabel.value = n.speakerCharacterId ? '選択済み' : ''
+  refreshSpeakerCharacterLabel(n.speakerCharacterId)
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
   }
@@ -3010,7 +3024,7 @@ function downloadAiReviewMarkdown() {
                     @click="(!creationGuideHidden && sectionOpen.guide) ? (sectionOpen.guide = false) : showCreationGuide()"
                     :title="(!creationGuideHidden && sectionOpen.guide) ? '制作ガイドを折りたたむ' : '制作ガイドを表示'"
                   >
-                    {{ (!creationGuideHidden && sectionOpen.guide) ? '📋 ガイドを閉じる' : '📋 ガイド' }}
+                    📋 ガイド
                   </button>
                   <button class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50" @click="openThemeModal=true" title="全体設定">⚙️ 設定</button>
                 </div>
