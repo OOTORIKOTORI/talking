@@ -6,7 +6,7 @@
  * 通常表示・全画面表示の両方で同一インスタンスを使用し、テンプレート重複を解消する。
  *
  * 担当範囲:
- *   - 「表示・素材」セクション見出し（開閉トグル付き）
+ *   - 「表示・素材」セクション見出し（開閉トグル付き）+ 閉じた状態の要約表示
  *   - 背景 サムネイル表示・変更・クリア
  *   - BGM タイトル表示・変更・クリア・試聴 audio
  *   - 効果音(SE) ID表示・変更・クリア・試聴 audio
@@ -17,7 +17,9 @@
  *   - openBgPicker / openMusicPicker / openSfxPicker
  *   - AssetPicker 本体・保存処理（キャラクター配置UI は NodePortraitsFields.vue へ移譲済み）
  */
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   nodeDraft: any
   sectionOpen: Record<string, boolean>
   bgUrl: string | null
@@ -34,6 +36,16 @@ const emit = defineEmits<{
   'clear-music': []
   'clear-sfx': []
 }>()
+
+const materialsSummaryText = computed(() => {
+  const portraitCount = Array.isArray(props.nodeDraft.portraits) ? props.nodeDraft.portraits.length : 0
+  return [
+    props.nodeDraft.bgAssetId ? '背景あり' : '背景なし',
+    props.nodeDraft.musicAssetId ? 'BGMあり' : 'BGMなし',
+    props.nodeDraft.sfxAssetId ? 'SEあり' : 'SEなし',
+    `立ち絵${portraitCount}件`,
+  ].join(' / ')
+})
 </script>
 
 <template>
@@ -43,6 +55,11 @@ const emit = defineEmits<{
       <span class="editor-section-toggle">{{ sectionOpen.materials ? '▼' : '▶' }}</span>
       表示・素材
     </span>
+  </div>
+
+  <!-- 閉じた状態の要約 -->
+  <div v-if="!sectionOpen.materials" class="text-xs text-gray-500 truncate mb-1">
+    {{ materialsSummaryText }}
   </div>
 
   <!-- 背景 -->
