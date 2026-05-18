@@ -812,6 +812,17 @@ const nextNodeLabel = computed(() => {
   return findNodeLabel(nodeDraft.nextNodeId)
 })
 
+const effectsSummaryText = computed(() => {
+  const effectCount = Array.isArray(nodeDraft.visualEffects) ? nodeDraft.visualEffects.length : 0
+  const blurOn = nodeDraft.backgroundBlur != null && Number(nodeDraft.backgroundBlur) > 0
+  return [
+    nodeDraft.camera ? 'カメラ設定あり' : 'カメラ標準',
+    effectCount > 0 ? `エフェクト${effectCount}件` : 'エフェクトなし',
+    nodeDraft.backgroundFilter ? 'フィルターあり' : 'フィルターなし',
+    blurOn ? 'ぼかしあり' : 'ぼかしなし',
+  ].join(' / ')
+})
+
 // 選択肢の遷移先ノードラベルを取得
 function getChoiceTargetLabel(targetNodeId: string | null | undefined): string {
   return findNodeLabel(targetNodeId)
@@ -3224,6 +3235,9 @@ function downloadAiReviewMarkdown() {
                     演出
                   </span>
                 </div>
+                <div v-if="!sectionOpen.effects" class="text-xs text-gray-500 truncate mb-1">
+                  {{ effectsSummaryText }}
+                </div>
 
                 <NodeEffectsFields
                   v-if="sectionOpen.effects"
@@ -3340,6 +3354,9 @@ function downloadAiReviewMarkdown() {
                       <span class="editor-section-toggle">{{ sectionOpen.effects ? '▼' : '▶' }}</span>
                       演出
                     </span>
+                  </div>
+                  <div v-if="!sectionOpen.effects" class="text-xs text-gray-500 truncate mb-1">
+                    {{ effectsSummaryText }}
                   </div>
 
                   <NodeEffectsFields
