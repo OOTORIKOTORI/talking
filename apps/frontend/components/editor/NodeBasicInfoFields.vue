@@ -6,7 +6,7 @@
  * 通常表示・全画面表示の両方で同一インスタンスを使用し、テンプレート重複を解消する。
  *
  * 担当範囲:
- *   - 「基本情報」セクション見出し（開閉トグル付き）
+ *   - 「基本情報」セクション見出し（開閉トグル付き）+ 閉じた状態の要約表示
  *   - 台詞 textarea
  *   - 前ノードのセリフを継続するチェックボックス
  *   - 話者キャラ 表示・変更・クリア
@@ -18,7 +18,9 @@
  *   - openSpeakerCharPicker() / clearChar()
  *   - CharacterPicker・保存処理・その他ページ状態
  */
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   nodeDraft: any
   sectionOpen: Record<string, boolean>
   selectedCharLabel: string
@@ -28,6 +30,26 @@ const emit = defineEmits<{
   'open-char-picker': []
   'clear-char': []
 }>()
+
+const speakerSummary = computed(() => {
+  const displayName = props.nodeDraft.speakerDisplayName?.trim()
+  if (displayName) return `話者: ${displayName}`
+
+  const selectedLabel = props.selectedCharLabel?.trim()
+  if (props.nodeDraft.speakerCharacterId && selectedLabel && selectedLabel !== '未選択') {
+    return `話者: ${selectedLabel}`
+  }
+
+  return '話者未設定'
+})
+
+const basicInfoSummaryText = computed(() => {
+  const parts: string[] = []
+  parts.push(speakerSummary.value)
+  parts.push(props.nodeDraft.text?.trim() ? '台詞あり' : '台詞なし')
+  if (props.nodeDraft.continuesPreviousText === true) parts.push('前ノード継続')
+  return parts.join(' / ')
+})
 </script>
 
 <template>
@@ -37,6 +59,11 @@ const emit = defineEmits<{
       <span class="editor-section-toggle">{{ sectionOpen.basic ? '▼' : '▶' }}</span>
       基本情報
     </span>
+  </div>
+
+  <!-- 閉じた状態の要約 -->
+  <div v-if="!sectionOpen.basic" class="text-xs text-gray-500 truncate mb-1">
+    {{ basicInfoSummaryText }}
   </div>
 
   <!-- 台詞 -->
