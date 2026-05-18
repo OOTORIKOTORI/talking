@@ -1982,7 +1982,7 @@ async function setStartSceneFromScene(targetScene: any) {
 function selectNode(n: any, options?: { skipPersist?: boolean }) {
   node.value = n
   Object.assign(nodeDraft, JSON.parse(JSON.stringify(n)))
-  speakerCharacterLabel.value = n.speakerDisplayName || ''
+  speakerCharacterLabel.value = n.speakerCharacterId ? '選択済み' : ''
   if (!nodeDraft.choices) {
     nodeDraft.choices = []
   }
