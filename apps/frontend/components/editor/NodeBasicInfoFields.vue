@@ -32,8 +32,14 @@ const emit = defineEmits<{
 }>()
 
 const speakerSummary = computed(() => {
-  if (props.nodeDraft.speakerDisplayName?.trim()) return `話者: ${props.nodeDraft.speakerDisplayName.trim()}`
-  if (props.selectedCharLabel) return `話者: ${props.selectedCharLabel}`
+  const displayName = props.nodeDraft.speakerDisplayName?.trim()
+  if (displayName) return `話者: ${displayName}`
+
+  const selectedLabel = props.selectedCharLabel?.trim()
+  if (props.nodeDraft.speakerCharacterId && selectedLabel && selectedLabel !== '未選択') {
+    return `話者: ${selectedLabel}`
+  }
+
   return '話者未設定'
 })
 
