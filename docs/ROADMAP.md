@@ -9,7 +9,7 @@
 
 ## 📍 現在地サマリ（2026-05-18）
 
-最新仕様確認コミット: d871db7（Merge pull request #12 from OOTORIKOTORI/fi-056-effects-summary）
+最新仕様確認コミット: 218efdd（Merge pull request #13 from OOTORIKOTORI/fi-056-transitions-summary）
 
 以下の MVP が一区切り済みです。
 
