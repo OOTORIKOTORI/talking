@@ -1,6 +1,6 @@
 # edit画面プロパティフォーム共通化 設計メモMVP
 
-最終更新: 2026-05-18（Phase 2-f 反映）
+最終更新: 2026-05-19（Phase 2-g 反映）
 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ## 背景
@@ -488,7 +488,7 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - issue フィルタ / カテゴリフィルタ UI
 - `focusScenarioIssue` / クエリパラメータからの公開前チェック誘導
 - 公開前チェックパネル全体の開閉状態（`sectionOpen.scenarioCheck`）
-- 公開前チェックパネル全体のコンポーネント化（未着手）
+- 公開前チェックパネル全体のコンポーネント化（フィルターUI・カテゴリフィルター・参照診断API処理まで: Phase 2-g 以降）
 
 ### 検証状況
 
@@ -496,6 +496,65 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ edit.vue への統合（import + テンプレート置き換え）
 - ✅ frontend build 済み
 - ✅ 手動確認済み
+
+## Phase 2-g 実装状況（2026-05-19）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/EditorPublishCheckIssueList.vue` を新規作成。
+- `edit.vue` 公開前チェックパネル内の `id="publish-check-issues"` 以下 issue 一覧表示ブロックを共通コンポーネント化。
+
+#### このコンポーネントが担当する範囲
+
+- issue 総数0件時:「問題は見つかりませんでした。」表示
+- フィルター結果0件時:「この条件のチェック項目はありません。」表示
+- info 項目折りたたみ表示（情報N件 / 情報を表示 / 情報を折りたたむ）
+- issue カード一覧（severity / category / 対象へ移動ボタン / message / location / field / nodePreview / highlight ring）
+
+#### props
+
+| 名前 | 型 | 役割 |
+|---|---|---|
+| `totalCount` | `number` | 全件数（0件メッセージ制御） |
+| `filteredIssues` | `any[]` | フィルター後 issue 一覧 |
+| `filteredInfoIssues` | `any[]` | フィルター後 info 一覧（折りたたみ表示用） |
+| `visibleIssues` | `any[]` | 表示対象 issue 一覧 |
+| `scenarioCheckFilter` | `'all' \| ScenarioCheckSeverity` | 現在のフィルター（info 折りたたみ表示の条件分岐用） |
+| `scenarioCheckInfoOpen` | `boolean` | info 折りたたみ開閉状態 |
+| `highlightedIssueId` | `string \| null` | highlight 表示する issue ID |
+| `scenarioSeverityLabel` | `(severity) => string` | 関数 prop |
+| `scenarioSeverityClass` | `(severity) => string` | 関数 prop |
+| `issueCategoryLabel` | `(issue) => string` | 関数 prop |
+| `issueCategoryClass` | `(issue) => string` | 関数 prop |
+| `scenarioIssueLocation` | `(issue) => string` | 関数 prop |
+
+#### emits
+
+| イベント | 役割 |
+|---|---|
+| `toggle-info-open` | info 折りたたみ切り替え |
+| `focus-issue` | 対象へ移動ボタン押下 |
+| `set-issue-card-ref` | issue カードの ref を親へ渡す |
+
+#### edit.vue 側に残した責務
+
+- scenario check API 処理
+- `scenarioCheckFilter` / `scenarioCategoryFilter` / `scenarioCheckInfoOpen` の状態管理
+- フィルターボタン・カテゴリフィルターボタン UI
+- `scenarioCheckCounts` / `scenarioCategoryCounts` / `scenarioCheckTotalCount` の算出
+- `scenarioCheckFilteredIssues` / `scenarioCheckFilteredInfoIssues` / `scenarioCheckVisibleIssues` の算出
+- `EditorPublishCheckSummaryCard`
+- `focusScenarioIssue` / `setScenarioIssueCardRef`
+- 公開前チェックパネル全体のコンポーネント化は未完了（残課題）
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ edit.vue への統合（import + テンプレート置き換え）
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
 
 ## 参照
 
