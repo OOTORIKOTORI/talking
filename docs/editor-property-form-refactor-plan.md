@@ -678,7 +678,7 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ edit.vue への統合（import 差し替え + テンプレート置き換え）
 - ✅ `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を edit.vue から削除
 - ✅ frontend build 済み
-- ⏳ 手動確認待ち
+- ✅ 手動確認済み（通常表示 / 全画面表示）
 
 ## 参照
 

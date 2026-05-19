@@ -9,7 +9,7 @@
 
 ## 📍 現在地サマリ（2026-05-20）
 
-最新仕様確認コミット: 37df927f9e4d8949df28dc7bfd70ae7212adc313（PR #17 merge commit — Merge pull request #17 from OOTORIKOTORI/fi-055-phase-2h）
+最新仕様確認コミット: 19acd25a3a25a3b32d809bb4a49dcb975cf4647e（FI-055 Phase 2-i implementation commit）
 
 以下の MVP が一区切り済みです。
 
