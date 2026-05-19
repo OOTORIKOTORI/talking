@@ -7,9 +7,9 @@
 
 ---
 
-## 📍 現在地サマリ（2026-05-18）
+## 📍 現在地サマリ（2026-05-20）
 
-最新仕様確認コミット: 459863424edc44445183ebc414f4a8f9c58d80d9（Merge pull request #16 from OOTORIKOTORI/ux-fix-speaker-async）
+最新仕様確認コミット: 37df927f9e4d8949df28dc7bfd70ae7212adc313（PR #17 merge commit — Merge pull request #17 from OOTORIKOTORI/fi-055-phase-2h）
 
 以下の MVP が一区切り済みです。
 
