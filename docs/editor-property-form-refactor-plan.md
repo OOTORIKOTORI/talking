@@ -680,6 +680,34 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ frontend build 済み
 - ✅ 手動確認済み（通常表示 / 全画面表示）
 
+---
+
+## Phase 2 総括（2026-05-20）
+
+**状態**: Phase 2 UIコンポーネント化MVP 一区切り
+
+### Phase 2 で達成したこと
+
+`Node*Fields` コンポーネント群（NodeEffectsFields / NodeTransitionFields / NodeChoicesFields / NodeBasicInfoFields / NodeMaterialsFields / NodePortraitsFields / NodeSaveActions / NodeDangerZone）と `EditorPublishCheck*` コンポーネント群（EditorPublishCheckSummaryCard / EditorPublishCheckFilters / EditorPublishCheckIssueList / EditorPublishCheckPanel）の切り出しにより、通常表示/全画面表示で二重実装されていた UI の主要な重複を解消した。
+
+公開前チェックも `EditorPublishCheckPanel.vue` 配下に SummaryCard / Filters / IssueList を束ねるところまで完了し、`edit.vue` からの直接 import を整理した。
+
+### なぜここで一区切りか
+
+`edit.vue` の肥大化はまだ残っているが、ここから先はUI重複解消ではなく、状態管理・副作用・API処理の整理になる。目的（通常表示/全画面表示の重複UI削減）はおおむね達成されたため、Phase 2 はMVP完了として一区切りとする。
+
+### Phase 3候補（急ぎではない）
+
+以下は `edit.vue` の変更頻度や事故リスクが高まった時に検討する:
+
+- `useEditorPublishCheck()` などの composable 化
+- scenario check API処理・reference diagnostics API処理の `edit.vue` 外への切り出し
+- filter state（`scenarioCheckFilter` / `scenarioCategoryFilter` / `scenarioCheckInfoOpen`）の移譲
+- issue算出 computed（`scenarioCheckIssues` / `scenarioCheckFilteredIssues` 等）の移譲
+- `sectionOpen.scenarioCheck` / `focusScenarioIssue` / `setScenarioIssueCardRef` の移譲
+- NodePicker / AssetPicker / CharacterPicker / CharacterImagePicker 周辺の親管理整理
+- `edit.vue` 全体の責務分割
+
 ## 参照
 
 - `docs/PROJECT_SPEC.md`

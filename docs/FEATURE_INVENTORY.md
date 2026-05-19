@@ -402,7 +402,7 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 + Phase 2-d-2 + Phase 2-e + Phase 2-f + Phase 2-g + Phase 2-h + Phase 2-i 実装済み`
+- 状態: `MVP一区切り / Phase 2 UIコンポーネント化完了（Phase 2-i まで実装済み）/ 残る state・API・computed 移譲は Phase 3候補として保留`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
@@ -423,6 +423,11 @@
 	- 2026-05-19: `apps/frontend/components/editor/EditorPublishCheckIssueList.vue` を新規作成。公開前チェックパネルの issue 一覧表示（情報折りたたみ・対象へ移動・highlight）を共通コンポーネント化。フィルターUI・カテゴリフィルター・参照診断API処理は `edit.vue` 側に残置。公開前チェックパネル全体のコンポーネント化は未完了。
 	- 2026-05-20: `apps/frontend/components/editor/EditorPublishCheckFilters.vue` を新規作成（Phase 2-h）。公開前チェックパネルの severity filter / category filter ボタン列を共通コンポーネント化。`scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を `edit.vue` から削除し、ボタン class 算出をコンポーネント内部に移動。フィルター状態管理・issue算出 computed・API処理は `edit.vue` 側に残置。
 	- 2026-05-20: `apps/frontend/components/editor/EditorPublishCheckPanel.vue` を新規作成（Phase 2-i）。公開前チェックセクションの外枠・見出し・折りたたみ・件数チップ・参照診断中/エラー表示・既存3コンポーネント（SummaryCard / Filters / IssueList）の配置を共通コンポーネント化。scenario check API処理・reference diagnostics API処理・issue算出 computed・filter state・focus処理は `edit.vue` 側に残置。
+- **Phase 2 完了メモ（2026-05-20）**:
+	- 通常表示/全画面表示の主要フォームUI重複は、Phase 2-i まででおおむね解消済み。
+	- 公開前チェックも `EditorPublishCheckPanel.vue` 配下に SummaryCard / Filters / IssueList を束ねるところまで完了。
+	- `edit.vue` 側に残る主な責務: scenario check API処理・reference diagnostics API処理・filter state（`scenarioCheckFilter` / `scenarioCategoryFilter` / `scenarioCheckInfoOpen`）・issue算出 computed（`scenarioCheckIssues` / `scenarioCheckFilteredIssues` 等）・`sectionOpen.scenarioCheck`・`focusScenarioIssue`・`setScenarioIssueCardRef`・NodePicker / AssetPicker / CharacterPicker / CharacterImagePicker 周辺の親管理。
+	- これらはすぐに移す必要はなく、必要になった時に Phase 3 として検討する。
 
 ### FI-056: 右ペインセクション要約表示
 
