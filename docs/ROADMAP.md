@@ -9,7 +9,7 @@
 
 ## 📍 現在地サマリ（2026-05-18）
 
-最新仕様確認コミット: 218efdd（Merge pull request #13 from OOTORIKOTORI/fi-056-transitions-summary）
+最新仕様確認コミット: 459863424edc44445183ebc414f4a8f9c58d80d9（Merge pull request #16 from OOTORIKOTORI/ux-fix-speaker-async）
 
 以下の MVP が一区切り済みです。
 
