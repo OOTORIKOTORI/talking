@@ -205,6 +205,10 @@
 - FI-055 Phase 2-d-2: `NodePortraitsFields.vue` を新規作成し、通常表示/全画面表示のキャラクター配置UIを共通化（表示・素材セクション内の残り重複を解消）
 - FI-055 Phase 2-e: `NodeSaveActions.vue` / `NodeDangerZone.vue` を新規作成し、通常表示/全画面表示の保存ボタン・危険操作セクションを共通化
 - FI-055 Phase 2-f: `EditorPublishCheckSummaryCard.vue` を新規作成し、公開前チェックパネル内のサマリーカードを共通コンポーネント化（表示用 computed を移譲）
+- FI-055 Phase 2-g: `EditorPublishCheckIssueList.vue` を新規作成し、公開前チェックパネルの issue 一覧表示（情報折りたたみ・対象へ移動・highlight）を共通コンポーネント化（フィルターUI・カテゴリフィルター・参照診断API処理は `edit.vue` 側に残置）
+- 話者キャラ欄の独立性修正: `speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正
+- `refreshSpeakerCharacterLabel(characterId)` async helper を追加: `selectNode()` 時に API から実際のキャラ名を取得し `speakerCharacterLabel` を正確な名前で更新（`/my/characters/:id` → `/characters/:id` フォールバック、レースコンディションガード付き）
+- 制作ガイドボタンUX修正: ボタン文言を「📋 ガイド」に固定し、表示中は active スタイルで状態を示す（`📋 ガイドを閉じる` への動的変化を廃止）
 - 開始ノード到達不能判定見直しMVP（到達可能性の起点にゲーム開始ノード + 各シーン開始ノードを採用し、false positiveを抑制）
 - 右ペインセクション化・localStorage 保存・作業位置復元
 - edit 画面右ペイン上部アクション群の整理MVP（表示 / 設定 / 出力で軽くグルーピング。既存ボタン挙動は不変、狭い幅では flex-wrap で自然に折り返し）
