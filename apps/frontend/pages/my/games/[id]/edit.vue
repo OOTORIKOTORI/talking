@@ -17,6 +17,7 @@ import NodeSaveActions from '@/components/editor/NodeSaveActions.vue'
 import NodeDangerZone from '@/components/editor/NodeDangerZone.vue'
 import EditorPublishCheckSummaryCard from '@/components/editor/EditorPublishCheckSummaryCard.vue'
 import EditorPublishCheckIssueList from '@/components/editor/EditorPublishCheckIssueList.vue'
+import EditorPublishCheckFilters from '@/components/editor/EditorPublishCheckFilters.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -1362,48 +1363,6 @@ async function applyScenarioCheckQueryHint() {
   await nextTick()
   const issueCard = matchedIssue.id ? scenarioIssueCardRefs.value[matchedIssue.id] : null
   issueCard?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
-
-function scenarioFilterButtonClass(filter: ScenarioCheckFilter) {
-  const active = scenarioCheckFilter.value === filter
-  if (filter === 'error') {
-    if (active) return 'border-red-300 bg-red-100 text-red-800'
-    if (scenarioCheckCounts.value.error > 0) return 'border-red-200 bg-red-50 text-red-700'
-    return 'border-gray-200 bg-white text-gray-700'
-  }
-  if (filter === 'warning') {
-    if (active) return 'border-amber-300 bg-amber-100 text-amber-800'
-    if (scenarioCheckCounts.value.warning > 0) return 'border-amber-200 bg-amber-50 text-amber-700'
-    return 'border-gray-200 bg-white text-gray-700'
-  }
-  if (filter === 'info') {
-    if (active) return 'border-slate-300 bg-slate-100 text-slate-700'
-    return 'border-gray-200 bg-white text-gray-500'
-  }
-  if (active) return 'border-gray-300 bg-gray-100 text-gray-800'
-  return 'border-gray-200 bg-white text-gray-700'
-}
-
-function scenarioCategoryFilterButtonClass(key: 'all' | PrepublishIssueCategory, count: number) {
-  const active = scenarioCategoryFilter.value === key
-  if (key === 'all') {
-    if (active) return 'border-gray-300 bg-gray-100 text-gray-800'
-    return 'border-gray-200 bg-white text-gray-700'
-  }
-  if (key === 'asset-reference') {
-    if (active) return 'border-sky-300 bg-sky-100 text-sky-800'
-    if (count > 0) return 'border-sky-200 bg-sky-50 text-sky-700'
-    return 'border-gray-200 bg-white text-gray-500'
-  }
-  if (key === 'character-reference') {
-    if (active) return 'border-violet-300 bg-violet-100 text-violet-800'
-    if (count > 0) return 'border-violet-200 bg-violet-50 text-violet-700'
-    return 'border-gray-200 bg-white text-gray-500'
-  }
-  // structure
-  if (active) return 'border-orange-300 bg-orange-100 text-orange-800'
-  if (count > 0) return 'border-orange-200 bg-orange-50 text-orange-700'
-  return 'border-gray-200 bg-white text-gray-500'
 }
 
 function selectScenarioCategoryFilter(key: 'all' | PrepublishIssueCategory) {
@@ -3147,30 +3106,14 @@ function downloadAiReviewMarkdown() {
                 :reference-diagnostics-error="referenceDiagnosticsError"
               />
               <!-- ── フィルター ── -->
-              <div class="mb-1 flex flex-wrap gap-2">
-                <button
-                  v-for="item in scenarioCheckFilterItems"
-                  :key="item.key"
-                  type="button"
-                  class="rounded border px-2 py-1 text-xs transition-colors"
-                  :class="scenarioFilterButtonClass(item.key)"
-                  @click="selectScenarioCheckFilter(item.key)"
-                >
-                  {{ item.label }} {{ item.count }}
-                </button>
-              </div>
-              <div class="mb-2 flex flex-wrap gap-1">
-                <button
-                  v-for="item in scenarioCategoryFilterItems"
-                  :key="item.key"
-                  type="button"
-                  class="rounded border px-2 py-0.5 text-[11px] transition-colors"
-                  :class="scenarioCategoryFilterButtonClass(item.key, item.count)"
-                  @click="selectScenarioCategoryFilter(item.key)"
-                >
-                  {{ item.displayLabel }}
-                </button>
-              </div>
+              <EditorPublishCheckFilters
+                :filter-items="scenarioCheckFilterItems"
+                :category-filter-items="scenarioCategoryFilterItems"
+                :scenario-check-filter="scenarioCheckFilter"
+                :scenario-category-filter="scenarioCategoryFilter"
+                @select-check-filter="selectScenarioCheckFilter"
+                @select-category-filter="selectScenarioCategoryFilter"
+              />
               <!-- ── issue一覧 ── -->
               <EditorPublishCheckIssueList
                 :total-count="scenarioCheckTotalCount"

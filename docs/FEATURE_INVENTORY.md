@@ -402,7 +402,7 @@
 
 ### FI-055: edit画面プロパティフォーム共通コンポーネント化
 
-- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 + Phase 2-d-2 + Phase 2-e + Phase 2-f + Phase 2-g 実装済み`
+- 状態: `一部実装 / Phase 1 + Phase 2-a + Phase 2-b-1 + Phase 2-b-2 + Phase 2-c + Phase 2-d-1 + Phase 2-d-2 + Phase 2-e + Phase 2-f + Phase 2-g + Phase 2-h 実装済み`
 - ROADMAP出典: `docs/ROADMAP.md` 後回しにする大きめ課題「ゲーム編集体験」「edit 画面プロパティフォームの共通コンポーネント化（通常表示/全画面表示の二重実装解消）」
 - 概要: 通常表示と全画面表示で二重実装になっているプロパティフォームを共通コンポーネント化。
 - 補足: 背景フィルター / 背景ぼかしMVP実装時に「通常表示側のみUI追加、全画面側へ反映漏れ」の再発事例あり。段階的移行方針は `docs/editor-property-form-refactor-plan.md` を参照。
@@ -421,6 +421,7 @@
 	- 2026-05-17: `apps/frontend/components/editor/NodeDangerZone.vue` を新規作成。通常表示/全画面表示の「危険操作」セクション（セクション見出し + ノード削除ボタン）を共通化。
 	- 2026-05-18: `apps/frontend/components/editor/EditorPublishCheckSummaryCard.vue` を新規作成。公開前チェックパネル内のサマリーカード（状態バッジ・件数・優先問題）を共通コンポーネント化。
 	- 2026-05-19: `apps/frontend/components/editor/EditorPublishCheckIssueList.vue` を新規作成。公開前チェックパネルの issue 一覧表示（情報折りたたみ・対象へ移動・highlight）を共通コンポーネント化。フィルターUI・カテゴリフィルター・参照診断API処理は `edit.vue` 側に残置。公開前チェックパネル全体のコンポーネント化は未完了。
+	- 2026-05-20: `apps/frontend/components/editor/EditorPublishCheckFilters.vue` を新規作成（Phase 2-h）。公開前チェックパネルの severity filter / category filter ボタン列を共通コンポーネント化。`scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を `edit.vue` から削除し、ボタン class 算出をコンポーネント内部に移動。フィルター状態管理・issue算出 computed・API処理は `edit.vue` 側に残置。
 
 ### FI-056: 右ペインセクション要約表示
 

@@ -1,6 +1,6 @@
 # edit画面プロパティフォーム共通化 設計メモMVP
 
-最終更新: 2026-05-19（Phase 2-g 反映）
+最終更新: 2026-05-20（Phase 2-h 反映）
 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ## 背景
@@ -553,6 +553,59 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 
 - ✅ コンポーネント作成
 - ✅ edit.vue への統合（import + テンプレート置き換え）
+- ✅ frontend build 済み
+- ✅ 手動確認済み
+
+## Phase 2-h 実装状況（2026-05-20）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/EditorPublishCheckFilters.vue` を新規作成。
+- `edit.vue` 公開前チェックパネル内の severity filter ボタン列・category filter ボタン列を共通コンポーネント化。
+- `scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` 関数を `edit.vue` から削除し、コンポーネント内部に移動。
+
+#### このコンポーネントが担当する範囲
+
+- severity filter ボタン列（すべて / エラー / 警告 / 情報）
+- category filter ボタン列（全カテゴリ / 構成 / 素材参照 / キャラクター参照）
+- ボタンの active スタイル / count > 0 スタイルの算出
+
+#### props
+
+| 名前 | 型 | 役割 |
+|---|---|---|
+| `filterItems` | `FilterItem[]` | severity filter 選択肢（key / label / count） |
+| `categoryFilterItems` | `CategoryFilterItem[]` | category filter 選択肢（key / label / count / displayLabel） |
+| `scenarioCheckFilter` | `'all' \| ScenarioCheckSeverity` | 現在の severity filter（active スタイル判定用） |
+| `scenarioCategoryFilter` | `'all' \| PrepublishIssueCategory` | 現在の category filter（active スタイル判定用） |
+
+#### emits
+
+| イベント | 役割 |
+|---|---|
+| `select-check-filter` | severity filter ボタン押下 |
+| `select-category-filter` | category filter ボタン押下 |
+
+#### edit.vue 側に残した責務
+
+- scenario check API 処理
+- `scenarioCheckFilter` / `scenarioCategoryFilter` / `scenarioCheckInfoOpen` の状態管理
+- `scenarioCheckFilterItems` / `scenarioCategoryFilterItems` の算出 computed
+- `scenarioCheckCounts` / `scenarioCategoryCounts` / `scenarioCheckTotalCount` の算出
+- `scenarioCheckFilteredIssues` / `scenarioCheckFilteredInfoIssues` / `scenarioCheckVisibleIssues` の算出
+- `selectScenarioCheckFilter` / `selectScenarioCategoryFilter` 関数
+- `EditorPublishCheckSummaryCard`
+- `EditorPublishCheckIssueList`
+- 公開前チェックパネル全体の開閉（`sectionOpen.scenarioCheck`）
+- 公開前チェックパネル全体のコンポーネント化は未完了（残課題）
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ edit.vue への統合（import + テンプレート置き換え）
+- ✅ `scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を edit.vue から削除
 - ✅ frontend build 済み
 - ⏳ 手動確認待ち
 
