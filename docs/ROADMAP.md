@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-20（FI-055 Phase 2-h: EditorPublishCheckFilters.vue 追加、フィルターUI コンポーネント化）
+> 最終更新: 2026-05-20（FI-055 Phase 2-i: EditorPublishCheckPanel.vue 追加、公開前チェックセクション外枠コンポーネント化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -207,6 +207,7 @@
 - FI-055 Phase 2-f: `EditorPublishCheckSummaryCard.vue` を新規作成し、公開前チェックパネル内のサマリーカードを共通コンポーネント化（表示用 computed を移譲）
 - FI-055 Phase 2-g: `EditorPublishCheckIssueList.vue` を新規作成し、公開前チェックパネルの issue 一覧表示（情報折りたたみ・対象へ移動・highlight）を共通コンポーネント化（フィルターUI・カテゴリフィルター・参照診断API処理は `edit.vue` 側に残置）
 - FI-055 Phase 2-h: `EditorPublishCheckFilters.vue` を新規作成し、公開前チェックパネルの severity filter / category filter ボタン列を共通コンポーネント化。`scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を `edit.vue` から削除（フィルター状態管理・issue算出・API処理は `edit.vue` 側に残置）
+- FI-055 Phase 2-i: `EditorPublishCheckPanel.vue` を新規作成し、公開前チェックセクションの外枠・見出し・折りたたみ・件数チップ・参照診断中/エラー表示・3コンポーネント配置を共通コンポーネント化。`edit.vue` から `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を削除（scenario check API・diagnostics API・filter state・focus処理は `edit.vue` 側に残置）
 - 話者キャラ欄の独立性修正: `speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正
 - `refreshSpeakerCharacterLabel(characterId)` async helper を追加: `selectNode()` 時に API から実際のキャラ名を取得し `speakerCharacterLabel` を正確な名前で更新（`/my/characters/:id` → `/characters/:id` フォールバック、レースコンディションガード付き）
 - 制作ガイドボタンUX修正: ボタン文言を「📋 ガイド」に固定し、表示中は active スタイルで状態を示す（`📋 ガイドを閉じる` への動的変化を廃止）

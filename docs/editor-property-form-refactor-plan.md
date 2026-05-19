@@ -1,6 +1,6 @@
 # edit画面プロパティフォーム共通化 設計メモMVP
 
-最終更新: 2026-05-20（Phase 2-h 反映）
+最終更新: 2026-05-20（Phase 2-i 反映）
 対象: `apps/frontend/pages/my/games/[id]/edit.vue`
 
 ## 背景
@@ -596,10 +596,8 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - `scenarioCheckCounts` / `scenarioCategoryCounts` / `scenarioCheckTotalCount` の算出
 - `scenarioCheckFilteredIssues` / `scenarioCheckFilteredInfoIssues` / `scenarioCheckVisibleIssues` の算出
 - `selectScenarioCheckFilter` / `selectScenarioCategoryFilter` 関数
-- `EditorPublishCheckSummaryCard`
-- `EditorPublishCheckIssueList`
 - 公開前チェックパネル全体の開閉（`sectionOpen.scenarioCheck`）
-- 公開前チェックパネル全体のコンポーネント化は未完了（残課題）
+- 公開前チェックパネル外枠は Phase 2-i で `EditorPublishCheckPanel.vue` へ移譲
 
 ### 検証状況
 
@@ -608,6 +606,79 @@ PR #5 マージ後、`edit.vue` の `script setup` に `NodeMaterialsFields` の
 - ✅ `scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を edit.vue から削除
 - ✅ frontend build 済み
 - ✅ 手動確認済み（通常表示 / 全画面表示）
+
+## Phase 2-i 実装状況（2026-05-20）
+
+**状態**: ✅ 実装完了（MVP）
+
+### 実装内容
+
+- `apps/frontend/components/editor/EditorPublishCheckPanel.vue` を新規作成。
+- `edit.vue` 公開前チェックセクションの外枠全体（見出し・説明文・折りたたみボタン・件数チップ・参照診断中/エラー表示・open時コンテンツ）を共通コンポーネント化。
+- `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` をパネル内部に収め、`edit.vue` からの直接 import を削除。
+
+#### このコンポーネントが担当する範囲
+
+- 外枠カード（`mb-4 rounded-lg border border-gray-200 bg-gray-50`）
+- ヘッダー（見出し「公開前チェック」・説明文・折りたたみ/展開ボタン）
+- 常時表示の件数チップ（エラー N件 / 警告 N件 / 情報 N件）
+- `referenceDiagnosticsLoading` の「素材・キャラクター参照を確認中...」表示
+- `referenceDiagnosticsError` の表示
+- open 時の中身（`EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList`）
+
+#### props
+
+| 名前 | 型 | 役割 |
+|---|---|---|
+| `open` | `boolean` | 展開/折りたたみ状態 |
+| `counts` | `{ error: number; warning: number; info: number }` | 件数チップ表示 + SummaryCard へ渡す |
+| `totalCount` | `number` | SummaryCard / IssueList へ渡す |
+| `categoryCounts` | `{ structure: number; assetReference: number; characterReference: number }` | SummaryCard へ渡す |
+| `issues` | `Array<{ id: string; severity: string; message: string }>` | SummaryCard へ渡す |
+| `referenceDiagnosticsLoading` | `boolean` | ローディング表示 + SummaryCard へ渡す |
+| `referenceDiagnosticsError` | `string \| null` | エラー表示 + SummaryCard へ渡す |
+| `filterItems` | `FilterItem[]` | Filters へ渡す |
+| `categoryFilterItems` | `CategoryFilterItem[]` | Filters へ渡す |
+| `scenarioCheckFilter` | `ScenarioCheckFilter` | Filters / IssueList へ渡す |
+| `scenarioCategoryFilter` | `ScenarioCategoryFilter` | Filters へ渡す |
+| `filteredIssues` | `any[]` | IssueList へ渡す |
+| `filteredInfoIssues` | `any[]` | IssueList へ渡す |
+| `visibleIssues` | `any[]` | IssueList へ渡す |
+| `scenarioCheckInfoOpen` | `boolean` | IssueList へ渡す |
+| `highlightedIssueId` | `string \| null` | IssueList へ渡す |
+| `scenarioSeverityLabel` | `(severity) => string` | IssueList へ渡す |
+| `scenarioSeverityClass` | `(severity) => string` | IssueList へ渡す |
+| `issueCategoryLabel` | `(issue) => string` | IssueList へ渡す |
+| `issueCategoryClass` | `(issue) => string` | IssueList へ渡す |
+| `scenarioIssueLocation` | `(issue) => string` | IssueList へ渡す |
+
+#### emits
+
+| イベント | 役割 |
+|---|---|
+| `toggle-open` | 折りたたみ/展開ボタン押下 |
+| `select-check-filter` | severity filter ボタン押下（Filters から中継） |
+| `select-category-filter` | category filter ボタン押下（Filters から中継） |
+| `toggle-info-open` | info 折りたたみ切り替え（IssueList から中継） |
+| `focus-issue` | 対象へ移動ボタン押下（IssueList から中継） |
+| `set-issue-card-ref` | issue カード ref（IssueList から中継） |
+
+#### edit.vue 側に残した責務
+
+- scenario check API 処理
+- reference diagnostics API 処理
+- `scenarioCheckFilter` / `scenarioCategoryFilter` / `scenarioCheckInfoOpen` の状態管理
+- issue 算出 computed（`scenarioCheckIssues` / `scenarioCheckFilteredIssues` 等）
+- `sectionOpen.scenarioCheck` の実体
+- `focusScenarioIssue` / `setScenarioIssueCardRef` の実体
+
+### 検証状況
+
+- ✅ コンポーネント作成
+- ✅ edit.vue への統合（import 差し替え + テンプレート置き換え）
+- ✅ `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を edit.vue から削除
+- ✅ frontend build 済み
+- ⏳ 手動確認待ち
 
 ## 参照
 

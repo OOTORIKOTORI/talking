@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm -C apps/frontend build)"
+    ]
+  }
+}

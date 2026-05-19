@@ -15,9 +15,7 @@ import NodeMaterialsFields from '@/components/editor/NodeMaterialsFields.vue'
 import NodePortraitsFields from '@/components/editor/NodePortraitsFields.vue'
 import NodeSaveActions from '@/components/editor/NodeSaveActions.vue'
 import NodeDangerZone from '@/components/editor/NodeDangerZone.vue'
-import EditorPublishCheckSummaryCard from '@/components/editor/EditorPublishCheckSummaryCard.vue'
-import EditorPublishCheckIssueList from '@/components/editor/EditorPublishCheckIssueList.vue'
-import EditorPublishCheckFilters from '@/components/editor/EditorPublishCheckFilters.vue'
+import EditorPublishCheckPanel from '@/components/editor/EditorPublishCheckPanel.vue'
 import { getSignedGetUrl } from '@/composables/useSignedUrl'
 import { useAssetMeta } from '@/composables/useAssetMeta'
 import { useVisualEffects } from '@/composables/useVisualEffects'
@@ -3067,73 +3065,35 @@ function downloadAiReviewMarkdown() {
             </div>
           </div>
 
-          <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50">
-            <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
-              <div>
-                <div class="font-semibold text-sm">公開前チェック</div>
-                <div class="text-[11px] text-gray-500">ゲーム構成・素材参照・キャラクター参照を確認します。警告は公開をブロックしません。</div>
-              </div>
-              <button
-                type="button"
-                class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
-                @click="sectionOpen.scenarioCheck = !sectionOpen.scenarioCheck"
-              >
-                {{ sectionOpen.scenarioCheck ? '折りたたむ' : '展開' }}
-              </button>
-            </div>
-            <div class="px-3 py-2">
-              <div class="flex flex-wrap gap-2 text-xs">
-                <span class="rounded border border-red-200 bg-red-50 px-2 py-1 font-semibold text-red-700">エラー {{ scenarioCheckCounts.error }}件</span>
-                <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">警告 {{ scenarioCheckCounts.warning }}件</span>
-                <span class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-slate-600">情報 {{ scenarioCheckCounts.info }}件</span>
-              </div>
-              <div v-if="referenceDiagnosticsLoading" class="mt-2 flex items-center gap-1 text-xs text-slate-500">
-                <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500"></span>
-                素材・キャラクター参照を確認中...
-              </div>
-              <div v-else-if="referenceDiagnosticsError" class="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                {{ referenceDiagnosticsError }} — 時間をおいて再読み込みしてください。
-              </div>
-            </div>
-            <div v-if="sectionOpen.scenarioCheck" class="border-t border-gray-200 px-3 py-2">
-              <!-- ── 公開前チェックサマリーカード ── -->
-              <EditorPublishCheckSummaryCard
-                :counts="scenarioCheckCounts"
-                :total-count="scenarioCheckTotalCount"
-                :category-counts="scenarioCategoryCounts"
-                :issues="scenarioCheckIssues"
-                :reference-diagnostics-loading="referenceDiagnosticsLoading"
-                :reference-diagnostics-error="referenceDiagnosticsError"
-              />
-              <!-- ── フィルター ── -->
-              <EditorPublishCheckFilters
-                :filter-items="scenarioCheckFilterItems"
-                :category-filter-items="scenarioCategoryFilterItems"
-                :scenario-check-filter="scenarioCheckFilter"
-                :scenario-category-filter="scenarioCategoryFilter"
-                @select-check-filter="selectScenarioCheckFilter"
-                @select-category-filter="selectScenarioCategoryFilter"
-              />
-              <!-- ── issue一覧 ── -->
-              <EditorPublishCheckIssueList
-                :total-count="scenarioCheckTotalCount"
-                :filtered-issues="scenarioCheckFilteredIssues"
-                :filtered-info-issues="scenarioCheckFilteredInfoIssues"
-                :visible-issues="scenarioCheckVisibleIssues"
-                :scenario-check-filter="scenarioCheckFilter"
-                :scenario-check-info-open="scenarioCheckInfoOpen"
-                :highlighted-issue-id="highlightedScenarioIssueId"
-                :scenario-severity-label="scenarioSeverityLabel"
-                :scenario-severity-class="scenarioSeverityClass"
-                :issue-category-label="issueCategoryLabel"
-                :issue-category-class="issueCategoryClass"
-                :scenario-issue-location="scenarioIssueLocation"
-                @toggle-info-open="scenarioCheckInfoOpen = !scenarioCheckInfoOpen"
-                @focus-issue="focusScenarioIssue"
-                @set-issue-card-ref="setScenarioIssueCardRef"
-              />
-            </div>
-          </div>
+          <EditorPublishCheckPanel
+            :open="sectionOpen.scenarioCheck"
+            :counts="scenarioCheckCounts"
+            :total-count="scenarioCheckTotalCount"
+            :category-counts="scenarioCategoryCounts"
+            :issues="scenarioCheckIssues"
+            :reference-diagnostics-loading="referenceDiagnosticsLoading"
+            :reference-diagnostics-error="referenceDiagnosticsError"
+            :filter-items="scenarioCheckFilterItems"
+            :category-filter-items="scenarioCategoryFilterItems"
+            :scenario-check-filter="scenarioCheckFilter"
+            :scenario-category-filter="scenarioCategoryFilter"
+            :filtered-issues="scenarioCheckFilteredIssues"
+            :filtered-info-issues="scenarioCheckFilteredInfoIssues"
+            :visible-issues="scenarioCheckVisibleIssues"
+            :scenario-check-info-open="scenarioCheckInfoOpen"
+            :highlighted-issue-id="highlightedScenarioIssueId"
+            :scenario-severity-label="scenarioSeverityLabel"
+            :scenario-severity-class="scenarioSeverityClass"
+            :issue-category-label="issueCategoryLabel"
+            :issue-category-class="issueCategoryClass"
+            :scenario-issue-location="scenarioIssueLocation"
+            @toggle-open="sectionOpen.scenarioCheck = !sectionOpen.scenarioCheck"
+            @select-check-filter="selectScenarioCheckFilter"
+            @select-category-filter="selectScenarioCategoryFilter"
+            @toggle-info-open="scenarioCheckInfoOpen = !scenarioCheckInfoOpen"
+            @focus-issue="focusScenarioIssue"
+            @set-issue-card-ref="setScenarioIssueCardRef"
+          />
 
           <!-- ミニプレビュー -->
           <!-- 全画面は 2 カラムに分割：左=ステージ / 右=フォーム -->

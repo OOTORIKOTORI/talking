@@ -14,9 +14,11 @@
  * edit.vue 側が保持する責務:
  *   - scenario check API 処理
  *   - scenarioCheckFilter / scenarioCategoryFilter / scenarioCheckInfoOpen 状態管理
- *   - フィルターボタン・カテゴリフィルターボタン UI
- *   - EditorPublishCheckSummaryCard
+ *   - issue 算出 computed
  *   - focusScenarioIssue / setScenarioIssueCardRef
+ *
+ * フィルターボタン UI は EditorPublishCheckFilters.vue が担当。
+ * 外枠・配置は EditorPublishCheckPanel.vue が担当。
  */
 import type { ScenarioCheckIssue, ScenarioCheckSeverity } from '@/utils/scenarioCheck'
 
