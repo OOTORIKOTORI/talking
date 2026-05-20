@@ -91,10 +91,12 @@ const emit = defineEmits<{
       </div>
       <button
         type="button"
-        class="px-2 py-1 text-xs border border-gray-300 rounded bg-white hover:bg-gray-100"
+        class="flex items-center gap-1 rounded border px-2 py-1 text-xs transition-colors"
+        :class="open ? 'border-gray-400 bg-gray-100 text-gray-800' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100'"
         @click="emit('toggle-open')"
       >
         {{ open ? '折りたたむ' : '展開' }}
+        <span class="text-gray-400 transition-transform duration-150" :class="open ? 'rotate-180' : ''">▾</span>
       </button>
     </div>
     <div class="px-3 py-2">
