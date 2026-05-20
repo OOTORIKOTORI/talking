@@ -3011,8 +3011,8 @@ function downloadAiReviewMarkdown() {
             </div>
           </div>
 
-          <!-- ミニプレビュー (通常表示のみ / FI-057) -->
-          <div v-if="!fullscreenProps && node" class="sticky top-0 z-10 mb-3 rounded-lg border border-gray-200 bg-white shadow-sm">
+          <!-- ミニプレビュー (通常表示のみ / FI-057) sticky は親の overflow-y-auto との相性があるため外した -->
+          <div v-if="!fullscreenProps && node" class="mb-3 rounded-lg border border-gray-200 bg-white shadow-sm">
             <div class="flex items-center justify-between px-3 py-1.5 border-b border-gray-100">
               <span class="text-xs font-semibold text-gray-500">プレビュー</span>
               <button
