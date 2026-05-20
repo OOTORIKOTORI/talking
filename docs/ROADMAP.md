@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-20（FI-118 公開前チェックUX polish MVP — issue一覧の表示中件数サマリー・スクロール上限・カード視認性・パネル開閉ボタン改善）
+> 最終更新: 2026-05-21（FI-118 公開前チェックUX polish MVP — PR #18 マージ済み・手動確認済み）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -9,7 +9,7 @@
 
 ## 📍 現在地サマリ（2026-05-20）
 
-最新仕様確認コミット: 19acd25a3a25a3b32d809bb4a49dcb975cf4647e（FI-055 Phase 2-i implementation commit）
+最新仕様確認コミット: dfa272cdce186d48d019da6b42d5f50479330507（PR #18 merge commit — FI-118 公開前チェックUX polish MVP）
 
 以下の MVP が一区切り済みです。
 
@@ -209,7 +209,7 @@
 - FI-055 Phase 2-h: `EditorPublishCheckFilters.vue` を新規作成し、公開前チェックパネルの severity filter / category filter ボタン列を共通コンポーネント化。`scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を `edit.vue` から削除（フィルター状態管理・issue算出・API処理は `edit.vue` 側に残置）
 - FI-055 Phase 2-i: `EditorPublishCheckPanel.vue` を新規作成し、公開前チェックセクションの外枠・見出し・折りたたみ・件数チップ・参照診断中/エラー表示・3コンポーネント配置を共通コンポーネント化。`edit.vue` から `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を削除（scenario check API・diagnostics API・filter state・focus処理は `edit.vue` 側に残置）
 - **FI-055 Phase 2 UIコンポーネント化MVP 一区切り（2026-05-20）**: 通常表示/全画面表示の主要フォームUI重複はおおむね解消済み。残る scenario check API / reference diagnostics API / filter state / issue算出 computed の切り出しは Phase 3候補として保留。急ぎではなく、`edit.vue` の変更頻度や事故リスクが高まった時に着手する。
-- **公開前チェックUX polish MVP（FI-118、2026-05-20）**: issue一覧に表示中件数サマリー行（「表示中 N件 / 全 M件」）を追加。issue カード一覧に `max-h-[360px]` スクロール上限を設定し画面圧迫を低減。カード余白・severity/categoryラベル並び・「対象へ移動」ボタンスタイル・highlighted ring を軽くpolish。パネル折りたたみボタンに開閉矢印と active スタイルを追加。
+- **FI-118 公開前チェックUX polish MVP（PR #18 マージ済み・手動確認済み、2026-05-20）**: issue一覧に「表示中 N件 / 全 M件」サマリー行・「情報 N件は折りたたみ中」補足を追加。issue カード一覧に `max-h-[360px]` 内側スクロール化し画面圧迫を低減。カード余白・severity/categoryラベル並び・「対象へ移動」ボタンスタイル・highlighted ring を軽くpolish。パネル折りたたみボタンに開閉矢印と active スタイルを追加。通常表示/全画面表示ともに動作確認済み。
 - **次の開発候補**: FI-057 edit画面情報設計v2 / テストプレイ高速確認まわりなど
 - 話者キャラ欄の独立性修正: `speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正
 - `refreshSpeakerCharacterLabel(characterId)` async helper を追加: `selectNode()` 時に API から実際のキャラ名を取得し `speakerCharacterLabel` を正確な名前で更新（`/my/characters/:id` → `/characters/:id` フォールバック、レースコンディションガード付き）
