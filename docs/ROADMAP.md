@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-21（FI-118 公開前チェックUX polish MVP — PR #18 マージ済み・手動確認済み）
+> 最終更新: 2026-05-21（FI-057 edit画面情報設計v2 MVP-1 — 通常表示ミニプレビュー上部 sticky 化）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -210,7 +210,8 @@
 - FI-055 Phase 2-i: `EditorPublishCheckPanel.vue` を新規作成し、公開前チェックセクションの外枠・見出し・折りたたみ・件数チップ・参照診断中/エラー表示・3コンポーネント配置を共通コンポーネント化。`edit.vue` から `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を削除（scenario check API・diagnostics API・filter state・focus処理は `edit.vue` 側に残置）
 - **FI-055 Phase 2 UIコンポーネント化MVP 一区切り（2026-05-20）**: 通常表示/全画面表示の主要フォームUI重複はおおむね解消済み。残る scenario check API / reference diagnostics API / filter state / issue算出 computed の切り出しは Phase 3候補として保留。急ぎではなく、`edit.vue` の変更頻度や事故リスクが高まった時に着手する。
 - **FI-118 公開前チェックUX polish MVP（PR #18 マージ済み・手動確認済み、2026-05-20）**: issue一覧に「表示中 N件 / 全 M件」サマリー行・「情報 N件は折りたたみ中」補足を追加。issue カード一覧に `max-h-[360px]` 内側スクロール化し画面圧迫を低減。カード余白・severity/categoryラベル並び・「対象へ移動」ボタンスタイル・highlighted ring を軽くpolish。パネル折りたたみボタンに開閉矢印と active スタイルを追加。通常表示/全画面表示ともに動作確認済み。
-- **次の開発候補**: FI-057 edit画面情報設計v2 / テストプレイ高速確認まわりなど
+- **FI-057 edit画面情報設計v2 MVP-1（2026-05-21）**: 通常表示の右ペイン上部にミニプレビューを sticky 表示。フォームをスクロールしても上部に残り、台詞・背景・キャラ配置などを編集しながらプレビューを参照しやすくした。高さ 200px・「隠す/表示」トグル付き。折りたたみ状態の localStorage 保存・プレビュー高さ調整は後続候補。全画面表示側は既存挙動維持。
+- **次の開発候補**: テストプレイ高速確認まわり・FI-057 後続（プレビュー操作性改善・情報設計v2本格化）など
 - 話者キャラ欄の独立性修正: `speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正
 - `refreshSpeakerCharacterLabel(characterId)` async helper を追加: `selectNode()` 時に API から実際のキャラ名を取得し `speakerCharacterLabel` を正確な名前で更新（`/my/characters/:id` → `/characters/:id` フォールバック、レースコンディションガード付き）
 - 制作ガイドボタンUX修正: ボタン文言を「📋 ガイド」に固定し、表示中は active スタイルで状態を示す（`📋 ガイドを閉じる` への動的変化を廃止）

@@ -154,6 +154,8 @@ function resetSectionOpen() {
 }
 
 const creationGuideHidden = ref(false)
+// FI-057: 通常表示ミニプレビューの折りたたみ状態（ページ内のみ、localStorage 未保存）
+const miniPreviewCollapsed = ref(false)
 
 // 話者キャラ欄に表示するキャラ名（speakerDisplayName とは独立）
 const speakerCharacterLabel = ref('')
@@ -3009,6 +3011,32 @@ function downloadAiReviewMarkdown() {
             </div>
           </div>
 
+          <!-- ミニプレビュー (通常表示のみ / FI-057) -->
+          <div v-if="!fullscreenProps && node" class="sticky top-0 z-10 mb-3 rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between px-3 py-1.5 border-b border-gray-100">
+              <span class="text-xs font-semibold text-gray-500">プレビュー</span>
+              <button
+                class="px-1.5 py-0.5 text-[11px] border rounded bg-white hover:bg-gray-50 text-gray-500"
+                @click="miniPreviewCollapsed = !miniPreviewCollapsed"
+              >
+                {{ miniPreviewCollapsed ? '表示' : '隠す' }}
+              </button>
+            </div>
+            <div v-if="!miniPreviewCollapsed" style="height: 200px; overflow: hidden">
+              <StageCanvas
+                style="width: 100%; height: 100%"
+                :backgroundUrl="bgUrl"
+                :characters="stageCharacters"
+                :message="stageMessage"
+                :theme="stageTheme"
+                :camera="stageCamera"
+                :effectState="effectState"
+                :colorFilter="nodeDraft.colorFilter"
+                :backgroundFilter="nodeDraft.backgroundFilter"
+              />
+            </div>
+          </div>
+
           <div v-if="!creationGuideHidden && sectionOpen.guide" class="mb-3 rounded-lg border border-slate-200 bg-white">
             <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-1.5">
               <div>
@@ -3219,24 +3247,8 @@ function downloadAiReviewMarkdown() {
             </div>
           </div>
 
-          <!-- 通常表示の場合 -->
+          <!-- 通常表示の場合（ミニプレビューは上部 sticky に移動済み / FI-057） -->
           <div v-if="!fullscreenProps">
-            <div v-if="node" class="mb-3">
-              <div class="relative">
-                <StageCanvas 
-                  style="width: 100%; aspect-ratio: 16/9"
-                  :backgroundUrl="bgUrl"
-                  :characters="stageCharacters"
-                  :message="stageMessage"
-                  :theme="stageTheme"
-                  :camera="stageCamera"
-                  :effectState="effectState"
-                  :colorFilter="nodeDraft.colorFilter"
-                  :backgroundFilter="nodeDraft.backgroundFilter"
-                />
-              </div>
-            </div>
-
             <div v-if="node">
               <div class="space-y-4">
                 <!-- 基本情報セクション -->
