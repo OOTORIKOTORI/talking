@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-20（FI-055 Phase 2 UIコンポーネント化MVP 一区切り — Phase 2-i まで完了。残る state/API/computed 切り出しは Phase 3候補として保留）
+> 最終更新: 2026-05-20（FI-118 公開前チェックUX polish MVP — issue一覧の表示中件数サマリー・スクロール上限・カード視認性・パネル開閉ボタン改善）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -209,7 +209,8 @@
 - FI-055 Phase 2-h: `EditorPublishCheckFilters.vue` を新規作成し、公開前チェックパネルの severity filter / category filter ボタン列を共通コンポーネント化。`scenarioFilterButtonClass` / `scenarioCategoryFilterButtonClass` を `edit.vue` から削除（フィルター状態管理・issue算出・API処理は `edit.vue` 側に残置）
 - FI-055 Phase 2-i: `EditorPublishCheckPanel.vue` を新規作成し、公開前チェックセクションの外枠・見出し・折りたたみ・件数チップ・参照診断中/エラー表示・3コンポーネント配置を共通コンポーネント化。`edit.vue` から `EditorPublishCheckSummaryCard` / `EditorPublishCheckFilters` / `EditorPublishCheckIssueList` の直接 import を削除（scenario check API・diagnostics API・filter state・focus処理は `edit.vue` 側に残置）
 - **FI-055 Phase 2 UIコンポーネント化MVP 一区切り（2026-05-20）**: 通常表示/全画面表示の主要フォームUI重複はおおむね解消済み。残る scenario check API / reference diagnostics API / filter state / issue算出 computed の切り出しは Phase 3候補として保留。急ぎではなく、`edit.vue` の変更頻度や事故リスクが高まった時に着手する。
-- **次の開発候補**: FI-057 edit画面情報設計v2 / 公開前チェックUX polish / テストプレイ高速確認まわりなど
+- **公開前チェックUX polish MVP（FI-118、2026-05-20）**: issue一覧に表示中件数サマリー行（「表示中 N件 / 全 M件」）を追加。issue カード一覧に `max-h-[360px]` スクロール上限を設定し画面圧迫を低減。カード余白・severity/categoryラベル並び・「対象へ移動」ボタンスタイル・highlighted ring を軽くpolish。パネル折りたたみボタンに開閉矢印と active スタイルを追加。
+- **次の開発候補**: FI-057 edit画面情報設計v2 / テストプレイ高速確認まわりなど
 - 話者キャラ欄の独立性修正: `speakerCharacterLabel` ref を追加し、話者キャラ欄の表示が `speakerDisplayName` の手入力に引っ張られないよう改善。`clearChar()` で `speakerDisplayName` を消去しないよう修正
 - `refreshSpeakerCharacterLabel(characterId)` async helper を追加: `selectNode()` 時に API から実際のキャラ名を取得し `speakerCharacterLabel` を正確な名前で更新（`/my/characters/:id` → `/characters/:id` フォールバック、レースコンディションガード付き）
 - 制作ガイドボタンUX修正: ボタン文言を「📋 ガイド」に固定し、表示中は active スタイルで状態を示す（`📋 ガイドを閉じる` への動的変化を廃止）
@@ -312,6 +313,7 @@
 - **ゲームプレイ画面キーボード操作MVP**（Enter/Space・↑/↓/Enter・数字キー・Esc）
 - **ゲームプレイ画面 BGMフェードMVP**（停止フェードアウト・切替時直列フェード・同一BGM継続）
 - **作者向けテストプレイ支援MVP**（2026-05-09 実装）（編集画面に `選択中からテスト` / `最初からテスト` の2導線を実装。どちらも `testPlay=1` を付けて新規タブで起動し、保存済み内容で再生するため未保存の `nodeDraft` は反映しない。`選択中からテスト` は現在選択中のシーン/ノードを優先（ノード未選択時は `scene.startNodeId` → シーン先頭ノード、シーン未選択時はゲーム全体開始位置へフォールバック）。`最初からテスト` は選択中シーン/ノードを無視してゲーム全体の開始位置から開始。`/games/:id/play` では `testPlay=1` を付けたうえで作者本人（`game.ownerId === currentUserId`）の場合のみ作者向け簡易デバッグパネルを表示し、現在シーン/現在ノード/次ノード/選択肢数/選択肢遷移先概要/使用素材ID/キャラクター数を確認可能。非作者/未ログインが `testPlay=1` を付けても作者向けUIは表示しない。作者本人のテストプレイは公開 `playCount` にカウントしない。パネル折りたたみと、sceneId/nodeId クエリ付きで編集画面へ戻る導線を追加。遷移ログMVPとして、`start` / `next` / `choice` / `end` / `missing` のログをメモリ内に最大30件保持し、通常/フルスクリーン双方のパネルに表示、ログクリア操作を追加。テキスト即表示・高速確認モードMVPとして、テストプレイパネル内に「全文表示」ボタンを追加し、現在ノードの本文をタイプライター待ちなしで即座に全文表示。「高速確認 ON/OFF」トグルを追加し、ON にするとタイプライター待ちなしで本文を即表示、以後のノード進行でも同様に即表示。高速確認モードON/OFFは localStorage に保存され、次回以降の作者向けテストプレイでも復元される。保存対象は高速確認ON/OFFのみで、全文表示の単発状態や遷移ログは保存しない。遷移ログ永続化は未実装のまま。高速確認ON/OFF 操作は遷移ログに記録しない。「選択肢までスキップ」は `nextNodeId` を連続でたどって最初の選択肢ノードで停止し、到達先本文をタイプライター待ちなしで即全文表示してから選択肢を表示する。選択肢の自動選択はしない。あわせて、パネル内情報を「現在地 / 操作 / ノード情報 / 遷移ログ」に整理し、通常表示とフルスクリーン表示で同じ構造に揃えた。）
+- **公開前チェックUX polish MVP（FI-118、2026-05-20）**（issue一覧に「表示中 N件 / 全 M件」サマリー行を追加。情報折りたたみ中は右端に補足を薄く表示。カード一覧ラッパーに `max-h-[360px] overflow-y-auto` を設定し画面圧迫を低減。カード余白・severity/categoryラベル並び・「対象へ移動」ボタンを青系スタイルに変更して視認性を改善。highlighted issue のring を強化（`ring-sky-400 border-sky-500 bg-sky-50/60`）。パネル折りたたみボタンに開閉矢印 `▾` と active スタイルを追加し open/closed の区別を明確化。API/state/computed の仕様変更なし。）
 - **作者向けテストプレイ支援 遷移ログコピー/エクスポートMVP**（2026-05-14 実装）（遷移ログのテキストコピー・JSONエクスポート機能をテストプレイパネルのボタンで追加。テキストコピーは見出し・ゲームタイトル・ゲームID・export日時・ログ件数・各ログ行を含む。JSONエクスポートは `format` / `version` / `exportedAt` / `game` / `count` / `logs` を含み、`logs` 内の各要素には `seq` / `kind` / `fromNodeId` / `toNodeId` / `fromLabel` / `toLabel` / `choiceIndex` / `choicePreview` / `occurredAt` / `occurredAtIso` / `line` を含める。ファイル名は `talking-transition-log-{gameId}-{timestamp}.json` の形式。ログが0件の場合はコピー/保存とも disabled または軽く通知。コピー/エクスポート操作そのものはログに記録しない。永続化は今回スコープ外。）
 
 ### 公開ゲーム・ギャラリーまわり

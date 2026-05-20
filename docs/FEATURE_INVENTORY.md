@@ -840,6 +840,19 @@
 - 2026-05-19 UX修正: 上部「📋 ガイド」ボタンを常時表示のトグルボタン化。ボタン文言は常に「📋 ガイド」固定（状態による変化なし）、表示中は active スタイルで状態を示す。カード内 `▲` ボタンを「閉じる」に変更。
 - 出典: `apps/frontend/pages/my/games/[id]/edit.vue`
 
+### FI-118: 公開前チェックUX polish MVP
+
+- 状態: `実装済み（2026-05-20）`
+- ROADMAP出典: `docs/ROADMAP.md` ゲーム制作/編集基盤まわり「公開前チェックUX polish MVP」
+- 概要: 公開前チェックパネルの体験を軽く改善する。issue 一覧の圧を下げつつ、現在の表示状態が分かりやすくなるようにする。API/state/computed の仕様変更なし。
+- 実装内容（2026-05-20）:
+  - `EditorPublishCheckIssueList.vue`: issue 一覧の上部に「表示中 N件 / 全 M件」サマリー行を追加。フィルターや情報折りたたみによる件数差を即時把握できるようにした。情報が折りたたみ中の場合は「情報 N件は折りたたみ中」を同行右端に薄く表示。
+  - `EditorPublishCheckIssueList.vue`: issue カード一覧のラッパーに `max-h-[360px] overflow-y-auto` を設定し、一覧が長くても画面を圧迫しすぎないようにした（0件・折りたたみ案内などは上部に表示するため不自然に狭くならない）。
+  - `EditorPublishCheckIssueList.vue`: issue カードの余白を `px-3 py-2.5` に微調整。severity/category ラベルの並びを `flex gap-1.5` で整え、`対象へ移動` ボタンを `border-blue-200 bg-blue-50 text-blue-700` の青系スタイルに変更して見失われにくくした。highlighted issue の ring を `ring-sky-400 border-sky-500 bg-sky-50/60` に強化。
+  - `EditorPublishCheckPanel.vue`: 折りたたみトグルボタンに開閉矢印（`▾`）と active スタイルを追加し、open/closed の視覚差を改善。
+- 変更なし: scenario check API 処理・reference diagnostics API 処理・フィルター条件仕様・公開ボタン/確認モーダル・DB/API/migration
+- 出典: `apps/frontend/components/editor/EditorPublishCheckIssueList.vue`, `apps/frontend/components/editor/EditorPublishCheckPanel.vue`
+
 ---
 
 ## 棚卸し対象セクション（参照元）
