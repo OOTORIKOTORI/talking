@@ -104,6 +104,21 @@
             <dd class="mt-1 text-gray-400">—</dd>
           </div>
 
+          <!-- Usage Terms -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm font-medium text-gray-500 mb-2">利用条件</div>
+            <div class="flex items-center gap-2 mb-2">
+              <span
+                class="inline-block px-2 py-0.5 text-xs font-semibold rounded-full"
+                :class="asset.creditRequired !== false ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'"
+              >
+                {{ asset.creditRequired !== false ? 'クレジット表記: 必須' : 'クレジット表記: 任意' }}
+              </span>
+            </div>
+            <p v-if="asset.usageTerms" class="text-sm text-gray-800 whitespace-pre-wrap">{{ asset.usageTerms }}</p>
+            <p v-else class="text-sm text-gray-400">個別の利用条件は未設定です。</p>
+          </div>
+
           <div class="border-t pt-6 space-y-3">
             <h3 class="text-lg font-semibold text-gray-900">この素材が使われている公開作品</h3>
             <p class="text-sm text-gray-600">

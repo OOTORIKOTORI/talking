@@ -98,6 +98,34 @@
                 </p>
               </div>
 
+              <!-- Credit Required -->
+              <div class="flex items-center gap-3">
+                <input
+                  id="asset-credit-required"
+                  v-model="formData.creditRequired"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label for="asset-credit-required" class="text-sm font-medium text-gray-700">
+                  クレジット表記を必須にする
+                </label>
+              </div>
+
+              <!-- Usage Terms -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  利用条件（任意）
+                </label>
+                <textarea
+                  v-model="formData.usageTerms"
+                  rows="3"
+                  maxlength="1000"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="例: 改変OK。ゲーム内クレジット表記をお願いします。"
+                />
+                <p class="mt-1 text-xs text-gray-500">{{ formData.usageTerms.length }}/1000文字</p>
+              </div>
+
               <div class="flex items-center gap-3">
                 <input
                   id="asset-public"
@@ -241,6 +269,8 @@ const formData = ref({
   description: '',
   primaryTag: '',
   tags: [] as string[],
+  creditRequired: true,
+  usageTerms: '',
   isPublic: true,
 });
 
@@ -313,6 +343,8 @@ watch(() => props.asset, (asset) => {
       description: asset.description || '',
       primaryTag: asset.primaryTag,
       tags: asset.tags || [],
+      creditRequired: asset.creditRequired !== false,
+      usageTerms: asset.usageTerms || '',
       isPublic: asset.isPublic !== false,
     };
     tagsInput.value = (asset.tags || []).join(', ');
@@ -410,6 +442,8 @@ const handleSubmit = async () => {
       description: formData.value.description || undefined,
       primaryTag: formData.value.primaryTag,
       tags,
+      creditRequired: formData.value.creditRequired,
+      usageTerms: formData.value.usageTerms.trim(),
       isPublic: formData.value.isPublic,
     };
 

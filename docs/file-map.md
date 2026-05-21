@@ -62,7 +62,7 @@ apps/frontend/pages/
 ```text
 apps/frontend/components/
 ├── AssetThumbnail.vue                       # アセットのサムネイル表示。署名URLやフォールバック表示を吸収
-├── EditAssetModal.vue                       # アセット情報編集モーダル（公開/非公開の切り替えを含む）。公開→非公開保存時は usage-impact を確認し、参照中ゲームがある場合に保存前 warning モーダルを表示
+├── EditAssetModal.vue                       # アセット情報編集モーダル（タイトル/説明/タグ/利用条件・クレジット要否/公開状態を編集）。公開→非公開保存時は usage-impact を確認し、参照中ゲームがある場合に保存前 warning モーダルを表示
 ├── asset/
 │   └── AssetCard.vue                        # 素材一覧用カード。詳細遷移（サムネイル/タイトル）と作者リンク・お気に入り操作をDOM構造で分離しつつ、説明・タグ・クレジット表記・お気に入り件数を表示。お気に入り成功時はfavorite-toggledをemit（API変更なし）
 ├── character/

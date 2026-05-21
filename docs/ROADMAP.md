@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-21（FI-057 通常表示ミニプレビュー上部配置MVP 試行・不採用。全画面表示を制作モードとして磨く方向を検討）
+> 最終更新: 2026-05-21（素材詳細・EditAssetModal に利用条件表示/編集を補完。/assets/:id を /characters/:id と統一）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -9,7 +9,7 @@
 
 ## 📍 現在地サマリ（2026-05-20）
 
-最新仕様確認コミット: dfa272cdce186d48d019da6b42d5f50479330507（PR #18 merge commit — FI-118 公開前チェックUX polish MVP）
+最新仕様確認コミット: 197ceb4df4ef25edf2eb30b8a324f63608109a8b（FI-057 通常表示ミニプレビュー上部配置MVP 試行・不採用 revert commit）
 
 以下の MVP が一区切り済みです。
 
@@ -275,6 +275,7 @@
 - **公開前クレジット確認画面MVP**（2026-05-06 実装）（`/my/games` の公開ボタンをクリック時、既存シナリオチェック＋参照診断の後、「公開前にクレジットを確認」モーダル表示。各項目に作者名・クレジット必須/任意・利用条件・status 警告を表示。キャンセルボタンで公開しない、「確認して公開」ボタンで既存公開処理を実行。当時は手動クレジットUI/APIは対象外だったが、2026-05-09に別MVPとして実装済み）
 - **クレジット欄UI polish**（ownerId 短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
 - **ライセンス/利用条件表示MVP**（`usageTerms`（自由入力）+ `creditRequired`（boolean）を Asset/Character に追加。2026-05-05 実装済み。詳細は `docs/PROJECT_SPEC.md` 参照）
+- **素材詳細・編集の利用条件補完MVP**（2026-05-21 実装）`/assets/:id` 詳細ページに利用条件ブロックを追加（`creditRequired` バッジ・`usageTerms` 表示、`/characters/:id` と同じ見た目に統一）。`EditAssetModal.vue` に `creditRequired` チェックボックスと `usageTerms` textarea を追加し、既存素材の利用条件を編集保存できるようにした。DB/migration 変更なし。
 - **公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP**（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
 
 ### プロフィール/作者表示まわり
