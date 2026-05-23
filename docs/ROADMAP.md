@@ -1,6 +1,6 @@
 # Talking 開発ロードマップ
 
-> 最終更新: 2026-05-21（素材詳細・EditAssetModal に利用条件表示/編集を補完。/assets/:id を /characters/:id と統一）
+> 最終更新: 2026-05-23（素材カード・管理一覧に利用条件/クレジット要否バッジを追加）
 > 用途: **進捗管理の正ドキュメント**。作業完了のたびに更新すること。
 > `docs/handoff.md` は旧メモ・補助資料。進捗同期はこのファイルを正とする。
 > 未着手・自由アイデアの索引は `docs/IDEA_BACKLOG.md` を参照。
@@ -276,6 +276,7 @@
 - **クレジット欄UI polish**（ownerId 短縮表示 `d7ef...f292`、用途バッジ化、素材/キャラの行表示改善、非公開項目の詳細非公開表示）
 - **ライセンス/利用条件表示MVP**（`usageTerms`（自由入力）+ `creditRequired`（boolean）を Asset/Character に追加。2026-05-05 実装済み。詳細は `docs/PROJECT_SPEC.md` 参照）
 - **素材詳細・編集の利用条件補完MVP**（2026-05-21 実装）`/assets/:id` 詳細ページに利用条件ブロックを追加（`creditRequired` バッジ・`usageTerms` 表示、`/characters/:id` と同じ見た目に統一）。`EditAssetModal.vue` に `creditRequired` チェックボックスと `usageTerms` textarea を追加し、既存素材の利用条件を編集保存できるようにした。DB/migration 変更なし。
+- **素材カード・管理一覧の利用条件/クレジット要否バッジMVP**（2026-05-23 実装）`AssetCard.vue` に「利用条件あり」バッジを追加（`usageTerms` が設定済みの場合のみ表示、`bg-slate-100 text-slate-700`）。`/my/assets` 管理カードにクレジット必須/任意バッジと「利用条件あり」バッジを追加。詳細を開かずに利用条件の有無とクレジット要否を一覧で確認可能に。DB/API/migration 変更なし。
 - **公開ゲーム詳細の使用素材・キャラクタークレジット表示MVP**（`GET /games/:id/credits` を追加し、`GameProject` / `GameNode` 参照から動的集計。素材は cover/bg/music/sfx/portraitAsset、キャラクターは speaker/portraits を対象に集約表示。削除済み/非公開/不明はフォールバック名+非リンク表示）
 
 ### プロフィール/作者表示まわり

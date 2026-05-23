@@ -284,6 +284,18 @@
                 >
                   {{ asset.isPublic === false ? '非公開' : '公開' }}
                 </span>
+                <span
+                  class="inline-block px-2 py-0.5 text-xs font-medium rounded"
+                  :class="asset.creditRequired !== false ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'"
+                >
+                  {{ asset.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+                </span>
+                <span
+                  v-if="hasUsageTerms(asset)"
+                  class="inline-block px-2 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-700"
+                >
+                  利用条件あり
+                </span>
               </div>
 
               <!-- Tags -->
@@ -435,6 +447,9 @@ const primaryTagLabels: Record<string, string> = {
 const getPrimaryTagLabel = (tag: string): string => {
   return primaryTagLabels[tag] || tag;
 };
+
+const hasUsageTerms = (asset: any): boolean =>
+  typeof asset.usageTerms === 'string' && asset.usageTerms.trim().length > 0;
 
 const displayAssets = computed(() => assets.value);
 const hasActiveFilters = computed(() => {

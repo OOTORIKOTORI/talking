@@ -80,12 +80,18 @@
         </NuxtLink>
         <span v-else>{{ formatCreatorLabel(asset.ownerDisplayName, asset.ownerId) }}</span>
       </p>
-      <div class="mt-2 flex items-center gap-2">
+      <div class="mt-2 flex flex-wrap items-center gap-2">
         <span
           class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full"
           :class="asset.creditRequired !== false ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
         >
           {{ asset.creditRequired !== false ? 'クレジット必須' : 'クレジット任意' }}
+        </span>
+        <span
+          v-if="hasUsageTerms"
+          class="inline-block px-1.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700"
+        >
+          利用条件あり
         </span>
         <span class="text-xs text-gray-500">お気に入り {{ favoriteCount }}</span>
       </div>
@@ -153,6 +159,10 @@ const toggleFavorite = async () => {
     toggling.value = false
   }
 }
+
+const hasUsageTerms = computed(() =>
+  typeof props.asset.usageTerms === 'string' && props.asset.usageTerms.trim().length > 0
+)
 
 const isImage = computed(() => props.asset.contentType?.startsWith('image/'))
 const key = computed(() => props.asset.thumbKey || props.asset.key || '')
