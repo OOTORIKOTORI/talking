@@ -414,6 +414,10 @@
   - `GameCredit` の locked snapshot レコードは、名前・利用条件・creditRequired の補完のみに使用し、現在参照されていない項目を公開前確認の表示対象（修正候補）にしない。
   - 公開済みゲームの詳細表示 / 履歴保持では、従来通り `GameCredit` テーブルを優先した表示を維持する。
   - locked `GameCredit` は公開済みゲームの表示・履歴保持用であり、非公開ゲームの公開前確認における修正対象としては扱わない。
+- アップロード前の画像寸法チェック（クライアント側・非ブロッキング）
+  - `upload.vue` でファイル選択時に画像寸法（幅×高さ・縦横比）を表示。
+  - `primaryTag` が `IMAGE_BG` / `IMAGE_CG` のとき、16:9（許容差 ±0.08）との差分で OK/注意を表示。
+  - アップロードはブロックしない。DB/API/migration 変更なし。
 - 署名URL（GET/PUT）
   - GET（閲覧用）: `GET /uploads/signed-get?key=...&ttl=...` → JSON `{ url }`
     - 出典: `apps/api/src/uploads/uploads.controller.ts#getSignedGetUrl`

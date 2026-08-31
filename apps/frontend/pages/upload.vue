@@ -157,7 +157,7 @@
               <button
                 type="button"
                 class="mt-2 text-sm text-red-600 hover:text-red-700"
-                @click="selectedFile = null"
+                @click="clearFile"
               >
                 削除
               </button>
@@ -189,6 +189,28 @@
             </optgroup>
           </select>
           <p class="mt-1 text-xs text-gray-500">ファイルの用途を選択してください</p>
+        </div>
+
+        <!-- 画像寸法チェック (画像ファイル選択時のみ / FI-044) -->
+        <div v-if="selectedFile && isImageFile">
+          <div v-if="imageMeta" class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-600 space-y-1">
+            <p>画像サイズ: {{ imageMeta.width }} × {{ imageMeta.height }}（約 {{ (imageMeta.width / imageMeta.height).toFixed(2) }}:1）</p>
+            <p
+              v-if="(primaryTag === 'IMAGE_BG' || primaryTag === 'IMAGE_CG') && Math.abs(imageMeta.width / imageMeta.height - 16 / 9) <= 0.08"
+              class="text-green-700"
+            >
+              背景・一枚絵向けの16:9に近い比率です。
+            </p>
+            <p
+              v-else-if="primaryTag === 'IMAGE_BG' || primaryTag === 'IMAGE_CG'"
+              class="text-amber-700"
+            >
+              背景・一枚絵では16:9推奨です。表示時に余白やトリミングが出る可能性があります。
+            </p>
+          </div>
+          <p v-else-if="imageMetaError" class="text-xs text-gray-400">
+            画像サイズを読み取れませんでした。アップロードは続行できます。
+          </p>
         </div>
 
         <!-- Upload Button -->
@@ -276,23 +298,56 @@ const { uploadFile } = useUploader()
 const isImageFile = computed(() => selectedFile.value?.type.startsWith('image/'))
 const isAudioFile = computed(() => selectedFile.value?.type.startsWith('audio/'))
 
+// 画像寸法情報（画像ファイルのみ）
+const imageMeta = ref<{ width: number; height: number } | null>(null)
+const imageMetaError = ref(false)
+
+async function readImageMeta(file: File) {
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  img.onload = () => {
+    URL.revokeObjectURL(url)
+    if (selectedFile.value !== file) return
+    imageMeta.value = { width: img.naturalWidth, height: img.naturalHeight }
+    imageMetaError.value = false
+  }
+  img.onerror = () => {
+    URL.revokeObjectURL(url)
+    if (selectedFile.value !== file) return
+    imageMetaError.value = true
+  }
+  img.src = url
+}
+
+function setSelectedFile(file: File) {
+  selectedFile.value = file
+  primaryTag.value = ''
+  uploadResult.value = null
+  error.value = ''
+  imageMeta.value = null
+  imageMetaError.value = false
+  if (file.type.startsWith('image/')) {
+    readImageMeta(file)
+  }
+}
+
+function clearFile() {
+  selectedFile.value = null
+  imageMeta.value = null
+  imageMetaError.value = false
+}
+
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    selectedFile.value = target.files[0]
-    primaryTag.value = ''
-    uploadResult.value = null
-    error.value = ''
+    setSelectedFile(target.files[0])
   }
 }
 
 function handleDrop(event: DragEvent) {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    selectedFile.value = event.dataTransfer.files[0]
-    primaryTag.value = ''
-    uploadResult.value = null
-    error.value = ''
+    setSelectedFile(event.dataTransfer.files[0])
   }
 }
 
